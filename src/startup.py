@@ -2,7 +2,7 @@
 import asyncio
 from framework import (
     App, Box, Color, Label, Font, FontStyle,
-    DockStyle, AlignLabel, ProgressStyle
+    DockStyle, AlignLabel, ProgressStyle, Os
 )
 
 from .utils import Utils
@@ -64,3 +64,20 @@ class BTCZSetup(Box):
                 missing_files, zk_params_path,
                 self.status_label, self.main.progress_bar,
             )
+            await self.verify_config_file()
+        else:
+            await self.verify_config_file()
+
+
+    async def verify_config_file(self):
+        self.status_label.text = "Verify bitcoinz.conf..."
+        self.main.progress_bar.style = ProgressStyle.MARQUEE
+        await asyncio.sleep(2)
+        bitcoinz_path = self.utils.get_bitcoinz_path()
+        config_file_path = self.utils.get_config_path()
+        if not Os.Directory.Exists(bitcoinz_path):
+            self.blockchaine_index = False
+            Os.Directory.CreateDirectory(bitcoinz_path)
+        if not Os.File.Exists(config_file_path):
+            self.status_label.text = "Creating bitcoinz.conf..."
+            self.utils.create_config_file(config_file_path)

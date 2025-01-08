@@ -1,4 +1,6 @@
 
+import string
+import secrets
 import aiohttp
 import zipfile
 from framework import Os, App, Sys
@@ -19,11 +21,23 @@ class Utils():
         lock_file = Os.Path.Combine(self.app_data, ".lock")
         return lock_file
     
+    def get_bitcoinz_path(self):
+        bitcoinz_path = Os.Path.Combine(
+            Sys.Environment.GetFolderPath(Sys.Environment.SpecialFolder.ApplicationData), 'BitcoinZ'
+        )
+        return bitcoinz_path
+    
     def get_zk_path(self):
         zk_params_path = Os.Path.Combine(
             Sys.Environment.GetFolderPath(Sys.Environment.SpecialFolder.ApplicationData), 'ZcashParams'
         )
         return zk_params_path
+    
+    def get_config_path(self):
+        config_file = "bitcoinz.conf"
+        bitcoinz_path = self.get_bitcoinz_path()
+        config_file_path = Os.Path.Combine(bitcoinz_path, config_file)
+        return config_file_path
     
     def is_already_running(self):
         lock_file = self.get_lock_file()
@@ -86,6 +100,31 @@ class Utils():
             if not Os.File.Exists(file_path):
                 missing_files.append(file)
         return missing_files, zk_params_path
+    
+
+    def generate_random_string(self, length=16):
+        characters = string.ascii_letters + string.digits + string.punctuation
+        return ''.join(secrets.choice(characters) for _ in range(length))
+    
+
+    def create_config_file(self, config_file_path):
+        try:
+            rpcuser = self.generate_random_string(16)
+            rpcpassword = self.generate_random_string(32)
+            with open(config_file_path, 'w') as config_file:
+                config_content = f"""# BitcoinZ configuration file
+# Add your configuration settings below
+
+rpcuser={rpcuser}
+rpcpassword={rpcpassword}
+addnode=178.193.205.17:1989
+addnode=51.222.50.26:1989
+addnode=146.59.69.245:1989
+addnode=37.187.76.80:1989
+"""
+                config_file.write(config_content)
+        except Exception as e:
+            print(f"Error creating config file: {e}")
 
 
     async def fetch_binary_files(self, label, progress_bar):
