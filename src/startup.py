@@ -1,5 +1,8 @@
 
 import asyncio
+import json
+import subprocess
+from datetime import datetime
 from framework import (
     App, Box, Color, Label, Font, FontStyle,
     DockStyle, AlignLabel, ProgressStyle, Os,
@@ -7,6 +10,7 @@ from framework import (
 )
 
 from .utils import Utils
+from .commands import Client
 
 
 class BTCZSetup(Box):
@@ -19,6 +23,7 @@ class BTCZSetup(Box):
 
         self.app = App()
         self.utils = Utils()
+        self.commands = Client()
         self.main = main
         self.app_data = self.app.app_data
 
@@ -37,6 +42,83 @@ class BTCZSetup(Box):
 
         self.insert([self.status_label])
         self.app.run_async(self.verify_binary_files())
+
+
+    def update_info_box(self):
+        self.clear()
+        self.blocks_txt = Label(
+            text="Blocks :",
+            text_color=Color.GRAY,
+            size=8,
+            location=(10, 2),
+            font=Font.SANSSERIF,
+            style=FontStyle.BOLD
+        )
+        self.blocks_value = Label(
+            text="",
+            text_color=Color.WHITE,
+            size=8,
+            location=(60, 2),
+            font=Font.SANSSERIF
+        )
+        self.mediantime_text = Label(
+            text="Date :",
+            text_color=Color.GRAY,
+            size=8,
+            location=(10, 20),
+            font=Font.SANSSERIF,
+            style=FontStyle.BOLD
+        )
+        self.mediantime_value = Label(
+            text="",
+            text_color=Color.WHITE,
+            size=8,
+            location=(50, 20),
+            font=Font.SANSSERIF,
+            width=200
+        )
+        self.sync_txt = Label(
+            text="Sync :",
+            text_color=Color.GRAY,
+            size=8,
+            location=(225, 20),
+            font=Font.SANSSERIF,
+            style=FontStyle.BOLD
+        )
+        self.sync_value = Label(
+            text="",
+            text_color=Color.WHITE,
+            size=8,
+            location=(260, 20),
+            font=Font.SANSSERIF
+        )
+        self.index_size_txt = Label(
+            text="Size :",
+            text_color=Color.GRAY,
+            size=8,
+            location=(225, 2),
+            font=Font.SANSSERIF,
+            style=FontStyle.BOLD
+        )
+        self.index_size_value = Label(
+            text="",
+            text_color=Color.WHITE,
+            size=8,
+            location=(260, 2),
+            font=Font.SANSSERIF
+        )
+        self.insert(
+            [
+                self.blocks_value,
+                self.blocks_txt,
+                self.sync_value,
+                self.sync_txt,
+                self.index_size_value,
+                self.index_size_txt,
+                self.mediantime_value,
+                self.mediantime_text
+            ]
+        )
 
 
     async def verify_binary_files(self):
@@ -123,4 +205,99 @@ class BTCZSetup(Box):
         await self.utils.extract_7z_files(
             self.status_label,
             self.main.progress_bar
+        )
+        await self.execute_bitcoinz_node()
+
+
+    async def execute_bitcoinz_node(self):
+        self.status_label.text = "Starting node..."
+        bitcoinzd = "bitcoinzd.exe"
+        node_file = Os.Path.Combine(self.app_data, bitcoinzd)
+        command = [node_file]
+        try:
+            self.process = await asyncio.create_subprocess_exec(
+                    *command,
+                    stderr=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    creationflags=subprocess.CREATE_NO_WINDOW
+            )
+            await self.waiting_node_status()
+        except Exception as e:
+            print(e)
+        finally:
+            if self.process:
+                await self.process.wait()
+                self.process.terminate()
+                
+
+    async def waiting_node_status(self):
+        await asyncio.sleep(1)
+        result, error_message = await self.commands.getInfo()
+        if result:
+            self.node_status = True
+            await self.verify_sync_progress()
+            return
+        else:
+            while True:
+                result, error_message = await self.commands.getInfo()
+                if result:
+                    self.node_status = True
+                    await self.verify_sync_progress()
+                    return
+                else:
+                    if error_message:
+                        self.status_label.text = error_message
+                await asyncio.sleep(4)
+
+
+    async def verify_sync_progress(self):
+        await asyncio.sleep(1)
+        blockchaininfo, error_message = await self.commands.getBlockchainInfo()
+        if isinstance(blockchaininfo, str):
+            info = json.loads(blockchaininfo)
+        if info is not None:
+            sync = info.get('verificationprogress')
+            sync_percentage = sync * 100
+            if sync_percentage <= 99:
+                self.main.progress_bar.style = ProgressStyle.BLOCKS
+                self.update_info_box()
+                self.app.run_async(self.show_dialog())
+                while True:
+                    blockchaininfo, error_message = await self.commands.getBlockchainInfo()
+                    if isinstance(blockchaininfo, str):
+                        info = json.loads(blockchaininfo)
+                    else:
+                        self.node_status = False
+                        self.main.exit()
+                        return
+                    if info is not None:
+                        blocks = info.get('blocks')
+                        sync = info.get('verificationprogress')
+                        mediantime = info.get('mediantime')
+                    else:
+                        blocks = sync = mediantime = "N/A"
+                    if isinstance(mediantime, int):
+                        mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
+                    else:
+                        mediantime_date = "N/A"
+                    bitcoinz_size = self.utils.get_bitcoinz_size()
+                    sync_percentage = sync * 100
+                    self.blocks_value.text = f"{blocks}"
+                    self.mediantime_value.text = mediantime_date
+                    self.index_size_value.text = f"{int(bitcoinz_size)} MB"
+                    self.sync_value.text = f"%{float(sync_percentage):.2f}"
+                    self.main.progress_bar.value = int(sync_percentage)
+                    if sync_percentage > 99:
+                        await self.open_wallet()
+                        return
+                    await asyncio.sleep(2)
+            elif sync_percentage > 99:
+                await self.open_wallet()
+
+    async def show_dialog(self):
+        Dialog(
+            title="Disabled Wallet",
+            message="The wallet is currently disabled as it is synchronizing. It will be accessible once the sync process is complete.",
+            icon=DialogIcon.INFORMATION,
+            buttons=DialogButton.OK
         )
