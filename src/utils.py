@@ -1,7 +1,7 @@
 
 import aiohttp
 import zipfile
-from framework import Os, App
+from framework import Os, App, Sys
 
 class Utils():
     def __init__(self):
@@ -18,6 +18,12 @@ class Utils():
     def get_lock_file(self):
         lock_file = Os.Path.Combine(self.app_data, ".lock")
         return lock_file
+    
+    def get_zk_path(self):
+        zk_params_path = Os.Path.Combine(
+            Sys.Environment.GetFolderPath(Sys.Environment.SpecialFolder.ApplicationData), 'ZcashParams'
+        )
+        return zk_params_path
     
     def is_already_running(self):
         lock_file = self.get_lock_file()
@@ -61,6 +67,25 @@ class Utils():
             if not Os.File.Exists(file_path):
                 missing_files.append(file)
         return missing_files
+    
+
+    def get_zk_params(self):
+        zk_params_path = self.get_zk_path()
+        if not Os.Directory.Exists(zk_params_path):
+            Os.Directory.CreateDirectory(zk_params_path)
+        required_files = [
+            'sprout-proving.key',
+            'sprout-verifying.key',
+            'sapling-spend.params',
+            'sapling-output.params',
+            'sprout-groth16.params'
+        ]
+        missing_files = []
+        for file in required_files:
+            file_path = Os.Path.Combine(zk_params_path, file)
+            if not Os.File.Exists(file_path):
+                missing_files.append(file)
+        return missing_files, zk_params_path
 
 
     async def fetch_binary_files(self, label, progress_bar):
@@ -98,6 +123,41 @@ class Utils():
                                 Os.File.Move(src, dest)
                         Os.Directory.Delete(extracted_folder, True)
                         Os.File.Delete(destination)
+        except RuntimeError as e:
+            print(f"RuntimeError caught: {e}")
+        except aiohttp.ClientError as e:
+            print(f"HTTP Error: {e}")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+
+    async def fetch_params_files(self, missing_files, zk_params_path, label, progress_bar):
+        base_url = "https://d.btcz.rocks/"
+        total_files = len(missing_files)
+        try:
+            async with aiohttp.ClientSession() as session:
+                for idx, file_name in enumerate(missing_files):
+                    url = base_url + file_name
+                    file_path = Os.Path.Combine(zk_params_path, file_name)
+                    self.current_download_file = file_path
+                    async with session.get(url, timeout=None) as response:
+                        if response.status == 200:
+                            total_size = int(response.headers.get('content-length', 0))
+                            chunk_size = 512
+                            downloaded_size = 0
+                            self.file_handle = open(file_path, 'wb')
+                            async for chunk in response.content.iter_chunked(chunk_size):
+                                if not chunk:
+                                    break
+                                self.file_handle.write(chunk)
+                                downloaded_size += len(chunk)
+                                overall_progress = int(((idx + downloaded_size / total_size) / total_files) * 100)
+                                label.text = f"Downloading params...%{overall_progress}"
+                                progress_bar.value = overall_progress
+                            self.file_handle.close()
+                            self.file_handle = None
+                    self.current_download_file = None
+                await session.close()
         except RuntimeError as e:
             print(f"RuntimeError caught: {e}")
         except aiohttp.ClientError as e:

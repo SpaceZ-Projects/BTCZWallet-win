@@ -48,3 +48,19 @@ class BTCZSetup(Box):
                 self.status_label,
                 self.main.progress_bar
             )
+            await self.verify_params_files()
+        else:
+            await self.verify_params_files()
+
+    async def verify_params_files(self):
+        self.status_label.text = "Verify params..."
+        self.main.progress_bar.style = ProgressStyle.MARQUEE
+        await asyncio.sleep(2)
+        missing_files, zk_params_path = self.utils.get_zk_params()
+        if missing_files:
+            self.status_label.text = "Downloading params..."
+            self.main.progress_bar.style = ProgressStyle.BLOCKS
+            await self.utils.fetch_params_files(
+                missing_files, zk_params_path,
+                self.status_label, self.main.progress_bar,
+            )
