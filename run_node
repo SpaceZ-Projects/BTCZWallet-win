@@ -5,7 +5,7 @@ from framework import (
     FontStyle
 )
 
-from src import Utils, BTCZSetup
+from src import Utils, BTCZSetup, Client
 
 class BitcoinZGUI(MainWindow):
     def __init__(self):
@@ -13,6 +13,7 @@ class BitcoinZGUI(MainWindow):
 
         self.app = App()
         self.utils = Utils()
+        self.commands = Client()
         self.app_path = self.app.app_path
         icon = self.utils.get_icon()
 
@@ -23,6 +24,7 @@ class BitcoinZGUI(MainWindow):
         self.resizable = False
         self.minimizable = False
         self.background_color = Color.rgb(30,33,36)
+        self._on_exit = self.on_exit
 
         self.bitcoinz_logo = Image(
             image="images/btcz_inactive.png",
@@ -66,6 +68,10 @@ class BitcoinZGUI(MainWindow):
 
     def bitcoinz_logo_mouse_leave(self):
         self.bitcoinz_logo.image = "images/btcz_inactive.png"
+
+    def on_exit(self):
+        if self.startup.node_status:
+            self.app.run_async(self.commands.stopNode())
 
     
     
