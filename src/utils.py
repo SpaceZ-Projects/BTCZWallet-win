@@ -71,6 +71,19 @@ class Utils():
         if Os.File.Exists(lock_file):
             Os.File.Delete(lock_file)
 
+    def get_bitcoinz_size(self):
+        bitcoinz_path = self.get_bitcoinz_path()
+        dir_info = Os.DirectoryInfo(bitcoinz_path)
+        if not dir_info.Exists:
+            return 0
+        total_size = 0
+        for file_info in dir_info.GetFiles("*", Os.SearchOption.AllDirectories):
+            if file_info.Name.lower().startswith("bootstrap"):
+                continue
+            total_size += file_info.Length
+        total_size_gb = total_size / (1024 ** 2)
+        return total_size_gb
+
     def get_binary_files(self):
         required_files = [
             'bitcoinzd.exe',
