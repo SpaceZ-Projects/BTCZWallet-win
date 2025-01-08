@@ -1,9 +1,11 @@
 
+import asyncio
+import py7zr
 import string
 import secrets
 import aiohttp
 import zipfile
-from framework import Os, App, Sys
+from framework import Os, App, Sys, ProgressStyle
 
 class Utils():
     def __init__(self):
@@ -203,3 +205,93 @@ addnode=37.187.76.80:1989
             print(f"HTTP Error: {e}")
         except Exception as e:
             print(f"An error occurred: {e}")
+
+
+    async def fetch_bootstrap_files(self, label, progress_bar):
+        base_url = "https://github.com/btcz/bootstrap/releases/download/2024-09-04/"
+        bootstrap_files = [
+            'bootstrap.dat.7z.001',
+            'bootstrap.dat.7z.002',
+            'bootstrap.dat.7z.003',
+            'bootstrap.dat.7z.004'
+        ]
+        total_files = len(bootstrap_files)
+        bitcoinz_path = self.get_bitcoinz_path()
+        try:
+            async with aiohttp.ClientSession() as session:
+                for idx, file_name in enumerate(bootstrap_files):
+                    file_path = Os.Path.Combine(bitcoinz_path, file_name)
+                    if Os.File.Exists(file_path):
+                        continue
+                    url = base_url + file_name
+                    self.current_download_file = file_path
+                    async with session.get(url, timeout=None) as response:
+                        if response.status == 200:
+                            total_size = int(response.headers.get('content-length', 0))
+                            chunk_size = 512
+                            downloaded_size = 0
+                            self.file_handle = open(file_path, 'wb')
+                            async for chunk in response.content.iter_chunked(chunk_size):
+                                if not chunk:
+                                    break
+                                self.file_handle.write(chunk)
+                                downloaded_size += len(chunk)
+                                overall_progress = int(((idx + downloaded_size / total_size) / total_files) * 100)
+                                label.text = f"Downloading bootstrap...%{overall_progress}"
+                                progress_bar.value = overall_progress
+                            self.file_handle.close()
+                            self.file_handle = None
+                    self.current_download_file = None
+                await session.close()
+        except RuntimeError as e:
+            print(f"RuntimeError caught: {e}")
+        except aiohttp.ClientError as e:
+            print(f"HTTP Error: {e}")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+
+    async def extract_7z_files(self, label, progress_bar):
+        bitcoinz_path = self.get_bitcoinz_path()
+        file_paths = [
+            Os.Path.Combine(bitcoinz_path, 'bootstrap.dat.7z.001'),
+            Os.Path.Combine(bitcoinz_path, 'bootstrap.dat.7z.002'),
+            Os.Path.Combine(bitcoinz_path, 'bootstrap.dat.7z.003'),
+            Os.Path.Combine(bitcoinz_path, 'bootstrap.dat.7z.004')
+        ]
+        combined_file = Os.Path.Combine(bitcoinz_path, "combined_bootstrap.7z")
+        with open(combined_file, 'wb') as outfile:
+                for file_path in file_paths:
+                    with open(file_path, 'rb') as infile:
+                        while chunk := infile.read(1024):
+                            outfile.write(chunk)
+        for file_path in file_paths:
+            if Os.File.Exists(file_path):
+                Os.File.Delete(file_path)
+        self.extract_progress_status = True
+        try:
+            with py7zr.SevenZipFile(combined_file, mode='r') as archive:
+                self.app.run_async(self.extract_progress(bitcoinz_path, label, progress_bar))
+                archive.extractall(path=bitcoinz_path)
+                self.extract_progress_status = False
+        except Exception as e:
+            print(f"Error extracting file: {e}")
+
+        Os.File.Delete(combined_file)
+
+    
+    async def extract_progress(self, bitcoinz_path, label, progress_bar):
+        progress_bar.style = ProgressStyle.BLOCKS
+        total_size = 5495725462
+        total_size_gb = total_size / (1024 ** 3)
+        while True:
+            if not self.extract_progress_status:
+                progress_bar.style = ProgressStyle.MARQUEE
+                return
+            dat_file = Os.Path.Combine(bitcoinz_path, "bootstrap.dat")
+            current_size = Os.FileInfo(dat_file).Length
+            current_size_gb = current_size / (1024 ** 3)
+            progress = int((current_size / total_size) * 100)
+            label.text = f"Extracting... {current_size_gb:.2f} / {total_size_gb:.2f} GB"
+            progress_bar.value = progress
+            await asyncio.sleep(1)

@@ -2,7 +2,8 @@
 import asyncio
 from framework import (
     App, Box, Color, Label, Font, FontStyle,
-    DockStyle, AlignLabel, ProgressStyle, Os
+    DockStyle, AlignLabel, ProgressStyle, Os,
+    Dialog, DialogIcon, DialogButton
 )
 
 from .utils import Utils
@@ -81,3 +82,45 @@ class BTCZSetup(Box):
         if not Os.File.Exists(config_file_path):
             self.status_label.text = "Creating bitcoinz.conf..."
             self.utils.create_config_file(config_file_path)
+            await asyncio.sleep(2)
+            await self.verify_bockchaine_index()
+        else:
+            self.blockchaine_index = True
+            await self.verify_bockchaine_index()
+        
+    async def verify_bockchaine_index(self):
+        #Optional: to download boostrap in fisrt use (if BitcoinZ dir not exists)
+        if self.blockchaine_index:
+            await self.execute_bitcoinz_node()
+        else:
+            Dialog(
+                title="Download Bootstarp",
+                message="Would you like to download the BitcoinZ bootstrap? This will help you sync faster. If you prefer to sync from block 0, Click NO.",
+                icon=DialogIcon.QUESTION,
+                buttons=DialogButton.YESNO,
+                result=self.download_bootstrap_result
+            )
+
+    def download_bootstrap_result(self, result):
+        if result == "Yes":
+            self.app.run_async(self.download_bitcoinz_bootstrap())
+        elif result == "No":
+            self.app.run_async(self.execute_bitcoinz_node())
+
+
+    async def download_bitcoinz_bootstrap(self):
+        self.status_label.text = "Downloading bootstrap..."
+        self.main.progress_bar.style = ProgressStyle.BLOCKS
+        await self.utils.fetch_bootstrap_files(
+            self.status_label,
+            self.main.progress_bar)
+        await self.extract_bootstrap_file()
+
+
+    async def extract_bootstrap_file(self):
+        self.status_label.text = "Extracting bootstrap..."
+        self.main.progress_bar.style = ProgressStyle.MARQUEE
+        await self.utils.extract_7z_files(
+            self.status_label,
+            self.main.progress_bar
+        )
