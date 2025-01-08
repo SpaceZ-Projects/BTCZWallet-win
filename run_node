@@ -1,0 +1,98 @@
+
+from framework import (
+    App, MainWindow, Image, ProgressBar,
+    ProgressStyle, Color, Label, Font,
+    FontStyle
+)
+
+from src import Utils, BTCZSetup
+
+class BitcoinZGUI(MainWindow):
+    def __init__(self):
+        super(BitcoinZGUI, self).__init__()
+
+        self.app = App()
+        self.utils = Utils()
+        self.app_path = self.app.app_path
+        icon = self.utils.get_icon()
+
+        self.size = (350, 400)
+        self.icon = icon
+        self.center_screen = True
+        self.maxmizable = False
+        self.resizable = False
+        self.minimizable = False
+        self.background_color = Color.rgb(30,33,36)
+
+        self.bitcoinz_logo = Image(
+            image="images/btcz_inactive.png",
+            location=(22, 10),
+            mouse_enter=self.bitcoinz_logo_mouse_enter,
+            mouse_leave=self.bitcoinz_logo_mouse_leave
+        )
+        self.app_version = Label(
+            text="v1.0.1",
+            font=Font.SANSSERIF,
+            location=(285, 280),
+            size=9,
+            style=FontStyle.BOLD,
+            text_color=Color.GRAY,
+            mouse_enter=self.app_version_mouse_enter,
+            mouse_leave=self.app_version_mouse_leave
+        )
+        self.progress_bar = ProgressBar(
+            size=(325, 10),
+            location=(5, 345),
+            style=ProgressStyle.MARQUEE
+        )
+        self.startup = BTCZSetup(self)
+        self.insert(
+            [
+                self.progress_bar,
+                self.startup,
+                self.app_version,
+                self.bitcoinz_logo
+            ]
+        )
+
+    def app_version_mouse_enter(self):
+        self.app_version.text_color = Color.YELLOW
+
+    def app_version_mouse_leave(self):
+        self.app_version.text_color = Color.GRAY
+
+    def bitcoinz_logo_mouse_enter(self):
+        self.bitcoinz_logo.image = "images/btcz_active.png"
+
+    def bitcoinz_logo_mouse_leave(self):
+        self.bitcoinz_logo.image = "images/btcz_inactive.png"
+
+    
+    
+class BTCZWallet():
+    def __init__(self):
+        super(BTCZWallet, self).__init__()
+
+        self.app = App()
+        self.utils = Utils()
+        self.app_data = self.app.app_data
+
+        self.main_window = BitcoinZGUI()
+
+    def run(self):
+        if self.utils.is_already_running():
+            return
+        if self.utils.create_lock_file():
+            try:
+                self.main_window.run()
+            finally:
+                self.utils.remove_lock_file()
+
+
+def main():
+    app = BTCZWallet()
+    app.run()
+
+
+if __name__ == "__main__":
+    app = main()
