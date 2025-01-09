@@ -1,20 +1,21 @@
-
 import asyncio
-import json
 import subprocess
+import json
 from datetime import datetime
+
 from framework import (
     App, Box, Color, Label, Font, FontStyle,
-    DockStyle, AlignLabel, ProgressStyle, Os,
-    Dialog, DialogIcon, DialogButton
+    Os, Dialog, DialogIcon, DialogButton, ProgressStyle,
+    DockStyle, AlignLabel
 )
 
-from .utils import Utils
 from .commands import Client
+from .utils import Utils
+from .menu import Menu
 
 
 class BTCZSetup(Box):
-    def __init__(self, main):
+    def __init__(self):
         super(BTCZSetup, self).__init__(
             size=(325,40),
             location=(5,300),
@@ -22,9 +23,8 @@ class BTCZSetup(Box):
         )
 
         self.app = App()
-        self.utils = Utils()
         self.commands = Client()
-        self.main = main
+        self.utils = Utils()
         self.app_data = self.app.app_data
 
         self.node_status = None
@@ -45,6 +45,7 @@ class BTCZSetup(Box):
 
 
     def update_info_box(self):
+        self.app._main_window.progress_bar.style = ProgressStyle.BLOCKS
         self.clear()
         self.blocks_txt = Label(
             text="Blocks :",
@@ -126,10 +127,10 @@ class BTCZSetup(Box):
         missing_files = self.utils.get_binary_files()
         if missing_files:
             self.status_label.text = "Downloading binary..."
-            self.main.progress_bar.style = ProgressStyle.BLOCKS
+            self.app._main_window.progress_bar.style = ProgressStyle.BLOCKS
             await self.utils.fetch_binary_files(
                 self.status_label,
-                self.main.progress_bar
+                self.app._main_window.progress_bar
             )
             await self.verify_params_files()
         else:
@@ -137,15 +138,15 @@ class BTCZSetup(Box):
 
     async def verify_params_files(self):
         self.status_label.text = "Verify params..."
-        self.main.progress_bar.style = ProgressStyle.MARQUEE
+        self.app._main_window.progress_bar.style = ProgressStyle.MARQUEE
         await asyncio.sleep(2)
         missing_files, zk_params_path = self.utils.get_zk_params()
         if missing_files:
             self.status_label.text = "Downloading params..."
-            self.main.progress_bar.style = ProgressStyle.BLOCKS
+            self.app._main_window.progress_bar.style = ProgressStyle.BLOCKS
             await self.utils.fetch_params_files(
                 missing_files, zk_params_path,
-                self.status_label, self.main.progress_bar,
+                self.status_label, self.app._main_window.progress_bar,
             )
             await self.verify_config_file()
         else:
@@ -154,7 +155,7 @@ class BTCZSetup(Box):
 
     async def verify_config_file(self):
         self.status_label.text = "Verify bitcoinz.conf..."
-        self.main.progress_bar.style = ProgressStyle.MARQUEE
+        self.app._main_window.progress_bar.style = ProgressStyle.MARQUEE
         await asyncio.sleep(2)
         bitcoinz_path = self.utils.get_bitcoinz_path()
         config_file_path = self.utils.get_config_path()
@@ -170,8 +171,8 @@ class BTCZSetup(Box):
             self.blockchaine_index = True
             await self.verify_bockchaine_index()
         
+    
     async def verify_bockchaine_index(self):
-        #Optional: to download boostrap in fisrt use (if BitcoinZ dir not exists)
         if self.blockchaine_index:
             await self.execute_bitcoinz_node()
         else:
@@ -192,19 +193,19 @@ class BTCZSetup(Box):
 
     async def download_bitcoinz_bootstrap(self):
         self.status_label.text = "Downloading bootstrap..."
-        self.main.progress_bar.style = ProgressStyle.BLOCKS
+        self.app._main_window.progress_bar.style = ProgressStyle.BLOCKS
         await self.utils.fetch_bootstrap_files(
             self.status_label,
-            self.main.progress_bar)
+            self.app._main_window.progress_bar)
         await self.extract_bootstrap_file()
 
 
     async def extract_bootstrap_file(self):
         self.status_label.text = "Extracting bootstrap..."
-        self.main.progress_bar.style = ProgressStyle.MARQUEE
+        self.app._main_window.progress_bar.style = ProgressStyle.MARQUEE
         await self.utils.extract_7z_files(
             self.status_label,
-            self.main.progress_bar
+            self.app._main_window.progress_bar
         )
         await self.execute_bitcoinz_node()
 
@@ -259,7 +260,6 @@ class BTCZSetup(Box):
             sync = info.get('verificationprogress')
             sync_percentage = sync * 100
             if sync_percentage <= 99:
-                self.main.progress_bar.style = ProgressStyle.BLOCKS
                 self.update_info_box()
                 self.app.run_async(self.show_dialog())
                 while True:
@@ -268,7 +268,7 @@ class BTCZSetup(Box):
                         info = json.loads(blockchaininfo)
                     else:
                         self.node_status = False
-                        self.main.exit()
+                        self.app._main_window.exit()
                         return
                     if info is not None:
                         blocks = info.get('blocks')
@@ -286,13 +286,13 @@ class BTCZSetup(Box):
                     self.mediantime_value.text = mediantime_date
                     self.index_size_value.text = f"{int(bitcoinz_size)} MB"
                     self.sync_value.text = f"%{float(sync_percentage):.2f}"
-                    self.main.progress_bar.value = int(sync_percentage)
+                    self.app._main_window.progress_bar.value = int(sync_percentage)
                     if sync_percentage > 99:
-                        await self.open_wallet()
+                        await self.update_main_window()
                         return
                     await asyncio.sleep(2)
             elif sync_percentage > 99:
-                await self.open_wallet()
+                await self.update_main_window()
 
     async def show_dialog(self):
         Dialog(
@@ -300,4 +300,24 @@ class BTCZSetup(Box):
             message="The wallet is currently disabled as it is synchronizing. It will be accessible once the sync process is complete.",
             icon=DialogIcon.INFORMATION,
             buttons=DialogButton.OK
+        )
+
+    async def update_main_window(self):
+        self.app._main_window.hide()
+        await asyncio.sleep(1)
+        self.app._main_window.clear()
+        self.app._main_window.center_screen = False
+        self.app._main_window.update_size((800,600))
+        self.app._main_window.minimizable = True
+        self.app._main_window.maxmizable = True
+        self.app._main_window.resizable = True
+        self.app.invoke(self.open_wallet)
+        self.app._main_window.show()
+
+
+    def open_wallet(self):
+        self.app._main_window.insert(
+            [
+                Menu()
+            ]
         )
