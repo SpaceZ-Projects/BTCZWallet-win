@@ -1,9 +1,16 @@
 
+import asyncio
+import json
+from datetime import datetime
+
 from framework import (
     App, Box, DockStyle, Color, Label,
     AlignLabel, FontStyle, Image, SizeMode,
-    Font
+    Font, StatusBar, StatusLabel, Separator
 )
+
+from .commands import Client
+from .utils import Utils
 
 
 class Menu(Box):
@@ -17,6 +24,8 @@ class Menu(Box):
         self.on_resize=self.on_resize_menu
 
         self.app = App()
+        self.commands = Client()
+        self.utils = Utils()
         self.app._main_window.min_width = 800
         self.app._main_window.min_height = 600
         self.app._main_window.on_resize = self.on_resize_window
@@ -199,6 +208,142 @@ class Menu(Box):
                 self.home_button
             ]
         )
+        self.insert_status_bar()
+
+
+    def insert_status_bar(self):
+        self.status_label = StatusLabel(
+            text="Status :",
+            color=Color.GRAY,
+            font=Font.SERIF,
+            style=FontStyle.BOLD
+        )
+        self.status_icon = StatusLabel(
+            image="images/off.png"
+        )
+        self.blocks_status = StatusLabel(
+            text="Blocks :",
+            color=Color.GRAY,
+            font=Font.SERIF,
+            style=FontStyle.BOLD
+        )
+        self.blocks_value = StatusLabel(
+            text="",
+            color=Color.WHITE,
+            font=Font.SERIF,
+            style=FontStyle.BOLD,
+            spring=True,
+            text_align=AlignLabel.LEFT
+        )
+        self.date_status = StatusLabel(
+            text="Date :",
+            color=Color.GRAY,
+            font=Font.SERIF,
+            style=FontStyle.BOLD
+        )
+        self.date_value = StatusLabel(
+            text="",
+            color=Color.WHITE,
+            font=Font.SERIF,
+            style=FontStyle.BOLD,
+            spring=True,
+            text_align=AlignLabel.LEFT
+        )
+        self.sync_status = StatusLabel(
+            text="Sync :",
+            color=Color.GRAY,
+            font=Font.SERIF,
+            style=FontStyle.BOLD
+        )
+        self.sync_value = StatusLabel(
+            text="",
+            color=Color.WHITE,
+            font=Font.SERIF,
+            style=FontStyle.BOLD,
+            spring=True,
+            text_align=AlignLabel.LEFT
+        )
+        self.size_status = StatusLabel(
+            text="Size :",
+            color=Color.GRAY,
+            font=Font.SERIF,
+            style=FontStyle.BOLD
+        )
+        self.size_value = StatusLabel(
+            text="",
+            color=Color.WHITE,
+            font=Font.SERIF,
+            style=FontStyle.BOLD,
+            spring=True,
+            text_align=AlignLabel.LEFT
+        )
+        self.status_bar = StatusBar(
+            background_color=Color.rgb(30,33,36),
+            dockstyle=DockStyle.BOTTOM
+        )
+        self.status_bar.add_items(
+            [
+                self.status_label,
+                self.status_icon,
+                Separator(),
+                self.blocks_status,
+                self.blocks_value,
+                Separator(),
+                self.date_status,
+                self.date_value,
+                Separator(),
+                self.sync_status,
+                self.sync_value,
+                Separator(),
+                self.size_status,
+                self.size_value
+            ]
+        )
+        self.app._main_window.insert([self.status_bar])
+        self.app.run_async(self.update_statusbar())
+        
+
+    async def update_statusbar(self):
+        node_status = None
+        last_node_status = None
+        while True:
+            blockchaininfo, _ = await self.commands.getBlockchainInfo()
+            if blockchaininfo is not None:
+                if isinstance(blockchaininfo, str):
+                    info = json.loads(blockchaininfo)
+                if info is not None:
+                    blocks = info.get('blocks')
+                    sync = info.get('verificationprogress')
+                    mediantime = info.get('mediantime')
+                    node_status = True
+                else:
+                    blocks = sync = mediantime = "N/A"
+                    node_status = False
+            else:
+                blocks = sync = mediantime = "N/A"
+                node_status = False
+            if isinstance(mediantime, int):
+                mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
+            else:
+                mediantime_date = "N/A"
+            bitcoinz_size = self.utils.get_bitcoinz_size()
+            sync_percentage = sync * 100
+            if node_status != last_node_status:
+                self.update_statusbar_icon(node_status)
+                last_node_status = node_status
+
+            self.blocks_value.text = str(blocks)
+            self.date_value.text = mediantime_date
+            self.sync_value.text = f"%{float(sync_percentage):.2f}"
+            self.size_value.text = f"{int(bitcoinz_size)} MB"
+            await asyncio.sleep(5)
+
+    def update_statusbar_icon(self, status):
+        if status:
+            status_icon = "images/on.png"
+        else:
+            status_icon = "images/off.png"
+        self.status_icon.image = status_icon
 
     
     def home_button_mouse_enter(self):
