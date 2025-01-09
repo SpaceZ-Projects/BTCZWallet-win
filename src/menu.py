@@ -5,8 +5,9 @@ from datetime import datetime
 
 from framework import (
     App, Box, DockStyle, Color, Label,
-    AlignLabel, FontStyle, Image, SizeMode,
-    Font, StatusBar, StatusLabel, Separator
+    AlignLabel, FontStyle, Toolbar, Command,
+    Font, Image, SizeMode, StatusBar, StatusLabel,
+    Separator
 )
 
 from .commands import Client
@@ -54,6 +55,51 @@ class Menu(Box):
                 self.blockchain_box
             ]
         )
+        self.insert_toolbar()
+
+    def insert_toolbar(self):
+        self.file_tool_active = None
+        self.wallet_tool_active = None
+        self.toolbar = Toolbar(
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36)
+        )
+        self.about_cmd = Command(
+            title="About",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            mouse_enter=self.about_cmd_mouse_enter,
+            mouse_leave=self.about_cmd_mouse_leave
+        )
+        self.exit_cmd = Command(
+            title="Exit",
+            color=Color.RED,
+            background_color=Color.rgb(30,33,36),
+            action=self.exit_app
+        )
+        self.file_tool = Command(
+            title="File",
+            sub_commands=[
+                self.about_cmd,
+                self.exit_cmd
+            ],
+            drop_opened=self.file_tool_opened,
+            drop_closed=self.file_tool_closed,
+            mouse_enter=self.file_tool_mouse_enter,
+            mouse_leave=self.file_tool_mouse_leave
+        )
+        self.wallet_tool = Command(
+            title="Wallet",
+            mouse_enter=self.wallet_tool_mouse_enter,
+            mouse_leave=self.wallet_tool_mouse_leave
+        )
+        self.toolbar.add_command(
+            [
+                self.file_tool,
+                self.wallet_tool
+            ]
+        )
+        self.app._main_window.insert([self.toolbar])
         self.insert_menu_buttons()
 
 
@@ -301,7 +347,7 @@ class Menu(Box):
         )
         self.app._main_window.insert([self.status_bar])
         self.app.run_async(self.update_statusbar())
-        
+
 
     async def update_statusbar(self):
         node_status = None
@@ -407,6 +453,35 @@ class Menu(Box):
         self.mining_txt.text_color = Color.WHITE
 
 
+    def file_tool_opened(self):
+        self.file_tool_active = True
+        self.file_tool.color = Color.BLACK
+
+    def file_tool_closed(self):
+        self.file_tool_active = False
+        self.file_tool.color = Color.WHITE
+
+    def file_tool_mouse_enter(self):
+        self.file_tool.color = Color.BLACK
+
+    def file_tool_mouse_leave(self):
+        if self.file_tool_active:
+            return
+        self.file_tool.color = Color.WHITE
+
+    def wallet_tool_mouse_enter(self):
+        self.wallet_tool.color = Color.BLACK
+
+    def wallet_tool_mouse_leave(self):
+        self.wallet_tool.color = Color.WHITE
+
+    def about_cmd_mouse_enter(self):
+        self.about_cmd.color = Color.BLACK
+
+    def about_cmd_mouse_leave(self):
+        self.about_cmd.color = Color.WHITE
+
+
     def on_resize_menu(self, box):
         self.menu_bar.width = self.app._main_window.width
         total_width = self.menu_bar.width
@@ -419,3 +494,6 @@ class Menu(Box):
     
     def on_resize_window(self, window):
         pass
+
+    def exit_app(self, command):
+        self.app._main_window.exit()
