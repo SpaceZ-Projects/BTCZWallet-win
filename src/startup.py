@@ -320,7 +320,7 @@ class BTCZSetup(Box):
         await asyncio.sleep(1)
         self.app._main_window.clear()
         self.app._main_window.center_screen = False
-        self.app._main_window.update_size((800,600))
+        self.app._main_window.update_size((900,600))
         self.app._main_window.minimizable = True
         self.app._main_window.maxmizable = True
         self.app._main_window.resizable = True

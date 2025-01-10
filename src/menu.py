@@ -13,12 +13,11 @@ from framework import (
 from .commands import Client
 from .utils import Utils
 
-
 class Menu(Box):
     def __init__(self):
         super().__init__()
 
-        self.size = (800,600)
+        self.size = (900,600)
         self.autosize=True
         self.dockstyle = DockStyle.FILL
         self.background_color = Color.rgb(30,33,36)
@@ -27,13 +26,13 @@ class Menu(Box):
         self.app = App()
         self.commands = Client()
         self.utils = Utils()
-        self.app._main_window.min_width = 800
+        self.app._main_window.min_width = 900
         self.app._main_window.min_height = 600
         self.app._main_window.on_resize = self.on_resize_window
 
-        self.blockchain_box = Box(
+        self.wallet_info = Box(
             dockstyle=DockStyle.TOP,
-            size=(0,100),
+            size=(0,120),
             autosize=False,
             background_color=Color.rgb(40,43,48)
         )
@@ -41,20 +40,22 @@ class Menu(Box):
             dockstyle=DockStyle.TOP,
             size = (0,40),
             autosize=False,
-            background_color=Color.rgb(30,33,36)
+            background_color=Color.rgb(30,33,36),
+            padding=(5,5,5,5)
         )
-        self.latest_box = Box(
+        self.latest_txs = Box(
             dockstyle=DockStyle.FILL,
             background_color=Color.rgb(40,43,48)
         )
 
         self.insert(
             [
-                self.latest_box,
+                self.latest_txs,
                 self.menu_bar,
-                self.blockchain_box
+                self.wallet_info
             ]
         )
+
         self.insert_toolbar()
 
     def insert_toolbar(self):
@@ -109,72 +110,84 @@ class Menu(Box):
             dockstyle=DockStyle.LEFT,
             size_mode=SizeMode.ZOOM,
             mouse_enter=self.home_button_mouse_enter,
-            mouse_leave=self.home_button_mouse_leave
+            mouse_leave=self.home_button_mouse_leave,
+            on_click=self.home_button_click
         )
         self.transactions_icon = Image(
             image="images/txs_i.png",
             dockstyle=DockStyle.LEFT,
             size_mode=SizeMode.ZOOM,
             mouse_enter=self.transactions_button_mouse_enter,
-            mouse_leave=self.transactions_button_mouse_leave
+            mouse_leave=self.transactions_button_mouse_leave,
+            on_click=self.transactions_button_click
         )
         self.recieve_icon = Image(
             image="images/recieve_i.png",
             dockstyle=DockStyle.LEFT,
             size_mode=SizeMode.ZOOM,
             mouse_enter=self.recieve_button_mouse_enter,
-            mouse_leave=self.recieve_button_mouse_leave
+            mouse_leave=self.recieve_button_mouse_leave,
+            on_click=self.recieve_button_click
         )
         self.send_icon = Image(
             image="images/send_i.png",
             dockstyle=DockStyle.LEFT,
             size_mode=SizeMode.ZOOM,
             mouse_enter=self.send_button_mouse_enter,
-            mouse_leave=self.send_button_mouse_leave
+            mouse_leave=self.send_button_mouse_leave,
+            on_click=self.send_button_click
         )
         self.message_icon = Image(
             image="images/messages_i.png",
             dockstyle=DockStyle.LEFT,
             size_mode=SizeMode.ZOOM,
             mouse_enter=self.message_button_mouse_enter,
-            mouse_leave=self.message_button_mouse_leave
+            mouse_leave=self.message_button_mouse_leave,
+            on_click=self.message_button_click
         )
         self.mining_icon = Image(
             image="images/mining_i.png",
             dockstyle=DockStyle.LEFT,
             size_mode=SizeMode.ZOOM,
             mouse_enter=self.mining_button_mouse_enter,
-            mouse_leave=self.mining_button_mouse_leave
+            mouse_leave=self.mining_button_mouse_leave,
+            on_click=self.mining_button_click
         )
         self.home_button = Box(
             dockstyle=DockStyle.LEFT,
             autosize=False,
-            background_color=Color.rgb(30,33,36)
+            background_color=Color.rgb(30,33,36),
+            padding=(5,5,5,5)
         )
         self.transactions_button = Box(
             dockstyle=DockStyle.LEFT,
             autosize=False,
-            background_color=Color.rgb(30,33,36)
+            background_color=Color.rgb(30,33,36),
+            padding=(5,5,5,5)
         )
         self.recieve_button = Box(
             dockstyle=DockStyle.LEFT,
             autosize=False,
-            background_color=Color.rgb(30,33,36)
+            background_color=Color.rgb(30,33,36),
+            padding=(5,5,5,5)
         )
         self.send_button = Box(
             dockstyle=DockStyle.LEFT,
             autosize=False,
-            background_color=Color.rgb(30,33,36)
+            background_color=Color.rgb(30,33,36),
+            padding=(5,5,5,5)
         )
         self.message_button = Box(
             dockstyle=DockStyle.LEFT,
             autosize=False,
-            background_color=Color.rgb(30,33,36)
+            background_color=Color.rgb(30,33,36),
+            padding=(5,5,5,5)
         )
         self.mining_button = Box(
-            dockstyle=DockStyle.LEFT,
+            dockstyle=DockStyle.RIGHT,
             autosize=False,
-            background_color=Color.rgb(30,33,36)
+            background_color=Color.rgb(30,33,36),
+            padding=(5,5,5,5)
         )
         self.home_txt = Label(
             text="Home",
@@ -184,7 +197,8 @@ class Menu(Box):
             style=FontStyle.BOLD,
             font=Font.SANSSERIF,
             mouse_enter=self.home_button_mouse_enter,
-            mouse_leave=self.home_button_mouse_leave
+            mouse_leave=self.home_button_mouse_leave,
+            on_click=self.home_button_click
         )
         self.transactions_txt = Label(
             text="Txs",
@@ -194,7 +208,8 @@ class Menu(Box):
             style=FontStyle.BOLD,
             font=Font.SANSSERIF,
             mouse_enter=self.transactions_button_mouse_enter,
-            mouse_leave=self.transactions_button_mouse_leave
+            mouse_leave=self.transactions_button_mouse_leave,
+            on_click=self.transactions_button_click
         )
         self.recieve_txt = Label(
             text="Recieve",
@@ -204,7 +219,8 @@ class Menu(Box):
             style=FontStyle.BOLD,
             font=Font.SANSSERIF,
             mouse_enter=self.recieve_button_mouse_enter,
-            mouse_leave=self.recieve_button_mouse_leave
+            mouse_leave=self.recieve_button_mouse_leave,
+            on_click=self.recieve_button_click
         )
         self.send_txt = Label(
             text="Send",
@@ -214,7 +230,8 @@ class Menu(Box):
             style=FontStyle.BOLD,
             font=Font.SANSSERIF,
             mouse_enter=self.send_button_mouse_enter,
-            mouse_leave=self.send_button_mouse_leave
+            mouse_leave=self.send_button_mouse_leave,
+            on_click=self.send_button_click
         )
         self.message_txt = Label(
             text="Messages",
@@ -224,7 +241,8 @@ class Menu(Box):
             style=FontStyle.BOLD,
             font=Font.SANSSERIF,
             mouse_enter=self.message_button_mouse_enter,
-            mouse_leave=self.message_button_mouse_leave
+            mouse_leave=self.message_button_mouse_leave,
+            on_click=self.message_button_click
         )
         self.mining_txt = Label(
             text="Mining",
@@ -234,7 +252,8 @@ class Menu(Box):
             style=FontStyle.BOLD,
             font=Font.SANSSERIF,
             mouse_enter=self.mining_button_mouse_enter,
-            mouse_leave=self.mining_button_mouse_leave
+            mouse_leave=self.mining_button_mouse_leave,
+            on_click=self.mining_button_click
         )
 
         self.home_button.insert([self.home_icon, self.home_txt])
@@ -254,8 +273,13 @@ class Menu(Box):
                 self.home_button
             ]
         )
+        self.home_button_toggle = None
+        self.transactions_button_toggle = None
+        self.recieve_button_toggle = None
+        self.send_button_toggle = None
+        self.message_button_toggle = None
+        self.mining_button_toggle = None
         self.insert_status_bar()
-
 
     def insert_status_bar(self):
         self.status_label = StatusLabel(
@@ -391,67 +415,163 @@ class Menu(Box):
             status_icon = "images/off.png"
         self.status_icon.image = status_icon
 
-    
-    def home_button_mouse_enter(self):
+    def home_button_click(self, button):
+        self.clear_buttons()
+        self.home_button_toggle = True
+        self.home_icon.on_click = None
+        self.home_txt.on_click = None
         self.home_icon.image = "images/home_a.png"
-        self.home_button.background_color = Color.YELLOW
-        self.home_txt.text_color= Color.BLACK
+        self.app.run_async(self.home_button.gradient((255,255,0), steps=10))
+        self.home_txt.text_color = Color.BLACK
+
+    def home_button_mouse_enter(self):
+        if self.home_button_toggle:
+            return
+        self.home_button.background_color = Color.rgb(66,69,73)
 
     def home_button_mouse_leave(self):
-        self.home_icon.image = "images/home_i.png"
+        if self.home_button_toggle:
+            return
         self.home_button.background_color = Color.rgb(30,33,36)
-        self.home_txt.text_color= Color.WHITE
+
+    def transactions_button_click(self, button):
+        self.clear_buttons()
+        self.transactions_button_toggle = True
+        self.transactions_icon.on_click = None
+        self.transactions_txt.on_click = None
+        self.transactions_icon.image = "images/txs_a.png"
+        self.app.run_async(self.transactions_button.gradient((255,255,0), steps=10))
+        self.transactions_txt.text_color = Color.BLACK
 
     def transactions_button_mouse_enter(self):
-        self.transactions_icon.image = "images/txs_a.png"
-        self.transactions_button.background_color = Color.YELLOW
-        self.transactions_txt.text_color = Color.BLACK
+        if self.transactions_button_toggle:
+            return
+        self.transactions_button.background_color = Color.rgb(66,69,73)
     
     def transactions_button_mouse_leave(self):
-        self.transactions_icon.image = "images/txs_i.png"
+        if self.transactions_button_toggle:
+            return
         self.transactions_button.background_color = Color.rgb(30,33,36)
-        self.transactions_txt.text_color = Color.WHITE
 
-    def recieve_button_mouse_enter(self):
+    def recieve_button_click(self, button):
+        self.clear_buttons()
+        self.recieve_button_toggle = True
+        self.recieve_icon.on_click = None
+        self.recieve_txt.on_click = None
         self.recieve_icon.image = "images/recieve_a.png"
-        self.recieve_button.background_color = Color.YELLOW
+        self.app.run_async(self.recieve_button.gradient((255,255,0), steps=10))
         self.recieve_txt.text_color = Color.BLACK
 
-    def recieve_button_mouse_leave(self):
-        self.recieve_icon.image = "images/recieve_i.png"
-        self.recieve_button.background_color = Color.rgb(30,33,36)
-        self.recieve_txt.text_color = Color.WHITE
+    def recieve_button_mouse_enter(self):
+        if self.recieve_button_toggle:
+            return
+        self.recieve_button.background_color = Color.rgb(66,69,73)
 
-    def send_button_mouse_enter(self):
+    def recieve_button_mouse_leave(self):
+        if self.recieve_button_toggle:
+            return
+        self.recieve_button.background_color = Color.rgb(30,33,36)
+
+    def send_button_click(self, button):
+        self.clear_buttons()
+        self.send_button_toggle = True
+        self.send_icon.on_click = None
+        self.send_txt.on_click = None
         self.send_icon.image = "images/send_a.png"
-        self.send_button.background_color = Color.YELLOW
+        self.app.run_async(self.send_button.gradient((255,255,0), steps=10))
         self.send_txt.text_color = Color.BLACK
 
-    def send_button_mouse_leave(self):
-        self.send_icon.image = "images/send_i.png"
-        self.send_button.background_color = Color.rgb(30,33,36)
-        self.send_txt.text_color = Color.WHITE
+    def send_button_mouse_enter(self):
+        if self.send_button_toggle:
+            return
+        self.send_button.background_color = Color.rgb(66,69,73)
 
-    def message_button_mouse_enter(self):
+    def send_button_mouse_leave(self):
+        if self.send_button_toggle:
+            return
+        self.send_button.background_color = Color.rgb(30,33,36)
+
+    def message_button_click(self, button):
+        self.clear_buttons()
+        self.message_button_toggle = True
+        self.message_icon.on_click = None
+        self.message_txt.on_click = None
         self.message_icon.image = "images/messages_a.png"
-        self.message_button.background_color = Color.YELLOW
+        self.app.run_async(self.message_button.gradient((255,255,0), steps=10))
         self.message_txt.text_color = Color.BLACK
 
-    def message_button_mouse_leave(self):
-        self.message_icon.image = "images/messages_i.png"
-        self.message_button.background_color = Color.rgb(30,33,36)
-        self.message_txt.text_color = Color.WHITE
+    def message_button_mouse_enter(self):
+        if self.message_button_toggle:
+            return
+        self.message_button.background_color = Color.rgb(66,69,73)
 
-    def mining_button_mouse_enter(self):
+    def message_button_mouse_leave(self):
+        if self.message_button_toggle:
+            return
+        self.message_button.background_color = Color.rgb(30,33,36)
+
+    def mining_button_click(self, button):
+        self.clear_buttons()
+        self.mining_button_toggle = True
+        self.mining_icon.on_click = None
+        self.mining_txt.on_click = None
         self.mining_icon.image = "images/mining_a.png"
-        self.mining_button.background_color = Color.YELLOW
+        self.app.run_async(self.mining_button.gradient((255,255,0), steps=10))
         self.mining_txt.text_color = Color.BLACK
 
-    def mining_button_mouse_leave(self):
-        self.mining_icon.image = "images/mining_i.png"
-        self.mining_button.background_color = Color.rgb(30,33,36)
-        self.mining_txt.text_color = Color.WHITE
+    def mining_button_mouse_enter(self):
+        if self.mining_button_toggle:
+            return
+        self.mining_button.background_color = Color.rgb(66,69,73)
 
+    def mining_button_mouse_leave(self):
+        if self.mining_button_toggle:
+            return
+        self.mining_button.background_color = Color.rgb(30,33,36)
+
+    def clear_buttons(self):
+        if self.home_button_toggle:
+            self.home_button_toggle = None
+            self.home_icon.on_click = self.home_button_click
+            self.home_txt.on_click = self.home_button_click
+            self.app.run_async(self.home_button.gradient((30,33,36), steps=10))
+            self.home_icon.image = "images/home_i.png"
+            self.home_txt.text_color = Color.WHITE
+        elif self.transactions_button_toggle:
+            self.transactions_button_toggle = None
+            self.transactions_icon.on_click = self.transactions_button_click
+            self.transactions_txt.on_click = self.transactions_button_click
+            self.app.run_async(self.transactions_button.gradient((30,33,36), steps=10))
+            self.transactions_icon.image = "images/txs_i.png"
+            self.transactions_txt.text_color = Color.WHITE
+        elif self.recieve_button_toggle:
+            self.recieve_button_toggle = None
+            self.recieve_icon.on_click = self.recieve_button_click
+            self.recieve_txt.on_click = self.recieve_button_click
+            self.app.run_async(self.recieve_button.gradient((30,33,36), steps=10))
+            self.recieve_icon.image = "images/recieve_i.png"
+            self.recieve_txt.text_color = Color.WHITE
+        elif self.send_button_toggle:
+            self.send_button_toggle = None
+            self.send_icon.on_click = self.send_button_click
+            self.send_txt.on_click = self.send_button_click
+            self.app.run_async(self.send_button.gradient((30,33,36), steps=10))
+            self.send_icon.image = "images/send_i.png"
+            self.send_txt.text_color = Color.WHITE
+        elif self.message_button_toggle:
+            self.message_button_toggle = None
+            self.message_icon.on_click = self.message_button_click
+            self.message_txt.on_click = self.message_button_click
+            self.app.run_async(self.message_button.gradient((30,33,36), steps=10))
+            self.message_icon.image = "images/messages_i.png"
+            self.message_txt.text_color = Color.WHITE
+        elif self.mining_button_toggle:
+            self.mining_button_toggle = None
+            self.mining_icon.on_click = self.mining_button_click
+            self.mining_txt.on_click = self.mining_button_click
+            self.app.run_async(self.mining_button.gradient((30,33,36), steps=10))
+            self.mining_icon.image = "images/mining_i.png"
+            self.mining_txt.text_color = Color.WHITE
 
     def file_tool_opened(self):
         self.file_tool_active = True
@@ -491,7 +611,6 @@ class Menu(Box):
             for button in self.menu_bar.widgets:
                 button.width = button_width
 
-    
     def on_resize_window(self, window):
         pass
 
