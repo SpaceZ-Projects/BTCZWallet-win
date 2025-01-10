@@ -1,3 +1,4 @@
+
 import asyncio
 import subprocess
 import json
@@ -51,62 +52,74 @@ class BTCZSetup(Box):
             text="Blocks :",
             text_color=Color.GRAY,
             size=8,
-            location=(10, 2),
+            location=(10, 4),
             font=Font.SANSSERIF,
-            style=FontStyle.BOLD
+            style=FontStyle.BOLD,
+            autosize=True
         )
         self.blocks_value = Label(
             text="",
             text_color=Color.WHITE,
             size=8,
-            location=(60, 2),
-            font=Font.SANSSERIF
+            location=(60, 4),
+            font=Font.SANSSERIF,
+            style=FontStyle.BOLD,
+            autosize=True
         )
         self.mediantime_text = Label(
             text="Date :",
             text_color=Color.GRAY,
             size=8,
-            location=(10, 20),
+            location=(10, 24),
             font=Font.SANSSERIF,
-            style=FontStyle.BOLD
+            style=FontStyle.BOLD,
+            autosize=True
         )
         self.mediantime_value = Label(
             text="",
             text_color=Color.WHITE,
             size=8,
-            location=(50, 20),
+            location=(50, 24),
             font=Font.SANSSERIF,
-            width=200
+            style=FontStyle.BOLD,
+            width=200,
+            autosize=True
         )
         self.sync_txt = Label(
             text="Sync :",
             text_color=Color.GRAY,
             size=8,
-            location=(225, 20),
+            location=(225, 24),
             font=Font.SANSSERIF,
-            style=FontStyle.BOLD
+            style=FontStyle.BOLD,
+            autosize=True
         )
         self.sync_value = Label(
             text="",
             text_color=Color.WHITE,
             size=8,
-            location=(260, 20),
-            font=Font.SANSSERIF
+            location=(260, 24),
+            font=Font.SANSSERIF,
+            style=FontStyle.BOLD,
+            autosize=True
         )
         self.index_size_txt = Label(
             text="Size :",
             text_color=Color.GRAY,
             size=8,
-            location=(225, 2),
+            location=(225, 4),
             font=Font.SANSSERIF,
-            style=FontStyle.BOLD
+            style=FontStyle.BOLD,
+            autosize=True
         )
         self.index_size_value = Label(
             text="",
             text_color=Color.WHITE,
             size=8,
-            location=(260, 2),
-            font=Font.SANSSERIF
+            location=(260, 4),
+            font=Font.SANSSERIF,
+            style=FontStyle.BOLD,
+            autosize=True
         )
         self.insert(
             [
@@ -123,7 +136,7 @@ class BTCZSetup(Box):
 
 
     async def verify_binary_files(self):
-        await asyncio.sleep(2)
+        await asyncio.sleep(1)
         missing_files = self.utils.get_binary_files()
         if missing_files:
             self.status_label.text = "Downloading binary..."
@@ -139,7 +152,7 @@ class BTCZSetup(Box):
     async def verify_params_files(self):
         self.status_label.text = "Verify params..."
         self.app._main_window.progress_bar.style = ProgressStyle.MARQUEE
-        await asyncio.sleep(2)
+        await asyncio.sleep(1)
         missing_files, zk_params_path = self.utils.get_zk_params()
         if missing_files:
             self.status_label.text = "Downloading params..."
@@ -156,7 +169,7 @@ class BTCZSetup(Box):
     async def verify_config_file(self):
         self.status_label.text = "Verify bitcoinz.conf..."
         self.app._main_window.progress_bar.style = ProgressStyle.MARQUEE
-        await asyncio.sleep(2)
+        await asyncio.sleep(1)
         bitcoinz_path = self.utils.get_bitcoinz_path()
         config_file_path = self.utils.get_config_path()
         if not Os.Directory.Exists(bitcoinz_path):
@@ -165,8 +178,8 @@ class BTCZSetup(Box):
         if not Os.File.Exists(config_file_path):
             self.status_label.text = "Creating bitcoinz.conf..."
             self.utils.create_config_file(config_file_path)
-            await asyncio.sleep(2)
-            await self.verify_bockchaine_index()
+            await asyncio.sleep(1)
+            await self.execute_bitcoinz_node()
         else:
             self.blockchaine_index = True
             await self.verify_bockchaine_index()

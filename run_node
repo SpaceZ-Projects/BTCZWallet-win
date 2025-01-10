@@ -2,7 +2,7 @@
 from framework import (
     App, MainWindow, Image, ProgressBar,
     ProgressStyle, Color, Label, Font,
-    FontStyle
+    FontStyle, SizeMode
 )
 
 from src import Utils, BTCZSetup, Client
@@ -29,6 +29,7 @@ class BitcoinZGUI(MainWindow):
         self.bitcoinz_logo = Image(
             image="images/btcz_inactive.png",
             location=(22, 10),
+            size_mode=SizeMode.ZOOM,
             mouse_enter=self.bitcoinz_logo_mouse_enter,
             mouse_leave=self.bitcoinz_logo_mouse_leave
         )
