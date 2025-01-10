@@ -12,6 +12,12 @@ from framework import (
 
 from .commands import Client
 from .utils import Utils
+from .home import Home
+from .txs import Transactions
+from .recieve import Recieve
+from .send import Send
+from .messages import Messages
+from .mining import Mining
 
 class Menu(Box):
     def __init__(self):
@@ -43,14 +49,33 @@ class Menu(Box):
             background_color=Color.rgb(30,33,36),
             padding=(5,5,5,5)
         )
-        self.latest_txs = Box(
+        self.pages = Box(
             dockstyle=DockStyle.FILL,
-            background_color=Color.rgb(40,43,48)
+            background_color=Color.rgb(40,43,48),
+            padding=(5,5,5,28)
+        )
+
+        self.home_page = Home()
+        self.transactions_page = Transactions()
+        self.recieve_page = Recieve()
+        self.send_page = Send()
+        self.message_page = Messages()
+        self.mining_page = Mining()
+
+        self.pages.insert(
+            [
+                self.home_page,
+                self.transactions_page,
+                self.recieve_page,
+                self.send_page,
+                self.message_page,
+                self.mining_page
+            ]
         )
 
         self.insert(
             [
-                self.latest_txs,
+                self.pages,
                 self.menu_bar,
                 self.wallet_info
             ]
@@ -281,6 +306,7 @@ class Menu(Box):
         self.mining_button_toggle = None
         self.insert_status_bar()
 
+
     def insert_status_bar(self):
         self.status_label = StatusLabel(
             text="Status :",
@@ -371,6 +397,11 @@ class Menu(Box):
         )
         self.app._main_window.insert([self.status_bar])
         self.app.run_async(self.update_statusbar())
+        self.app.run_async(self.set_default_page())
+
+    async def set_default_page(self):
+        await asyncio.sleep(0.2)
+        self.home_button_click(None)
 
 
     async def update_statusbar(self):
@@ -423,6 +454,8 @@ class Menu(Box):
         self.home_icon.image = "images/home_a.png"
         self.app.run_async(self.home_button.gradient((255,255,0), steps=10))
         self.home_txt.text_color = Color.BLACK
+        self.home_page.visible = True
+        self.app.run_async(self.home_page.insert_widgets())
 
     def home_button_mouse_enter(self):
         if self.home_button_toggle:
@@ -442,6 +475,8 @@ class Menu(Box):
         self.transactions_icon.image = "images/txs_a.png"
         self.app.run_async(self.transactions_button.gradient((255,255,0), steps=10))
         self.transactions_txt.text_color = Color.BLACK
+        self.transactions_page.visible = True
+        self.app.run_async(self.transactions_page.insert_widgets())
 
     def transactions_button_mouse_enter(self):
         if self.transactions_button_toggle:
@@ -461,6 +496,8 @@ class Menu(Box):
         self.recieve_icon.image = "images/recieve_a.png"
         self.app.run_async(self.recieve_button.gradient((255,255,0), steps=10))
         self.recieve_txt.text_color = Color.BLACK
+        self.recieve_page.visible = True
+        self.app.run_async(self.recieve_page.insert_widgets())
 
     def recieve_button_mouse_enter(self):
         if self.recieve_button_toggle:
@@ -480,6 +517,8 @@ class Menu(Box):
         self.send_icon.image = "images/send_a.png"
         self.app.run_async(self.send_button.gradient((255,255,0), steps=10))
         self.send_txt.text_color = Color.BLACK
+        self.send_page.visible = True
+        self.app.run_async(self.send_page.insert_widgets())
 
     def send_button_mouse_enter(self):
         if self.send_button_toggle:
@@ -499,6 +538,8 @@ class Menu(Box):
         self.message_icon.image = "images/messages_a.png"
         self.app.run_async(self.message_button.gradient((255,255,0), steps=10))
         self.message_txt.text_color = Color.BLACK
+        self.message_page.visible = True
+        self.app.run_async(self.message_page.insert_widgets())
 
     def message_button_mouse_enter(self):
         if self.message_button_toggle:
@@ -518,6 +559,8 @@ class Menu(Box):
         self.mining_icon.image = "images/mining_a.png"
         self.app.run_async(self.mining_button.gradient((255,255,0), steps=10))
         self.mining_txt.text_color = Color.BLACK
+        self.mining_page.visible = True
+        self.app.run_async(self.mining_page.insert_widgets())
 
     def mining_button_mouse_enter(self):
         if self.mining_button_toggle:
@@ -532,41 +575,58 @@ class Menu(Box):
     def clear_buttons(self):
         if self.home_button_toggle:
             self.home_button_toggle = None
+            self.home_page.visible = False
+            self.home_page.clear()
             self.home_icon.on_click = self.home_button_click
             self.home_txt.on_click = self.home_button_click
             self.app.run_async(self.home_button.gradient((30,33,36), steps=10))
             self.home_icon.image = "images/home_i.png"
             self.home_txt.text_color = Color.WHITE
+
         elif self.transactions_button_toggle:
             self.transactions_button_toggle = None
+            self.transactions_page.visible = False
+            self.transactions_page.clear()
             self.transactions_icon.on_click = self.transactions_button_click
             self.transactions_txt.on_click = self.transactions_button_click
             self.app.run_async(self.transactions_button.gradient((30,33,36), steps=10))
             self.transactions_icon.image = "images/txs_i.png"
             self.transactions_txt.text_color = Color.WHITE
+
         elif self.recieve_button_toggle:
             self.recieve_button_toggle = None
+            self.recieve_page.visible = False
+            self.recieve_page.clear()
             self.recieve_icon.on_click = self.recieve_button_click
             self.recieve_txt.on_click = self.recieve_button_click
             self.app.run_async(self.recieve_button.gradient((30,33,36), steps=10))
             self.recieve_icon.image = "images/recieve_i.png"
             self.recieve_txt.text_color = Color.WHITE
+
         elif self.send_button_toggle:
             self.send_button_toggle = None
+            self.send_page.visible = False
+            self.send_page.clear()
             self.send_icon.on_click = self.send_button_click
             self.send_txt.on_click = self.send_button_click
             self.app.run_async(self.send_button.gradient((30,33,36), steps=10))
             self.send_icon.image = "images/send_i.png"
             self.send_txt.text_color = Color.WHITE
+
         elif self.message_button_toggle:
             self.message_button_toggle = None
+            self.message_page.visible = False
+            self.message_page.clear()
             self.message_icon.on_click = self.message_button_click
             self.message_txt.on_click = self.message_button_click
             self.app.run_async(self.message_button.gradient((30,33,36), steps=10))
             self.message_icon.image = "images/messages_i.png"
             self.message_txt.text_color = Color.WHITE
+
         elif self.mining_button_toggle:
             self.mining_button_toggle = None
+            self.mining_page.visible = False
+            self.mining_page.clear()
             self.mining_icon.on_click = self.mining_button_click
             self.mining_txt.on_click = self.mining_button_click
             self.app.run_async(self.mining_button.gradient((30,33,36), steps=10))
