@@ -34,7 +34,7 @@ class BitcoinZGUI(MainWindow):
             mouse_leave=self.bitcoinz_logo_mouse_leave
         )
         self.app_version = Label(
-            text="v1.0.1",
+            text="v1.0.2",
             font=Font.SANSSERIF,
             location=(285, 280),
             size=9,
