@@ -7,10 +7,10 @@ from datetime import datetime
 from framework import (
     App, Box, Color, Label, Font, FontStyle,
     Os, Dialog, DialogIcon, DialogButton, ProgressStyle,
-    DockStyle, AlignLabel
+    DockStyle, AlignLabel, ProgressBar
 )
 
-from .commands import Client
+from .client import Client
 from .utils import Utils
 from .menu import Menu
 
@@ -40,13 +40,18 @@ class BTCZSetup(Box):
             aligne=AlignLabel.CENTER,
             dockstyle=DockStyle.FILL
         )
-
+        self.progress_bar = ProgressBar(
+            size=(325, 10),
+            location=(5, 345),
+            style=ProgressStyle.MARQUEE
+        )
+        self.app._main_window.insert([self.progress_bar])
         self.insert([self.status_label])
         self.app.run_async(self.verify_binary_files())
 
 
     def update_info_box(self):
-        self.app._main_window.progress_bar.style = ProgressStyle.BLOCKS
+        self.progress_bar.style = ProgressStyle.BLOCKS
         self.clear()
         self.blocks_txt = Label(
             text="Blocks :",
@@ -140,10 +145,10 @@ class BTCZSetup(Box):
         missing_files = self.utils.get_binary_files()
         if missing_files:
             self.status_label.text = "Downloading binary..."
-            self.app._main_window.progress_bar.style = ProgressStyle.BLOCKS
+            self.progress_bar.style = ProgressStyle.BLOCKS
             await self.utils.fetch_binary_files(
                 self.status_label,
-                self.app._main_window.progress_bar
+                self.progress_bar
             )
             await self.verify_params_files()
         else:
@@ -151,15 +156,15 @@ class BTCZSetup(Box):
 
     async def verify_params_files(self):
         self.status_label.text = "Verify params..."
-        self.app._main_window.progress_bar.style = ProgressStyle.MARQUEE
+        self.progress_bar.style = ProgressStyle.MARQUEE
         await asyncio.sleep(1)
         missing_files, zk_params_path = self.utils.get_zk_params()
         if missing_files:
             self.status_label.text = "Downloading params..."
-            self.app._main_window.progress_bar.style = ProgressStyle.BLOCKS
+            self.progress_bar.style = ProgressStyle.BLOCKS
             await self.utils.fetch_params_files(
                 missing_files, zk_params_path,
-                self.status_label, self.app._main_window.progress_bar,
+                self.status_label, self.progress_bar,
             )
             await self.verify_config_file()
         else:
@@ -168,21 +173,19 @@ class BTCZSetup(Box):
 
     async def verify_config_file(self):
         self.status_label.text = "Verify bitcoinz.conf..."
-        self.app._main_window.progress_bar.style = ProgressStyle.MARQUEE
+        self.progress_bar.style = ProgressStyle.MARQUEE
         await asyncio.sleep(1)
         bitcoinz_path = self.utils.get_bitcoinz_path()
         config_file_path = self.utils.get_config_path()
         if not Os.Directory.Exists(bitcoinz_path):
             self.blockchaine_index = False
             Os.Directory.CreateDirectory(bitcoinz_path)
+        else:
+            self.blockchaine_index = True
         if not Os.File.Exists(config_file_path):
             self.status_label.text = "Creating bitcoinz.conf..."
             self.utils.create_config_file(config_file_path)
-            await asyncio.sleep(1)
-            await self.execute_bitcoinz_node()
-        else:
-            self.blockchaine_index = True
-            await self.verify_bockchaine_index()
+        await self.verify_bockchaine_index()
         
     
     async def verify_bockchaine_index(self):
@@ -206,19 +209,19 @@ class BTCZSetup(Box):
 
     async def download_bitcoinz_bootstrap(self):
         self.status_label.text = "Downloading bootstrap..."
-        self.app._main_window.progress_bar.style = ProgressStyle.BLOCKS
+        self.progress_bar.style = ProgressStyle.BLOCKS
         await self.utils.fetch_bootstrap_files(
             self.status_label,
-            self.app._main_window.progress_bar)
+            self.progress_bar)
         await self.extract_bootstrap_file()
 
 
     async def extract_bootstrap_file(self):
         self.status_label.text = "Extracting bootstrap..."
-        self.app._main_window.progress_bar.style = ProgressStyle.MARQUEE
+        self.progress_bar.style = ProgressStyle.MARQUEE
         await self.utils.extract_7z_files(
             self.status_label,
-            self.app._main_window.progress_bar
+            self.progress_bar
         )
         await self.execute_bitcoinz_node()
 
@@ -266,17 +269,17 @@ class BTCZSetup(Box):
 
     async def verify_sync_progress(self):
         await asyncio.sleep(1)
-        blockchaininfo, error_message = await self.commands.getBlockchainInfo()
+        blockchaininfo, _ = await self.commands.getBlockchainInfo()
         if isinstance(blockchaininfo, str):
             info = json.loads(blockchaininfo)
         if info is not None:
             sync = info.get('verificationprogress')
             sync_percentage = sync * 100
-            if sync_percentage <= 99:
+            if sync_percentage <= 99.95:
                 self.update_info_box()
                 self.app.run_async(self.show_dialog())
                 while True:
-                    blockchaininfo, error_message = await self.commands.getBlockchainInfo()
+                    blockchaininfo, _ = await self.commands.getBlockchainInfo()
                     if isinstance(blockchaininfo, str):
                         info = json.loads(blockchaininfo)
                     else:
@@ -299,12 +302,12 @@ class BTCZSetup(Box):
                     self.mediantime_value.text = mediantime_date
                     self.index_size_value.text = f"{int(bitcoinz_size)} MB"
                     self.sync_value.text = f"%{float(sync_percentage):.2f}"
-                    self.app._main_window.progress_bar.value = int(sync_percentage)
-                    if sync_percentage > 99:
+                    self.progress_bar.value = int(sync_percentage)
+                    if sync_percentage > 99.95:
                         await self.update_main_window()
                         return
                     await asyncio.sleep(2)
-            elif sync_percentage > 99:
+            elif sync_percentage > 99.95:
                 await self.update_main_window()
 
     async def show_dialog(self):

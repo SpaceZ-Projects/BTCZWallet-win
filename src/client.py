@@ -22,7 +22,8 @@ class Client():
                 creationflags=subprocess.CREATE_NO_WINDOW
             )
             stdout, stderr = await process.communicate()
-
+            print(stdout)
+            print(stderr)
             if process.returncode == 0:
                 if stdout:
                     try:
@@ -54,4 +55,16 @@ class Client():
     
     async def getBlockchainInfo(self):
         command = f'{self.bitcoinz_cli_file} getblockchaininfo'
+        return await self._run_command(command)
+    
+    async def getNetworkSolps(self):
+        command = f'{self.bitcoinz_cli_file} getnetworksolps'
+        return await self._run_command(command)
+    
+    async def getDeprecationInfo(self):
+        command = f'{self.bitcoinz_cli_file} getdeprecationinfo'
+        return await self._run_command(command)
+    
+    async def z_getTotalBalance(self):
+        command = f'{self.bitcoinz_cli_file} z_gettotalbalance'
         return await self._run_command(command)

@@ -3,7 +3,7 @@ from .formz import (
     Box, Image, Label, ProgressBar,
     Dialog, DialogButton, DialogIcon,
     Font, Color, FontStyle, AlignForm,
-    AlignLabel, ProgressStyle, DockStyle, Forms,
+    AlignLabel, ProgressStyle, DockStyle,
     Toolbar, Command, SizeMode, StatusBar, StatusLabel,
-    Separator
+    Separator, NotifyIcon
 )
