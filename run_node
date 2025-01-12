@@ -2,7 +2,7 @@
 from framework import (
     App, MainWindow, Image, ProgressBar,
     ProgressStyle, Color, Label, Font,
-    FontStyle, SizeMode
+    FontStyle, SizeMode, NotifyIcon
 )
 
 from src import Utils, BTCZSetup, Client
@@ -43,15 +43,13 @@ class BitcoinZGUI(MainWindow):
             mouse_enter=self.app_version_mouse_enter,
             mouse_leave=self.app_version_mouse_leave
         )
-        self.progress_bar = ProgressBar(
-            size=(325, 10),
-            location=(5, 345),
-            style=ProgressStyle.MARQUEE
+        self.notify = NotifyIcon(
+            icon="images/BitcoinZ.ico",
+            tootip="BitcoinZ Wallet"
         )
         self.startup = BTCZSetup(self)
         self.insert(
             [
-                self.progress_bar,
                 self.startup,
                 self.app_version,
                 self.bitcoinz_logo
@@ -73,6 +71,7 @@ class BitcoinZGUI(MainWindow):
     def on_exit(self):
         if self.startup.node_status:
             self.app.run_async(self.commands.stopNode())
+        self.notify.hide()
 
     
     

@@ -317,20 +317,29 @@ class BTCZSetup(Box):
 
     async def update_main_window(self):
         self.app._main_window.hide()
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.5)
         self.app._main_window.clear()
         self.app._main_window.center_screen = False
         self.app._main_window.update_size((900,600))
         self.app._main_window.minimizable = True
         self.app._main_window.maxmizable = True
         self.app._main_window.resizable = True
-        self.app.invoke(self.open_wallet)
-        self.app._main_window.show()
+        self.app.invoke(self.insert_main_menu)
 
 
-    def open_wallet(self):
+    def insert_main_menu(self):
+        self.main_menu = Menu()
         self.app._main_window.insert(
             [
-                Menu()
+                self.main_menu
             ]
         )
+        self.app.run_async(self.invoke_main_window())
+
+    async def invoke_main_window(self):
+        await asyncio.sleep(0.5)
+        self.app.invoke(self.show_main_menu)
+    
+    def show_main_menu(self):
+        self.app._main_window.show()
+        self.app._main_window.notify.show()
