@@ -1,0 +1,36 @@
+
+[tool.briefcase]
+project_name = "BitcoinZ Wallet"
+bundle = "com.btcz"
+version = "1.0.3"
+url = "https://getbtcz.com"
+license.file = "LICENSE"
+author = "BTCZCommunity"
+author_email = "None"
+
+[tool.briefcase.app.src]
+formal_name = "BTCZWallet"
+description = "BitcoinZ Full Node Wallet"
+long_description = """More details about the app should go here.
+"""
+icon = "src/images/BitcoinZ"
+sources = [
+    "src",
+]
+test_sources = [
+    "tests",
+]
+
+requires = [
+]
+test_requires = [
+    "pytest",
+]
+
+[tool.briefcase.app.src.windows]
+requires = [
+    "toga-winforms~=0.4.7",
+    "aiohttp",
+    "py7zr"
+]
+
