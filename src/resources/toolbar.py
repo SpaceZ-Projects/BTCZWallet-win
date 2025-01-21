@@ -1,81 +1,168 @@
 
-from framework import App, Toolbar, Command, Color
+from toga import App, Box
+from ..framework import (
+    Toolbar, Command, Color, run_async
+)
+from toga.style.pack import Pack
+from toga.constants import ROW, TOP
 
-class AppToolBar(Toolbar):
-    def __init__(self):
-        super().__init__()
+from .client import Client
 
-        self.app = App()
+class AppToolBar(Box):
+    def __init__(self, app:App, notify):
+        super().__init__(
+            style=Pack(
+                direction = ROW,
+                height = 24,
+                alignment = TOP
+            )
+        )
+        self.app = app
+        self.notify = notify
+        self.commands = Client(self.app)
 
-        self.file_tool_active = None
-        self.wallet_tool_active = None
-        self.color=Color.WHITE
-        self.background_color=Color.rgb(30,33,36)
+        self.app_menu_active = None
+        self.wallet_menu_active = None
+        self.help_menu_active = None
+
+        self.toolbar = Toolbar(
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48)
+        )
 
         self.about_cmd = Command(
             title="About",
             color=Color.WHITE,
-            background_color=Color.rgb(30,33,36),
+            background_color=Color.rgb(40,43,48),
+            icon="images/about_i.ico",
             mouse_enter=self.about_cmd_mouse_enter,
             mouse_leave=self.about_cmd_mouse_leave
         )
         self.exit_cmd = Command(
             title="Exit",
             color=Color.RED,
-            background_color=Color.rgb(30,33,36),
+            background_color=Color.rgb(40,43,48),
             action=self.exit_app
         )
-        self.file_tool = Command(
-            title="File",
+        self.stop_exit_cmd = Command(
+            title="Stop node",
+            color=Color.RED,
+            background_color=Color.rgb(40,43,48),
+            action=self.stop_node_exit
+        )
+        self.app_menu = Command(
+            title="App",
             sub_commands=[
                 self.about_cmd,
-                self.exit_cmd
+                self.exit_cmd,
+                self.stop_exit_cmd
             ],
-            drop_opened=self.file_tool_opened,
-            drop_closed=self.file_tool_closed,
-            mouse_enter=self.file_tool_mouse_enter,
-            mouse_leave=self.file_tool_mouse_leave
+            icon="images/app_i.ico",
+            drop_opened=self.app_menu_opened,
+            drop_closed=self.app_menu_closed,
+            mouse_enter=self.app_menu_mouse_enter,
+            mouse_leave=self.app_menu_mouse_leave
         )
-        self.wallet_tool = Command(
+        self.wallet_menu = Command(
             title="Wallet",
-            mouse_enter=self.wallet_tool_mouse_enter,
-            mouse_leave=self.wallet_tool_mouse_leave
+            icon="images/wallet_i.ico",
+            mouse_enter=self.wallet_menu_mouse_enter,
+            mouse_leave=self.wallet_menu_mouse_leave
         )
-        self.add_command(
+        self.check_update_cmd = Command(
+            title="Check update",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.check_update_cmd_mouse_enter,
+            mouse_leave=self.check_update_cmd_mouse_leave
+        )
+        self.help_menu = Command(
+            title="Help",
+            sub_commands=[
+                self.check_update_cmd
+            ],
+            icon="images/help_i.ico",
+            drop_opened=self.help_menu_opened,
+            drop_closed=self.help_menu_closed,
+            mouse_enter=self.help_menu_mouse_enter,
+            mouse_leave=self.help_menu_mouse_leave
+        )
+        self.toolbar.add_command(
             [
-                self.file_tool,
-                self.wallet_tool
+                self.app_menu,
+                self.wallet_menu,
+                self.help_menu
             ]
         )
+        self._impl.native.Controls.Add(self.toolbar)
 
+    def app_menu_opened(self):
+        self.app_menu_active = True
+        self.app_menu.icon = "images/app_a.ico"
+        self.app_menu.color = Color.BLACK
 
-    def file_tool_opened(self):
-        self.file_tool_active = True
-        self.file_tool.color = Color.BLACK
+    def app_menu_closed(self):
+        self.app_menu_active = False
+        self.app_menu.icon = "images/app_i.ico"
+        self.app_menu.color = Color.WHITE
 
-    def file_tool_closed(self):
-        self.file_tool_active = False
-        self.file_tool.color = Color.WHITE
+    def app_menu_mouse_enter(self):
+        self.app_menu.icon = "images/app_a.ico"
+        self.app_menu.color = Color.BLACK
 
-    def file_tool_mouse_enter(self):
-        self.file_tool.color = Color.BLACK
-
-    def file_tool_mouse_leave(self):
-        if self.file_tool_active:
+    def app_menu_mouse_leave(self):
+        if self.app_menu_active:
             return
-        self.file_tool.color = Color.WHITE
+        self.app_menu.icon = "images/app_i.ico"
+        self.app_menu.color = Color.WHITE
 
-    def wallet_tool_mouse_enter(self):
-        self.wallet_tool.color = Color.BLACK
+    def wallet_menu_mouse_enter(self):
+        self.wallet_menu.icon = "images/wallet_a.ico"
+        self.wallet_menu.color = Color.BLACK
 
-    def wallet_tool_mouse_leave(self):
-        self.wallet_tool.color = Color.WHITE
+    def wallet_menu_mouse_leave(self):
+        self.wallet_menu.icon = "images/wallet_i.ico"
+        self.wallet_menu.color = Color.WHITE
+
+    def check_update_cmd_mouse_enter(self):
+        self.check_update_cmd.color = Color.BLACK
+
+    def check_update_cmd_mouse_leave(self):
+        self.check_update_cmd.color = Color.WHITE
+
+    def help_menu_opened(self):
+        self.help_menu_active = True
+        self.help_menu.icon = "images/help_a.ico"
+        self.help_menu.color = Color.BLACK
+
+    def help_menu_closed(self):
+        self.help_menu_active = False
+        self.help_menu.icon = "images/help_i.ico"
+        self.help_menu.color = Color.WHITE
+
+    def help_menu_mouse_enter(self):
+        self.help_menu.icon = "images/help_a.ico"
+        self.help_menu.color = Color.BLACK
+
+    def help_menu_mouse_leave(self):
+        if self.help_menu_active:
+            return
+        self.help_menu.icon = "images/help_i.ico"
+        self.help_menu.color = Color.WHITE
 
     def about_cmd_mouse_enter(self):
+        self.about_cmd.icon = "images/about_a.ico"
         self.about_cmd.color = Color.BLACK
 
     def about_cmd_mouse_leave(self):
+        self.about_cmd.icon = "images/about_i.ico"
         self.about_cmd.color = Color.WHITE
 
-    def exit_app(self, command):
-        self.app._main_window.exit()
+    def exit_app(self):
+        self.notify.hide()
+        self.app.exit()
+
+    def stop_node_exit(self):
+        run_async(self.commands.stopNode())
+        self.notify.hide()
+        self.app.exit()

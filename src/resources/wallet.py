@@ -2,138 +2,183 @@
 import asyncio
 import json
 
-from framework import (
-    App, Box, DockStyle, Color, Label,
-    Font, FontStyle, AlignLabel, Image, SizeMode
+from toga import App, Box, Label, ImageView
+from toga.style.pack import Pack
+from toga.colors import rgb, WHITE, GRAY, YELLOW
+from toga.constants import (
+    TOP, ROW, LEFT, BOLD, COLUMN,
+    RIGHT, CENTER, BOTTOM
 )
 
 from .client import Client
 from .utils import Utils
 
 class Wallet(Box):
-    def __init__(self):
-        super().__init__()
-
-        self.app = App()
-        self.commands = Client()
-        self.utils = Utils()
-
-        self.dockstyle = DockStyle.FILL
-        self.autosize = False
-        self.background_color = Color.rgb(40,43,48)
-        self.padding = (5,5,5,5)
-
-        self.balances_box = Box(
-            dockstyle=DockStyle.RIGHT,
-            size=(1, 0),
-            background_color=Color.rgb(30,33,36),
-            autosize=False,
-            padding = (5,5,5,5)
+    def __init__(self, app:App):
+        super().__init__(
+            style=Pack(
+                direction = ROW,
+                height = 120,
+                alignment = TOP,
+                background_color = rgb(40,43,48),
+                padding =5
+            )
         )
-        self.total_label = Label(
+
+        self.app = app
+        self.commands = Client(self.app)
+        self.utils = Utils(self.app)
+
+        self.bitcoinz_logo = ImageView(
+            image="images/BTCZ.png",
+            style=Pack(
+                width=100,
+                height=100,
+                background_color = rgb(40,43,48),
+                padding_top = 10,
+                padding_left = 10
+            )
+        )
+        self.bitcoinz_title = Label(
+            text="Full Node Wallet",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(40,43,48),
+                font_size = 20,
+                font_weight = BOLD,
+                text_align = LEFT,
+                flex = 1,
+                padding_top = 35
+            )
+        )
+        self.balances_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                padding = 10,
+                alignment = RIGHT,
+                width = 350,
+                background_color = rgb(30,33,36)
+            )
+        )
+        self.total_balances_label = Label(
             text="Total Balances",
-            font=Font.SANSSERIF,
-            style=FontStyle.BOLD,
-            text_color=Color.rgb(40,43,48),
-            dockstyle=DockStyle.TOP,
-            aligne=AlignLabel.CENTER,
-            size=10,
-            visible=False
+            style=Pack(
+                font_size = 13,
+                font_weight = BOLD,
+                text_align = CENTER,
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                padding_top = 5,
+                flex =1
+            )
         )
         self.total_value = Label(
             text="",
-            font=Font.SANSSERIF,
-            style=FontStyle.BOLD,
-            text_color=Color.rgb(40,43,48),
-            dockstyle=DockStyle.TOP,
-            aligne=AlignLabel.CENTER,
-            size=11
+            style=Pack(
+                font_size = 13,
+                font_weight = BOLD,
+                text_align = CENTER,
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                padding_top = 5
+            )
         )
-        self.balances_type = Box(
-            dockstyle=DockStyle.BOTTOM,
-            autosize=False,
-            background_color=Color.rgb(40,43,48),
-            size=(0,20),
-            visible=False
+        self.balances_type_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(30,33,36),
+                alignment = BOTTOM,
+                flex = 1
+            )
         )
+
+        self.transparent_balance_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(40,43,48),
+                padding = 5,
+                flex = 1
+            )
+        )
+        self.private_balance_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(40,43,48),
+                padding = 5,
+                flex = 1
+            )
+        )
+
+        self.transparent_label = Label(
+            text="Transparent",
+            style=Pack(
+                background_color = rgb(40,43,48),
+                text_align = CENTER,
+                color = GRAY,
+                font_weight = BOLD
+            )
+        )
+
         self.transparent_value = Label(
             text="",
-            font=Font.SANSSERIF,
-            style=FontStyle.BOLD,
-            text_color=Color.rgb(30,33,36),
-            dockstyle=DockStyle.LEFT,
-            aligne=AlignLabel.CENTER,
-            size=9
+            style=Pack(
+                background_color = rgb(40,43,48),
+                text_align = CENTER,
+                color = YELLOW,
+                font_weight = BOLD
+            )
         )
+
+        self.private_label = Label(
+            text="Private",
+            style=Pack(
+                background_color = rgb(40,43,48),
+                text_align = CENTER,
+                color = GRAY,
+                font_weight = BOLD
+            )
+        )
+
         self.private_value = Label(
             text="",
-            font=Font.SANSSERIF,
-            style=FontStyle.BOLD,
-            text_color=Color.rgb(30,33,36),
-            dockstyle=DockStyle.RIGHT,
-            aligne=AlignLabel.CENTER,
-            size=9
-        )
-        self.bitcoinz_logo = Image(
-            image="images/BitcoinZ.png",
-            size=(75,75),
-            size_mode=SizeMode.ZOOM,
-            location=(-75, 5)
-        )
-        self.bitcoinz_title = Label(
-            text="BitcoinZ Full Node Wallet",
-            font=Font.SANSSERIF,
-            style=FontStyle.BOLD,
-            text_color=Color.rgb(30,33,36),
-            aligne=AlignLabel.CENTER,
-            location=(100, 30),
-            width=240,
-            size=14
+            style=Pack(
+                background_color = rgb(40,43,48),
+                text_align = CENTER,
+                color = rgb(114,137,218),
+                font_weight = BOLD
+            )
         )
 
-    async def insert_widgets(self):
-        await self.gradient((30,33,36), steps=25)
-        self.insert(
-            [
-                self.bitcoinz_logo,
-                self.bitcoinz_title,
-                self.balances_box
-            ]
+        self.add(
+            self.bitcoinz_logo,
+            self.bitcoinz_title,
+            self.balances_box
         )
-        self.balances_box.insert(
-            [
-                self.total_value,
-                self.total_label,
-                self.balances_type
-            ]
+
+        self.balances_box.add(
+            self.total_balances_label,
+            self.total_value,
+            self.balances_type_box
         )
-        self.balances_type.insert(
-            [
-                self.transparent_value,
-                self.private_value
-            ]
+
+        self.balances_type_box.add(
+            self.transparent_balance_box,
+            self.private_balance_box
         )
-        self.app.run_async(self.display_balances_widgets())
-        self.app.run_async(self.display_bitcoinz_logo())
 
-    async def display_balances_widgets(self):
-        self.app.run_async(self.balances_box.resize((350,110), steps=60, duration=0.01))
-        await self.balances_box.gradient((40,43,48), steps=25)
-        self.total_label.visible = True
-        await self.total_label.gradient_color((255,255,255), steps=50)
-        self.app.run_async(self.update_balances())
-        await self.total_value.gradient_color((255,255,255), steps=25)
-        self.balances_type.visible = True
-        await self.balances_type.gradient((30,33,36), steps=25)
-        self.app.run_async(self.transparent_value.gradient_color((255,255,0), steps=25))
-        await self.private_value.gradient_color((114,137,218), steps=25)
+        self.transparent_balance_box.add(
+            self.transparent_label,
+            self.transparent_value
+        )
+        self.private_balance_box.add(
+            self.private_label,
+            self.private_value
+        )
 
-    async def display_bitcoinz_logo(self):
-        await self.bitcoinz_logo.slide((5,5), steps=15, duration=0.01)
-        self.bitcoinz_logo.dockstyle = DockStyle.LEFT
-        await self.bitcoinz_title.gradient_color((255,255,255))
+        self.app.add_background_task(self.update_balances)
 
-    async def update_balances(self):
+
+    async def update_balances(self, widget):
         while True:
             totalbalances = await self.commands.z_getTotalBalance()
             if totalbalances is not None:

@@ -3,25 +3,37 @@ import asyncio
 from datetime import datetime
 import json
 
-from framework import (
-    App, StatusBar, StatusLabel, Separator,
-    DockStyle, Color, Font, FontStyle, AlignLabel
+from toga import App, Box
+from ..framework import (
+    StatusBar, StatusLabel, Separator,
+    DockStyle, Color, Font, FontStyle, AlignLabel,
+    run_async
 )
+from toga.style.pack import Pack
+from toga.constants import ROW, BOTTOM
 
 from .client import Client
 from .utils import Utils
 
 
-class AppStatusBar(StatusBar):
-    def __init__(self):
-        super().__init__()
+class AppStatusBar(Box):
+    def __init__(self, app:App):
+        super().__init__(
+            style=Pack(
+                direction = ROW,
+                alignment = BOTTOM,
+                height = 24
+            )
+        )
 
-        self.app = App()
-        self.commands = Client()
-        self.utils = Utils()
+        self.app = app
+        self.commands = Client(self.app)
+        self.utils = Utils(self.app)
 
-        self.background_color=Color.rgb(30,33,36)
-        self.dockstyle=DockStyle.BOTTOM
+        self.statusbar = StatusBar(
+            background_color=Color.rgb(40,43,48),
+            dockstyle=DockStyle.BOTTOM
+        )
 
         self.status_label = StatusLabel(
             text="Status :",
@@ -119,7 +131,7 @@ class AppStatusBar(StatusBar):
             text_align=AlignLabel.LEFT,
             autotooltip=True
         )
-        self.add_items(
+        self.statusbar.add_items(
             [
                 self.status_label,
                 self.status_icon,
@@ -143,15 +155,16 @@ class AppStatusBar(StatusBar):
                 self.size_value
             ]
         )
+        self._impl.native.Controls.Add(self.statusbar)
 
     
     def update_statusbar(self):
-        self.app.run_async(self.update_blockchaininfo())
-        self.app.run_async(self.update_deprecationinfo())
-        self.app.run_async(self.update_networkhash())
+        self.app.add_background_task(self.update_blockchaininfo)
+        self.app.add_background_task(self.update_deprecationinfo)
+        self.app.add_background_task(self.update_networkhash)
 
 
-    async def update_blockchaininfo(self):
+    async def update_blockchaininfo(self, widget):
         node_status = None
         last_node_status = None
         while True:
@@ -186,6 +199,7 @@ class AppStatusBar(StatusBar):
             self.size_value.text = f"{int(bitcoinz_size)} MB"
             await asyncio.sleep(5)
 
+
     async def update_statusbar_icon(self, status):
         if status:
             status_icon = "images/on.png"
@@ -193,7 +207,8 @@ class AppStatusBar(StatusBar):
             status_icon = "images/off.png"
         self.status_icon.image = status_icon
 
-    async def update_networkhash(self):
+
+    async def update_networkhash(self, widget):
         while True:
             networksol, _ = await self.commands.getNetworkSolps()
             if networksol is not None:
@@ -207,7 +222,7 @@ class AppStatusBar(StatusBar):
             await asyncio.sleep(5)
 
 
-    async def update_deprecationinfo(self):
+    async def update_deprecationinfo(self, widget):
         deprecationinfo, _ = await self.commands.getDeprecationInfo()
         if deprecationinfo is not None:
             if isinstance(deprecationinfo, str):

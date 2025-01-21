@@ -2,16 +2,16 @@
 import asyncio
 import subprocess
 import json
-
-from framework import Os, App
+from toga import App
+from ..framework import Os
 
 class Client():
-    def __init__(self):
+    def __init__(self, app:App):
         super().__init__()
 
-        self.app = App()
-        self.app_data = self.app.app_data
-        self.bitcoinz_cli_file = Os.Path.Combine(self.app_data, "bitcoinz-cli.exe")
+        self.app = app
+        self.app_data = self.app.paths.data
+        self.bitcoinz_cli_file = Os.Path.Combine(str(self.app_data), "bitcoinz-cli.exe")
 
     async def _run_command(self, command):
         try:
@@ -22,8 +22,6 @@ class Client():
                 creationflags=subprocess.CREATE_NO_WINDOW
             )
             stdout, stderr = await process.communicate()
-            print(stdout)
-            print(stderr)
             if process.returncode == 0:
                 if stdout:
                     try:
@@ -67,4 +65,8 @@ class Client():
     
     async def z_getTotalBalance(self):
         command = f'{self.bitcoinz_cli_file} z_gettotalbalance'
+        return await self._run_command(command)
+    
+    async def listTransactions(self, count, tx_from):
+        command = f'{self.bitcoinz_cli_file} listtransactions "*" {count} {tx_from}'
         return await self._run_command(command)

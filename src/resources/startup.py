@@ -4,176 +4,233 @@ import subprocess
 import json
 from datetime import datetime
 
-from framework import (
-    App, Box, Color, Label, Font, FontStyle,
-    Os, Dialog, DialogIcon, DialogButton, ProgressStyle,
-    DockStyle, AlignLabel, ProgressBar
+from toga import (
+    App, Box, Label, ProgressBar, Window
 )
+from ..framework import (
+    ProgressStyle, Os, Forms, run_async
+)
+from toga.colors import rgb, WHITE, GRAY
+from toga.style.pack import Pack
+from toga.constants import CENTER, BOLD, COLUMN, ROW, BOTTOM, LEFT, RIGHT
 
-from .client import Client
 from .utils import Utils
+from .client import Client
 from .menu import Menu
 
 
 class BTCZSetup(Box):
-    def __init__(self):
-        super(BTCZSetup, self).__init__(
-            size=(325,40),
-            location=(5,300),
-            background_color=Color.rgb(40,43,48)
+    def __init__(self, app:App, main:Window):
+        super().__init__(
+            style=Pack(
+                direction = COLUMN,
+                background_color=rgb(40,43,48),
+                flex = 1.5,
+                padding = 5
+            )
         )
 
-        self.app = App()
-        self.commands = Client()
-        self.utils = Utils()
-        self.app_data = self.app.app_data
+        self.app = app
+        self.main = main
+        self.utils = Utils(self.app)
+        self.commands = Client(self.app)
+        self.app_data = self.app.paths.data
 
         self.node_status = None
         self.blockchaine_index = None
 
         self.status_label = Label(
             text="Verify binary files...",
-            text_color=Color.WHITE,
-            size=9,
-            font=Font.SANSSERIF,
-            style=FontStyle.BOLD,
-            aligne=AlignLabel.CENTER,
-            dockstyle=DockStyle.FILL
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(40,43,48),
+                font_size = 10,
+                font_weight = BOLD,
+                text_align = CENTER,
+                alignment = CENTER,
+                padding_top = 5,
+                flex = 1
+            )
+        )
+        self.status_box = Box(
+            style=Pack(
+                direction=ROW,
+                flex = 7,
+                background_color = rgb(40,43,48)
+            )
         )
         self.progress_bar = ProgressBar(
-            size=(325, 10),
-            location=(5, 345),
-            style=ProgressStyle.MARQUEE
+            style=Pack(height= 12, flex = 1),
+            max=100
         )
-        self.app._main_window.insert([self.progress_bar])
-        self.insert([self.status_label])
-        self.app.run_async(self.verify_binary_files())
+        self.progress_box = Box(
+            style=Pack(
+                direction=ROW,
+                flex = 3,
+                alignment = BOTTOM,
+                background_color = rgb(40,43,48)
+            )
+        )
+        self.status_box.add(self.status_label)
+        self.progress_box.add(self.progress_bar)
+        self.add(self.status_box, self.progress_box)
+        self.progress_bar._impl.native.Style = ProgressStyle.MARQUEE
+        self.app.add_background_task(self.verify_binary_files)
 
 
     def update_info_box(self):
-        self.progress_bar.style = ProgressStyle.BLOCKS
-        self.clear()
+        self.progress_bar._impl.native.Style = ProgressStyle.BLOCKS
+        self.status_box.remove(self.status_label)
+        self.status_box.style.direction = COLUMN
+        self.box1 = Box(
+            style=Pack(
+                direction = ROW,
+                flex=1,
+                background_color = rgb(40,43,48)
+            )
+        )
+        self.box2 = Box(
+            style=Pack(
+                direction = ROW,
+                flex = 1,
+                background_color = rgb(40,43,48)
+            )
+        )
         self.blocks_txt = Label(
             text="Blocks :",
-            text_color=Color.GRAY,
-            size=8,
-            location=(10, 4),
-            font=Font.SANSSERIF,
-            style=FontStyle.BOLD,
-            autosize=True
+            style=Pack(
+                text_align = LEFT,
+                background_color = rgb(40,43,48),
+                color = GRAY,
+                font_weight = BOLD,
+                padding_top = 3
+            )
         )
         self.blocks_value = Label(
             text="",
-            text_color=Color.WHITE,
-            size=8,
-            location=(60, 4),
-            font=Font.SANSSERIF,
-            style=FontStyle.BOLD,
-            autosize=True
+            style=Pack(
+                text_align = LEFT,
+                background_color = rgb(40,43,48),
+                color = WHITE,
+                font_weight = BOLD,
+                padding_top = 3
+            )
         )
         self.mediantime_text = Label(
             text="Date :",
-            text_color=Color.GRAY,
-            size=8,
-            location=(10, 24),
-            font=Font.SANSSERIF,
-            style=FontStyle.BOLD,
-            autosize=True
+            style=Pack(
+                text_align = LEFT,
+                background_color = rgb(40,43,48),
+                color = GRAY,
+                font_weight = BOLD
+            )
         )
         self.mediantime_value = Label(
             text="",
-            text_color=Color.WHITE,
-            size=8,
-            location=(50, 24),
-            font=Font.SANSSERIF,
-            style=FontStyle.BOLD,
-            width=200,
-            autosize=True
+            style=Pack(
+                text_align = LEFT,
+                background_color = rgb(40,43,48),
+                color = WHITE,
+                font_weight = BOLD
+            )
         )
         self.sync_txt = Label(
             text="Sync :",
-            text_color=Color.GRAY,
-            size=8,
-            location=(225, 24),
-            font=Font.SANSSERIF,
-            style=FontStyle.BOLD,
-            autosize=True
+            style=Pack(
+                text_align = RIGHT,
+                flex = 1,
+                background_color = rgb(40,43,48),
+                color = GRAY,
+                font_weight = BOLD
+            )
         )
         self.sync_value = Label(
             text="",
-            text_color=Color.WHITE,
-            size=8,
-            location=(260, 24),
-            font=Font.SANSSERIF,
-            style=FontStyle.BOLD,
-            autosize=True
+            style=Pack(
+                text_align = RIGHT,
+                background_color = rgb(40,43,48),
+                color = WHITE,
+                font_weight = BOLD
+            )
         )
         self.index_size_txt = Label(
             text="Size :",
-            text_color=Color.GRAY,
-            size=8,
-            location=(225, 4),
-            font=Font.SANSSERIF,
-            style=FontStyle.BOLD,
-            autosize=True
+            style=Pack(
+                text_align = RIGHT,
+                flex = 1,
+                background_color = rgb(40,43,48),
+                color=GRAY,
+                font_weight = BOLD,
+                padding_top = 3
+            )
         )
         self.index_size_value = Label(
             text="",
-            text_color=Color.WHITE,
-            size=8,
-            location=(260, 4),
-            font=Font.SANSSERIF,
-            style=FontStyle.BOLD,
-            autosize=True
+            style=Pack(
+                text_align = RIGHT,
+                background_color = rgb(40,43,48),
+                color = WHITE,
+                font_weight = BOLD,
+                padding_top = 3
+            )
         )
-        self.insert(
-            [
-                self.blocks_value,
-                self.blocks_txt,
-                self.sync_value,
-                self.sync_txt,
-                self.index_size_value,
-                self.index_size_txt,
-                self.mediantime_value,
-                self.mediantime_text
-            ]
+        self.status_box._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_status_box()))
+        self.box1._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_box1()))
+        self.box2._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_box2()))
+
+    def update_status_box(self):
+        self.status_box.add(
+            self.box1,
+            self.box2
         )
 
+    def update_box1(self):
+        self.box1.add(
+            self.blocks_txt,
+            self.blocks_value,
+            self.index_size_txt,
+            self.index_size_value
+        )
 
-    async def verify_binary_files(self):
+    def update_box2(self):
+        self.box2.add(
+            self.mediantime_text,
+            self.mediantime_value,
+            self.sync_txt,
+            self.sync_value
+        )
+
+    async def verify_binary_files(self, widget):
         await asyncio.sleep(1)
         missing_files = self.utils.get_binary_files()
         if missing_files:
-            self.status_label.text = "Downloading binary..."
-            self.progress_bar.style = ProgressStyle.BLOCKS
+            text = "Downloading binary..."
+            self.status_label.text = text
+            self.progress_bar._impl.native.Style = ProgressStyle.BLOCKS
             await self.utils.fetch_binary_files(
                 self.status_label,
                 self.progress_bar
             )
-            await self.verify_params_files()
-        else:
-            await self.verify_params_files()
+        await self.verify_params_files()
 
     async def verify_params_files(self):
         self.status_label.text = "Verify params..."
-        self.progress_bar.style = ProgressStyle.MARQUEE
+        self.progress_bar._impl.native.Style = ProgressStyle.MARQUEE
         await asyncio.sleep(1)
         missing_files, zk_params_path = self.utils.get_zk_params()
         if missing_files:
             self.status_label.text = "Downloading params..."
-            self.progress_bar.style = ProgressStyle.BLOCKS
+            self.progress_bar._impl.native.Style = ProgressStyle.BLOCKS
             await self.utils.fetch_params_files(
                 missing_files, zk_params_path,
                 self.status_label, self.progress_bar,
             )
-            await self.verify_config_file()
-        else:
-            await self.verify_config_file()
+        await self.verify_config_file()
 
 
     async def verify_config_file(self):
         self.status_label.text = "Verify bitcoinz.conf..."
-        self.progress_bar.style = ProgressStyle.MARQUEE
+        self.progress_bar._impl.native.Style = ProgressStyle.MARQUEE
         await asyncio.sleep(1)
         bitcoinz_path = self.utils.get_bitcoinz_path()
         config_file_path = self.utils.get_config_path()
@@ -190,46 +247,45 @@ class BTCZSetup(Box):
     
     async def verify_bockchaine_index(self):
         if self.blockchaine_index:
-            await self.execute_bitcoinz_node()
+            self.app.add_background_task(self.execute_bitcoinz_node)
         else:
-            Dialog(
+            self.main.question_dialog(
                 title="Download Bootstarp",
                 message="Would you like to download the BitcoinZ bootstrap? This will help you sync faster. If you prefer to sync from block 0, Click NO.",
-                icon=DialogIcon.QUESTION,
-                buttons=DialogButton.YESNO,
-                result=self.download_bootstrap_result
+                on_result=self.download_bootstrap_dialog
             )
 
-    def download_bootstrap_result(self, result):
-        if result == "Yes":
-            self.app.run_async(self.download_bitcoinz_bootstrap())
-        elif result == "No":
-            self.app.run_async(self.execute_bitcoinz_node())
+    def download_bootstrap_dialog(self, widget, result):
+        if result is True:
+            self.app.add_background_task(self.download_bitcoinz_bootstrap)
+        elif result is False:
+            self.app.add_background_task(self.execute_bitcoinz_node)
 
 
-    async def download_bitcoinz_bootstrap(self):
+    async def download_bitcoinz_bootstrap(self, widget):
         self.status_label.text = "Downloading bootstrap..."
-        self.progress_bar.style = ProgressStyle.BLOCKS
+        self.progress_bar._impl.native.Style = ProgressStyle.BLOCKS
         await self.utils.fetch_bootstrap_files(
             self.status_label,
             self.progress_bar)
-        await self.extract_bootstrap_file()
+        run_async(self.extract_bootstrap_file())
 
 
     async def extract_bootstrap_file(self):
         self.status_label.text = "Extracting bootstrap..."
-        self.progress_bar.style = ProgressStyle.MARQUEE
+        style = ProgressStyle.MARQUEE
+        self.progress_bar._impl.native.Invoke(Forms.MethodInvoker(lambda:self.utils.update_progress_style(self.progress_bar, style)))
         await self.utils.extract_7z_files(
             self.status_label,
             self.progress_bar
         )
-        await self.execute_bitcoinz_node()
+        self.app.add_background_task(self.execute_bitcoinz_node)
 
 
-    async def execute_bitcoinz_node(self):
+    async def execute_bitcoinz_node(self, widget):
         self.status_label.text = "Starting node..."
         bitcoinzd = "bitcoinzd.exe"
-        node_file = Os.Path.Combine(self.app_data, bitcoinzd)
+        node_file = Os.Path.Combine(str(self.app_data), bitcoinzd)
         command = [node_file]
         try:
             self.process = await asyncio.create_subprocess_exec(
@@ -244,7 +300,7 @@ class BTCZSetup(Box):
         finally:
             if self.process:
                 await self.process.wait()
-                self.process.terminate()
+                self.process = None
                 
 
     async def waiting_node_status(self):
@@ -277,14 +333,17 @@ class BTCZSetup(Box):
             sync_percentage = sync * 100
             if sync_percentage <= 99.95:
                 self.update_info_box()
-                self.app.run_async(self.show_dialog())
+                self.main.info_dialog(
+                    title="Disabled Wallet",
+                    message="The wallet is currently disabled as it is synchronizing. It will be accessible once the sync process is complete.",
+                )
                 while True:
                     blockchaininfo, _ = await self.commands.getBlockchainInfo()
                     if isinstance(blockchaininfo, str):
                         info = json.loads(blockchaininfo)
                     else:
                         self.node_status = False
-                        self.app._main_window.exit()
+                        self.app.exit()
                         return
                     if info is not None:
                         blocks = info.get('blocks')
@@ -304,45 +363,16 @@ class BTCZSetup(Box):
                     self.sync_value.text = f"%{float(sync_percentage):.2f}"
                     self.progress_bar.value = int(sync_percentage)
                     if sync_percentage > 99.95:
-                        await self.update_main_window()
+                        await self.open_main_menu()
                         return
                     await asyncio.sleep(2)
             elif sync_percentage > 99.95:
-                await self.update_main_window()
-
-    async def show_dialog(self):
-        Dialog(
-            title="Disabled Wallet",
-            message="The wallet is currently disabled as it is synchronizing. It will be accessible once the sync process is complete.",
-            icon=DialogIcon.INFORMATION,
-            buttons=DialogButton.OK
-        )
-
-    async def update_main_window(self):
-        self.app._main_window.hide()
-        await asyncio.sleep(0.5)
-        self.app._main_window.clear()
-        self.app._main_window.center_screen = False
-        self.app._main_window.update_size((900,600))
-        self.app._main_window.minimizable = True
-        self.app._main_window.maxmizable = True
-        self.app._main_window.resizable = True
-        self.app.invoke(self.insert_main_menu)
+                await self.open_main_menu()
 
 
-    def insert_main_menu(self):
+    async def open_main_menu(self):
         self.main_menu = Menu()
-        self.app._main_window.insert(
-            [
-                self.main_menu
-            ]
-        )
-        self.app.run_async(self.invoke_main_window())
-
-    async def invoke_main_window(self):
-        await asyncio.sleep(0.5)
-        self.app.invoke(self.show_main_menu)
-    
-    def show_main_menu(self):
-        self.app._main_window.show()
-        self.app._main_window.notify.show()
+        self.main.hide()
+        await asyncio.sleep(1)
+        self.main_menu.show()
+        self.main_menu.notify.show()

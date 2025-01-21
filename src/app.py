@@ -1,104 +1,108 @@
 
-from framework import (
-    App, MainWindow, Image, ProgressBar,
-    ProgressStyle, Color, Label, Font,
-    FontStyle, SizeMode, NotifyIcon
+from toga import (
+    App, Window, Box, ImageView, Label
 )
+from toga.colors import rgb, WHITE, YELLOW
+from toga.style.pack import Pack
+from toga.constants import RIGHT, BOLD, COLUMN, ROW
 
-from src import Utils, BTCZSetup, Client
+from .resources import BTCZSetup, Utils
 
-class BitcoinZGUI(MainWindow):
+class BitcoinZGUI(Window):
     def __init__(self):
-        super(BitcoinZGUI, self).__init__()
+        super().__init__(
+            size=(350, 400),
+            resizable= False,
+            minimizable = False
+        )
 
-        self.app = App()
-        self.utils = Utils()
-        self.commands = Client()
-        self.app_path = self.app.app_path
-        icon = self.utils.get_icon()
+        self.utils = Utils(self.app)
 
-        self.size = (350, 400)
-        self.icon = icon
-        self.center_screen = True
-        self.maxmizable = False
-        self.resizable = False
-        self.minimizable = False
-        self.background_color = Color.rgb(30,33,36)
-        self._on_exit = self.on_exit
+        self.title = "BitcoinZ Wallet"
+        position_center = self.utils.windows_screen_center(self.size)
+        self.position = position_center
 
-        self.bitcoinz_logo = Image(
-            image="images/btcz_inactive.png",
-            location=(22, 10),
-            size_mode=SizeMode.ZOOM,
-            mouse_enter=self.bitcoinz_logo_mouse_enter,
-            mouse_leave=self.bitcoinz_logo_mouse_leave
+        self.startup_panel = Box(
+            style=Pack(
+                direction= COLUMN, 
+                background_color = rgb(30,33,36),
+                flex = 10
+            )
+        )
+        self.bitcoinz_logo = ImageView(
+            image="images/BitcoinZ.png",
+            style=(Pack(
+                background_color = rgb(30,33,36),
+                padding_top = 22,
+                flex = 8
+            ))
+        )
+        self.version_box = Box(
+            style=Pack(
+            direction = ROW,
+            background_color= rgb(30,33,36),
+            )
+        )
+        self.empty_box = Box(
+            style=Pack(
+                flex = 9,
+                background_color = rgb(30,33,36)
+            )
         )
         self.app_version = Label(
-            text="v1.0.2",
-            font=Font.SANSSERIF,
-            location=(285, 280),
-            size=9,
-            style=FontStyle.BOLD,
-            text_color=Color.GRAY,
-            mouse_enter=self.app_version_mouse_enter,
-            mouse_leave=self.app_version_mouse_leave
+            text=f"v{self.app.version}",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                text_align = RIGHT,
+                font_weight = BOLD,
+                padding_right = 10,
+                font_size = 10,
+                flex = 1
+            )
         )
-        self.notify = NotifyIcon(
-            icon="images/BitcoinZ.ico",
-            tootip="BitcoinZ Wallet"
+        self.startup = BTCZSetup(
+            self.app,
+            self
         )
-        self.startup = BTCZSetup(self)
-        self.insert(
-            [
-                self.startup,
-                self.app_version,
-                self.bitcoinz_logo
-            ]
+        self.startup_panel.add(
+            self.bitcoinz_logo,
+            self.version_box,
+            self.startup
         )
+        self.version_box.add(
+            self.empty_box,
+            self.app_version
+        )
+        self.content = self.startup_panel
+        
+        self.app_version._impl.native.MouseEnter += self.app_version_mouse_enter
+        self.app_version._impl.native.MouseLeave += self.app_version_mouse_leave
 
-    def app_version_mouse_enter(self):
-        self.app_version.text_color = Color.YELLOW
+    def app_version_mouse_enter(self, mouse, event):
+        self.app_version.style.color = YELLOW
 
-    def app_version_mouse_leave(self):
-        self.app_version.text_color = Color.GRAY
+    def app_version_mouse_leave(self, mouse, event):
+        self.app_version.style.color = WHITE
 
-    def bitcoinz_logo_mouse_enter(self):
-        self.bitcoinz_logo.image = "images/btcz_active.png"
-
-    def bitcoinz_logo_mouse_leave(self):
-        self.bitcoinz_logo.image = "images/btcz_inactive.png"
-
-    def on_exit(self):
-        if self.startup.node_status:
-            self.app.run_async(self.commands.stopNode())
-        self.notify.hide()
-
-    
-    
-class BTCZWallet():
-    def __init__(self):
-        super(BTCZWallet, self).__init__()
-
-        self.app = App()
-        self.utils = Utils()
-        self.app_data = self.app.app_data
-
+class BitcoinZWallet(App):
+    def startup(self):
+        
         self.main_window = BitcoinZGUI()
-
-    def run(self):
-        if self.utils.is_already_running():
-            return
-        if self.utils.create_lock_file():
-            try:
-                self.main_window.run()
-            finally:
-                self.utils.remove_lock_file()
+        self.main_window.show()
 
 
 def main():
-    app = BTCZWallet()
-    app.run()
-
+    app = BitcoinZWallet(
+        icon="images/BitcoinZ",
+        formal_name = "BTCZWallet",
+        app_id = "com.btcz",
+        home_page = "https://getbtcz.com",
+        author = "BTCZCommunity",
+        version = "1.0.3"
+    )
+    return app
 
 if __name__ == "__main__":
     app = main()
+    app.main_loop()

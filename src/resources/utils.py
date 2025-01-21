@@ -6,56 +6,20 @@ import py7zr
 import string
 import secrets
 from decimal import Decimal
-from framework import Os, Sys, App, ProgressStyle
+from toga import App
+from ..framework import (
+    Os, Sys, ProgressStyle, Forms, run_async
+)
 
 
 class Utils():
-    def __init__(self):
+    def __init__(self, app:App):
         super().__init__()
 
-        self.app = App()
-        self.app_path = self.app.app_path
-        self.app_data = self.app.app_data
-        self.lock_file_stream = None
-
-    def get_icon(self):
-        icon_path = Os.Path.Combine(self.app_path, "images/BitcoinZ.ico")
-        return icon_path
-    
-    def get_lock_file(self):
-        lock_file = Os.Path.Combine(self.app_data, ".lock")
-        return lock_file
-    
-
-    def is_already_running(self):
-        lock_file = self.get_lock_file()
-        if Os.File.Exists(lock_file):
-            try:
-                Os.File.Delete(lock_file)
-            except Os.IOException:
-                return True
-        return False
-
-    def create_lock_file(self):
-        lock_file = self.get_lock_file()
-        try:
-            self.lock_file_stream = Os.FileStream(
-                lock_file,
-                Os.FileMode.CreateNew,
-                Os.FileAccess.ReadWrite,
-                Os.FileShare(0)
-            )
-        except Os.IOException:
-            return False
-        return True
-
-    def remove_lock_file(self):
-        lock_file = self.get_lock_file()
-        if self.lock_file_stream:
-            self.lock_file_stream.Close()
-            self.lock_file_stream = None
-        if Os.File.Exists(lock_file):
-            Os.File.Delete(lock_file)
+        self.app = app
+        self.app_data = self.app.paths.data
+        if not Os.Directory.Exists(str(self.app_data)):
+            Os.Directory.CreateDirectory(str(self.app_data))
 
     def get_bitcoinz_path(self):
         bitcoinz_path = Os.Path.Combine(
@@ -74,6 +38,14 @@ class Utils():
         bitcoinz_path = self.get_bitcoinz_path()
         config_file_path = Os.Path.Combine(bitcoinz_path, config_file)
         return config_file_path
+    
+    def windows_screen_center(self, size):
+        screen_size = self.app.screens[0].size
+        screen_width, screen_height = screen_size
+        window_width, window_height = size
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        return (x, y)
     
     def get_bitcoinz_size(self):
         bitcoinz_path = self.get_bitcoinz_path()
@@ -101,7 +73,7 @@ class Utils():
         ]
         missing_files = []
         for file in required_files:
-            file_path = Os.Path.Combine(self.app_data, file)
+            file_path = Os.Path.Combine(str(self.app_data), file)
             if not Os.File.Exists(file_path):
                 missing_files.append(file)
         return missing_files
@@ -128,7 +100,8 @@ class Utils():
     async def fetch_binary_files(self, label, progress_bar):
         file_name = "bitcoinz-c73d5cdb2b70-win64.zip"
         url = "https://github.com/btcz/bitcoinz/releases/download/2.1.0/"
-        destination = Os.Path.Combine(self.app_data, file_name)
+        text = "Downloading binary...%"
+        destination = Os.Path.Combine(str(self.app_data), file_name)
         self.current_download_file = destination
         try:
             async with aiohttp.ClientSession() as session:
@@ -144,18 +117,18 @@ class Utils():
                             self.file_handle.write(chunk)
                             downloaded_size += len(chunk)
                             progress = int(downloaded_size / total_size * 100)
-                            label.text = f"Downloading binary...%{progress}"
+                            label._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_status_label(label, text, progress)))
                             progress_bar.value = progress
                         self.file_handle.close()
                         self.file_handle = None
                         await session.close()
                         with zipfile.ZipFile(destination, 'r') as zip_ref:
                             zip_ref.extractall(self.app_data)
-                        extracted_folder = Os.Path.Combine(self.app_data, "bitcoinz-c73d5cdb2b70")
+                        extracted_folder = Os.Path.Combine(str(self.app_data), "bitcoinz-c73d5cdb2b70")
                         bin_folder = Os.Path.Combine(extracted_folder, "bin")
                         for exe_file in ["bitcoinzd.exe", "bitcoinz-cli.exe", "bitcoinz-tx.exe"]:
                             src = Os.Path.Combine(bin_folder, exe_file)
-                            dest = Os.Path.Combine(self.app_data, exe_file)
+                            dest = Os.Path.Combine(str(self.app_data), exe_file)
                             if Os.File.Exists(src):
                                 Os.File.Move(src, dest)
                         Os.Directory.Delete(extracted_folder, True)
@@ -171,6 +144,7 @@ class Utils():
     async def fetch_params_files(self, missing_files, zk_params_path, label, progress_bar):
         base_url = "https://d.btcz.rocks/"
         total_files = len(missing_files)
+        text = "Downloading params...%"
         try:
             async with aiohttp.ClientSession() as session:
                 for idx, file_name in enumerate(missing_files):
@@ -189,7 +163,7 @@ class Utils():
                                 self.file_handle.write(chunk)
                                 downloaded_size += len(chunk)
                                 overall_progress = int(((idx + downloaded_size / total_size) / total_files) * 100)
-                                label.text = f"Downloading params...%{overall_progress}"
+                                label._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_status_label(label, text, overall_progress)))
                                 progress_bar.value = overall_progress
                             self.file_handle.close()
                             self.file_handle = None
@@ -213,6 +187,7 @@ class Utils():
         ]
         total_files = len(bootstrap_files)
         bitcoinz_path = self.get_bitcoinz_path()
+        text = "Downloading bootstrap...%"
         try:
             async with aiohttp.ClientSession() as session:
                 for idx, file_name in enumerate(bootstrap_files):
@@ -233,7 +208,7 @@ class Utils():
                                 self.file_handle.write(chunk)
                                 downloaded_size += len(chunk)
                                 overall_progress = int(((idx + downloaded_size / total_size) / total_files) * 100)
-                                label.text = f"Downloading bootstrap...%{overall_progress}"
+                                label._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_status_label(label, text, overall_progress)))
                                 progress_bar.value = overall_progress
                             self.file_handle.close()
                             self.file_handle = None
@@ -267,7 +242,7 @@ class Utils():
         self.extract_progress_status = True
         try:
             with py7zr.SevenZipFile(combined_file, mode='r') as archive:
-                self.app.run_async(self.extract_progress(bitcoinz_path, label, progress_bar))
+                run_async(self.extract_progress(label, progress_bar, bitcoinz_path))
                 archive.extractall(path=bitcoinz_path)
                 self.extract_progress_status = False
         except Exception as e:
@@ -276,21 +251,36 @@ class Utils():
         Os.File.Delete(combined_file)
 
     
-    async def extract_progress(self, bitcoinz_path, label, progress_bar):
-        progress_bar.style = ProgressStyle.BLOCKS
+    async def extract_progress(self, label, progress_bar, bitcoinz_path):
+        style = ProgressStyle.BLOCKS
+        progress_bar._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_progress_style(progress_bar, style)))
         total_size = 5495725462
         total_size_gb = total_size / (1024 ** 3)
         while True:
             if not self.extract_progress_status:
-                progress_bar.style = ProgressStyle.MARQUEE
+                style = ProgressStyle.MARQUEE
+                progress_bar._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_progress_style(progress_bar, style)))
                 return
             dat_file = Os.Path.Combine(bitcoinz_path, "bootstrap.dat")
             current_size = Os.FileInfo(dat_file).Length
             current_size_gb = current_size / (1024 ** 3)
             progress = int((current_size / total_size) * 100)
-            label.text = f"Extracting... {current_size_gb:.2f} / {total_size_gb:.2f} GB"
-            progress_bar.value = progress
-            await asyncio.sleep(1)
+            text = f"Extracting... {current_size_gb:.2f} / {total_size_gb:.2f} GB"
+            label._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_status_label(label, text, None)))
+            progress_bar._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_progress_bar(progress_bar, progress)))
+            await asyncio.sleep(3)
+
+    def update_status_label(self, label, text, progress):
+        if progress is None:
+            label._impl.native.Text = text
+        else:
+            label._impl.native.Text = f"{text}{progress}"
+
+    def update_progress_bar(self, progress_bar, progress):
+        progress_bar.value = progress
+
+    def update_progress_style(self, progress_bar, style):
+        progress_bar._impl.native.Style = style
 
 
     def create_config_file(self, config_file_path):
@@ -324,3 +314,30 @@ addnode=37.187.76.80:1989
             formatted_decimal = decimal_part
         formatted_balance = f"{integer_part}.{formatted_decimal}"
         return formatted_balance
+    
+
+    def format_price(self, price):
+        price = Decimal(price)
+
+        if price > Decimal('0.00000001') and price < Decimal('0.0000001'):
+            return f"{price:.10f}"
+        elif price > Decimal('0.0000001') and price < Decimal('0.000001'):
+            return f"{price:.9f}"
+        elif price > Decimal('0.000001') and price < Decimal('0.00001'):
+            return f"{price:.8f}"
+        elif price > Decimal('0.00001') and price < Decimal('0.0001'):
+            return f"{price:.7f}"
+        elif price > Decimal('0.0001') and price < Decimal('0.001'):
+            return f"{price:.6f}"
+        elif price > Decimal('0.001') and price < Decimal('0.01'):
+            return f"{price:.5f}"
+        elif price > Decimal('0.01') and price < Decimal('0.1'):
+            return f"{price:.4f}"
+        elif price > Decimal('0.1') and price < Decimal('1'):
+            return f"{price:.3f}"
+        elif price > Decimal('1') and price < Decimal('10'):
+            return f"{price:.2f}"
+        elif price > Decimal('10') and price < Decimal('100'):
+            return f"{price:.1f}"
+        else:
+            return f"{price:.0f}"

@@ -1,18 +1,24 @@
 
-from framework import (
-    App, Box, DockStyle, Color
-)
+import asyncio
+
+from toga import App, Box
+from toga.style.pack import Pack
+from toga.constants import COLUMN
+from toga.colors import rgb
+
 
 class Mining(Box):
-    def __init__(self):
-        super().__init__()
-
-        self.app = App()
-
-        self.dockstyle = DockStyle.FILL
-        self.background_color = Color.rgb(30,33,36)
-        self.visible = False
+    def __init__(self, app:App):
+        super().__init__(
+            style=Pack(
+                direction = COLUMN,
+                flex = 1,
+                background_color = rgb(40,43,48),
+                padding = (2,5,0,5)
+            )
+        )
+        self.app = app
 
 
     async def insert_widgets(self):
-        pass
+        await asyncio.sleep(0.2)
