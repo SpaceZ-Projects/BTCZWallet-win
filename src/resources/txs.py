@@ -46,7 +46,7 @@ class Transactions(Box):
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
             action=self.copy_transaction_id,
-            icon="images/copy.ico",
+            icon="images/copy_i.ico",
             mouse_enter=self.copy_txid_cmd_mouse_enter,
             mouse_leave=self.copy_txid_cmd_mouse_leave
         )
@@ -55,7 +55,7 @@ class Transactions(Box):
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
             action=self.copy_address,
-            icon="images/copy.ico",
+            icon="images/copy_i.ico",
             mouse_enter=self.copy_address_cmd_mouse_enter,
             mouse_leave=self.copy_address_cmd_mouse_leave
         )
@@ -65,7 +65,7 @@ class Transactions(Box):
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
             action=self.open_transaction_in_explorer,
-            icon="images/explorer.ico",
+            icon="images/explorer_i.ico",
             mouse_enter=self.explorer_cmd_mouse_enter,
             mouse_leave=self.explorer_cmd_mouse_leave
         )
@@ -211,19 +211,25 @@ class Transactions(Box):
 
     
     def copy_txid_cmd_mouse_enter(self):
+        self.copy_txid_cmd.icon = "images/copy_a.ico"
         self.copy_txid_cmd.color = Color.BLACK
 
     def copy_txid_cmd_mouse_leave(self):
+        self.copy_txid_cmd.icon = "images/copy_i.ico"
         self.copy_txid_cmd.color = Color.WHITE
 
     def copy_address_cmd_mouse_enter(self):
+        self.copy_address_cmd.icon = "images/copy_a.ico"
         self.copy_address_cmd.color = Color.BLACK
 
     def copy_address_cmd_mouse_leave(self):
+        self.copy_address_cmd.icon = "images/copy_i.ico"
         self.copy_address_cmd.color = Color.WHITE
 
     def explorer_cmd_mouse_enter(self):
+        self.explorer_cmd.icon = "images/explorer_a.ico"
         self.explorer_cmd.color = Color.BLACK
 
     def explorer_cmd_mouse_leave(self):
+        self.explorer_cmd.icon = "images/explorer_i.ico"
         self.explorer_cmd.color = Color.WHITE
