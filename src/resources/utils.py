@@ -6,6 +6,8 @@ import py7zr
 import string
 import secrets
 from decimal import Decimal
+import qrcode
+
 from toga import App
 from ..framework import (
     Os, Sys, ProgressStyle, Forms, run_async
@@ -18,8 +20,31 @@ class Utils():
 
         self.app = app
         self.app_data = self.app.paths.data
+        self.app_cache = self.app.paths.cache
         if not Os.Directory.Exists(str(self.app_data)):
             Os.Directory.CreateDirectory(str(self.app_data))
+        if not Os.Directory.Exists(str(self.app_cache)):
+            Os.Directory.CreateDirectory(str(self.app_cache))
+
+    def qr_generate(self, address):  
+        qr_filename = f"qr_{address}.png"
+        qr_path = Os.Path.Combine(str(self.app_cache), qr_filename)
+        if Os.File.Exists(qr_path):
+            return qr_path
+        
+        qr = qrcode.QRCode(
+            version=2,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=7,
+            border=1,
+        )
+        qr.add_data(address)
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color="black", back_color="white")
+        with open(qr_path, 'wb') as f:
+            qr_img.save(f)
+        
+        return qr_path
 
     def get_bitcoinz_path(self):
         bitcoinz_path = Os.Path.Combine(
