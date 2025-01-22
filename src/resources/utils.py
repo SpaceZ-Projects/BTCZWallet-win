@@ -366,3 +366,17 @@ addnode=37.187.76.80:1989
             return f"{price:.1f}"
         else:
             return f"{price:.0f}"
+
+
+    def calculate_circulating(self, current_block):
+        initial_reward = 12500
+        halving_interval = 840000
+        halvings = current_block // halving_interval
+        total_supply = 0
+        for i in range(halvings + 1):
+            if i == halvings:
+                blocks_in_period = current_block - i * halving_interval
+            else:
+                blocks_in_period = halving_interval
+            total_supply += blocks_in_period * (initial_reward / (2 ** i))
+        return total_supply

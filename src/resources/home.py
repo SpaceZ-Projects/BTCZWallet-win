@@ -9,6 +9,7 @@ from toga.constants import COLUMN, ROW, TOP, LEFT, BOLD, RIGHT
 from toga.colors import rgb, GRAY, WHITE
 
 from .utils import Utils
+from .client import Client
 
 
 class Home(Box):
@@ -23,6 +24,7 @@ class Home(Box):
         )
         self.app = app
         self.utils = Utils(self.app)
+        self.commands = Client(self.app)
 
         self.home_toggle = None
         self.cap_toggle = None
@@ -174,6 +176,31 @@ class Home(Box):
             )
         )
 
+        self.circulating_label = Label(
+            "Circulating :",
+            style=Pack(
+                font_size = 11,
+                text_align = LEFT,
+                background_color = rgb(30,33,36),
+                color = GRAY,
+                font_weight = BOLD,
+                padding = 10
+            )
+        )
+
+        self.circulating_value = Label(
+            "",
+            style=Pack(
+                font_size = 10,
+                text_align = LEFT,
+                background_color = rgb(30,33,36),
+                color = WHITE,
+                font_weight = BOLD,
+                padding = (11,0,10,0),
+                flex = 1
+            )
+        )
+
         self.last_updated_label = Label(
             "",
             style=Pack(
@@ -202,12 +229,15 @@ class Home(Box):
                 self.percentage_24_label,
                 self.percentage_24_value,
                 self.percentage_7_label,
-                self.percentage_7_value
+                self.percentage_7_value,
+                self.circulating_label,
+                self.circulating_value
             )
 
             self.home_toggle = True
 
             self.app.add_background_task(self.update_marketcap)
+            self.app.add_background_task(self.update_circulating_supply)
 
 
     async def update_marketcap(self, widget):
@@ -226,6 +256,13 @@ class Home(Box):
                 print(f"Error occurred during fetch: {e}")
                 return None
             await asyncio.sleep(601)
+
+    async def update_circulating_supply(self, widget):
+        while True:
+            current_block = await self.commands.getBlockCount()
+            circulating = self.utils.calculate_circulating(int(current_block[0]))
+            self.circulating_value.text = int(circulating)
+            await asyncio.sleep(10)
 
 
     def update_marketcap_values(self, data):
