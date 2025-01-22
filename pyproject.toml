@@ -2,7 +2,7 @@
 [tool.briefcase]
 project_name = "BitcoinZ Wallet"
 bundle = "com.btcz"
-version = "1.0.3"
+version = "1.0.4"
 url = "https://getbtcz.com"
 license.file = "LICENSE"
 author = "BTCZCommunity"
@@ -31,6 +31,8 @@ test_requires = [
 requires = [
     "toga-winforms~=0.4.7",
     "aiohttp",
-    "py7zr"
+    "py7zr",
+    "qrcode",
+    "pillow"
 ]
 
