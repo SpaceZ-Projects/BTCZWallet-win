@@ -805,7 +805,8 @@ class Table(Forms.DataGridView):
         borderstyle : Optional[BorderStyle] = None,
         readonly: bool = False,
         column_types: Optional[dict[int, type]] = None,
-        commands: Optional[List[type]] = None
+        commands: Optional[List[type]] = None,
+        on_select: Optional[Callable[[Forms.DataGridViewRow], None]] = None
     ):
         super().__init__()
         
@@ -833,6 +834,7 @@ class Table(Forms.DataGridView):
         self._readonly = readonly
         self._column_types = column_types or {}
         self._commands = commands
+        self._on_select = on_select
 
         self._font_object = Drawing.Font(self._font, self._text_size, self._text_style)
 
@@ -872,6 +874,8 @@ class Table(Forms.DataGridView):
             for command in self._commands:
                 self.context_menu.Items.Add(command)
             self.ContextMenuStrip = self.context_menu
+        if self._on_select:
+            self.SelectionChanged += self._on_selection_changed
 
         self.AllowUserToAddRows = False
         self.AllowUserToDeleteRows = False
@@ -1064,4 +1068,9 @@ class Table(Forms.DataGridView):
 
     def update_selection_forecolors(self, e, index):
         e.CellStyle.SelectionForeColor = self._selection_colors[index]
+
+    def _on_selection_changed(self, sender, e):
+        if self._on_select:
+            selected_rows = self.selected_cells
+            self._on_select(selected_rows)
 
