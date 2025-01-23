@@ -70,3 +70,15 @@ class Client():
     async def listTransactions(self, count, tx_from):
         command = f'{self.bitcoinz_cli_file} listtransactions "*" {count} {tx_from}'
         return await self._run_command(command)
+    
+    async def getBlockCount(self):
+        command = f'{self.bitcoinz_cli_file} getblockcount'
+        return await self._run_command(command)
+    
+    async def ListAddresses(self):
+        command = f'{self.bitcoinz_cli_file} listaddresses'
+        return await self._run_command(command)
+    
+    async def z_listAddresses(self):
+        command = f'{self.bitcoinz_cli_file} z_listaddresses'
+        return await self._run_command(command)

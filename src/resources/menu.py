@@ -71,7 +71,7 @@ class Menu(Window):
         )
         self.home_page = Home(self.app)
         self.transactions_page = Transactions(self.app, self)
-        self.recieve_page = Recieve(self.app)
+        self.recieve_page = Recieve(self.app, self)
         self.send_page = Send(self.app)
         self.message_page = Messages(self.app)
         self.mining_page = Mining(self.app)
@@ -333,6 +333,7 @@ class Menu(Window):
         self.recieve_label.style.color = WHITE
         self.recieve_button.style.background_color = YELLOW
         self.pages.add(self.recieve_page)
+        self.app.add_background_task(self.recieve_page.insert_widgets)
 
     def recieve_button_mouse_enter(self, sender, event):
         if self.recieve_button_toggle:
