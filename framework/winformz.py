@@ -976,18 +976,22 @@ class Table(Forms.DataGridView):
 
     def set_data_source(self, data: Optional[Union[List[dict], List[List]]]):
         if isinstance(data, list):
-            if data and isinstance(data[0], list):
+            if data:
+                if data and isinstance(data[0], list):
+                    self.Rows.Clear()
+                    for row in data:
+                        self.Rows.Add(row)
+                elif data and isinstance(data[0], dict):
+                    self.Columns.Clear()
+                    for key in data[0].keys():
+                        self.Columns.Add(key, key)
+                    self.Rows.Clear()
+                    for row in data:
+                        self.Rows.Add(*[row[key] for key in row.keys()])
+                    self.update_column_widths()
+            else:
                 self.Rows.Clear()
-                for row in data:
-                    self.Rows.Add(row)
-            elif data and isinstance(data[0], dict):
                 self.Columns.Clear()
-                for key in data[0].keys():
-                    self.Columns.Add(key, key)
-                self.Rows.Clear()
-                for row in data:
-                    self.Rows.Add(*[row[key] for key in row.keys()])
-                self.update_column_widths()
         else:
             raise ValueError("Data source must be a list of dictionaries or list of lists.")
     
