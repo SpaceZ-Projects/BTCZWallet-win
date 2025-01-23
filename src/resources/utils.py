@@ -7,11 +7,16 @@ import string
 import secrets
 from decimal import Decimal
 import qrcode
+from datetime import timedelta
 
 from toga import App
 from ..framework import (
     Os, Sys, ProgressStyle, Forms, run_async
 )
+
+
+INITIAL_REWARD = 12500
+HALVING_INTERVAL = 840000
 
 
 class Utils():
@@ -366,17 +371,30 @@ addnode=37.187.76.80:1989
             return f"{price:.1f}"
         else:
             return f"{price:.0f}"
-
+        
 
     def calculate_circulating(self, current_block):
-        initial_reward = 12500
-        halving_interval = 840000
-        halvings = current_block // halving_interval
+        halvings = current_block // HALVING_INTERVAL
         total_supply = 0
         for i in range(halvings + 1):
             if i == halvings:
-                blocks_in_period = current_block - i * halving_interval
+                blocks_in_period = current_block - i * HALVING_INTERVAL
             else:
-                blocks_in_period = halving_interval
-            total_supply += blocks_in_period * (initial_reward / (2 ** i))
+                blocks_in_period = HALVING_INTERVAL
+            total_supply += blocks_in_period * (INITIAL_REWARD / (2 ** i))
         return total_supply
+    
+    
+    def remaining_blocks_until_halving(self, current_block):
+        next_halving_block = (current_block // HALVING_INTERVAL + 1) * HALVING_INTERVAL
+        remaining_blocks = next_halving_block - current_block
+        return remaining_blocks
+    
+
+    def remaining_days_until_halving(self, current_block, block_time_minutes=2.5):
+        next_halving_block = (current_block // HALVING_INTERVAL + 1) * HALVING_INTERVAL
+        remaining_blocks = next_halving_block - current_block
+        remaining_time_minutes = remaining_blocks * block_time_minutes
+        remaining_time_delta = timedelta(minutes=remaining_time_minutes)
+        remaining_days = remaining_time_delta.days
+        return remaining_days

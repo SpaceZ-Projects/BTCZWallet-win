@@ -5,7 +5,7 @@ from datetime import datetime
 
 from toga import App, Box, Label
 from toga.style.pack import Pack
-from toga.constants import COLUMN, ROW, TOP, LEFT, BOLD, RIGHT
+from toga.constants import COLUMN, ROW, TOP, LEFT, BOLD, RIGHT, CENTER
 from toga.colors import rgb, GRAY, WHITE
 
 from .utils import Utils
@@ -47,7 +47,7 @@ class Home(Box):
                 background_color = rgb(30,33,36),
                 alignment = TOP,
                 height = 45,
-                padding = (5,10,0,5)
+                padding = (5,5,0,5)
             )
         )
         self.market_box._impl.native.Resize += self._add_cap_on_resize
@@ -214,6 +214,32 @@ class Home(Box):
             )
         )
 
+        self.halving_label = Label(
+            text="",
+            style=Pack(
+                font_size = 14,
+                text_align = CENTER,
+                background_color = rgb(40,43,48),
+                color = WHITE,
+                font_weight = BOLD,
+                flex = 1,
+                padding_top = 20
+            )
+        )
+
+        self.remaining_label = Label(
+            text="",
+            style=Pack(
+                font_size = 14,
+                text_align = CENTER,
+                background_color = rgb(40,43,48),
+                color = WHITE,
+                font_weight = BOLD,
+                flex = 1,
+                padding_top = 10
+            )
+        )
+
 
     async def insert_widgets(self, widget):
         await asyncio.sleep(0.2)
@@ -221,7 +247,9 @@ class Home(Box):
             self.add(
                 self.market_label, 
                 self.market_box,
-                self.last_updated_label
+                self.last_updated_label,
+                self.halving_label,
+                self.remaining_label
             )
             self.market_box.add(
                 self.price_label,
@@ -261,7 +289,11 @@ class Home(Box):
         while True:
             current_block = await self.commands.getBlockCount()
             circulating = self.utils.calculate_circulating(int(current_block[0]))
+            remaiming_blocks = self.utils.remaining_blocks_until_halving(int(current_block[0]))
+            remaining_days = self.utils.remaining_days_until_halving(int(current_block[0]))
             self.circulating_value.text = int(circulating)
+            self.halving_label.text = f"Next Halving in {remaiming_blocks} Blocks"
+            self.remaining_label.text = f"Remaining {remaining_days} Days"
             await asyncio.sleep(10)
 
 
