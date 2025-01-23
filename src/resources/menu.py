@@ -283,6 +283,43 @@ class Menu(Window):
     async def set_default_page(self, widget):
         await asyncio.sleep(0.5)
         self.home_button_click(None, None)
+        self.intilizate_toolbar_cmds()
+
+    def intilizate_toolbar_cmds(self):
+        self.toolbar.generate_t_cmd.action = self.new_transparent_address
+        self.toolbar.generate_z_cmd.action = self.new_private_address
+
+    def new_transparent_address(self, sender, event):
+        self.app.add_background_task(self.generate_transparent_address)
+
+    def new_private_address(self, sender, event):
+        self.app.add_background_task(self.generate_private_address)
+
+    async def generate_transparent_address(self, widget):
+        new_address = await self.commands.getNewAddress()
+        if new_address:
+            if self.recieve_page.transparent_toggle:
+                self.insert_new_address(new_address[0])
+            self.info_dialog(
+                title="New Address",
+                message=f"Generated address : {new_address[0]}"
+            )
+
+    async def generate_private_address(self, widget):
+        new_address = await self.commands.z_getNewAddress()
+        if new_address:
+            if self.recieve_page.private_toggle:
+                self.insert_new_address(new_address[0])
+            self.info_dialog(
+                title="New Address",
+                message=f"Generated address : {new_address[0]}"
+            )
+
+    def insert_new_address(self, address):
+        self.recieve_page.addresses_table.add_row(
+            index=0,
+            row_data={0: address}
+        )
 
     def home_button_click(self, sender, event):
         self.clear_buttons()

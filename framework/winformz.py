@@ -988,12 +988,13 @@ class Table(Forms.DataGridView):
                     self.Rows.Clear()
                     for row in data:
                         self.Rows.Add(*[row[key] for key in row.keys()])
-                    self.update_column_widths()
+                self.update_column_widths()
             else:
                 self.Rows.Clear()
                 self.Columns.Clear()
         else:
             raise ValueError("Data source must be a list of dictionaries or list of lists.")
+        self.Invoke(Forms.MethodInvoker(lambda:self._resize_columns()))
     
     def add_column(self, name: str, header: str):
         self.Columns.Add(name, header)
@@ -1002,7 +1003,12 @@ class Table(Forms.DataGridView):
         if isinstance(row_data, dict):
             if not self.Columns:
                 raise ValueError("Cannot add a row because the table has no columns.")
-            row = [row_data.get(col.Name, None) for col in self.Columns]
+            row = [None] * self.ColumnCount
+            for col_index, value in row_data.items():
+                if 0 <= col_index < self.ColumnCount:
+                    row[col_index] = value
+                else:
+                    raise IndexError(f"Column index {col_index} is out of range.")
         elif isinstance(row_data, list):
             if len(row_data) != self.ColumnCount:
                 raise ValueError("Row data length does not match the number of columns.")
@@ -1010,7 +1016,7 @@ class Table(Forms.DataGridView):
         else:
             raise ValueError("Row data must be a list or a dictionary.")
         if 0 <= index <= self.Rows.Count:
-            self.Invoker(Forms.MethodInvoker(lambda:self.Rows.Insert(index, row)))
+            self.Rows.Insert(index, row)
         else:
             raise IndexError("Index is out of bounds.")
 

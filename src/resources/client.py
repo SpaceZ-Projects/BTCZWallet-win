@@ -82,3 +82,11 @@ class Client():
     async def z_listAddresses(self):
         command = f'{self.bitcoinz_cli_file} z_listaddresses'
         return await self._run_command(command)
+    
+    async def getNewAddress(self):
+        command = f'{self.bitcoinz_cli_file} getnewaddress'
+        return await self._run_command(command)
+    
+    async def z_getNewAddress(self):
+        command = f'{self.bitcoinz_cli_file} z_getnewaddress'
+        return await self._run_command(command)

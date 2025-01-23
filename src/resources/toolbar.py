@@ -24,6 +24,7 @@ class AppToolBar(Box):
         self.app_menu_active = None
         self.wallet_menu_active = None
         self.help_menu_active = None
+        self.generate_address_cmd_active = None
 
         self.toolbar = Toolbar(
             color=Color.WHITE,
@@ -63,11 +64,43 @@ class AppToolBar(Box):
             mouse_enter=self.app_menu_mouse_enter,
             mouse_leave=self.app_menu_mouse_leave
         )
+        self.generate_t_cmd = Command(
+            title="Transparent address",
+            background_color=Color.rgb(40,43,48),
+            color=Color.WHITE,
+            mouse_enter=self.generate_t_cmd_mouse_enter,
+            mouse_leave=self.generate_t_cmd_mouse_leave
+        )
+        self.generate_z_cmd = Command(
+            title="Private address",
+            background_color=Color.rgb(40,43,48),
+            color=Color.WHITE,
+            mouse_enter=self.generate_z_cmd_mouse_enter,
+            mouse_leave=self.generate_z_cmd_mouse_leave
+        )
+        self.generate_address_cmd = Command(
+            title="Generate address",
+            sub_commands=[
+                self.generate_t_cmd,
+                self.generate_z_cmd
+            ],
+            background_color=Color.rgb(40,43,48),
+            color=Color.WHITE,
+            drop_opened=self.generate_address_cmd_opened,
+            drop_closed=self.generate_address_cmd_closed,
+            mouse_enter=self.generate_address_cmd_mouse_enter,
+            mouse_leave=self.generate_address_cmd_mouse_leave
+        )
         self.wallet_menu = Command(
             title="Wallet",
             icon="images/wallet_i.ico",
+            drop_opened=self.wallet_menu_opened,
+            drop_closed=self.wallet_menu_closed,
             mouse_enter=self.wallet_menu_mouse_enter,
-            mouse_leave=self.wallet_menu_mouse_leave
+            mouse_leave=self.wallet_menu_mouse_leave,
+            sub_commands=[
+                self.generate_address_cmd
+            ]
         )
         self.check_update_cmd = Command(
             title="Check update",
@@ -116,13 +149,53 @@ class AppToolBar(Box):
         self.app_menu.icon = "images/app_i.ico"
         self.app_menu.color = Color.WHITE
 
+    def wallet_menu_opened(self):
+        self.wallet_menu_active = True
+        self.wallet_menu.icon = "images/wallet_a.ico"
+        self.wallet_menu.color = Color.BLACK
+
+    def wallet_menu_closed(self):
+        self.wallet_menu_active = False
+        self.wallet_menu.icon = "images/wallet_i.ico"
+        self.wallet_menu.color = Color.WHITE
+
     def wallet_menu_mouse_enter(self):
         self.wallet_menu.icon = "images/wallet_a.ico"
         self.wallet_menu.color = Color.BLACK
 
     def wallet_menu_mouse_leave(self):
+        if self.wallet_menu_active:
+            return
         self.wallet_menu.icon = "images/wallet_i.ico"
         self.wallet_menu.color = Color.WHITE
+
+    def generate_address_cmd_opened(self):
+        self.generate_address_cmd_active = True
+        self.generate_address_cmd.color = Color.BLACK
+
+    def generate_address_cmd_closed(self):
+        self.generate_address_cmd_active = False
+        self.generate_address_cmd.color = Color.WHITE
+
+    def generate_address_cmd_mouse_enter(self):
+        self.generate_address_cmd.color = Color.BLACK
+
+    def generate_address_cmd_mouse_leave(self):
+        if self.generate_address_cmd_active:
+            return
+        self.generate_address_cmd.color = Color.WHITE
+
+    def generate_t_cmd_mouse_enter(self):
+        self.generate_t_cmd.color = Color.BLACK
+
+    def generate_t_cmd_mouse_leave(self):
+        self.generate_t_cmd.color = Color.WHITE
+
+    def generate_z_cmd_mouse_enter(self):
+        self.generate_z_cmd.color = Color.BLACK
+
+    def generate_z_cmd_mouse_leave(self):
+        self.generate_z_cmd.color = Color.WHITE
 
     def check_update_cmd_mouse_enter(self):
         self.check_update_cmd.color = Color.BLACK
