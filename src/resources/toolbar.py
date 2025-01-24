@@ -7,6 +7,7 @@ from toga.style.pack import Pack
 from toga.constants import ROW, TOP
 
 from .client import Client
+from .utils import Utils
 
 class AppToolBar(Box):
     def __init__(self, app:App, notify):
@@ -20,6 +21,7 @@ class AppToolBar(Box):
         self.app = app
         self.notify = notify
         self.commands = Client(self.app)
+        self.utils = Utils(self.app)
 
         self.app_menu_active = None
         self.wallet_menu_active = None
@@ -69,14 +71,16 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48),
             color=Color.WHITE,
             mouse_enter=self.generate_t_cmd_mouse_enter,
-            mouse_leave=self.generate_t_cmd_mouse_leave
+            mouse_leave=self.generate_t_cmd_mouse_leave,
+            icon="images/transparent_i.ico"
         )
         self.generate_z_cmd = Command(
             title="Private address",
             background_color=Color.rgb(40,43,48),
             color=Color.WHITE,
             mouse_enter=self.generate_z_cmd_mouse_enter,
-            mouse_leave=self.generate_z_cmd_mouse_leave
+            mouse_leave=self.generate_z_cmd_mouse_leave,
+            icon="images/private_i.ico"
         )
         self.generate_address_cmd = Command(
             title="Generate address",
@@ -89,7 +93,8 @@ class AppToolBar(Box):
             drop_opened=self.generate_address_cmd_opened,
             drop_closed=self.generate_address_cmd_closed,
             mouse_enter=self.generate_address_cmd_mouse_enter,
-            mouse_leave=self.generate_address_cmd_mouse_leave
+            mouse_leave=self.generate_address_cmd_mouse_leave,
+            icon="images/new_addr_i.ico"
         )
         self.wallet_menu = Command(
             title="Wallet",
@@ -107,7 +112,8 @@ class AppToolBar(Box):
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.check_update_cmd_mouse_enter,
-            mouse_leave=self.check_update_cmd_mouse_leave
+            mouse_leave=self.check_update_cmd_mouse_leave,
+            icon="images/update_i.ico"
         )
         self.help_menu = Command(
             title="Help",
@@ -171,36 +177,46 @@ class AppToolBar(Box):
 
     def generate_address_cmd_opened(self):
         self.generate_address_cmd_active = True
+        self.generate_address_cmd.icon = "images/new_addr_a.ico"
         self.generate_address_cmd.color = Color.BLACK
 
     def generate_address_cmd_closed(self):
         self.generate_address_cmd_active = False
+        self.generate_address_cmd.icon = "images/new_addr_i.ico"
         self.generate_address_cmd.color = Color.WHITE
 
     def generate_address_cmd_mouse_enter(self):
+        self.generate_address_cmd.icon = "images/new_addr_a.ico"
         self.generate_address_cmd.color = Color.BLACK
 
     def generate_address_cmd_mouse_leave(self):
         if self.generate_address_cmd_active:
             return
+        self.generate_address_cmd.icon = "images/new_addr_i.ico"
         self.generate_address_cmd.color = Color.WHITE
 
     def generate_t_cmd_mouse_enter(self):
+        self.generate_t_cmd.icon = "images/transparent_a.ico"
         self.generate_t_cmd.color = Color.BLACK
 
     def generate_t_cmd_mouse_leave(self):
+        self.generate_t_cmd.icon = "images/transparent_i.ico"
         self.generate_t_cmd.color = Color.WHITE
 
     def generate_z_cmd_mouse_enter(self):
+        self.generate_z_cmd.icon = "images/private_a.ico"
         self.generate_z_cmd.color = Color.BLACK
 
     def generate_z_cmd_mouse_leave(self):
+        self.generate_z_cmd.icon = "images/private_i.ico"
         self.generate_z_cmd.color = Color.WHITE
 
     def check_update_cmd_mouse_enter(self):
+        self.check_update_cmd.icon = "images/update_a.ico"
         self.check_update_cmd.color = Color.BLACK
 
     def check_update_cmd_mouse_leave(self):
+        self.check_update_cmd.icon = "images/update_i.ico"
         self.check_update_cmd.color = Color.WHITE
 
     def help_menu_opened(self):
