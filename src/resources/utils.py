@@ -14,6 +14,8 @@ from ..framework import (
     Os, Sys, ProgressStyle, Forms, run_async
 )
 
+GITHUB_API_URL = "https://api.github.com/repos/SpaceZ-Projects/BTCZWallet-win"
+RELEASES_URL = "https://github.com/SpaceZ-Projects/BTCZWallet-win/releases"
 
 INITIAL_REWARD = 12500
 HALVING_INTERVAL = 840000
@@ -30,6 +32,20 @@ class Utils():
             Os.Directory.CreateDirectory(str(self.app_data))
         if not Os.Directory.Exists(str(self.app_cache)):
             Os.Directory.CreateDirectory(str(self.app_cache))
+
+    
+    async def get_repo_info(self):
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{GITHUB_API_URL}/tags") as response:
+                if response.status == 200:
+                    tags = await response.json()
+                    latest_tag = tags[0]['name'] if tags else None
+                    if latest_tag and latest_tag.startswith("v"):
+                        latest_tag = latest_tag[1:]
+                    return latest_tag, RELEASES_URL
+                else:
+                    print(f"Failed to fetch tags: {response.status}")
+                    return None, None
 
     def qr_generate(self, address):  
         qr_filename = f"qr_{address}.png"

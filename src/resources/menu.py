@@ -1,5 +1,7 @@
 
 import asyncio
+import webbrowser
+
 from toga import (
     Window, Box, Label
 )
@@ -283,11 +285,12 @@ class Menu(Window):
     async def set_default_page(self, widget):
         await asyncio.sleep(0.5)
         self.home_button_click(None, None)
-        self.intilizate_toolbar_cmds()
+        self.add_actions_cmds()
 
-    def intilizate_toolbar_cmds(self):
+    def add_actions_cmds(self):
         self.toolbar.generate_t_cmd.action = self.new_transparent_address
         self.toolbar.generate_z_cmd.action = self.new_private_address
+        self.toolbar.check_update_cmd.action = self.check_app_version
 
     def new_transparent_address(self, sender, event):
         self.app.add_background_task(self.generate_transparent_address)
@@ -320,6 +323,31 @@ class Menu(Window):
             index=0,
             row_data={0: address}
         )
+
+    def check_app_version(self, sender, event):
+        self.app.add_background_task(self.fetch_repo_info)
+
+    async def fetch_repo_info(self, widget):
+        git_version, link = await self.utils.get_repo_info()
+        if git_version:
+            self.git_link = link
+            current_version = self.app.version
+            if git_version == current_version:
+                self.info_dialog(
+                    title="Check updates",
+                    message=f"Current version: {current_version}\nThe app version is up to date."
+                )
+            else:
+                self.question_dialog(
+                    title="Check updates",
+                    message=f"Current version: {current_version}\nGit version: {git_version}\nWould you like to update the app ?",
+                    on_result=self.update_app_result
+                )
+
+    def update_app_result(self, widget, result):
+        if result is True:
+            webbrowser.open(self.git_link)
+
 
     def home_button_click(self, sender, event):
         self.clear_buttons()
