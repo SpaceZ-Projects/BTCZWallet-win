@@ -90,3 +90,11 @@ class Client():
     async def z_getNewAddress(self):
         command = f'{self.bitcoinz_cli_file} z_getnewaddress'
         return await self._run_command(command)
+    
+    async def z_getBalance(self, address):
+        command = f'{self.bitcoinz_cli_file} z_getbalance "{address}"'
+        return await self._run_command(command)
+    
+    async def getAddressBalance(self, address):
+        command = f'{self.bitcoinz_cli_file} getaddressbalance "{{\\"addresses\\": [\\"{address}\\"]}}"'
+        return await self._run_command(command)

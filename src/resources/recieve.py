@@ -41,7 +41,7 @@ class Recieve(Box):
             style=Pack(
                 direction = ROW,
                 flex = 1,
-                background_color = rgb(30,33,36)
+                background_color = rgb(40,43,48)
             )
         )
 
@@ -168,7 +168,7 @@ class Recieve(Box):
             style=Pack(
                 direction = COLUMN,
                 flex = 1,
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 alignment = CENTER
             )
         )
@@ -183,12 +183,24 @@ class Recieve(Box):
         self.address_value = Label(
             text="",
             style=Pack(
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 color = WHITE,
                 text_align = CENTER,
                 font_weight = BOLD,
                 font_size = 12,
                 padding_top = 20
+            )
+        )
+
+        self.address_balance = Label(
+            text="",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                color = WHITE,
+                text_align = CENTER,
+                font_weight = BOLD,
+                font_size = 14,
+                padding = (20,50,0,50) 
             )
         )
 
@@ -217,7 +229,8 @@ class Recieve(Box):
             )
             self.address_info.add(
                 self.address_qr,
-                self.address_value
+                self.address_value,
+                self.address_balance
             )
             self.add(
                 self.addresses_box
@@ -241,7 +254,7 @@ class Recieve(Box):
         transparent_addresses = await self.get_transparent_addresses()
         for address in transparent_addresses:
             row = {
-                'Transparent Address': address
+                'Transparent Addresses': address
             }
             addresses.append(row)
         self.addresses_table.data_source = addresses
@@ -276,7 +289,7 @@ class Recieve(Box):
         if private_addresses:
             for address in private_addresses:
                 row = {
-                    'Private Address': address
+                    'Private Addresses': address
                 }
                 addresses.append(row)
         else:
@@ -317,17 +330,26 @@ class Recieve(Box):
 
     def _on_selected_address(self, rows):
         for row in rows:
-            address = row.Value
-            qr_image = self.utils.qr_generate(address)
+            self.selected_address = row.Value
+            selected_address = self.selected_address
+            self.app.add_background_task(self.get_address_balance)
+            qr_image = self.utils.qr_generate(selected_address)
             address_lines = []
-            while len(address) > 35:
-                address_lines.append(address[:35])
-                address = address[35:]
-            if address:
-                address_lines.append(address)
+            while len(selected_address) > 35:
+                address_lines.append(selected_address[:35])
+                selected_address = selected_address[35:]
+            if selected_address:
+                address_lines.append(selected_address)
             formatted_address = '\n'.join(address_lines)
             self.address_qr.image = qr_image
             self.address_value.text = formatted_address
+
+
+    async def get_address_balance(self, widget):
+        balance = await self.commands.z_getBalance(self.selected_address)
+        if balance:
+            balance = self.utils.format_balance(balance[0])
+            self.address_balance.text = f"Balance : {balance}"
 
     
     def copy_address(self):
