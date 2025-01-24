@@ -2,7 +2,7 @@
 [tool.briefcase]
 project_name = "BitcoinZ Wallet"
 bundle = "com.btcz"
-version = "1.0.4"
+version = "1.0.5"
 url = "https://getbtcz.com"
 license.file = "LICENSE"
 author = "BTCZCommunity"
