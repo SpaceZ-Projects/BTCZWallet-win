@@ -191,6 +191,7 @@ class ToolTip(Forms.ToolTip):
     def insert(self, widget, value):
         self.SetToolTip(widget, value)
 
+
 class ScrollBars:
     NONE = Forms.RichTextBoxScrollBars(0)
 
@@ -817,7 +818,8 @@ class Table(Forms.DataGridView):
         readonly: bool = False,
         column_types: Optional[dict[int, type]] = None,
         commands: Optional[List[type]] = None,
-        on_select: Optional[Callable[[Forms.DataGridViewRow], None]] = None
+        on_select: Optional[Callable[[Forms.DataGridViewRow], None]] = None,
+        on_scroll: Optional[Callable[[Forms.ScrollEventArgs], None]] = None
     ):
         super().__init__()
         
@@ -877,7 +879,7 @@ class Table(Forms.DataGridView):
         if self._select_mode:
             self.SelectionMode = self._select_mode
         if self._borderstyle:
-            self.BorderStyle = Forms.BorderStyle(0)
+            self.BorderStyle = self._borderstyle
         self.ReadOnly = self._readonly
         self.ColumnHeadersDefaultCellStyle.Alignment = AlignTable.MIDCENTER
         if self._commands:
@@ -887,6 +889,9 @@ class Table(Forms.DataGridView):
             self.ContextMenuStrip = self.context_menu
         if self._on_select:
             self.SelectionChanged += self._on_selection_changed
+        self._on_scroll = on_scroll
+        if self._on_scroll:
+            self.Scroll += self._on_scroll_handler
 
         self.AllowUserToAddRows = False
         self.AllowUserToDeleteRows = False
@@ -1006,20 +1011,36 @@ class Table(Forms.DataGridView):
         else:
             raise ValueError("Data source must be a list of dictionaries or list of lists.")
         self.Invoke(Forms.MethodInvoker(lambda:self._resize_columns()))
+
     
     def add_column(self, name: str, header: str):
         self.Columns.Add(name, header)
 
+    def _get_column_index_by_name(self, column_name: str) -> int:
+        for index, column in enumerate(self.Columns):
+            if column.Name == column_name:
+                return index
+        return None
+
     def add_row(self, index: int, row_data: Union[List, dict]):
         if isinstance(row_data, dict):
-            if not self.Columns:
-                raise ValueError("Cannot add a row because the table has no columns.")
-            row = [None] * self.ColumnCount
-            for col_index, value in row_data.items():
-                if 0 <= col_index < self.ColumnCount:
-                    row[col_index] = value
-                else:
-                    raise IndexError(f"Column index {col_index} is out of range.")
+            if all(isinstance(key, str) for key in row_data.keys()):
+                if not self.Columns:
+                    raise ValueError("Cannot add a row because the table has no columns.")
+                row = [None] * self.ColumnCount
+                for key, value in row_data.items():
+                    col_index = self._get_column_index_by_name(key)
+                    if col_index is not None:
+                        row[col_index] = value
+                    else:
+                        raise ValueError(f"Column '{key}' not found.")
+            else:
+                row = [None] * self.ColumnCount
+                for col_index, value in row_data.items():
+                    if 0 <= col_index < self.ColumnCount:
+                        row[col_index] = value
+                    else:
+                        raise IndexError(f"Column index {col_index} is out of range.")
         elif isinstance(row_data, list):
             if len(row_data) != self.ColumnCount:
                 raise ValueError("Row data length does not match the number of columns.")
@@ -1094,6 +1115,11 @@ class Table(Forms.DataGridView):
         if self._on_select:
             selected_rows = self.selected_cells
             self._on_select(selected_rows)
+
+    def _on_scroll_handler(self, sender, event: Forms.ScrollEventArgs):
+        if self._on_scroll:
+            self._on_scroll(event)
+
 
 
 class RichLabel(Forms.RichTextBox):
@@ -1306,4 +1332,3 @@ class RichLabel(Forms.RichTextBox):
     def minsize(self, value: tuple[int, int]):
         self._minsize = value
         self.MinimumSize = Drawing.Size(*self._minsize)
-

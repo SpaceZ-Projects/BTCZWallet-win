@@ -19,7 +19,7 @@ from .client import Client
 from .utils import Utils
 
 class Transactions(Box):
-    def __init__(self, app:App, main:Window):
+    def __init__(self, app:App, main:Window, notify):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -31,11 +31,13 @@ class Transactions(Box):
 
         self.app = app
         self.main = main
+        self.notify = notify
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
         self.clipboard = ClipBoard()
 
         self.transactions_toggle = None
+        self.no_transaction_toggle = None
         self.transactions_data = []
 
         self.transactions_count = 49
@@ -78,7 +80,7 @@ class Transactions(Box):
             font=Font.SANSSERIF,
             text_style=FontStyle.BOLD,
             align=AlignTable.MIDCENTER,
-            column_count=6,
+            column_count=5,
             row_visible=False,
             gird_color=Color.rgb(30,33,36),
             row_heights=50,
@@ -91,15 +93,15 @@ class Transactions(Box):
                 1:Color.rgb(40,43,48),
                 2:Color.rgb(66,69,73),
                 3:Color.rgb(40,43,48),
-                4:Color.rgb(40,43,48),
-                5:Color.rgb(40,43,48)
+                4:Color.rgb(40,43,48)
             },
-            column_widths={0:75,1:300,2:120,3:150,4:50,5:300},
+            column_widths={0:75,1:300,2:120,3:150,4:300},
             commands=[
                 self.copy_txid_cmd,
                 self.copy_address_cmd,
                 self.explorer_cmd
-            ]
+            ],
+            on_scroll=self.on_scroll_table
         )
 
         self.no_transaction = Label(
@@ -117,31 +119,19 @@ class Transactions(Box):
     async def insert_widgets(self, widget):
         await asyncio.sleep(0.2)
         if not self.transactions_toggle:
-            transactions, _ = await self.commands.listTransactions(
-                self.transactions_count, self.transactions_from
-            )
-            if isinstance(transactions, str):
-                transactions_data = json.loads(transactions)
-            if transactions_data:
-                sorted_transactions = sorted(
-                    transactions_data,
-                    key=operator.itemgetter('timereceived'),
-                    reverse=True
-                )
+            if self.transactions_data:
                 self._impl.native.Controls.Add(self.transactions_table)
-                await self.add_transactions_list(sorted_transactions)
+                self.transactions_table.data_source = self.transactions_data
             else:
                 await self.no_transactions_found()
             self.transactions_toggle = True
 
-    
-    async def add_transactions_list(self, sorted_transactions):
-        row_index = 0
+
+    def create_rows(self, sorted_transactions):
         for data in sorted_transactions:
             address = data.get("address", "Shielded")
             category = data["category"]
             amount = self.utils.format_balance(data["amount"])
-            confirmations = data["confirmations"]
             timereceived = data["timereceived"]
             formatted_timereceived = datetime.fromtimestamp(timereceived).strftime("%Y-%m-%d %H:%M:%S")
             txid = data["txid"]
@@ -150,36 +140,78 @@ class Transactions(Box):
                 'Address': address,
                 'Amount': amount,
                 'Time': formatted_timereceived,
-                'Conf.': confirmations,
                 'Txid': txid,
             }
             self.transactions_data.append(row)
-            row_index += 1
-        self.transactions_table.data_source = self.transactions_data
-        self.set_categories_colors(row_index)
 
-    def set_categories_colors(self, row_index):
-        column_index = 0
-        for row_index in range(len(self.transactions_table.rows)):
-            cell = self.transactions_table.rows[row_index].Cells[column_index]
-            category = self.transactions_data[row_index]["Category"].lower()
-            if category == "send":
-                category_color = Color.RED
-            elif category == "receive":
-                category_color = Color.GREEN
-            else:
-                category_color = Color.WHITE
-            cell.Style.ForeColor = category_color
-        
-        self.transactions_data = []
 
     async def no_transactions_found(self):
         self.add(self.no_transaction)
+        self.no_transaction_toggle = True
+
+
+    async def update_transactions(self):
+        sorted_transactions = await self.get_transactions(
+            self.transactions_count,0
+        )
+        if sorted_transactions:
+            self.create_rows(sorted_transactions)
+        while True:
+            new_transactions = await self.get_transactions(self.transactions_count,0)
+            if new_transactions:
+                for data in new_transactions:
+                    txid = data["txid"]
+                    if not any(tx["Txid"] == txid for tx in self.transactions_data):
+                        address = data.get("address", "Shielded")
+                        category = data["category"]
+                        amount = self.utils.format_balance(data["amount"])
+                        timereceived = data["timereceived"]
+                        formatted_timereceived = datetime.fromtimestamp(timereceived).strftime("%Y-%m-%d %H:%M:%S")
+                        row = {
+                            'Category': category.upper(),
+                            'Address': address,
+                            'Amount': amount,
+                            'Time': formatted_timereceived,
+                            'Txid': txid,
+                        }
+                        self.transactions_data.append(row)
+                        self.add_transaction(0, row)
+                        self.notify.send_note(
+                            title=f"[{category}] : {amount} BTCZ",
+                            text=f"Txid : {txid}"
+                        )
+            await asyncio.sleep(5)
+
+
+    def add_transaction(self, index, row):
+        if self.no_transaction_toggle:
+            self.remove(self.no_transaction)
+            self._impl.native.Controls.Add(self.transactions_table)
+            self.no_transaction_toggle = None
+        if self.transactions_toggle:
+            self.transactions_table.add_row(index=index, row_data=row)
+                
+
+    async def get_transactions(self, count, tx_from):
+        transactions, _ = await self.commands.listTransactions(
+            count, tx_from
+        )
+        if isinstance(transactions, str):
+            transactions_data = json.loads(transactions)
+        if transactions_data:
+            sorted_transactions = sorted(
+                transactions_data,
+                key=operator.itemgetter('timereceived'),
+                reverse=True
+            )
+            return sorted_transactions
+        return None
+
 
     def copy_transaction_id(self):
         selected_cells = self.transactions_table.selected_cells
         for cell in selected_cells:
-            if cell.ColumnIndex == 5:
+            if cell.ColumnIndex == 4:
                 txid = cell.Value
                 self.clipboard.copy(txid)
                 self.main.info_dialog(
@@ -204,10 +236,41 @@ class Transactions(Box):
         url = "https://explorer.btcz.rocks/tx/"
         selected_cells = self.transactions_table.selected_cells
         for cell in selected_cells:
-            if cell.ColumnIndex == 5:
+            if cell.ColumnIndex == 4:
                 txid = cell.Value
                 transaction_url = url + txid
                 webbrowser.open(transaction_url)
+
+
+    def on_scroll_table(self, event):
+        rows_visible = self.transactions_table.Size.Height // self.transactions_table.RowTemplate.Height
+        last_visible_row = self.transactions_table.FirstDisplayedScrollingRowIndex + rows_visible - 2
+        if last_visible_row >= self.transactions_table.RowCount - 1:
+            self.transactions_from += 50
+            self.app.add_background_task(self.get_transactions_archive)
+
+
+    async def get_transactions_archive(self, widget):
+        sorted_transactions = await self.get_transactions(
+            self.transactions_count, self.transactions_from
+        )
+        if sorted_transactions:
+            for data in sorted_transactions:
+                address = data.get("address", "Shielded")
+                category = data["category"]
+                amount = self.utils.format_balance(data["amount"])
+                timereceived = data["timereceived"]
+                formatted_timereceived = datetime.fromtimestamp(timereceived).strftime("%Y-%m-%d %H:%M:%S")
+                txid = data["txid"]
+                row = {
+                    'Category': category.upper(),
+                    'Address': address,
+                    'Amount': amount,
+                    'Time': formatted_timereceived,
+                    'Txid': txid,
+                }
+                last_index = self.transactions_table.RowCount
+                self.add_transaction(last_index, row)
 
     
     def copy_txid_cmd_mouse_enter(self):

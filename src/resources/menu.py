@@ -72,7 +72,7 @@ class Menu(Window):
             )
         )
         self.home_page = Home(self.app)
-        self.transactions_page = Transactions(self.app, self)
+        self.transactions_page = Transactions(self.app, self, self.notify)
         self.recieve_page = Recieve(self.app, self)
         self.send_page = Send(self.app)
         self.message_page = Messages(self.app)
@@ -286,6 +286,7 @@ class Menu(Window):
         await asyncio.sleep(0.5)
         self.home_button_click(None, None)
         self.add_actions_cmds()
+        await self.transactions_page.update_transactions()
 
     def add_actions_cmds(self):
         self.toolbar.generate_t_cmd.action = self.new_transparent_address
