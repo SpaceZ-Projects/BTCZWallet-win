@@ -94,3 +94,7 @@ class Client():
     async def z_getBalance(self, address):
         command = f'{self.bitcoinz_cli_file} z_getbalance "{address}"'
         return await self._run_command(command)
+    
+    async def getUnconfirmedBalance(self):
+        command = f'{self.bitcoinz_cli_file} getunconfirmedbalance'
+        return await self._run_command(command)

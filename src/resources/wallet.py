@@ -4,10 +4,10 @@ import json
 
 from toga import App, Box, Label, ImageView
 from toga.style.pack import Pack
-from toga.colors import rgb, WHITE, GRAY, YELLOW
+from toga.colors import rgb, WHITE, GRAY, YELLOW, RED
 from toga.constants import (
     TOP, ROW, LEFT, BOLD, COLUMN,
-    RIGHT, CENTER, BOTTOM
+    RIGHT, CENTER, BOTTOM, HIDDEN, VISIBLE
 )
 
 from .client import Client
@@ -148,11 +148,47 @@ class Wallet(Box):
                 font_weight = BOLD
             )
         )
+        self.unconfirmed_label = Label(
+            text="Unconfirmed Balance",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                text_align = CENTER,
+                color = GRAY,
+                font_weight = BOLD,
+                padding_top = 5,
+                visibility = HIDDEN
+            )
+        )
+        self.unconfirmed_value = Label(
+            text="",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                text_align = CENTER,
+                color = RED,
+                font_weight = BOLD,
+                padding_bottom = 5,
+                visibility = HIDDEN
+            )
+        )
+        self.unconfirmed_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                alignment = CENTER,
+                background_color = rgb(30,33,36),
+                padding_top = 70,
+                visibility = HIDDEN
+            )
+        )
 
         self.add(
             self.bitcoinz_logo,
             self.bitcoinz_title,
+            self.unconfirmed_box,
             self.balances_box
+        )
+        self.unconfirmed_box.add(
+            self.unconfirmed_label,
+            self.unconfirmed_value
         )
 
         self.balances_box.add(
@@ -189,4 +225,16 @@ class Wallet(Box):
                 self.total_value.text = totalbalance
                 self.transparent_value.text = transparentbalance
                 self.private_value.text = privatebalance
+            unconfirmed_balance = await self.commands.getUnconfirmedBalance()
+            if unconfirmed_balance is not None:
+                unconfirmed = self.utils.format_balance(float(unconfirmed_balance[0]))
+                if float(unconfirmed) > 0:
+                    self.unconfirmed_box.style.visibility = VISIBLE
+                    self.unconfirmed_label.style.visibility = VISIBLE
+                    self.unconfirmed_value.style.visibility = VISIBLE
+                    self.unconfirmed_value.text = unconfirmed
+                else:
+                    self.unconfirmed_box.style.visibility = HIDDEN
+                    self.unconfirmed_label.style.visibility = HIDDEN
+                    self.unconfirmed_value.style.visibility = HIDDEN
             await asyncio.sleep(5)
