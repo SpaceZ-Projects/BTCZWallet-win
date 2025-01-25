@@ -3,5 +3,6 @@ from .winformz import (
     Tasks, ProgressStyle, NotifyIcon, Command, Separator,
     Toolbar, Table, DockStyle, Color, Font, FontStyle,
     AlignTable, BorderStyle, SelectMode, Keys, run_async,
-    Drawing, StatusBar, StatusLabel, AlignLabel
+    Drawing, StatusBar, StatusLabel, AlignLabel, RichLabel,
+    ScrollBars, RightToLeft, AlignRichLabel
 )

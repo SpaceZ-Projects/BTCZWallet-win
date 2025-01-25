@@ -6,7 +6,8 @@ import webbrowser
 from toga import App, Box, Label, ImageView, Window
 from ..framework import (
     Table, DockStyle, BorderStyle, AlignTable,
-    FontStyle, Font, Color, Command, ClipBoard
+    FontStyle, Font, Color, Command, ClipBoard,
+    RichLabel, ScrollBars, AlignRichLabel
 )
 from toga.style.pack import Pack
 from toga.constants import COLUMN, ROW, CENTER, BOLD, TOP
@@ -174,33 +175,57 @@ class Recieve(Box):
         )
         self.address_qr = ImageView(
             style=Pack(
-                padding_top = 35,
+                padding_top = 40,
                 width = 217,
                 height = 217,
-                background_color = rgb(30,33,36)
+                background_color = rgb(30,33,36),
+                flex =1
             )
         )
-        self.address_value = Label(
+        self.address_value = RichLabel(
             text="",
+            text_size=10,
+            borderstyle=BorderStyle.NONE,
+            background_color=Color.rgb(40,43,48),
+            color=Color.WHITE,
+            style=FontStyle.BOLD,
+            wrap=True,
+            readonly=True,
+            urls=False,
+            dockstyle=DockStyle.TOP,
+            text_align=AlignRichLabel.CENTER,
+            scrollbars=ScrollBars.NONE,
+            maxsize=(0, 35),
+            minsize=(0, 35)
+        )
+        self.address_value_box = Box(
             style=Pack(
-                background_color = rgb(40,43,48),
-                color = WHITE,
-                text_align = CENTER,
-                font_weight = BOLD,
-                font_size = 12,
-                padding_top = 20
+                direction = COLUMN,
+                height=35,
+                padding = (10,50,0,50),
+                background_color=rgb(40,43,48)
             )
         )
 
         self.address_balance = Label(
             text="",
             style=Pack(
+                direction = COLUMN,
                 background_color = rgb(30,33,36),
                 color = WHITE,
                 text_align = CENTER,
                 font_weight = BOLD,
                 font_size = 14,
-                padding = (20,50,0,50) 
+                padding = (20,50,0,50) ,
+                flex =1,
+                alignment = TOP
+            )
+        )
+        self.address_panel = Box(
+            style=Pack(
+                direction = COLUMN,
+                flex = 1,
+                background_color = rgb(40,43,48)
             )
         )
 
@@ -229,9 +254,11 @@ class Recieve(Box):
             )
             self.address_info.add(
                 self.address_qr,
-                self.address_value,
-                self.address_balance
+                self.address_value_box,
+                self.address_balance,
+                self.address_panel
             )
+            self.address_value_box._impl.native.Controls.Add(self.address_value)
             self.add(
                 self.addresses_box
             )
@@ -334,15 +361,8 @@ class Recieve(Box):
             selected_address = self.selected_address
             self.app.add_background_task(self.get_address_balance)
             qr_image = self.utils.qr_generate(selected_address)
-            address_lines = []
-            while len(selected_address) > 35:
-                address_lines.append(selected_address[:35])
-                selected_address = selected_address[35:]
-            if selected_address:
-                address_lines.append(selected_address)
-            formatted_address = '\n'.join(address_lines)
             self.address_qr.image = qr_image
-            self.address_value.text = formatted_address
+            self.address_value.text = self.selected_address
 
 
     async def get_address_balance(self, widget):

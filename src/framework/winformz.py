@@ -74,6 +74,7 @@ Classes and Components:
 18. **Command**: A custom class for creating commands in toolbars or menus, with customizable actions, appearance, and events.
 19. **NotifyIcon**: A custom class for creating system tray icons with context menus and commands.
 20. **ImageColumn**: A custom class that extends the `DataGridViewImageColumn` to display images in a DataGridView.
+21. **RichLabel**: A custom class that extends `RichTextBox` to provide enhanced functionality for displaying rich text content.
 
 Note:
 -----
@@ -135,6 +136,9 @@ class AlignLabel:
 class AlignTable:
     MIDCENTER = Forms.DataGridViewContentAlignment.MiddleCenter
 
+class AlignRichLabel:
+    CENTER = Forms.HorizontalAlignment.Center
+
 class DockStyle:
     NONE = Forms.DockStyle(0)
     TOP = Forms.DockStyle.Top
@@ -186,6 +190,13 @@ class ToolTip(Forms.ToolTip):
         super().__init__()
     def insert(self, widget, value):
         self.SetToolTip(widget, value)
+
+class ScrollBars:
+    NONE = Forms.RichTextBoxScrollBars(0)
+
+class RightToLeft:
+    NO = Forms.RightToLeft.No
+    YES = Forms.RightToLeft.Yes
     
     
 class Keys:
@@ -1083,4 +1094,216 @@ class Table(Forms.DataGridView):
         if self._on_select:
             selected_rows = self.selected_cells
             self._on_select(selected_rows)
+
+
+class RichLabel(Forms.RichTextBox):
+    def __init__(
+        self,
+        text: str = None,
+        font: Optional[Font] = Font.SANSSERIF,
+        style: Optional[FontStyle] = FontStyle.REGULAR,
+        text_size: int = 11,
+        readonly: bool = False,
+        color: Optional[Color] = None,
+        background_color: Optional[Color]= None,
+        dockstyle: Optional[DockStyle] = None,
+        borderstyle: Optional[BorderStyle] = None,
+        urls: bool = False,
+        wrap: bool = False,
+        scrollbars: Optional[ScrollBars] = None,
+        text_align: Optional[AlignRichLabel] = None,
+        righttoleft: Optional[RightToLeft] = RightToLeft.NO,
+        maxsize: tuple[int, int] = None,
+        minsize: tuple[int, int] = None
+    ):
+        super().__init__()
+
+        self._text = text
+        self._font = font
+        self._style = style
+        self._text_size = text_size
+        self._readonly = readonly
+        self._color = color
+        self._background_color = background_color
+        self._dockstyle = dockstyle
+        self._borderstyle = borderstyle
+        self._urls = urls
+        self._wrap = wrap
+        self._scrollbars = scrollbars
+        self._text_align = text_align
+        self._righttoleft = righttoleft
+        self._maxsize = maxsize
+        self._minsize = minsize
+
+        if self._text:
+            self.Text = self._text
+        self._font_object = Drawing.Font(self._font, self._text_size, self._style)
+        self.Font = self._font_object
+        if self._color:
+            self.ForeColor = self._color
+        if self._background_color:
+            self.BackColor = self._background_color
+        if self._readonly:
+            self.ReadOnly = self._readonly
+        if self._dockstyle:
+            self.Dock = self._dockstyle
+        if self._borderstyle:
+            self.BorderStyle = self._borderstyle
+        if self._urls:
+            self.DetectUrls = self._urls
+        if self._wrap:
+            self.WordWrap = self._wrap
+        if self._scrollbars:
+            self.ScrollBars = self._scrollbars
+        if self._text_align:
+            self.SelectionAlignment = self._text_align
+        self.RightToLeft = self._righttoleft
+        if self._maxsize:
+            self.MaximumSize = Drawing.Size(*self._maxsize)
+        if self._minsize:
+            self.MinimumSize = Drawing.Size(*self._minsize)
+
+    @property
+    def text(self) -> str:
+        return self._text
+
+    @text.setter
+    def text(self, value: str):
+        self._text = value
+        self.Text = value
+
+    @property
+    def font(self) -> Optional[Font]:
+        return self._font
+
+    @font.setter
+    def font(self, value: Optional[Font]):
+        self._font = value
+        self.Font = value
+
+    @property
+    def style(self) -> Optional[FontStyle]:
+        return self._style
+
+    @style.setter
+    def style(self, value: Optional[FontStyle]):
+        self._style = value
+        self.Font = Drawing.Font(self._font, self._style, self._text_size)
+
+    @property
+    def text_size(self) -> int:
+        return self._text_size
+
+    @text_size.setter
+    def text_size(self, value: int):
+        self._text_size = value
+        self.Font = Drawing.Font(self._font, self._style, self._text_size)
+
+    @property
+    def readonly(self) -> bool:
+        return self._readonly
+
+    @readonly.setter
+    def readonly(self, value: bool):
+        self._readonly = value
+        self.ReadOnly = value
+
+    @property
+    def color(self) -> Optional[Color]:
+        return self._color
+
+    @color.setter
+    def color(self, value: Optional[Color]):
+        self._color = value
+        self.ForeColor = value
+
+    @property
+    def background_color(self) -> Optional[Color]:
+        return self._background_color
+
+    @background_color.setter
+    def background_color(self, value: Optional[Color]):
+        self._background_color = value
+        self.BackColor = value
+
+    @property
+    def dockstyle(self) -> Optional[DockStyle]:
+        return self._dockstyle
+
+    @dockstyle.setter
+    def dockstyle(self, value: Optional[DockStyle]):
+        self._dockstyle = value
+        self.Dock = value
+
+    @property
+    def borderstyle(self) -> Optional[BorderStyle]:
+        return self._borderstyle
+
+    @borderstyle.setter
+    def borderstyle(self, value: Optional[BorderStyle]):
+        self._borderstyle = value
+        self.BorderStyle = value
+
+    @property
+    def urls(self) -> bool:
+        return self._urls
+
+    @urls.setter
+    def urls(self, value: bool):
+        self._urls = value
+        self.DetectUrls = value
+
+    @property
+    def wrap(self) -> bool:
+        return self._wrap
+
+    @wrap.setter
+    def wrap(self, value: bool):
+        self._wrap = value
+        self.WordWrap = value
+
+    @property
+    def scrollbars(self) -> Optional[ScrollBars]:
+        return self._scrollbars
+
+    @scrollbars.setter
+    def scrollbars(self, value: Optional[ScrollBars]):
+        self._scrollbars = value
+        self.ScrollBars = value
+
+    @property
+    def text_align(self) -> Optional[AlignRichLabel]:
+        return self._text_align
+
+    @text_align.setter
+    def text_align(self, value: Optional[AlignRichLabel]):
+        self._text_align = value
+        self.SelectionAlignment = value
+
+    @property
+    def righttoleft(self) -> Optional[RightToLeft]:
+        return self._righttoleft
+
+    @righttoleft.setter
+    def righttoleft(self, value: Optional[RightToLeft]):
+        self._righttoleft = value
+        self.RightToLeft = value
+
+    @property
+    def maxsize(self) -> tuple[int, int]:
+        return self._maxsize
+
+    @maxsize.setter
+    def maxsize(self, value: tuple[int, int]):
+        self._maxsize = value
+        self.MaximumSize = Drawing.Size(*self._maxsize)
+
+    @property
+    def minsize(self) -> tuple[int, int]:
+        return self._minsize
+
+    @minsize.setter
+    def minsize(self, value: tuple[int, int]):
+        self._minsize = value
+        self.MinimumSize = Drawing.Size(*self._minsize)
 
