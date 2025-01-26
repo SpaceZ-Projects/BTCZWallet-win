@@ -819,7 +819,8 @@ class Table(Forms.DataGridView):
         column_types: Optional[dict[int, type]] = None,
         commands: Optional[List[type]] = None,
         on_select: Optional[Callable[[Forms.DataGridViewRow], None]] = None,
-        on_scroll: Optional[Callable[[Forms.ScrollEventArgs], None]] = None
+        on_scroll: Optional[Callable[[Forms.ScrollEventArgs], None]] = None,
+        on_double_click: Optional[Callable[[Forms.DataGridViewCellEventArgs], None]] = None
     ):
         super().__init__()
         
@@ -848,6 +849,7 @@ class Table(Forms.DataGridView):
         self._column_types = column_types or {}
         self._commands = commands
         self._on_select = on_select
+        self._on_double_click = on_double_click
 
         self._font_object = Drawing.Font(self._font, self._text_size, self._text_style)
 
@@ -892,6 +894,8 @@ class Table(Forms.DataGridView):
         self._on_scroll = on_scroll
         if self._on_scroll:
             self.Scroll += self._on_scroll_handler
+        if self._on_double_click:
+            self.CellDoubleClick += self._on_cell_double_click
 
         self.AllowUserToAddRows = False
         self.AllowUserToDeleteRows = False
@@ -1119,6 +1123,10 @@ class Table(Forms.DataGridView):
     def _on_scroll_handler(self, sender, event: Forms.ScrollEventArgs):
         if self._on_scroll:
             self._on_scroll(event)
+
+    def _on_cell_double_click(self, sender, e: Forms.DataGridViewCellEventArgs):
+        if self._on_double_click:
+            self._on_double_click(sender, e)
 
 
 
