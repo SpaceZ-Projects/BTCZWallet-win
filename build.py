@@ -28,7 +28,7 @@ def create_virtualenv(env):
 def upgrade_pip(env):
     print(f"Upgrading pip...")
     subprocess.check_call(
-        [os.path.join(env, 'Scripts', 'pip'), "install", "--upgrade", "pip"]
+        [os.path.join(env, 'Scripts', 'python'), "-m", "pip", "install", "--upgrade", "pip"]
     )
 
 def install_briefcase(env):
