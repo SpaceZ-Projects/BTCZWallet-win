@@ -187,9 +187,11 @@ class Transactions(Box):
         if self.no_transaction_toggle:
             self.remove(self.no_transaction)
             self._impl.native.Controls.Add(self.transactions_table)
+            self.transactions_table.data_source = self.transactions_data
             self.no_transaction_toggle = None
-        if self.transactions_toggle:
-            self.transactions_table.add_row(index=index, row_data=row)
+        else:
+            if self.transactions_toggle and not self.no_transaction_toggle:
+                self.transactions_table.add_row(index=index, row_data=row)
                 
 
     async def get_transactions(self, count, tx_from):
