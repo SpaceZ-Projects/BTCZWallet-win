@@ -4,19 +4,233 @@ import operator
 import json
 from datetime import datetime
 import webbrowser
+from functools import partial
 
-from toga import App, Box, Label, Window
+from toga import App, Box, Label, Window, Button
 from ..framework import (
     Table, Command, Color, DockStyle,
     Font, FontStyle, AlignTable, SelectMode,
     BorderStyle, ClipBoard
 )
 from toga.style.pack import Pack
-from toga.colors import rgb, GRAY
-from toga.constants import COLUMN, CENTER, BOLD
+from toga.colors import rgb, GRAY, WHITE, GREEN, RED, ORANGE
+from toga.constants import COLUMN, CENTER, BOLD, ROW, LEFT
 
 from .client import Client
 from .utils import Utils
+
+
+
+class Txid(Window):
+    def __init__(self, txid):
+        super().__init__(
+            size =(600, 150),
+            resizable= False,
+            minimizable = False,
+            closable=False
+        )
+
+        self.utils = Utils(self.app)
+        self.commands = Client(self.app)
+        self.txid = txid
+
+        self.updating_txid = None
+
+        self.title = "Transaction Info"
+        position_center = self.utils.windows_screen_center(self.size)
+        self.position = position_center
+
+        self.main_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(30,33,36),
+                flex = 1
+            )
+        )
+
+        self.txid_label = Label(
+            text="Transaction ID : ",
+            style=Pack(
+                font_weight = BOLD,
+                text_align = CENTER,
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                padding_left = 20
+            )
+        )
+        self.txid_value = Label(
+            text=self.txid,
+            style=Pack(
+                font_weight = BOLD,
+                text_align = CENTER,
+                color = WHITE,
+                background_color = rgb(30,33,36),
+            )
+        )
+        self.txid_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(30,33,36),
+                flex = 2,
+                alignment = CENTER
+            )
+        )
+
+        self.confirmations_label = Label(
+            text="Confirmations : ",
+            style=Pack(
+                font_weight = BOLD,
+                text_align = CENTER,
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                padding_left = 20
+            )
+        )
+        self.confirmations_value = Label(
+            text="",
+            style=Pack(
+                font_weight = BOLD,
+                text_align = CENTER,
+                color = WHITE,
+                background_color = rgb(30,33,36),
+            )
+        )
+        self.confirmations_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                alignment = LEFT
+            )
+        )
+
+        self.category_label = Label(
+            text="Category : ",
+            style=Pack(
+                font_weight = BOLD,
+                text_align = CENTER,
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                padding_left = 20
+            )
+        )
+        self.category_value = Label(
+            text="",
+            style=Pack(
+                font_weight = BOLD,
+                text_align = CENTER,
+                color = WHITE,
+                background_color = rgb(30,33,36),
+            )
+        )
+        self.category_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                alignment = LEFT
+            )
+        )
+
+        self.amount_label = Label(
+            text="Amount : ",
+            style=Pack(
+                font_weight = BOLD,
+                text_align = CENTER,
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                padding_left = 20
+            )
+        )
+        self.amount_value = Label(
+            text="",
+            style=Pack(
+                font_weight = BOLD,
+                text_align = CENTER,
+                color = WHITE,
+                background_color = rgb(30,33,36),
+            )
+        )
+        self.amount_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                alignment = LEFT
+            )
+        )
+        
+        self.close_button = Button(
+            text="Close",
+            style=Pack(
+                font_weight = BOLD,
+                color = WHITE,
+                background_color = rgb(40,43,48),
+                padding =(0,200,3,200)
+            ),
+            on_press=self.close_transaction_info
+        )
+
+        self.content = self.main_box
+
+        self.main_box.add(
+            self.txid_box,
+            self.confirmations_box,
+            self.category_box,
+            self.amount_box,
+            self.close_button
+        )
+        self.txid_box.add(
+            self.txid_label,
+            self.txid_value
+        )
+        self.confirmations_box.add(
+            self.confirmations_label,
+            self.confirmations_value
+        )
+        self.category_box.add(
+            self.category_label,
+            self.category_value
+        )
+        self.amount_box.add(
+            self.amount_label,
+            self.amount_value
+        )
+
+        self.app.add_background_task(self.update_transaction_info)
+
+
+    async def update_transaction_info(self, widget):
+        if not self.updating_txid:
+            self.updating_txid = True
+            while True:
+                if not self.updating_txid:
+                    return
+                transaction_info, _= await self.commands.getTransaction(self.txid)
+                if isinstance(transaction_info, str):
+                    transaction_info = json.loads(transaction_info)
+                if transaction_info:
+                    category = transaction_info['details'][0]['category']
+                    amount = self.utils.format_balance(float(transaction_info['amount']))
+                    confirmations = transaction_info['confirmations']
+                    if confirmations <= 0:
+                        color = RED
+                    elif 1 <= confirmations < 6:
+                        color = ORANGE
+                    else:
+                        color = GREEN
+                    self.confirmations_value.style.color = color
+                    self.confirmations_value.text = confirmations
+                    self.category_value.text = category
+                    self.amount_value.text = amount
+                
+                await asyncio.sleep(5)
+
+    def close_transaction_info(self, button):
+        self.updating_txid = None
+        self.close()
+
+
 
 class Transactions(Box):
     def __init__(self, app:App, main:Window, notify):
@@ -101,7 +315,8 @@ class Transactions(Box):
                 self.copy_address_cmd,
                 self.explorer_cmd
             ],
-            on_scroll=self.on_scroll_table
+            on_scroll=self.on_scroll_table,
+            on_double_click=self.transactions_table_double_click
         )
 
         self.no_transaction = Label(
@@ -172,15 +387,23 @@ class Transactions(Box):
                             'Address': address,
                             'Amount': amount,
                             'Time': formatted_timereceived,
-                            'Txid': txid,
+                            'Txid': txid
                         }
                         self.transactions_data.append(row)
                         self.add_transaction(0, row)
                         self.notify.send_note(
                             title=f"[{category}] : {amount} BTCZ",
-                            text=f"Txid : {txid}"
+                            text=f"Txid : {txid}",
+                            on_click=partial(self.on_notification_click, txid)
                         )
             await asyncio.sleep(5)
+
+
+    def on_notification_click(self, txid, sender, event):
+        if self.transactions_info.updating_txid:
+            return
+        self.transactions_info = Txid(txid)
+        self.transactions_info._impl.native.ShowDialog()
 
 
     def add_transaction(self, index, row):
@@ -273,6 +496,13 @@ class Transactions(Box):
                 }
                 last_index = self.transactions_table.RowCount
                 self.add_transaction(last_index, row)
+
+
+    def transactions_table_double_click(self, sender, event):
+        row_index = event.RowIndex
+        txid = sender.Rows[row_index].Cells[4].Value
+        self.transactions_info = Txid(txid)
+        self.transactions_info._impl.native.ShowDialog()
 
     
     def copy_txid_cmd_mouse_enter(self):
