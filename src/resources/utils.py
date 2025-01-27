@@ -8,6 +8,10 @@ import secrets
 from decimal import Decimal
 import qrcode
 from datetime import timedelta
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import pandas as pd
 
 from toga import App
 from ..framework import (
@@ -414,3 +418,28 @@ addnode=37.187.76.80:1989
         remaining_time_delta = timedelta(minutes=remaining_time_minutes)
         remaining_days = remaining_time_delta.days
         return remaining_days
+    
+    def create_curve(self, data):
+        curve_image = Os.Path.Combine(str(self.app_cache), 'curve.png')
+        df = pd.DataFrame(data, columns=["timestamp", "price"])
+        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+        df['formatted_price'] = df['price'].apply(lambda x: self.format_price(x))
+        plt.figure(figsize=(24, 6))
+        plt.gcf().set_facecolor('#1e2124')
+        plt.gca().set_facecolor('#282b30')
+        plt.plot(df['timestamp'], df['price'], label='BitcoinZ Price (USD)', color='green', linewidth=2)
+        def format_y_ticks(value, tick_position):
+            return self.format_price(value)
+
+        plt.gca().yaxis.set_major_formatter(plt.FuncFormatter(format_y_ticks))
+        plt.gca().tick_params(axis='both', labelcolor='white', labelsize=6)
+
+        plt.xticks(rotation=45)
+        plt.grid(True, color='#282b30')
+        plt.xlim(df['timestamp'].min(), df['timestamp'].max())
+        plt.ylim(min(df['price']) * 0.95, max(df['price']) * 1.05)
+        plt.tight_layout()
+
+        plt.savefig(curve_image)
+        plt.close()
+        return curve_image

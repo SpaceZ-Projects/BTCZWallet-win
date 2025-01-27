@@ -3,9 +3,11 @@ import asyncio
 import aiohttp
 from datetime import datetime
 
-from toga import App, Box, Label
+from toga import App, Box, Label, ImageView
 from toga.style.pack import Pack
-from toga.constants import COLUMN, ROW, TOP, LEFT, BOLD, RIGHT, CENTER
+from toga.constants import (
+    COLUMN, ROW, TOP, LEFT, BOLD, RIGHT, CENTER
+)
 from toga.colors import rgb, GRAY, WHITE
 
 from .utils import Utils
@@ -19,7 +21,8 @@ class Home(Box):
                 direction = COLUMN,
                 flex = 1,
                 background_color = rgb(40,43,48),
-                padding = (2,5,0,5)
+                padding = (2,5,0,5),
+                alignment = CENTER
             )
         )
         self.app = app
@@ -29,6 +32,7 @@ class Home(Box):
         self.home_toggle = None
         self.cap_toggle = None
         self.volume_toggle = None
+        self.curve_toggle = None
 
         self.market_label = Label(
             text="MarketCap :",
@@ -214,6 +218,14 @@ class Home(Box):
             )
         )
 
+        self.bitcoinz_curve = ImageView(
+            style=Pack(
+                alignment = CENTER,
+                background_color = rgb(40,43,48),
+                flex = 1
+            )
+        )
+
         self.halving_label = Label(
             text="",
             style=Pack(
@@ -222,8 +234,7 @@ class Home(Box):
                 background_color = rgb(40,43,48),
                 color = WHITE,
                 font_weight = BOLD,
-                flex = 1,
-                padding_top = 20
+                padding_top = 10
             )
         )
 
@@ -235,8 +246,7 @@ class Home(Box):
                 background_color = rgb(40,43,48),
                 color = WHITE,
                 font_weight = BOLD,
-                flex = 1,
-                padding_top = 10
+                padding_bottom = 10
             )
         )
 
@@ -248,6 +258,7 @@ class Home(Box):
                 self.market_label, 
                 self.market_box,
                 self.last_updated_label,
+                self.bitcoinz_curve,
                 self.halving_label,
                 self.remaining_label
             )
@@ -264,26 +275,41 @@ class Home(Box):
 
             self.home_toggle = True
 
+            self.app.add_background_task(self.update_marketchar)
             self.app.add_background_task(self.update_marketcap)
             self.app.add_background_task(self.update_circulating_supply)
 
 
-    async def update_marketcap(self, widget):
+    async def fetch_marketcap(self):
         api_url = "https://api.coingecko.com/api/v3/coins/bitcoinz"
-        while True:
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(api_url) as response:
-                        if response.status == 200:
-                            data = await response.json()
-                            self.update_marketcap_values(data)
-                        else:
-                            print("Failed to fetch data. Status code:", response.status)
-                            return None
-            except Exception as e:
-                print(f"Error occurred during fetch: {e}")
-                return None
-            await asyncio.sleep(601)
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(api_url) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return data
+                    else:
+                        print("Failed to fetch data. Status code:", response.status)
+                        return None
+        except Exception as e:
+            print(f"Error occurred during fetch: {e}")
+            return None
+
+    async def fetch_marketchart(self):
+        url = "https://api.coingecko.com/api/v3/coins/bitcoinz/market_chart"
+        params = {
+            'vs_currency': 'usd',
+            'days': '1',
+        }
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params) as response:
+                    data = await response.json()
+                    prices = data['prices']
+                    return prices
+        except Exception as e:
+            print(f"Error occurred during fetch: {e}")
+            return None
 
     async def update_circulating_supply(self, widget):
         while True:
@@ -297,23 +323,37 @@ class Home(Box):
             await asyncio.sleep(10)
 
 
-    def update_marketcap_values(self, data):
-        market_price = data["market_data"]["current_price"]["usd"]
-        market_cap = data["market_data"]["market_cap"]["usd"]
-        market_volume = data["market_data"]["total_volume"]["usd"]
-        price_percentage_24 = data["market_data"]["price_change_percentage_24h"]
-        price_percentage_7d = data["market_data"]["price_change_percentage_7d"]
-        last_updated = data["market_data"]["last_updated"]
+    async def update_marketcap(self, widget):
+        while True:
+            data = await self.fetch_marketcap()
+            if data:
+                market_price = data["market_data"]["current_price"]["usd"]
+                market_cap = data["market_data"]["market_cap"]["usd"]
+                market_volume = data["market_data"]["total_volume"]["usd"]
+                price_percentage_24 = data["market_data"]["price_change_percentage_24h"]
+                price_percentage_7d = data["market_data"]["price_change_percentage_7d"]
+                last_updated = data["market_data"]["last_updated"]
 
-        last_updated_datetime = datetime.fromisoformat(last_updated.replace("Z", ""))
-        formatted_last_updated = last_updated_datetime.strftime("%Y-%m-%d %H:%M:%S UTC")
-        btcz_price = self.utils.format_price(market_price)
-        self.price_value.text = f"${btcz_price}"
-        self.percentage_24_value.text = f"%{price_percentage_24}"
-        self.percentage_7_value.text = f"%{price_percentage_7d}"
-        self.cap_value.text = f"${market_cap}"
-        self.volume_value.text = f"${market_volume}"
-        self.last_updated_label.text = formatted_last_updated
+                last_updated_datetime = datetime.fromisoformat(last_updated.replace("Z", ""))
+                formatted_last_updated = last_updated_datetime.strftime("%Y-%m-%d %H:%M:%S UTC")
+                btcz_price = self.utils.format_price(market_price)
+                self.price_value.text = f"${btcz_price}"
+                self.percentage_24_value.text = f"%{price_percentage_24}"
+                self.percentage_7_value.text = f"%{price_percentage_7d}"
+                self.cap_value.text = f"${market_cap}"
+                self.volume_value.text = f"${market_volume}"
+                self.last_updated_label.text = formatted_last_updated
+            await asyncio.sleep(601)
+
+    async def update_marketchar(self, widget):
+        while True:
+            data = await self.fetch_marketchart()
+            if data:
+                curve_image = self.utils.create_curve(data)
+                if curve_image:
+                    self.bitcoinz_curve.image = curve_image
+
+            await asyncio.sleep(3600)
 
     def _add_cap_on_resize(self, sender, event):
         box_width = self.market_box._impl.native.Width
