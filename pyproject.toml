@@ -2,7 +2,7 @@
 [tool.briefcase]
 project_name = "BitcoinZ Wallet"
 bundle = "com.btcz"
-version = "1.0.5"
+version = "1.0.6"
 url = "https://getbtcz.com"
 license.file = "LICENSE"
 author = "BTCZCommunity"
@@ -33,6 +33,8 @@ requires = [
     "aiohttp",
     "py7zr",
     "qrcode",
-    "pillow"
+    "pillow",
+    "matplotlib",
+    "pandas"
 ]
 
