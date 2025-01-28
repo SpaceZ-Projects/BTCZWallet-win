@@ -419,6 +419,7 @@ class Menu(Window):
         self.send_label.style.color = WHITE
         self.send_button.style.background_color = YELLOW
         self.pages.add(self.send_page)
+        self.app.add_background_task(self.send_page.insert_widgets)
 
     def send_button_mouse_enter(self, sender, event):
         if self.send_button_toggle:
