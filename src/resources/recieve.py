@@ -320,8 +320,9 @@ class Recieve(Box):
                 }
                 addresses.append(row)
         else:
-            self.address_qr.image = None
-            self.address_value.text = None
+            addresses = [{
+                'Private Addresses': ''
+            }]
         self.addresses_table.data_source = addresses
 
     def private_button_mouse_enter(self, sender, event):
@@ -358,18 +359,20 @@ class Recieve(Box):
     def _on_selected_address(self, rows):
         for row in rows:
             self.selected_address = row.Value
-            selected_address = self.selected_address
             self.app.add_background_task(self.get_address_balance)
-            qr_image = self.utils.qr_generate(selected_address)
-            self.address_qr.image = qr_image
-            self.address_value.text = self.selected_address
 
 
     async def get_address_balance(self, widget):
-        balance = await self.commands.z_getBalance(self.selected_address)
-        if balance:
-            balance = self.utils.format_balance(balance[0])
-            self.address_balance.text = f"Balance : {balance}"
+        balance, _ = await self.commands.z_getBalance(self.selected_address)
+        if balance is None:
+            self.address_qr.image = None
+            self.address_value.text = None
+            return
+        qr_image = self.utils.qr_generate(self.selected_address)
+        balance = self.utils.format_balance(balance[0])
+        self.address_qr.image = qr_image
+        self.address_value.text = self.selected_address
+        self.address_balance.text = f"Balance : {balance}"
 
     
     def copy_address(self):
