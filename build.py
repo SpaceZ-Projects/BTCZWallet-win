@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 import urllib.request
+import ssl
 import zipfile
 import shutil
 
@@ -45,6 +46,10 @@ def get_python_versions():
         for line in output.decode().splitlines():
             if line.startswith(" -V:"):
                 version_str = line.split(":")[1].split()[0]
+                if compare_versions(version_str, "3.9") >= 0:
+                    versions.append(version_str)
+            elif line.startswith(" -"):
+                version_str = line.split('-')[1].split()[0]
                 if compare_versions(version_str, "3.9") >= 0:
                     versions.append(version_str)
     except subprocess.CalledProcessError:
@@ -106,8 +111,10 @@ def download_nsis():
     nsis_url = "https://sourceforge.net/projects/nsis/files/NSIS%203/3.10/nsis-3.10.zip/download"
     nsis_zip = "nsis-3.10.zip"
     nsis_extract_dir = "nsis"
+    context = ssl._create_unverified_context()
 
-    urllib.request.urlretrieve(nsis_url, nsis_zip)
+    with urllib.request.urlopen(nsis_url, context=context) as response, open(nsis_zip, 'wb') as out_file:
+        out_file.write(response.read())
     with zipfile.ZipFile(nsis_zip, 'r') as zip_ref:
         zip_ref.extractall(nsis_extract_dir)
     os.remove(nsis_zip)
