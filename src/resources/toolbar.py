@@ -39,7 +39,8 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48),
             icon="images/about_i.ico",
             mouse_enter=self.about_cmd_mouse_enter,
-            mouse_leave=self.about_cmd_mouse_leave
+            mouse_leave=self.about_cmd_mouse_leave,
+            action=self.display_about_dialog
         )
         self.exit_cmd = Command(
             title="Exit",
@@ -246,6 +247,9 @@ class AppToolBar(Box):
     def about_cmd_mouse_leave(self):
         self.about_cmd.icon = "images/about_i.ico"
         self.about_cmd.color = Color.WHITE
+
+    def display_about_dialog(self):
+        self.app.about()
 
     def exit_app(self):
         self.notify.hide()
