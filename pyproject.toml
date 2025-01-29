@@ -10,8 +10,7 @@ author_email = "None"
 
 [tool.briefcase.app.src]
 formal_name = "BTCZWallet"
-description = "BitcoinZ Full Node Wallet"
-long_description = """More details about the app should go here.
+description = """BitcoinZ Full Node Wallet GUI is user-friendly cryptocurrency wallet designed for storing and managing BitcoinZ (BTCZ) securely. This full node wallet allows users to interact directly with the BitcoinZ blockchain, giving them full control over their funds, while ensuring privacy and decentralization. With its Graphical User Interface (GUI), this wallet provides an intuitive experience for both new and experienced users. It enables you to securely send and receive BitcoinZ transactions, view your wallet’s transaction history, and monitor the current blockchain status, all through an easy-to-use interface.
 """
 icon = "src/images/BitcoinZ"
 sources = [
@@ -29,12 +28,11 @@ test_requires = [
 
 [tool.briefcase.app.src.windows]
 requires = [
-    "toga-winforms~=0.4.7",
-    "aiohttp",
-    "py7zr",
-    "qrcode",
-    "pillow",
-    "matplotlib",
-    "pandas"
+    "toga-winforms==0.4.7",
+    "aiohttp==3.11.11",
+    "py7zr==0.22.0",
+    "qrcode==8.0",
+    "pillow==11.1.0",
+    "matplotlib==3.9.4",
+    "pandas==2.2.3"
 ]
-
