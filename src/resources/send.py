@@ -10,6 +10,7 @@ from toga.constants import COLUMN, ROW, TOP, BOLD, CENTER, LEFT
 from toga.colors import rgb, GRAY, WHITE, YELLOW, BLACK
 
 from .client import Client
+from .utils import Utils
 
 
 class Send(Box):
@@ -25,6 +26,7 @@ class Send(Box):
 
         self.app = app
         self.commands = Client(self.app)
+        self.utils = Utils(self.app)
 
         self.send_toggle = None
         self.transparent_toggle = None
@@ -112,7 +114,8 @@ class Send(Box):
                 flex = 2,
                 padding_top = 10
             ),
-            accessor="select_address"
+            accessor="select_address",
+            on_change=self.display_address_balance
         )
         self.address_selection._impl.native.FlatStyle = Forms.FlatStyle.Flat
 
@@ -471,3 +474,28 @@ class Send(Box):
         else:
             address_items = []
         return address_items
+    
+    async def display_address_balance(self, selection):
+        if selection.value is None:
+            self.address_balance.text = "0.00000000"
+            return
+        selected_address = selection.value.select_address
+        if selected_address != "Main Account":
+            balance, _ = await self.commands.z_getBalance(selected_address)
+            if balance:
+                format_balance = self.utils.format_balance(float(balance))
+                self.address_balance.text = format_balance
+        elif selected_address == "Main Account":
+            total_balances, _ = await self.commands.z_getTotalBalance()
+            if total_balances:
+                balances = json.loads(total_balances)
+                transparent = balances.get('transparent')
+                format_balance = self.utils.format_balance(float(transparent))
+                self.address_balance.text = format_balance
+        else:
+            self.address_balance.text = "0.00000000"
+        self.clear_inputs()
+
+    def clear_inputs(self):
+        self.distination_input.value = ""
+        self.amount_input.value = ""
