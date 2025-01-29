@@ -1,13 +1,15 @@
-
 import asyncio
+import json
 
 from toga import (
     App, Box, Label, TextInput, Selection, ImageView
 )
 from ..framework import Forms
 from toga.style.pack import Pack
-from toga.constants import COLUMN, ROW, TOP, BOLD, CENTER
+from toga.constants import COLUMN, ROW, TOP, BOLD, CENTER, LEFT
 from toga.colors import rgb, GRAY, WHITE, YELLOW, BLACK
+
+from .client import Client
 
 
 class Send(Box):
@@ -22,6 +24,7 @@ class Send(Box):
         )
 
         self.app = app
+        self.commands = Client(self.app)
 
         self.send_toggle = None
         self.transparent_toggle = None
@@ -108,11 +111,10 @@ class Send(Box):
                 font_size = 12,
                 flex = 2,
                 padding_top = 10
-            )
+            ),
+            accessor="select_address"
         )
         self.address_selection._impl.native.FlatStyle = Forms.FlatStyle.Flat
-        self.address_selection._impl.native.DropDownStyle = Forms.ComboBoxStyle.DropDownList
-        self.address_selection._impl.native.MaxDropDownItems = 4
 
         self.address_balance = Label(
             text="0.00000000",
@@ -132,7 +134,7 @@ class Send(Box):
                 direction = ROW,
                 background_color = rgb(30,33,36),
                 flex = 1,
-                padding = 5,
+                padding=(10,5,0,5),
                 height = 55
             )
         )
@@ -182,7 +184,8 @@ class Send(Box):
                 direction = ROW,
                 background_color = rgb(30,33,36),
                 flex = 1,
-                padding = 5,
+                padding_left = 5,
+                padding_right = 5,
                 height = 55
             )
         )
@@ -218,9 +221,10 @@ class Send(Box):
                 background_color = rgb(30,33,36),
                 font_weight = BOLD,
                 font_size = 12,
-                text_align = CENTER,
-                flex = 2,
-                padding_top = 12
+                text_align = LEFT,
+                flex = 5,
+                padding_top = 12,
+                padding_left = 10
             )
         )
 
@@ -229,7 +233,8 @@ class Send(Box):
                 direction = ROW,
                 background_color = rgb(30,33,36),
                 flex = 1,
-                padding = 5,
+                padding_left = 5,
+                padding_right = 5,
                 height = 55
             )
         )
@@ -237,9 +242,19 @@ class Send(Box):
         self.fees_box = Box(
            style=Pack(
                 direction = ROW,
-                background_color = rgb(40,43,48),
+                background_color = rgb(30,33,36),
                 flex = 1,
-                padding = 5
+                padding_left = 5,
+                padding_right = 5,
+                height = 55
+            ) 
+        )
+
+        self.sparator_box = Box(
+           style=Pack(
+                direction = ROW,
+                background_color = rgb(40,43,48),
+                flex = 1
             ) 
         )
 
@@ -298,6 +313,7 @@ class Send(Box):
                 self.distination_box,
                 self.amount_box,
                 self.fees_box,
+                self.sparator_box,
                 self.confirmation_box
             )
             self.switch_box.add(
@@ -346,7 +362,7 @@ class Send(Box):
         self.transparent_label.style.color = YELLOW
         self.transparent_label.style.background_color = rgb(66,69,73)
         self.transparent_button.style.background_color = rgb(66,69,73)
-        self.update_send_options()
+        self.app.add_background_task(self.update_send_options)
 
     
     def transparent_button_mouse_enter(self, sender, event):
@@ -372,6 +388,7 @@ class Send(Box):
         self.private_label.style.color = rgb(114,137,218)
         self.private_label.style.background_color = rgb(66,69,73)
         self.private_button.style.background_color = rgb(66,69,73)
+        self.app.add_background_task(self.update_send_options)
 
     
     def private_button_mouse_enter(self, sender, event):
@@ -388,8 +405,14 @@ class Send(Box):
         self.private_label.style.background_color = rgb(30,33,36)
         self.private_button.style.background_color = rgb(30,33,36)
 
-    def update_send_options(self):
-        pass
+    async def update_send_options(self, widegt):
+        if self.transparent_toggle:
+            selection_items = await self.get_transparent_addresses()
+        if self.private_toggle:
+            selection_items = await self.get_private_addresses()
+
+        self.address_selection.items.clear()
+        self.address_selection.items = selection_items
 
     def clear_buttons(self):
         if self.transparent_toggle:
@@ -422,3 +445,29 @@ class Send(Box):
         self.send_label.style.color = GRAY
         self.send_button.style.background_color = rgb(40,43,48)
         self.send_label.style.background_color = rgb(40,43,48)
+
+
+    async def get_transparent_addresses(self):
+        addresses_data, _ = await self.commands.ListAddresses()
+        if addresses_data:
+            addresses_data = json.loads(addresses_data)
+        else:
+            addresses_data = []
+        if addresses_data:
+            address_items = [("Main Account")] + [(address_info, address_info) for address_info in addresses_data]
+        else:
+            address_items = [("Main Account")]
+        return address_items
+    
+    async def get_private_addresses(self):
+        addresses_data, _ = await self.commands.z_listAddresses()
+        if addresses_data:
+            addresses_data = json.loads(addresses_data)
+        if addresses_data is not None:
+            if len(addresses_data) == 1:
+                address_items = [(addresses_data[0], addresses_data[0])]
+            else:
+                address_items = [(address, address) for address in addresses_data]
+        else:
+            address_items = []
+        return address_items

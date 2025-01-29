@@ -304,6 +304,8 @@ class Menu(Window):
         if new_address:
             if self.recieve_page.transparent_toggle:
                 self.insert_new_address(new_address[0])
+            if self.send_page.transparent_toggle:
+                await self.send_page.update_send_options(None)
             self.info_dialog(
                 title="New Address",
                 message=f"Generated address : {new_address[0]}"
@@ -314,6 +316,8 @@ class Menu(Window):
         if new_address:
             if self.recieve_page.private_toggle:
                 self.insert_new_address(new_address[0])
+            if self.send_page.private_toggle:
+                await self.send_page.update_send_options(None)
             self.info_dialog(
                 title="New Address",
                 message=f"Generated address : {new_address[0]}"
