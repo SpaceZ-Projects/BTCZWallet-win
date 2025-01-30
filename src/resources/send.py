@@ -1,3 +1,4 @@
+
 import asyncio
 import json
 
@@ -163,15 +164,17 @@ class Send(Box):
                 font_size = 12,
                 flex = 2,
                 padding_top = 10
-            )
+            ),
+            on_change=self.is_valid_address
         )
 
         self.is_valid = ImageView(
             style=Pack(
                 background_color = rgb(30,33,36),
-                width = 20,
-                height = 20,
-                flex = 1
+                width = 30,
+                height = 30,
+                flex = 1,
+                padding= (9,0,0,10)
             )
         )
         self.is_valid_box = Box(
@@ -499,3 +502,24 @@ class Send(Box):
     def clear_inputs(self):
         self.distination_input.value = ""
         self.amount_input.value = ""
+
+    
+    async def is_valid_address(self, input):
+        address = self.distination_input.value
+        if not address:
+            self.is_valid.image = None
+            return
+        if address.startswith("t"):
+            result, _ = await self.commands.validateAddress(address)
+        elif address.startswith("z"):
+            result, _ = await self.commands.z_validateAddress(address)
+        else:
+            self.is_valid.image = "images/notvalid.png"
+            return
+        if result is not None:
+            result = json.loads(result)
+            is_valid = result.get('isvalid')
+            if is_valid is True:
+                self.is_valid.image = "images/valid.png"
+            elif is_valid is False:
+                self.is_valid.image = "images/notvalid.png"

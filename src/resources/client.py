@@ -102,3 +102,11 @@ class Client():
     async def getTransaction(self, txid):
         command = f'{self.bitcoinz_cli_file} gettransaction {txid}'
         return await self._run_command(command)
+    
+    async def validateAddress(self, address):
+        command = f'{self.bitcoinz_cli_file} validateaddress {address}'
+        return await self._run_command(command)
+    
+    async def z_validateAddress(self, address):
+        command = f'{self.bitcoinz_cli_file} z_validateaddress {address}'
+        return await self._run_command(command)
