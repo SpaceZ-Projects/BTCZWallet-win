@@ -369,7 +369,7 @@ class Recieve(Box):
             self.address_value.text = None
             return
         qr_image = self.utils.qr_generate(self.selected_address)
-        balance = self.utils.format_balance(balance[0])
+        balance = self.utils.format_balance(balance)
         self.address_qr.image = qr_image
         self.address_value.text = self.selected_address
         self.address_balance.text = f"Balance : {balance}"

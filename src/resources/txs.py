@@ -4,7 +4,6 @@ import operator
 import json
 from datetime import datetime
 import webbrowser
-from functools import partial
 
 from toga import App, Box, Label, Window, Button
 from ..framework import (
@@ -331,6 +330,7 @@ class Transactions(Box):
             )
         )
 
+
     async def insert_widgets(self, widget):
         await asyncio.sleep(0.2)
         if not self.transactions_toggle:
@@ -394,16 +394,8 @@ class Transactions(Box):
                         self.notify.send_note(
                             title=f"[{category}] : {amount} BTCZ",
                             text=f"Txid : {txid}",
-                            on_click=partial(self.on_notification_click, txid)
                         )
             await asyncio.sleep(5)
-
-
-    def on_notification_click(self, txid, sender, event):
-        if self.transactions_info.updating_txid:
-            return
-        self.transactions_info = Txid(txid)
-        self.transactions_info._impl.native.ShowDialog()
 
 
     def add_transaction(self, index, row):

@@ -3,19 +3,20 @@ import asyncio
 import json
 
 from toga import (
-    App, Box, Label, TextInput, Selection, ImageView
+    App, Box, Label, TextInput, Selection, ImageView,
+    Window
 )
 from ..framework import Forms
 from toga.style.pack import Pack
-from toga.constants import COLUMN, ROW, TOP, BOLD, CENTER, LEFT
-from toga.colors import rgb, GRAY, WHITE, YELLOW, BLACK
+from toga.constants import COLUMN, ROW, TOP, BOLD, CENTER, LEFT, VISIBLE, HIDDEN
+from toga.colors import rgb, GRAY, WHITE, YELLOW, BLACK, RED
 
 from .client import Client
 from .utils import Utils
 
 
 class Send(Box):
-    def __init__(self, app:App):
+    def __init__(self, app:App, main:Window):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -26,6 +27,7 @@ class Send(Box):
         )
 
         self.app = app
+        self.main = main
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
 
@@ -143,7 +145,7 @@ class Send(Box):
             )
         )
 
-        self.distination_label = Label(
+        self.destination_label = Label(
             text="To :",
             style=Pack(
                 color = GRAY,
@@ -156,7 +158,7 @@ class Send(Box):
             )
         )
 
-        self.distination_input = TextInput(
+        self.destination_input = TextInput(
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -185,7 +187,7 @@ class Send(Box):
             )
         )
 
-        self.distination_box = Box(
+        self.destination_box = Box(
             style=Pack(
                 direction = ROW,
                 background_color = rgb(30,33,36),
@@ -210,20 +212,26 @@ class Send(Box):
         )
 
         self.amount_input = TextInput(
+            placeholder="0.00000000",
             style=Pack(
                 color = WHITE,
+                text_align= CENTER,
                 background_color = rgb(30,33,36),
                 font_weight = BOLD,
                 font_size = 12,
                 flex = 1,
                 padding_top = 10
-            )
+            ),
+            validators=[
+                self.is_digit
+            ],
+            on_change=self.verify_balance
         )
 
         self.check_amount_label = Label(
-            text="test",
+            text="",
             style=Pack(
-                color = GRAY,
+                color = RED,
                 background_color = rgb(30,33,36),
                 font_weight = BOLD,
                 font_size = 12,
@@ -245,6 +253,39 @@ class Send(Box):
             )
         )
 
+        self.fees_label = Label(
+            text="Fee :",
+            style=Pack(
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                font_weight = BOLD,
+                font_size = 12,
+                text_align = CENTER,
+                flex = 2,
+                padding_top = 12
+            )
+        )
+        self.fee_input = TextInput(
+            placeholder="0.00000000",
+            style=Pack(
+                color = WHITE,
+                text_align= CENTER,
+                background_color = rgb(30,33,36),
+                font_weight = BOLD,
+                font_size = 12,
+                flex = 1,
+                padding_top = 10
+            ),
+            validators=[
+                self.is_digit
+            ]
+        )
+        self.empty_box = Box(
+            style=Pack(
+                background_color = rgb(30,33,36),
+                flex = 5
+            )
+        )
         self.fees_box = Box(
            style=Pack(
                 direction = ROW,
@@ -256,7 +297,7 @@ class Send(Box):
             ) 
         )
 
-        self.sparator_box = Box(
+        self.separator_box = Box(
            style=Pack(
                 direction = ROW,
                 background_color = rgb(40,43,48),
@@ -297,6 +338,8 @@ class Send(Box):
         self.send_button._impl.native.MouseLeave += self.send_button_mouse_leave
         self.send_label._impl.native.MouseEnter += self.send_button_mouse_enter
         self.send_label._impl.native.MouseLeave += self.send_button_mouse_leave
+        self.send_button._impl.native.Click += self.send_button_click
+        self.send_label._impl.native.Click += self.send_button_click
 
         self.confirmation_box = Box(
             style=Pack(
@@ -316,10 +359,10 @@ class Send(Box):
             self.add(
                 self.switch_box,
                 self.selection_address_box,
-                self.distination_box,
+                self.destination_box,
                 self.amount_box,
                 self.fees_box,
-                self.sparator_box,
+                self.separator_box,
                 self.confirmation_box
             )
             self.switch_box.add(
@@ -337,9 +380,9 @@ class Send(Box):
                 self.address_selection,
                 self.address_balance
             )
-            self.distination_box.add(
-                self.distination_label,
-                self.distination_input,
+            self.destination_box.add(
+                self.destination_label,
+                self.destination_input,
                 self.is_valid_box
             )
             self.is_valid_box.add(
@@ -349,6 +392,11 @@ class Send(Box):
                 self.amount_label,
                 self.amount_input,
                 self.check_amount_label
+            )
+            self.fees_box.add(
+                self.fees_label,
+                self.fee_input,
+                self.empty_box
             )
             self.confirmation_box.add(
                 self.send_box,
@@ -484,15 +532,25 @@ class Send(Box):
             return
         selected_address = selection.value.select_address
         if selected_address != "Main Account":
+            self.update_fees_option(True)
             balance, _ = await self.commands.z_getBalance(selected_address)
             if balance:
+                if float(balance) <= 0:
+                    self.address_balance.style.color = GRAY
+                else:
+                    self.address_balance.style.color = WHITE
                 format_balance = self.utils.format_balance(float(balance))
                 self.address_balance.text = format_balance
         elif selected_address == "Main Account":
+            self.update_fees_option(False)
             total_balances, _ = await self.commands.z_getTotalBalance()
             if total_balances:
                 balances = json.loads(total_balances)
                 transparent = balances.get('transparent')
+                if float(transparent) <= 0:
+                    self.address_balance.style.color = GRAY
+                else:
+                    self.address_balance.style.color = WHITE
                 format_balance = self.utils.format_balance(float(transparent))
                 self.address_balance.text = format_balance
         else:
@@ -500,12 +558,30 @@ class Send(Box):
         self.clear_inputs()
 
     def clear_inputs(self):
-        self.distination_input.value = ""
+        self.destination_input.value = ""
         self.amount_input.value = ""
 
-    
+    def update_fees_option(self, option):
+        if option:
+            self.fees_box.style.visibility = VISIBLE
+            self.app.add_background_task(self.set_default_fee)
+        else:
+            self.fees_box.style.visibility = HIDDEN
+
+    async def set_default_fee(self, widget):
+        result, _= await self.commands.getInfo()
+        result = json.loads(result)
+        if result is not None:
+            paytxfee = result.get('paytxfee')
+            relayfee = result.get('relayfee')
+        if paytxfee == 0.0:
+            self.fee_input.value = f"{relayfee:.8f}"
+        else:
+            self.fee_input.value = f"{paytxfee:.8f}"
+
+
     async def is_valid_address(self, input):
-        address = self.distination_input.value
+        address = self.destination_input.value
         if not address:
             self.is_valid.image = None
             return
@@ -523,3 +599,85 @@ class Send(Box):
                 self.is_valid.image = "images/valid.png"
             elif is_valid is False:
                 self.is_valid.image = "images/notvalid.png"
+
+    
+    async def verify_balance(self, input):
+        amount = self.amount_input.value
+        if not amount:
+            return
+        balance = self.address_balance.text
+        if float(balance) < float(amount):
+            self.check_amount_label.text = "Insufficient balance"
+        elif float(balance) > float(amount):
+            self.check_amount_label.text = ""
+
+
+    def is_digit(self, value):
+        if not self.amount_input.value.replace('.', '', 1).isdigit():
+            self.amount_input.value = ""
+        if not self.fee_input.value.replace('.', '', 1).isdigit():
+            self.fee_input.value = ""
+
+
+    def send_button_click(self, sender, event):
+        selected_address = self.address_selection.value.select_address if self.address_selection.value else None
+        destination_address = self.destination_input.value
+        amount = self.amount_input.value
+        if selected_address is None:
+            self.main.error_dialog(
+                "No address selected",
+                "Select address you are sending from"
+            )
+            self.address_selection.focus()
+            return
+        elif destination_address == "":
+            self.main.error_dialog(
+                "No distination",
+                "The distination address was not entred"
+            )
+            self.destination_input.focus()
+            return
+        elif amount == "":
+            self.main.error_dialog(
+                "No amount",
+                "The amount was not entred"
+            )
+            self.amount_input.focus()
+            return
+        self.app.add_background_task(self.make_transaction)
+
+    async def make_transaction(self, widget):
+        self.send_button.enabled = False
+        selected_address = self.address_selection.value.select_address
+        destination_address = self.destination_input.value
+        amount = self.amount_input.value
+        txfee = self.fee_input.value
+        try:
+            if selected_address == "Main Account" and destination_address.startswith("t"):
+                operation, _= await self.commands.sendToAddress(destination_address, amount)
+                if operation is not None:
+                    self.send_button.enabled = True
+                    self.clear_inputs()
+            elif selected_address != "Main Account":
+                operation, _= await self.commands.z_sendMany(selected_address, destination_address, amount, txfee)
+                if operation:
+                    transaction_status, _= await self.commands.z_getOperationStatus(operation)
+                    transaction_status = json.loads(transaction_status)
+                    if isinstance(transaction_status, list) and transaction_status:
+                        status = transaction_status[0].get('status')
+                        if status == "executing" or status =="success":
+                            await asyncio.sleep(1)
+                            while True:
+                                transaction_result, _= await self.commands.z_getOperationResult(operation)
+                                transaction_result = json.loads(transaction_result)
+                                if isinstance(transaction_result, list) and transaction_result:
+                                    self.clear_inputs()
+                                    return
+                                await asyncio.sleep(3)
+                    else:
+                        self.send_button.enabled = True
+                else:
+                    self.send_button.enabled = True
+        except Exception as e:
+            self.send_button.enabled = True
+            print(f"An error occurred: {e}")

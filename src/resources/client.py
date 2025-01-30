@@ -110,3 +110,19 @@ class Client():
     async def z_validateAddress(self, address):
         command = f'{self.bitcoinz_cli_file} z_validateaddress {address}'
         return await self._run_command(command)
+    
+    async def sendToAddress(self, address, amount):
+        command = f'{self.bitcoinz_cli_file} sendtoaddress "{address}" {amount}'
+        return await self._run_command(command)
+    
+    async def z_sendMany(self, uaddress, toaddress, amount, txfee):
+        command = f'{self.bitcoinz_cli_file} z_sendmany "{uaddress}" "[{{\\"address\\": \\"{toaddress}\\", \\"amount\\": {amount}}}]" 1 {txfee}'
+        return await self._run_command(command)
+    
+    async def z_getOperationStatus(self, operation_ids):
+        command = f'{self.bitcoinz_cli_file} z_getoperationstatus "[\\"{operation_ids}\\"]"'
+        return await self._run_command(command)
+    
+    async def z_getOperationResult(self, operation_ids):
+        command = f'{self.bitcoinz_cli_file} z_getoperationresult "[\\"{operation_ids}\\"]"'
+        return await self._run_command(command)
