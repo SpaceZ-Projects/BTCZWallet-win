@@ -594,9 +594,9 @@ class Recieve(Box):
         if result is not None:
             self.clipboard.copy(result)
             self.main.info_dialog(
-                    title="Copied",
-                    message="The private key has been copied to the clipboard.",
-                )
+                title="Copied",
+                message="The private key has been copied to the clipboard.",
+            )
 
 
     async def get_transparent_addresses(self):

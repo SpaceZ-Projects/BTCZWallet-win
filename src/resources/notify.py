@@ -21,3 +21,12 @@ class Notify(NotifyIcon):
     def exit_app(self):
         self.hide()
         self.app.exit()
+
+
+
+class NotifyTx(NotifyIcon):
+    def __init__(self):
+        super().__init__(
+            icon="images/tx.ico",
+            text = "New Transaction"
+        )

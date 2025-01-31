@@ -17,6 +17,7 @@ from toga.constants import COLUMN, CENTER, BOLD, ROW, LEFT
 
 from .client import Client
 from .utils import Utils
+from .notify import NotifyTx
 
 
 
@@ -232,7 +233,7 @@ class Txid(Window):
 
 
 class Transactions(Box):
-    def __init__(self, app:App, main:Window, notify):
+    def __init__(self, app:App, main:Window):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -244,7 +245,7 @@ class Transactions(Box):
 
         self.app = app
         self.main = main
-        self.notify = notify
+        self.notify = NotifyTx()
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
         self.clipboard = ClipBoard()
@@ -391,11 +392,21 @@ class Transactions(Box):
                         }
                         self.transactions_data.append(row)
                         self.add_transaction(0, row)
-                        self.notify.send_note(
+                        notify = NotifyTx()
+                        notify.show()
+                        notify.send_note(
                             title=f"[{category}] : {amount} BTCZ",
                             text=f"Txid : {txid}",
+                            on_click=lambda sender, event:self.on_notification_click(txid)
                         )
+                        await asyncio.sleep(5)
+                        notify.hide()
             await asyncio.sleep(5)
+
+
+    def on_notification_click(self, txid):
+        self.transactions_info = Txid(txid)
+        self.transactions_info._impl.native.ShowDialog()
 
 
     def add_transaction(self, index, row):

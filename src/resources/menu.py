@@ -72,7 +72,7 @@ class Menu(Window):
             )
         )
         self.home_page = Home(self.app)
-        self.transactions_page = Transactions(self.app, self, self.notify)
+        self.transactions_page = Transactions(self.app, self)
         self.recieve_page = Recieve(self.app, self)
         self.send_page = Send(self.app, self)
         self.message_page = Messages(self.app)
