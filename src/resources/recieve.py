@@ -302,6 +302,15 @@ class Recieve(Box):
             mouse_enter=self.copy_address_cmd_mouse_enter,
             mouse_leave=self.copy_address_cmd_mouse_leave
         )
+        self.copy_key_cmd = Command(
+            title="Copy private key",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            action=self.copy_key,
+            icon="images/copy_i.ico",
+            mouse_enter=self.copy_key_cmd_mouse_enter,
+            mouse_leave=self.copy_key_cmd_mouse_leave
+        )
         self.explorer_cmd = Command(
             title="View address in explorer",
             color=Color.WHITE,
@@ -333,7 +342,8 @@ class Recieve(Box):
             on_select=self._on_selected_address,
             commands=[
                 self.copy_address_cmd,
-                self.explorer_cmd
+                self.copy_key_cmd,
+                self.explorer_cmd,
             ]
         )
 
@@ -555,7 +565,7 @@ class Recieve(Box):
                 self.clipboard.copy(address)
                 self.main.info_dialog(
                     title="Copied",
-                    message="The address has copied to clipboard.",
+                    message="The address has been copied to clipboard.",
                 )
 
     def open_address_in_explorer(self):
@@ -566,6 +576,27 @@ class Recieve(Box):
                 txid = cell.Value
                 transaction_url = url + txid
                 webbrowser.open(transaction_url)
+
+
+    def copy_key(self):
+        selected_cells = self.addresses_table.selected_cells
+        for cell in selected_cells:
+            if cell.ColumnIndex == 0:
+                self.address_key = cell.Value
+        self.app.add_background_task(self.get_private_key)
+
+
+    async def get_private_key(self, widget):
+        if self.transparent_toggle:
+            result, _= await self.commands.DumpPrivKey(self.address_key)
+        elif self.private_toggle:
+            result, _= await self.commands.z_ExportKey(self.address_key)
+        if result is not None:
+            self.clipboard.copy(result)
+            self.main.info_dialog(
+                    title="Copied",
+                    message="The private key has been copied to the clipboard.",
+                )
 
 
     async def get_transparent_addresses(self):
@@ -603,3 +634,11 @@ class Recieve(Box):
     def explorer_cmd_mouse_leave(self):
         self.explorer_cmd.icon = "images/explorer_i.ico"
         self.explorer_cmd.color = Color.WHITE
+
+    def copy_key_cmd_mouse_enter(self):
+        self.copy_key_cmd.icon = "images/copy_a.ico"
+        self.copy_key_cmd.color = Color.BLACK
+
+    def copy_key_cmd_mouse_leave(self):
+        self.copy_key_cmd.icon = "images/copy_i.ico"
+        self.copy_key_cmd.color = Color.WHITE

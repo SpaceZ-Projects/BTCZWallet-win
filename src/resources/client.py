@@ -134,3 +134,11 @@ class Client():
     async def z_ImportKey(self, key):
         command = f'{self.bitcoinz_cli_file} z_importkey "{key}" yes'
         return await self._run_command(command)
+    
+    async def DumpPrivKey(self, address):
+        command = f'{self.bitcoinz_cli_file} dumpprivkey "{address}"'
+        return await self._run_command(command)
+    
+    async def z_ExportKey(self, address):
+        command = f'{self.bitcoinz_cli_file} z_exportkey "{address}"'
+        return await self._run_command(command)

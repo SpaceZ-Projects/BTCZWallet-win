@@ -632,8 +632,8 @@ class Send(Box):
             return
         elif destination_address == "":
             self.main.error_dialog(
-                "No distination",
-                "The distination address was not entred"
+                "No destination",
+                "The destination address was not entred"
             )
             self.destination_input.focus()
             return

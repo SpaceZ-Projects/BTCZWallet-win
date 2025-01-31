@@ -427,12 +427,12 @@ addnode=37.187.76.80:1989
         plt.figure(figsize=(24, 6))
         plt.gcf().set_facecolor('#1e2124')
         plt.gca().set_facecolor('#282b30')
-        plt.plot(df['timestamp'], df['price'], label='BitcoinZ Price (USD)', color='green', linewidth=2)
+        plt.plot(df['timestamp'], df['price'], label='BitcoinZ Price (USD)', color='green', linewidth=3)
         def format_y_ticks(value, tick_position):
             return self.format_price(value)
 
         plt.gca().yaxis.set_major_formatter(plt.FuncFormatter(format_y_ticks))
-        plt.gca().tick_params(axis='both', labelcolor='white', labelsize=6)
+        plt.gca().tick_params(axis='both', labelcolor='white', labelsize=13)
 
         plt.xticks(rotation=45)
         plt.grid(True, color='#282b30')
