@@ -448,6 +448,7 @@ class Menu(Window):
         self.message_label.style.color = WHITE
         self.message_button.style.background_color = YELLOW
         self.pages.add(self.message_page)
+        self.app.add_background_task(self.message_page.insert_widgets)
     
     def message_button_mouse_enter(self, sender, event):
         if self.message_button_toggle:
