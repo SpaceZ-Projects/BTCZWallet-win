@@ -46,7 +46,7 @@ class ImportKey(Window):
         )
 
         self.info_label = Label(
-            text="Enter your private key, for transparent/private addresses\n( This Operation can take up to 10 minutes )",
+            text="Please enter your private key for transparent or private addresses.\n(This operation may take up to 10 minutes to complete.)",
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -134,8 +134,8 @@ class ImportKey(Window):
     def import_button_click(self, sender, event):
         if not self.key_input.value:
             self.error_dialog(
-                "No input",
-                "Private key is missing."
+                "Missing Private Key",
+                "Please enter a private key to proceed."
             )
             self.key_input.focus()
             return
@@ -159,8 +159,8 @@ class ImportKey(Window):
                 pass
             else:
                 self.error_dialog(
-                    "Error",
-                    "Invalid private key encoding"
+                    "Invalid Private Key",
+                    "The private key you entered is not valid. Please check the format and try again."
                 )
         self.update_import_window()
 

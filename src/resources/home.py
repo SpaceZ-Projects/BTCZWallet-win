@@ -6,7 +6,8 @@ from datetime import datetime
 from toga import App, Box, Label, ImageView
 from toga.style.pack import Pack
 from toga.constants import (
-    COLUMN, ROW, TOP, LEFT, BOLD, RIGHT, CENTER
+    COLUMN, ROW, TOP, LEFT, BOLD, RIGHT,
+    CENTER
 )
 from toga.colors import rgb, GRAY, WHITE
 

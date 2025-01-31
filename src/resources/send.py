@@ -3,14 +3,18 @@ import asyncio
 import json
 
 from toga import (
-    App, Box, Label, TextInput, Selection, ImageView,
-    Window
+    App, Box, Label, TextInput, Selection, 
+    ImageView, Window
 )
 from ..framework import Forms
 from toga.style.pack import Pack
-from toga.constants import COLUMN, ROW, TOP, BOLD, CENTER, LEFT, VISIBLE, HIDDEN
-from toga.colors import rgb, GRAY, WHITE, YELLOW, BLACK, RED
-
+from toga.constants import (
+    COLUMN, ROW, TOP, BOLD, CENTER,
+    LEFT, VISIBLE, HIDDEN
+)
+from toga.colors import (
+    rgb, GRAY, WHITE, YELLOW, BLACK, RED
+)
 from .client import Client
 from .utils import Utils
 
@@ -555,9 +559,14 @@ class Send(Box):
                 self.address_balance.text = format_balance
         else:
             self.address_balance.text = "0.00000000"
-        self.clear_inputs()
 
-    def clear_inputs(self):
+    async def clear_inputs(self):
+        if self.transparent_toggle:
+            selection_items = await self.get_transparent_addresses()
+        if self.private_toggle:
+            selection_items = await self.get_private_addresses()
+        self.address_selection.items.clear()
+        self.address_selection.items = selection_items
         self.destination_input.value = ""
         self.amount_input.value = ""
 
@@ -604,11 +613,12 @@ class Send(Box):
     async def verify_balance(self, input):
         amount = self.amount_input.value
         if not amount:
+            self.check_amount_label.text = ""
             return
         balance = self.address_balance.text
         if float(balance) < float(amount):
             self.check_amount_label.text = "Insufficient balance"
-        elif float(balance) > float(amount):
+        else:
             self.check_amount_label.text = ""
 
 
@@ -623,24 +633,32 @@ class Send(Box):
         selected_address = self.address_selection.value.select_address if self.address_selection.value else None
         destination_address = self.destination_input.value
         amount = self.amount_input.value
+        balance = self.address_balance.text
         if selected_address is None:
             self.main.error_dialog(
-                "No address selected",
-                "Select address you are sending from"
+                "Oops! No address selected",
+                "Please select the address you want to send from."
             )
             self.address_selection.focus()
             return
         elif destination_address == "":
             self.main.error_dialog(
-                "No destination",
-                "The destination address was not entred"
+                "Destination address is missing",
+                "Please enter a destination address where you want to send the funds."
             )
             self.destination_input.focus()
             return
         elif amount == "":
             self.main.error_dialog(
-                "No amount",
-                "The amount was not entred"
+                "Amount not entered",
+                "Please specify the amount you wish to send."
+            )
+            self.amount_input.focus()
+            return
+        elif float(balance) < float(amount):
+            self.main.error_dialog(
+                "Insufficient balance",
+                "You don't have enough balance to complete this transaction. Please adjust the amount."
             )
             self.amount_input.focus()
             return
@@ -657,7 +675,7 @@ class Send(Box):
                 operation, _= await self.commands.sendToAddress(destination_address, amount)
                 if operation is not None:
                     self.send_button.enabled = True
-                    self.clear_inputs()
+                    await self.clear_inputs()
             elif selected_address != "Main Account":
                 operation, _= await self.commands.z_sendMany(selected_address, destination_address, amount, txfee)
                 if operation:
@@ -671,7 +689,7 @@ class Send(Box):
                                 transaction_result, _= await self.commands.z_getOperationResult(operation)
                                 transaction_result = json.loads(transaction_result)
                                 if isinstance(transaction_result, list) and transaction_result:
-                                    self.clear_inputs()
+                                    await self.clear_inputs()
                                     return
                                 await asyncio.sleep(3)
                     else:
