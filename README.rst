@@ -31,8 +31,8 @@ Before running the BitcoinZ Wallet, ensure that the following software is instal
 
 - **Microsoft Visual C++ Redistributable Package**  
   The wallet requires the **VC_redist** package to run. You can download and install it from the links below:
-  - [VC_redist-x64](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-  - [VC_redist-ARM64](https://aka.ms/vs/17/release/vc_redist.arm64.exe)
+  - `VC_redist-x64 <https://aka.ms/vs/17/release/vc_redist.x64.exe>`
+  - `VC_redist-ARM64 <https://aka.ms/vs/17/release/vc_redist.arm64.exe>`
 
 ---
 
@@ -40,20 +40,24 @@ Before running the BitcoinZ Wallet, ensure that the following software is instal
 
 To build the BitcoinZ Wallet from source, you will need the following tools:
 
-- **Git**: [Download Git](https://git-scm.com/downloads)
+- **Git**: `Download Git <https://git-scm.com/downloads>`
 
-- **Python**: (version 3.9 or higher) [Download Python](https://www.python.org/downloads/)
+- **Python** (version 3.9 or higher): `Download Python <https://www.python.org/downloads/>`
 
-Once the necessary tools are installed, run the `build.py` script
+Once the necessary tools are installed, run the `build.py` script.
+
+---
 
 ## Default data path : 
 
-`C:\Users\<Username>\AppData\Local\BTCZCommunity\BTCZWallet`
+.. code-block:: none
+
+   C:\Users\<Username>\AppData\Local\BTCZCommunity\BTCZWallet
 
 ---
 
 ## Screenshots
 
-<p align="center">
-  <img src="https://github.com/SpaceZ-Projects/BTCZWallet-win/blob/main/screenshots/home.png" alt="BitcoinZ Wallet Home Screen">
-</p>
+.. image:: https://github.com/SpaceZ-Projects/BTCZWallet-win/blob/main/screenshots/home.png?raw=true
+   :alt: BitcoinZ Wallet Home Screen
+   :align: center
