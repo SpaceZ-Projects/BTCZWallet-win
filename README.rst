@@ -4,12 +4,14 @@
     :alt: Python Versions
 
 .. |social| image:: https://img.shields.io/discord/973293951106813972?style=plastic&logo=discord&label=SpaceZ
-   :target: https://discord.com/servers/973293951106813972
-   :alt: Discord server
+    :target: https://discord.com/servers/973293951106813972
+    :alt: Discord server
+
+# BTCZWallet-win
+================
 
 |pyversions| |social|
 
-# BTCZWallet-win
 **BitcoinZ Full Node GUI Wallet (WinOs)**
 
 BitcoinZ Full Node Wallet GUI is a user-friendly cryptocurrency wallet designed for storing and managing BitcoinZ (BTCZ) securely.  
