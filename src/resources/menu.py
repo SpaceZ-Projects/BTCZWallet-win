@@ -23,7 +23,7 @@ from .notify import Notify
 from .wallet import Wallet
 from .home import Home
 from .txs import Transactions
-from .recieve import Recieve
+from .recieve import Recieve, ImportKey
 from .send import Send
 from .messages import Messages
 from .mining import Mining
@@ -74,7 +74,7 @@ class Menu(Window):
         self.home_page = Home(self.app)
         self.transactions_page = Transactions(self.app, self, self.notify)
         self.recieve_page = Recieve(self.app, self)
-        self.send_page = Send(self.app)
+        self.send_page = Send(self.app, self)
         self.message_page = Messages(self.app)
         self.mining_page = Mining(self.app)
 
@@ -292,6 +292,7 @@ class Menu(Window):
         self.toolbar.generate_t_cmd.action = self.new_transparent_address
         self.toolbar.generate_z_cmd.action = self.new_private_address
         self.toolbar.check_update_cmd.action = self.check_app_version
+        self.toolbar.import_key_cmd.action = self.show_import_key
 
     def new_transparent_address(self, sender, event):
         self.app.add_background_task(self.generate_transparent_address)
@@ -352,6 +353,10 @@ class Menu(Window):
     def update_app_result(self, widget, result):
         if result is True:
             webbrowser.open(self.git_link)
+
+    def show_import_key(self, sender, event):
+        self.import_window = ImportKey()
+        self.import_window._impl.native.ShowDialog()
 
 
     def home_button_click(self, sender, event):

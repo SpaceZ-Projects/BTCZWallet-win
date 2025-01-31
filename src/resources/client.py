@@ -126,3 +126,11 @@ class Client():
     async def z_getOperationResult(self, operation_ids):
         command = f'{self.bitcoinz_cli_file} z_getoperationresult "[\\"{operation_ids}\\"]"'
         return await self._run_command(command)
+    
+    async def ImportPrivKey(self, key):
+        command = f'{self.bitcoinz_cli_file} importprivkey "{key}" true'
+        return await self._run_command(command)
+    
+    async def z_ImportKey(self, key):
+        command = f'{self.bitcoinz_cli_file} z_importkey "{key}" yes'
+        return await self._run_command(command)

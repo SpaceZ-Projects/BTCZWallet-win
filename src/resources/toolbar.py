@@ -97,6 +97,14 @@ class AppToolBar(Box):
             mouse_leave=self.generate_address_cmd_mouse_leave,
             icon="images/new_addr_i.ico"
         )
+        self.import_key_cmd = Command(
+            title="Import private key",
+            background_color=Color.rgb(40,43,48),
+            color=Color.WHITE,
+            mouse_enter=self.import_key_cmd_mouse_enter,
+            mouse_leave=self.import_key_cmd_mouse_leave,
+            icon = "images/importkey_i.ico"
+        )
         self.wallet_menu = Command(
             title="Wallet",
             icon="images/wallet_i.ico",
@@ -105,7 +113,8 @@ class AppToolBar(Box):
             mouse_enter=self.wallet_menu_mouse_enter,
             mouse_leave=self.wallet_menu_mouse_leave,
             sub_commands=[
-                self.generate_address_cmd
+                self.generate_address_cmd,
+                self.import_key_cmd
             ]
         )
         self.check_update_cmd = Command(
@@ -247,6 +256,14 @@ class AppToolBar(Box):
     def about_cmd_mouse_leave(self):
         self.about_cmd.icon = "images/about_i.ico"
         self.about_cmd.color = Color.WHITE
+
+    def import_key_cmd_mouse_enter(self):
+        self.import_key_cmd.icon = "images/importkey_a.ico"
+        self.import_key_cmd.color = Color.BLACK
+
+    def import_key_cmd_mouse_leave(self):
+        self.import_key_cmd.icon = "images/importkey_i.ico"
+        self.import_key_cmd.color = Color.WHITE
 
     def display_about_dialog(self):
         self.app.about()

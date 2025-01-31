@@ -3,11 +3,14 @@ import asyncio
 import json
 import webbrowser
 
-from toga import App, Box, Label, ImageView, Window
+from toga import (
+    App, Box, Label, ImageView, Window, Button,
+    TextInput
+)
 from ..framework import (
     Table, DockStyle, BorderStyle, AlignTable,
     FontStyle, Font, Color, Command, ClipBoard,
-    RichLabel, ScrollBars, AlignRichLabel
+    RichLabel, ScrollBars, AlignRichLabel, Cursors
 )
 from toga.style.pack import Pack
 from toga.constants import COLUMN, ROW, CENTER, BOLD, TOP
@@ -15,6 +18,175 @@ from toga.colors import rgb, WHITE, GRAY, YELLOW
 
 from .utils import Utils
 from .client import Client
+
+
+class ImportKey(Window):
+    def __init__(self):
+        super().__init__(
+            size = (600, 150),
+            resizable= False,
+            minimizable = False,
+            closable=False
+        )
+        
+        self.utils = Utils(self.app)
+        self.commands = Client(self.app)
+
+        self.title = "Import Key"
+        position_center = self.utils.windows_screen_center(self.size)
+        self.position = position_center
+
+        self.main_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                alignment = CENTER
+            )
+        )
+
+        self.info_label = Label(
+            text="Enter your private key, for transparent/private addresses\n( This Operation can take up to 10 minutes )",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                text_align = CENTER,
+                font_weight = BOLD,
+                font_size = 11,
+                padding_top = 5
+            )
+        )
+        self.key_input = TextInput(
+            style=Pack(
+                color = WHITE,
+                text_align= CENTER,
+                background_color = rgb(30,33,36),
+                font_weight = BOLD,
+                font_size = 12,
+                flex = 3,
+                padding_left = 10
+            )
+        )
+        
+        self.import_label = Label(
+            text="Import",
+            style=Pack(
+                color= GRAY,
+                background_color = rgb(30,33,36),
+                text_align = CENTER,
+                font_weight = BOLD,
+                font_size=12,
+                flex = 1
+            )
+        )
+        self.import_button = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                flex = 1,
+                padding = 10
+            )
+        )
+        self.import_button._impl.native.MouseEnter += self.import_button_mouse_enter
+        self.import_button._impl.native.MouseLeave += self.import_button_mouse_leave
+        self.import_label._impl.native.MouseEnter += self.import_button_mouse_enter
+        self.import_label._impl.native.MouseLeave += self.import_button_mouse_leave
+        self.import_button._impl.native.Click += self.import_button_click
+        self.import_label._impl.native.Click += self.import_button_click
+
+        self.input_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                alignment = CENTER,
+                padding = (10,0,10,0)
+            )
+        )
+
+        self.close_button = Button(
+            text="Close",
+            style=Pack(
+                font_weight = BOLD,
+                color = WHITE,
+                background_color = rgb(40,43,48),
+                padding =(0,200,3,200)
+            ),
+            on_press=self.close_import_key
+        )
+
+        self.content = self.main_box
+
+        self.main_box.add(
+            self.info_label,
+            self.input_box,
+            self.close_button
+        )
+        self.input_box.add(
+            self.key_input,
+            self.import_button
+        )
+        self.import_button.add(
+            self.import_label
+        )
+
+    def import_button_click(self, sender, event):
+        if not self.key_input.value:
+            self.error_dialog(
+                "No input",
+                "Private key is missing."
+            )
+            self.key_input.focus()
+            return
+        self.key_input.readonly = True
+        self.import_button._impl.native.Click -= self.import_button_click
+        self.import_label._impl.native.Click -= self.import_button_click
+        self.import_button._impl.native.Cursor = Cursors.WAIT
+        self.import_label._impl.native.Cursor = Cursors.WAIT
+        self.close_button.enabled = False
+        self.app.add_background_task(self.import_private_key)
+
+
+    async def import_private_key(self, widget):
+        key = self.key_input.value
+        result, _= await self.commands.ImportPrivKey(key)
+        if result is not None:
+            pass
+        else:
+            result, _= await self.commands.z_ImportKey(key)
+            if result is not None:
+                pass
+            else:
+                self.error_dialog(
+                    "Error",
+                    "Invalid private key encoding"
+                )
+        self.update_import_window()
+
+
+    def update_import_window(self):
+        self.key_input.readonly = False
+        self.key_input.value = ""
+        self.import_button._impl.native.Click += self.import_button_click
+        self.import_label._impl.native.Click += self.import_button_click
+        self.import_button._impl.native.Cursor = Cursors.DEFAULT
+        self.import_label._impl.native.Cursor = Cursors.DEFAULT
+        self.close_button.enabled = True
+
+
+    def import_button_mouse_enter(self, sender, event):
+        self.import_label.style.color = WHITE
+        self.import_label.style.background_color = rgb(40,43,48)
+        self.import_button.style.background_color = rgb(40,43,48)
+
+    def import_button_mouse_leave(self, sender, event):
+        self.import_label.style.color = GRAY
+        self.import_label.style.background_color = rgb(30,33,36)
+        self.import_button.style.background_color = rgb(30,33,36)
+
+    def close_import_key(self, button):
+        self.close()
 
 
 class Recieve(Box):

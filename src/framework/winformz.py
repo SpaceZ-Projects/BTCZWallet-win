@@ -198,6 +198,10 @@ class ScrollBars:
 class RightToLeft:
     NO = Forms.RightToLeft.No
     YES = Forms.RightToLeft.Yes
+
+class Cursors:
+    DEFAULT = Forms.Cursors.Default
+    WAIT = Forms.Cursors.WaitCursor
     
     
 class Keys:
