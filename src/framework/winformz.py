@@ -135,6 +135,7 @@ class AlignLabel:
 
 class AlignTable:
     MIDCENTER = Forms.DataGridViewContentAlignment.MiddleCenter
+    MIDLEFT = Forms.DataGridViewContentAlignment.MiddleLeft
 
 class AlignRichLabel:
     CENTER = Forms.HorizontalAlignment.Center
@@ -811,6 +812,7 @@ class Table(Forms.DataGridView):
         dockstyle: Optional[DockStyle] = None,
         column_count: Optional[int] = None,
         gird_color: Optional[Color] = None,
+        column_visible: bool = True,
         row_visible: bool = True,
         column_widths: Optional[dict] = None,
         row_heights: Optional[int] = None,
@@ -841,6 +843,7 @@ class Table(Forms.DataGridView):
         self._dockstyle = dockstyle
         self._column_count = column_count
         self._gird_color = gird_color
+        self._column_visible = column_visible
         self._row_visible = row_visible
         self._column_widths = column_widths or {}
         self._row_heights = row_heights
@@ -878,7 +881,7 @@ class Table(Forms.DataGridView):
         if self._gird_color:
             self.GridColor = self._gird_color
         self.RowHeadersVisible = self._row_visible
-        self.ColumnHeadersVisible = True
+        self.ColumnHeadersVisible = self._column_visible
         if self._row_heights:
             self.RowTemplate.Height = self._row_heights
         self.MultiSelect = self._multiselect

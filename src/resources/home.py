@@ -1,6 +1,6 @@
 
 import asyncio
-import aiohttp
+import requests
 from datetime import datetime
 
 from toga import App, Box, Label, ImageView
@@ -281,33 +281,31 @@ class Home(Box):
             self.app.add_background_task(self.update_circulating_supply)
 
 
-    async def fetch_marketcap(self):
+    def fetch_marketcap(self):
         api_url = "https://api.coingecko.com/api/v3/coins/bitcoinz"
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(api_url) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        return data
-                    else:
-                        print("Failed to fetch data. Status code:", response.status)
-                        return None
+            response = requests.get(api_url)
+            if response.status_code == 200:
+                data = response.json()
+                return data
+            else:
+                print("Failed to fetch data. Status code:", response.status_code)
+                return None
         except Exception as e:
             print(f"Error occurred during fetch: {e}")
             return None
 
-    async def fetch_marketchart(self):
+    def fetch_marketchart(self):
         url = "https://api.coingecko.com/api/v3/coins/bitcoinz/market_chart"
         params = {
             'vs_currency': 'usd',
             'days': '1',
         }
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, params=params) as response:
-                    data = await response.json()
-                    prices = data['prices']
-                    return prices
+            response = requests.get(url, params=params)
+            data = response.json()
+            prices = data['prices']
+            return prices
         except Exception as e:
             print(f"Error occurred during fetch: {e}")
             return None
@@ -326,7 +324,7 @@ class Home(Box):
 
     async def update_marketcap(self, widget):
         while True:
-            data = await self.fetch_marketcap()
+            data = self.fetch_marketcap()
             if data:
                 market_price = data["market_data"]["current_price"]["usd"]
                 market_cap = data["market_data"]["market_cap"]["usd"]
@@ -348,7 +346,7 @@ class Home(Box):
 
     async def update_marketchar(self, widget):
         while True:
-            data = await self.fetch_marketchart()
+            data = self.fetch_marketchart()
             if data:
                 curve_image = self.utils.create_curve(data)
                 if curve_image:

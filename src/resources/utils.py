@@ -8,10 +8,8 @@ import secrets
 from decimal import Decimal
 import qrcode
 from datetime import timedelta
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import pandas as pd
+from PIL import Image, ImageDraw, ImageFont
 
 from toga import App
 from ..framework import (
@@ -420,26 +418,46 @@ addnode=37.187.76.80:1989
         return remaining_days
     
     def create_curve(self, data):
-        curve_image = Os.Path.Combine(str(self.app_cache), 'curve.png')
         df = pd.DataFrame(data, columns=["timestamp", "price"])
         df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
         df['formatted_price'] = df['price'].apply(lambda x: self.format_price(x))
-        plt.figure(figsize=(24, 6))
-        plt.gcf().set_facecolor('#1e2124')
-        plt.gca().set_facecolor('#282b30')
-        plt.plot(df['timestamp'], df['price'], label='BitcoinZ Price (USD)', color='green', linewidth=3)
-        def format_y_ticks(value, tick_position):
-            return self.format_price(value)
+        width, height = 2400, 600
+        img = Image.new("RGB", (width, height), color="#1e2124")
+        draw = ImageDraw.Draw(img)
+        margin_left = 120
+        margin_top = 50
+        margin_bottom = 50
+        margin_right = 50
+        plot_width = width - margin_left - margin_right
+        plot_height = height - margin_top - margin_bottom
+        min_price = df['price'].min()
+        max_price = df['price'].max()
+        min_timestamp = df['timestamp'].min()
+        max_timestamp = df['timestamp'].max()
+        def scale_x(timestamp):
+            return margin_left + (timestamp - min_timestamp) / (max_timestamp - min_timestamp) * plot_width
+        def scale_y(price):
+            return margin_top + (max_price - price) / (max_price - min_price) * plot_height
+        draw.line([(margin_left, margin_top), (margin_left, height - margin_bottom)], fill="white", width=2)
+        draw.line([(margin_left, height - margin_bottom), (width - margin_right, height - margin_bottom)], fill="white", width=2)
+        for i in range(1, len(df)):
+            x1 = scale_x(df['timestamp'].iloc[i-1])
+            y1 = scale_y(df['price'].iloc[i-1])
+            x2 = scale_x(df['timestamp'].iloc[i])
+            y2 = scale_y(df['price'].iloc[i])
+            draw.line([(x1, y1), (x2, y2)], fill="green", width=3)
+        font = ImageFont.load_default(size=18)
+        for i in range(0, len(df), len(df) // 10):
+            timestamp = df['timestamp'].iloc[i]
+            x = scale_x(timestamp)
+            y = height - margin_bottom + 10
+            draw.text((x, y), timestamp.strftime('%H:%M:%S'), font=font, fill="white")
+        price_interval = (max_price - min_price) / 7
+        for i in range(0, 8):
+            price = min_price + i * price_interval
+            y = scale_y(price)
+            draw.text((margin_left - 100, y - 10), f"{self.format_price(price)}", font=font, fill="white")
+        curve_image_path = Os.Path.Combine(str(self.app_cache), 'curve.png')
+        img.save(curve_image_path)
 
-        plt.gca().yaxis.set_major_formatter(plt.FuncFormatter(format_y_ticks))
-        plt.gca().tick_params(axis='both', labelcolor='white', labelsize=13)
-
-        plt.xticks(rotation=45)
-        plt.grid(True, color='#282b30')
-        plt.xlim(df['timestamp'].min(), df['timestamp'].max())
-        plt.ylim(min(df['price']) * 0.95, max(df['price']) * 1.05)
-        plt.tight_layout()
-
-        plt.savefig(curve_image)
-        plt.close()
-        return curve_image
+        return curve_image_path

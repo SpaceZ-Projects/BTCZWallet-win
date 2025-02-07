@@ -17,6 +17,7 @@ from toga.colors import (
 )
 from .client import Client
 from .utils import Utils
+from .storage import Storage
 
 
 class Send(Box):
@@ -34,10 +35,12 @@ class Send(Box):
         self.main = main
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
+        self.storage = Storage(self.app)
 
         self.send_toggle = None
         self.transparent_toggle = None
         self.private_toggle = None
+        self.is_valid_toggle = None
 
         self.switch_box = Box(
             style=Pack(
@@ -606,8 +609,10 @@ class Send(Box):
             is_valid = result.get('isvalid')
             if is_valid is True:
                 self.is_valid.image = "images/valid.png"
+                self.is_valid_toggle = True
             elif is_valid is False:
                 self.is_valid.image = "images/notvalid.png"
+                self.is_valid_toggle = False
 
     
     async def verify_balance(self, input):
@@ -645,6 +650,13 @@ class Send(Box):
             self.main.error_dialog(
                 "Destination address is missing",
                 "Please enter a destination address where you want to send the funds."
+            )
+            self.destination_input.focus()
+            return
+        elif not self.is_valid_toggle:
+            self.main.error_dialog(
+                "Error",
+                "The destination address is not valid"
             )
             self.destination_input.focus()
             return

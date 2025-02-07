@@ -4,8 +4,7 @@ import json
 import webbrowser
 
 from toga import (
-    App, Box, Label, ImageView, Window, Button,
-    TextInput
+    App, Box, Label, ImageView, Window, TextInput
 )
 from ..framework import (
     Table, DockStyle, BorderStyle, AlignTable,
@@ -105,16 +104,17 @@ class ImportKey(Window):
             )
         )
 
-        self.close_button = Button(
-            text="Close",
+        self.close_button = ImageView(
+            image="images/close_i.png",
             style=Pack(
-                font_weight = BOLD,
-                color = WHITE,
-                background_color = rgb(40,43,48),
-                padding =(0,200,3,200)
-            ),
-            on_press=self.close_import_key
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                padding_bottom = 10
+            )
         )
+        self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
+        self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
+        self.close_button._impl.native.Click += self.close_import_key
 
         self.content = self.main_box
 
@@ -185,7 +185,13 @@ class ImportKey(Window):
         self.import_label.style.background_color = rgb(30,33,36)
         self.import_button.style.background_color = rgb(30,33,36)
 
-    def close_import_key(self, button):
+    def close_button_mouse_enter(self, sender, event):
+        self.close_button.image = "images/close_a.png"
+
+    def close_button_mouse_leave(self, sender, event):
+        self.close_button.image = "images/close_i.png"
+
+    def close_import_key(self, sender, event):
         self.close()
 
 
@@ -204,6 +210,7 @@ class Recieve(Box):
         self.main = main
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
+        self.storage = Storage(self.app)
         self.clipboard = ClipBoard()
 
         self.recieve_toggle = None
