@@ -25,19 +25,6 @@ It enables you to securely send and receive BitcoinZ transactions, view your wal
 
 ---
 
-## Requirements to Run the App
-
-Before running the BitcoinZ Wallet, ensure that the following software is installed on your system:
-
-- **Microsoft Visual C++ Redistributable Package**  
-  The wallet requires the **VC_redist** package to run. You can download and install it from the links below:
-
-  - `VC_redist-x64 <https://aka.ms/vs/17/release/vc_redist.x64.exe>`
-
-  - `VC_redist-ARM64 <https://aka.ms/vs/17/release/vc_redist.arm64.exe>`
-
----
-
 ## Requirements to Build the App
 
 To build the BitcoinZ Wallet from source, you will need the following tools:
