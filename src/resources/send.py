@@ -6,7 +6,7 @@ from toga import (
     App, Box, Label, TextInput, Selection, 
     ImageView, Window
 )
-from ..framework import Forms
+from ..framework import Forms, Command, Color
 from toga.style.pack import Pack
 from toga.constants import (
     COLUMN, ROW, TOP, BOLD, CENTER,
@@ -414,6 +414,24 @@ class Send(Box):
             )
             self.send_toggle = True
             self.transparent_button_click(None, None)
+            self.insert_amount_menustrip()
+        
+
+    def insert_amount_menustrip(self):
+        context_menu = Forms.ContextMenuStrip()
+        self.max_amount_cmd = Command(
+            title="Max amount",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            action=self.set_max_amount,
+            icon="images/max_i.ico",
+            mouse_enter=self.max_amount_cmd_mouse_enter,
+            mouse_leave=self.max_amount_cmd_mouse_leave
+        )
+        commands = [self.max_amount_cmd]
+        for command in commands:
+            context_menu.Items.Add(command)
+        self.amount_input._impl.native.ContextMenuStrip = context_menu
 
     def transparent_button_click(self, sender, event):
         self.clear_buttons()
@@ -506,6 +524,31 @@ class Send(Box):
         self.send_label.style.color = GRAY
         self.send_button.style.background_color = rgb(40,43,48)
         self.send_label.style.background_color = rgb(40,43,48)
+
+
+    def set_max_amount(self):
+        if self.address_selection.value.select_address:
+            selected_address = self.address_selection.value.select_address
+            balance = self.address_balance.text
+            if selected_address == "Main Account":
+                if float(balance) > 0.0001:
+                    amount = float(balance) - 0.0001
+                    self.amount_input.value = f"{amount:.8f}"
+            else:
+                if float(balance) > 0:
+                    fee = self.fee_input.value
+                    amount = float(balance) - float(fee)
+                    self.amount_input.value = f"{amount:.8f}"
+
+
+    
+    def max_amount_cmd_mouse_enter(self):
+        self.max_amount_cmd.icon = "images/max_a.ico"
+        self.max_amount_cmd.color = Color.BLACK
+
+    def max_amount_cmd_mouse_leave(self):
+        self.max_amount_cmd.icon = "images/max_i.ico"
+        self.max_amount_cmd.color = Color.WHITE
 
 
     async def get_transparent_addresses(self):
