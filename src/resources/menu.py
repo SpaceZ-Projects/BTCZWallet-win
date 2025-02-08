@@ -6,7 +6,7 @@ from toga import (
     Window, Box, Label
 )
 from ..framework import (
-    Drawing
+    Drawing, Color
 )
 
 from toga.style.pack import Pack
@@ -41,6 +41,8 @@ class Menu(Window):
 
         self.title = "BitcoinZ Wallet"
         self.size = (900,600)
+        self._impl.native.BackColor = Color.rgb(30,33,36)
+        
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
         self.on_close = self.on_close_menu

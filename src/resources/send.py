@@ -146,7 +146,6 @@ class Send(Box):
             style=Pack(
                 direction = ROW,
                 background_color = rgb(30,33,36),
-                flex = 1,
                 padding=(10,5,0,5),
                 height = 55
             )
@@ -182,7 +181,6 @@ class Send(Box):
                 background_color = rgb(30,33,36),
                 width = 30,
                 height = 30,
-                flex = 1,
                 padding= (9,0,0,10)
             )
         )
@@ -198,9 +196,7 @@ class Send(Box):
             style=Pack(
                 direction = ROW,
                 background_color = rgb(30,33,36),
-                flex = 1,
-                padding_left = 5,
-                padding_right = 5,
+                padding = (5,5,0,5),
                 height = 55
             )
         )
@@ -241,7 +237,7 @@ class Send(Box):
                 color = RED,
                 background_color = rgb(30,33,36),
                 font_weight = BOLD,
-                font_size = 12,
+                font_size = 11,
                 text_align = LEFT,
                 flex = 5,
                 padding_top = 12,
@@ -253,9 +249,7 @@ class Send(Box):
             style=Pack(
                 direction = ROW,
                 background_color = rgb(30,33,36),
-                flex = 1,
-                padding_left = 5,
-                padding_right = 5,
+                padding = (5,5,0,5),
                 height = 55
             )
         )
@@ -297,9 +291,7 @@ class Send(Box):
            style=Pack(
                 direction = ROW,
                 background_color = rgb(30,33,36),
-                flex = 1,
-                padding_left = 5,
-                padding_right = 5,
+                padding = (5,5,0,5),
                 height = 55
             ) 
         )
@@ -432,6 +424,7 @@ class Send(Box):
         for command in commands:
             context_menu.Items.Add(command)
         self.amount_input._impl.native.ContextMenuStrip = context_menu
+
 
     def transparent_button_click(self, sender, event):
         self.clear_buttons()
@@ -665,7 +658,7 @@ class Send(Box):
             return
         balance = self.address_balance.text
         if float(balance) < float(amount):
-            self.check_amount_label.text = "Insufficient balance"
+            self.check_amount_label.text = "Insufficient"
         else:
             self.check_amount_label.text = ""
 
@@ -720,7 +713,8 @@ class Send(Box):
         self.app.add_background_task(self.make_transaction)
 
     async def make_transaction(self, widget):
-        self.send_button.enabled = False
+        self.send_button._impl.native.Enabled = False
+        self.send_label._impl.native.Enabled = False
         selected_address = self.address_selection.value.select_address
         destination_address = self.destination_input.value
         amount = self.amount_input.value
@@ -729,7 +723,8 @@ class Send(Box):
             if selected_address == "Main Account" and destination_address.startswith("t"):
                 operation, _= await self.commands.sendToAddress(destination_address, amount)
                 if operation is not None:
-                    self.send_button.enabled = True
+                    self.send_button._impl.native.Enabled = True
+                    self.send_label._impl.native.Enabled = True
                     await self.clear_inputs()
             elif selected_address != "Main Account":
                 operation, _= await self.commands.z_sendMany(selected_address, destination_address, amount, txfee)
@@ -744,13 +739,18 @@ class Send(Box):
                                 transaction_result, _= await self.commands.z_getOperationResult(operation)
                                 transaction_result = json.loads(transaction_result)
                                 if isinstance(transaction_result, list) and transaction_result:
+                                    self.send_button._impl.native.Enabled = True
+                                    self.send_label._impl.native.Enabled = True
                                     await self.clear_inputs()
                                     return
                                 await asyncio.sleep(3)
                     else:
-                        self.send_button.enabled = True
+                        self.send_button._impl.native.Enabled = True
+                        self.send_label._impl.native.Enabled = True
                 else:
-                    self.send_button.enabled = True
+                    self.send_button._impl.native.Enabled = True
+                    self.send_label._impl.native.Enabled = True
         except Exception as e:
-            self.send_button.enabled = True
+            self.send_button._impl.native.Enabled = True
+            self.send_label._impl.native.Enabled = True
             print(f"An error occurred: {e}")

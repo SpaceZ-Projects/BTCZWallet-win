@@ -242,6 +242,7 @@ class BTCZSetup(Box):
         if not Os.File.Exists(config_file_path):
             self.status_label.text = "Creating bitcoinz.conf..."
             self.utils.create_config_file(config_file_path)
+            await asyncio.sleep(1)
         await self.verify_bockchaine_index()
         
     
