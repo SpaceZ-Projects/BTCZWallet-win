@@ -561,6 +561,9 @@ class Send(Box):
         if addresses_data:
             addresses_data = json.loads(addresses_data)
         if addresses_data is not None:
+            message_address = self.storage.get_identity("address")
+            if message_address:
+                addresses_data = [address for address in addresses_data if address != message_address[0]]
             if len(addresses_data) == 1:
                 address_items = [(addresses_data[0], addresses_data[0])]
             else:

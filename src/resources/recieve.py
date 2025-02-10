@@ -17,6 +17,7 @@ from toga.colors import rgb, WHITE, GRAY, YELLOW
 
 from .utils import Utils
 from .client import Client
+from .storage import Storage
 
 
 class ImportKey(Window):
@@ -620,7 +621,11 @@ class Recieve(Box):
         addresses_data,_ = await self.commands.z_listAddresses()
         addresses_data = json.loads(addresses_data)
         if addresses_data:
-            address_items = {address_info for address_info in addresses_data}
+            message_address = self.storage.get_identity("address")
+            if message_address:
+                address_items = {address_info for address_info in addresses_data if address_info != message_address[0]}
+            else:
+                address_items = {address_info for address_info in addresses_data}
         else:
             address_items = []
         return address_items
