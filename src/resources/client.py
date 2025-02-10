@@ -2,6 +2,8 @@
 import asyncio
 import subprocess
 import json
+import binascii
+
 from toga import App
 from ..framework import Os
 
@@ -119,6 +121,11 @@ class Client():
         command = f'{self.bitcoinz_cli_file} z_sendmany "{uaddress}" "[{{\\"address\\": \\"{toaddress}\\", \\"amount\\": {amount}}}]" 1 {txfee}'
         return await self._run_command(command)
     
+    async def SendMemo(self, uaddress, toaddress, amount, txfee, memo):
+        hex_memo = binascii.hexlify(memo.encode()).decode()
+        command = command = f'{self.bitcoinz_cli_file} z_sendmany "{uaddress}" "[{{\\"address\\": \\"{toaddress}\\", \\"amount\\": {amount}, \\"memo\\": \\"{hex_memo}\\"}}]" 1 {txfee}'
+        return await self._run_command(command)
+    
     async def z_getOperationStatus(self, operation_ids):
         command = f'{self.bitcoinz_cli_file} z_getoperationstatus "[\\"{operation_ids}\\"]"'
         return await self._run_command(command)
@@ -141,4 +148,8 @@ class Client():
     
     async def z_ExportKey(self, address):
         command = f'{self.bitcoinz_cli_file} z_exportkey "{address}"'
+        return await self._run_command(command)
+    
+    async def z_listUnspent(self, address):
+        command = f'{self.bitcoinz_cli_file} z_listunspent 0 9999999 true "[\\"{address}\\"]"'
         return await self._run_command(command)
