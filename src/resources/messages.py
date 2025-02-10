@@ -547,6 +547,247 @@ class Pending(Box):
         self.reject_button.image = "images/reject_i.png"
 
 
+
+class NewContact(Window):
+    def __init__(self):
+        super().__init__(
+            size = (600, 150),
+            resizable= False,
+            minimizable = False,
+            closable=False
+        )
+
+        self.utils = Utils(self.app)
+        self.commands = Client(self.app)
+        self.storage = Storage(self.app)
+
+        self.is_valid_toggle = None
+
+        self.title = "Add Contact"
+        position_center = self.utils.windows_screen_center(self.size)
+        self.position = position_center
+
+        self.main_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                alignment = CENTER
+            )
+        )
+
+        self.info_label = Label(
+            text="Enter the message address",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                text_align = CENTER,
+                font_weight = BOLD,
+                font_size = 11,
+                padding_top = 5
+            )
+        )
+
+        self.address_input = TextInput(
+            placeholder="z address",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                text_align = CENTER,
+                font_size = 12,
+                font_weight = BOLD,
+                width = 450
+            ),
+            on_change=self.is_valid_address
+        )
+
+        self.is_valid = ImageView(
+            style=Pack(
+                background_color = rgb(30,33,36),
+                width = 30,
+                height = 30,
+                padding= (2,0,0,10)
+            )
+        )
+
+        self.input_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                alignment = CENTER,
+                padding = (10,0,10,0)
+            )
+        )
+
+        self.close_button = ImageView(
+            image="images/close_i.png",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                padding_bottom = 10,
+                padding_right = 10
+            )
+        )
+        self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
+        self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
+        self.close_button._impl.native.Click += self.close_indentity_setup
+
+        self.confirm_button = ImageView(
+            image="images/confirm_i.png",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                padding_bottom = 10,
+                padding_left = 10
+            )
+        )
+        self.confirm_button._impl.native.MouseEnter += self.confirm_button_mouse_enter
+        self.confirm_button._impl.native.MouseLeave += self.confirm_button_mouse_leave
+        self.confirm_button._impl.native.Click += self.verify_address
+
+        self.buttons_box = Box(
+            style=Pack(
+                direction = ROW,
+                alignment =CENTER,
+                background_color = rgb(30,33,36)
+            )
+        )
+
+        self.content = self.main_box
+
+        self.main_box.add(
+            self.info_label,
+            self.input_box,
+            self.buttons_box
+        )
+        self.input_box.add(
+            self.address_input,
+            self.is_valid
+        )
+        self.buttons_box.add(
+            self.close_button,
+            self.confirm_button
+        )
+
+
+    async def is_valid_address(self, widget):
+        address = self.address_input.value
+        if not address:
+            self.is_valid.image = None
+            return
+        if address.startswith("z"):
+            result, _ = await self.commands.z_validateAddress(address)
+        else:
+            self.is_valid.image = "images/notvalid.png"
+            return
+        if result is not None:
+            result = json.loads(result)
+            is_valid = result.get('isvalid')
+            if is_valid is True:
+                self.is_valid.image = "images/valid.png"
+                self.is_valid_toggle = True
+            elif is_valid is False:
+                self.is_valid.image = "images/notvalid.png"
+                self.is_valid_toggle = False
+
+    
+    def verify_address(self, sender, event):
+        address = self.address_input.value
+        if not address:
+            return
+        if not self.is_valid_toggle:
+            self.error_dialog(
+                title="Error",
+                message="The address is not valid"
+            )
+            return
+        contacts = self.storage.get_contacts("address")
+        if address in contacts:
+            self.error_dialog(
+                title="Error",
+                message="The address is already in contacts list"
+            )
+            return
+        pending = self.storage.get_pending("address")
+        if address in pending:
+            self.error_dialog(
+                title="Error",
+                message="The address is in pending list"
+            )
+            return
+        requests = self.storage.get_requests()
+        if address in requests:
+            self.error_dialog(
+                title="Error",
+                message="The address is already in requests list"
+            )
+            return
+        self.app.add_background_task(self.send_request)
+
+
+    async def send_request(self, widget):
+        destination_address = self.address_input.value
+        amount = 0.0001
+        txfee = 0.0001
+        category, id, username, address = self.storage.get_identity()
+        memo = {"type":"request","category":category,"id":id,"username":username,"address":address}
+        memo_str = json.dumps(memo)
+        self._impl.native.Enabled = False
+        await self.send_memo(
+            address,
+            destination_address,
+            amount,
+            txfee,
+            memo_str
+        )
+
+
+    async def send_memo(self, address, toaddress, amount, txfee, memo):
+        operation, _= await self.commands.SendMemo(address, toaddress, amount, txfee, memo)
+        if operation:
+            transaction_status, _= await self.commands.z_getOperationStatus(operation)
+            transaction_status = json.loads(transaction_status)
+            if isinstance(transaction_status, list) and transaction_status:
+                status = transaction_status[0].get('status')
+                if status == "executing" or status =="success":
+                    await asyncio.sleep(1)
+                    while True:
+                        transaction_result, _= await self.commands.z_getOperationResult(operation)
+                        transaction_result = json.loads(transaction_result)
+                        if isinstance(transaction_result, list) and transaction_result:
+                            result = transaction_result[0].get('result', {})
+                            txid = result.get('txid')
+                            self.storage.tx(txid)
+                            self.storage.add_request(toaddress)
+                            self.info_dialog(
+                                title="Request sent",
+                                message="The request has been sent successfully to the address."
+                            )
+                            self.close()
+                            return
+                        await asyncio.sleep(3)
+                else:
+                    self._impl.native.Enabled = True
+        else:
+            self._impl.native.Enabled = True
+
+    def confirm_button_mouse_enter(self, sender, event):
+        self.confirm_button.image = "images/confirm_a.png"
+
+    def confirm_button_mouse_leave(self, sender, event):
+        self.confirm_button.image = "images/confirm_i.png"
+
+    def close_button_mouse_enter(self, sender, event):
+        self.close_button.image = "images/close_a.png"
+
+    def close_button_mouse_leave(self, sender, event):
+        self.close_button.image = "images/close_i.png"
+    
+    def close_indentity_setup(self, sender, event):
+        self.close()
+
+
 class PendingList(Window):
     def __init__(self, chat:Box):
         super().__init__(
