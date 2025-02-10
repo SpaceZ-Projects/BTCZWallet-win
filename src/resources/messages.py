@@ -279,112 +279,69 @@ class NewMessenger(Box):
         self.create_button.style.background_color = rgb(30,33,36)
 
 
-
-class Message(Box):
-    def __init__(self, author, message, amount, timestamp, app:App):
+class Contact(Box):
+    def __init__(self, category, user_id, username, address):
         super().__init__(
             style=Pack(
-                direction = COLUMN,
-                padding = (0,30,5,5),
-                background_color=rgb(40,43,48)
-            )
-        )
-
-        self.app = app
-        self.utils = Utils(self.app)
-        
-        self.author = author
-        self.message = message
-        self.amount = amount
-        self.timestamp = timestamp
-
-        if self.author == "you":
-            color = GRAY
-        else:
-            color = rgb(114,137,218)
-
-        message_time = datetime.fromtimestamp(self.timestamp).strftime('%Y-%m-%d %H:%M:%S')
-
-        self.author_value = Label(
-            text=f"{self.author} :",
-            style=Pack(
-                color = color,
-                font_size = 13,
-                background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                padding = (0,0,8,5),
-                flex = 1
-            )
-        )
-
-        self.gift_value = Label(
-            text="",
-            style=Pack(
-                color = YELLOW,
-                background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                padding = (8,5,0,0)
-            )
-        )
-
-        self.message_time = Label(
-            text=message_time,
-            style=Pack(
-                color = GRAY,
-                background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                padding = (8,5,0,0)
-            )
-        )
-
-        self.sender_box = Box(
-            style=Pack(
                 direction = ROW,
-                background_color = rgb(30,33,36)
+                background_color = rgb(40,43,48),
+                padding = (5,5,0,5),
+                height = 50
             )
         )
+        self._impl.native.MouseEnter += self.contact_mouse_enter
+        self._impl.native.MouseLeave += self.contact_mouse_leave
 
-        self.message_value = RichLabel(
-            text=f"  {self.message}",
-            text_size=10,
-            borderstyle=BorderStyle.NONE,
-            background_color=Color.rgb(30,33,36),
-            color=Color.WHITE,
-            style=FontStyle.BOLD,
-            wrap=True,
-            readonly=True,
-            urls=True,
-            dockstyle=DockStyle.FILL,
-            scrollbars=ScrollBars.NONE
-        )
+        self.category = category
+        self.user_id = user_id
+        self.username = username
+        self.address = address
 
-        self.message_box = Box(
+        if self.category == "individual":
+            image_path = "images/individual.png"
+        elif self.category == "group":
+            image_path = "images/group.png"
+
+        self.category_icon = ImageView(
+            image=image_path,
             style=Pack(
-                direction = ROW,
-                background_color=rgb(40,43,48),
-                height = 80,
-                padding_top = 1
+                background_color = rgb(40,43,48),
+                padding_left = 10
             )
         )
+        self.category_icon._impl.native.MouseEnter += self.contact_mouse_enter
+        self.category_icon._impl.native.MouseLeave += self.contact_mouse_leave
+
+        self.username_label = Label(
+            text=self.username,
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(40,43,48),
+                flex = 1,
+                text_align = CENTER,
+                font_size = 12,
+                font_weight = BOLD,
+                padding_top = 11
+            )
+        )
+        self.username_label._impl.native.MouseEnter += self.contact_mouse_enter
+        self.username_label._impl.native.MouseLeave += self.contact_mouse_leave
+
         self.add(
-            self.sender_box,
-            self.message_box
+            self.category_icon,
+            self.username_label
         )
-        if self.amount > 0.0001:
-            gift = self.amount - 0.0001
-            gift_format = self.utils.format_balance(gift)
-            self.gift_value.text = f"Gift : {gift_format}"
-            self.sender_box.add(
-                self.author_value,
-                self.gift_value,
-                self.message_time
-            )
-        else:
-            self.sender_box.add(
-                self.author_value,
-                self.message_time
-            )
-        self.message_box._impl.native.Controls.Add(self.message_value)
+
+
+    def contact_mouse_enter(self, sender, event):
+        self.category_icon.style.background_color = rgb(66,69,73)
+        self.username_label.style.background_color = rgb(66,69,73)
+        self.style.background_color = rgb(66,69,73)
+
+    def contact_mouse_leave(self, sender, event):
+        self.category_icon.style.background_color = rgb(40,43,48)
+        self.username_label.style.background_color = rgb(40,43,48)
+        self.style.background_color = rgb(40,43,48)
 
 
 class Pending(Box):
@@ -545,6 +502,114 @@ class Pending(Box):
 
     def reject_button_mouse_leave(self, sender, event):
         self.reject_button.image = "images/reject_i.png"
+
+
+
+class Message(Box):
+    def __init__(self, author, message, amount, timestamp, app:App):
+        super().__init__(
+            style=Pack(
+                direction = COLUMN,
+                padding = (0,30,5,5),
+                background_color=rgb(40,43,48)
+            )
+        )
+
+        self.app = app
+        self.utils = Utils(self.app)
+        
+        self.author = author
+        self.message = message
+        self.amount = amount
+        self.timestamp = timestamp
+
+        if self.author == "you":
+            color = GRAY
+        else:
+            color = rgb(114,137,218)
+
+        message_time = datetime.fromtimestamp(self.timestamp).strftime('%Y-%m-%d %H:%M:%S')
+
+        self.author_value = Label(
+            text=f"{self.author} :",
+            style=Pack(
+                color = color,
+                font_size = 13,
+                background_color = rgb(30,33,36),
+                font_weight = BOLD,
+                padding = (0,0,8,5),
+                flex = 1
+            )
+        )
+
+        self.gift_value = Label(
+            text="",
+            style=Pack(
+                color = YELLOW,
+                background_color = rgb(30,33,36),
+                font_weight = BOLD,
+                padding = (8,5,0,0)
+            )
+        )
+
+        self.message_time = Label(
+            text=message_time,
+            style=Pack(
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                font_weight = BOLD,
+                padding = (8,5,0,0)
+            )
+        )
+
+        self.sender_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(30,33,36)
+            )
+        )
+
+        self.message_value = RichLabel(
+            text=f"  {self.message}",
+            text_size=10,
+            borderstyle=BorderStyle.NONE,
+            background_color=Color.rgb(30,33,36),
+            color=Color.WHITE,
+            style=FontStyle.BOLD,
+            wrap=True,
+            readonly=True,
+            urls=True,
+            dockstyle=DockStyle.FILL,
+            scrollbars=ScrollBars.NONE
+        )
+
+        self.message_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color=rgb(40,43,48),
+                height = 80,
+                padding_top = 1
+            )
+        )
+        self.add(
+            self.sender_box,
+            self.message_box
+        )
+        if self.amount > 0.0001:
+            gift = self.amount - 0.0001
+            gift_format = self.utils.format_balance(gift)
+            self.gift_value.text = f"Gift : {gift_format}"
+            self.sender_box.add(
+                self.author_value,
+                self.gift_value,
+                self.message_time
+            )
+        else:
+            self.sender_box.add(
+                self.author_value,
+                self.message_time
+            )
+        self.message_box._impl.native.Controls.Add(self.message_value)
 
 
 
