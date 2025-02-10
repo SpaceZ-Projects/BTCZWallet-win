@@ -387,6 +387,297 @@ class Message(Box):
         self.message_box._impl.native.Controls.Add(self.message_value)
 
 
+class Pending(Box):
+    def __init__(self, category, user_id, username, address, app:App, window:Window, chat:Box):
+        super().__init__(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(40,43,48),
+                padding = (5,5,0,5),
+                height = 50
+            )
+        )
+        self._impl.native.DoubleClick += self.show_pending_info
+
+        self.app = app
+        self.commands = Client(self.app)
+        self.storage = Storage(self.app)
+        self.pending_window = window
+        self.chat = chat
+
+        self.category = category
+        self.user_id = user_id
+        self.username = username
+        self.address = address
+
+        if self.category == "individual":
+            image_path = "images/individual.png"
+        elif self.category == "group":
+            image_path = "images/group.png"
+
+        self.category_icon = ImageView(
+            image=image_path,
+            style=Pack(
+                background_color = rgb(40,43,48),
+                padding_left = 10
+            )
+        )
+        self.category_icon._impl.native.DoubleClick += self.show_pending_info
+
+        self.username_label = Label(
+            text=self.username,
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(40,43,48),
+                flex = 1,
+                text_align = CENTER,
+                font_size = 12,
+                font_weight = BOLD,
+                padding_top = 11
+            )
+        )
+        self.username_label._impl.native.DoubleClick += self.show_pending_info
+
+        self.confirm_button = ImageView(
+            image="images/confirm_i.png",
+            style=Pack(
+                background_color = rgb(40,43,48),
+                padding_top = 14
+            )
+        )
+        self.confirm_button._impl.native.MouseEnter += self.confirm_button_mouse_enter
+        self.confirm_button._impl.native.MouseLeave += self.confirm_button_mouse_leave
+        self.confirm_button._impl.native.Click += self.confirm_button_click
+
+        self.reject_button = ImageView(
+            image="images/reject_i.png",
+            style=Pack(
+                background_color = rgb(40,43,48),
+                padding = (14,10,0,10)
+            )
+        )
+        self.reject_button._impl.native.MouseEnter += self.reject_button_mouse_enter
+        self.reject_button._impl.native.MouseLeave += self.reject_button_mouse_leave
+        self.reject_button._impl.native.Click += self.reject_button_click
+
+        self.add(
+            self.category_icon,
+            self.username_label,
+            self.confirm_button,
+            self.reject_button
+        )
+
+
+    def confirm_button_click(self, sender, event):
+        self.app.add_background_task(self.send_identity)
+
+
+    async def send_identity(self, widget):
+        destination_address = self.address
+        amount = 0.0001
+        txfee = 0.0001
+        category, id, username, address = self.storage.get_identity()
+        memo = {"type":"identity","category":category,"id":id,"username":username,"address":address}
+        memo_str = json.dumps(memo)
+        self.pending_window._impl.native.Enabled = False
+        await self.send_memo(
+            address,
+            destination_address,
+            amount,
+            txfee,
+            memo_str
+        )
+
+
+    async def send_memo(self, address, toaddress, amount, txfee, memo):
+        operation, _= await self.commands.SendMemo(address, toaddress, amount, txfee, memo)
+        if operation:
+            transaction_status, _= await self.commands.z_getOperationStatus(operation)
+            transaction_status = json.loads(transaction_status)
+            if isinstance(transaction_status, list) and transaction_status:
+                status = transaction_status[0].get('status')
+                if status == "executing" or status =="success":
+                    await asyncio.sleep(1)
+                    while True:
+                        transaction_result, _= await self.commands.z_getOperationResult(operation)
+                        transaction_result = json.loads(transaction_result)
+                        if isinstance(transaction_result, list) and transaction_result:
+                            result = transaction_result[0].get('result', {})
+                            txid = result.get('txid')
+                            self.storage.tx(txid)
+                            self.storage.delete_pending(self.address)
+                            self.storage.add_contact(self.category, self.user_id, self.username, self.address)
+                            self.chat.insert_contact_list(self.category, self.user_id, self.username, self.address)
+                            self.pending_window.pending_list_box.remove(self)
+                            self.pending_window.info_dialog(
+                                title="New Contact Added",
+                                message="The contact has been successfully stored in the list."
+                            )
+                            self.pending_window._impl.native.Enabled = True
+                            return
+                        await asyncio.sleep(3)
+                else:
+                    self.pending_window._impl.native.Enabled = True
+        else:
+            self.pending_window._impl.native.Enabled = True
+
+
+    def reject_button_click(self, sender, event):
+        self.storage.ban(self.address)
+        self.storage.delete_pending(self.address)
+        self.pending_window.pending_list_box.remove(self)
+
+
+    def show_pending_info(self, sender, event):
+        self.pending_window.info_dialog(
+            title = "Pending info",
+            message = f"- Username : {self.username}\n- ID : {self.user_id}\n- Address : {self.address}"
+        )
+
+    def confirm_button_mouse_enter(self, sender, event):
+        self.confirm_button.image = "images/confirm_a.png"
+
+    def confirm_button_mouse_leave(self, sender, event):
+        self.confirm_button.image = "images/confirm_i.png"
+
+    def reject_button_mouse_enter(self, sender, event):
+        self.reject_button.image = "images/reject_a.png"
+
+    def reject_button_mouse_leave(self, sender, event):
+        self.reject_button.image = "images/reject_i.png"
+
+
+class PendingList(Window):
+    def __init__(self, chat:Box):
+        super().__init__(
+            size = (500, 400),
+            resizable= False,
+            minimizable = False,
+            closable=False
+        )
+
+        self.utils = Utils(self.app)
+        self.commands = Client(self.app)
+        self.storage = Storage(self.app)
+        self.chat = chat
+
+        self.title = "Pending List"
+        position_center = self.utils.windows_screen_center(self.size)
+        self.position = position_center
+
+        self.main_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                alignment = CENTER
+            )
+        )
+
+        self.no_pending_label = Label(
+            text="Empty list",
+            style=Pack(
+                color = GRAY,
+                font_weight = BOLD,
+                font_size = 10,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                text_align = CENTER
+            )
+        )
+
+        self.no_pending_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                alignment = CENTER
+            )
+        )
+
+        self.pending_list_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                alignment = CENTER
+            )
+        )
+
+        self.pending_list = ScrollContainer(
+            horizontal=None,
+            style=Pack(
+                background_color = rgb(30,33,36),
+                flex = 1
+            )
+        )
+
+        self.close_button = ImageView(
+            image="images/close_i.png",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                padding_bottom = 10
+            )
+        )
+        self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
+        self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
+
+        self.content = self.main_box
+
+        self.get_pending_list()
+
+    def get_pending_list(self):
+        pending = self.storage.get_pending()
+        if pending:
+            for data in pending:
+                category = data[0]
+                id = data[1]
+                username = data[2]
+                address = data[3]
+                pending_contact = Pending(
+                    category=category,
+                    user_id=id,
+                    username=username,
+                    address=address,
+                    app = self.app,
+                    window = self,
+                    chat = self.chat
+                )
+                self.pending_list_box.add(
+                    pending_contact
+                )
+            self.main_box.add(
+                self.pending_list,
+                self.close_button
+            )
+            self.pending_list.content = self.pending_list_box
+        else:
+            self.main_box.add(
+                self.no_pending_box,
+                self.close_button
+            )
+            self.no_pending_box.add(
+                self.no_pending_label
+            )
+
+    def insert_pending(self, category, id, username, address):
+        pending_contact = Pending(
+            category=category,
+            user_id=id,
+            username=username,
+            address=address,
+            window = self
+        )
+        self.pending_list_box.add(pending_contact)
+
+    def close_button_mouse_enter(self, sender, event):
+        self.close_button.image = "images/close_a.png"
+
+    def close_button_mouse_leave(self, sender, event):
+        self.close_button.image = "images/close_i.png"
+
+
 class Chat(Box):
     def __init__(self, app:App, main:Window):
         super().__init__(
