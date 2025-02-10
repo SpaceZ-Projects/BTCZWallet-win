@@ -77,7 +77,7 @@ class Menu(Window):
         self.transactions_page = Transactions(self.app, self)
         self.recieve_page = Recieve(self.app, self)
         self.send_page = Send(self.app, self)
-        self.message_page = Messages(self.app)
+        self.message_page = Messages(self.app, self)
         self.mining_page = Mining(self.app)
 
         self.main_box.add(
