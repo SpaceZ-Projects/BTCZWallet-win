@@ -96,6 +96,7 @@ import asyncio
 import clr
 from pathlib import Path
 from typing import Optional, Union, List, Callable
+import re
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Drawing')
@@ -1155,7 +1156,8 @@ class RichLabel(Forms.RichTextBox):
         text_align: Optional[AlignRichLabel] = None,
         righttoleft: Optional[RightToLeft] = RightToLeft.NO,
         maxsize: tuple[int, int] = None,
-        minsize: tuple[int, int] = None
+        minsize: tuple[int, int] = None,
+        urls_click: Optional[Callable] = None
     ):
         super().__init__()
 
@@ -1175,6 +1177,10 @@ class RichLabel(Forms.RichTextBox):
         self._righttoleft = righttoleft
         self._maxsize = maxsize
         self._minsize = minsize
+        self._urls_click = urls_click
+
+        self.tooltip = Forms.ToolTip()
+        self.tooltip_visible = None
 
         if self._text:
             self.Text = self._text
@@ -1203,6 +1209,9 @@ class RichLabel(Forms.RichTextBox):
             self.MaximumSize = Drawing.Size(*self._maxsize)
         if self._minsize:
             self.MinimumSize = Drawing.Size(*self._minsize)
+        if self._urls_click:
+            self.LinkClicked += self.on_link_clicked
+        self.MouseMove += self.on_mouse_move
 
     @property
     def text(self) -> str:
@@ -1347,3 +1356,34 @@ class RichLabel(Forms.RichTextBox):
     def minsize(self, value: tuple[int, int]):
         self._minsize = value
         self.MinimumSize = Drawing.Size(*self._minsize)
+
+    
+    def on_link_clicked(self, sender, event):
+        if self._urls_click:
+            self._urls_click(e.LinkText)
+
+    
+    def on_mouse_move(self, sender, event):
+        pos = e.Location
+        link_pos = self.GetCharIndexFromPosition(pos)
+        link_text = self.get_url_at_position(link_pos)
+        if link_text and not self.tooltip_visible:
+            self.tooltip.Show(link_text, self, pos.X, pos.Y + 20, 2000)
+            self.tooltip_visible = True
+        elif not link_text and self.tooltip_visible:
+            self.tooltip.Hide(self)
+            self.tooltip_visible = None
+            
+
+    def get_url_at_position(self, position: int) -> str:
+        if position == -1:
+            return ""
+        text = self.Text
+        url_pattern = re.compile(r'(https?://[^\s]+)')
+        urls = url_pattern.findall(text)
+        for url in urls:
+            start_pos = text.find(url)
+            end_pos = start_pos + len(url)
+            if start_pos <= position < end_pos:
+                return url
+        return ""

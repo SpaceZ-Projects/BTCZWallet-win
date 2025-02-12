@@ -547,7 +547,7 @@ class Message(Box):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
-                padding = (0,30,5,5),
+                padding = (0,30,5,15),
                 background_color=rgb(40,43,48)
             )
         )
@@ -607,7 +607,7 @@ class Message(Box):
         )
 
         self.message_value = RichLabel(
-            text=f"  {self.message}",
+            text=f"{self.message}",
             text_size=10,
             borderstyle=BorderStyle.NONE,
             background_color=Color.rgb(30,33,36),
@@ -617,7 +617,8 @@ class Message(Box):
             readonly=True,
             urls=True,
             dockstyle=DockStyle.FILL,
-            scrollbars=ScrollBars.NONE
+            scrollbars=ScrollBars.NONE,
+            urls_click=self.show_url_dialog
         )
 
         self.message_box = Box(
@@ -647,6 +648,18 @@ class Message(Box):
                 self.message_time
             )
         self.message_box._impl.native.Controls.Add(self.message_value)
+
+
+    def show_url_dialog(self, url):
+        self.url = url
+        def on_result(widget, result):
+            if result is True:
+                webbrowser.open(self.url)
+        self.app.main_window.question_dialog(
+            title="Confirm URL Redirect",
+            message=f"Are you sure you want to visit the following URL?\n\n{self.url}\n\nPlease confirm to proceed.",
+            on_result=on_result
+        )
 
 
 
