@@ -206,6 +206,21 @@ class Storage():
             return []
         
 
+    def get_contact_username(self, user_id):
+        try:
+            conn = sqlite3.connect(self.data_path)
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT username FROM contacts WHERE id = ?',
+                (user_id,)
+            )
+            contact = cursor.fetchone()
+            conn.close()
+            return contact
+        except sqlite3.OperationalError:
+            return None
+        
+
     def get_pending(self, option = None):
         try:
             conn = sqlite3.connect(self.data_path)
@@ -379,6 +394,19 @@ class Storage():
                 address TEXT
             )
             '''
+        )
+        conn.commit()
+        conn.close()
+
+    def update_contact_username(self, username, user_id):
+        conn = sqlite3.connect(self.data_path)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            UPDATE contacts
+            SET username = ?
+            WHERE id = ?
+            ''', (username, user_id)
         )
         conn.commit()
         conn.close()

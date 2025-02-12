@@ -509,14 +509,17 @@ class Contact(Box):
             self.unread_messages
         )
 
-        self.app.add_background_task(self.update_unread_count)
+        self.app.add_background_task(self.update_contact)
 
 
-    async def update_unread_count(self, widget):
+    async def update_contact(self, widget):
         while True:
             if not self.main.message_button_toggle:
                 await asyncio.sleep(1)
                 continue
+            username = self.storage.get_contact_username(self.user_id)
+            if username:
+                self.username_label.text = username[0]
             unread_messages = self.storage.get_unread_messages(self.user_id)
             if unread_messages:
                 unread_count = len(unread_messages)
@@ -1592,11 +1595,15 @@ class Chat(Box):
         id = form.get('id')
         author = form.get('username')
         message = form.get('text')
-        contacts_ids = self.storage.get_contacts("id")
-        if id not in contacts_ids:
+        contact_username = self.storage.get_contact_username(id)
+        if not contact_username:
             return
+        if author != contact_username:
+            self.storage.update_contact_username(author, id)
+
         if self.user_id == id and self.main.message_button_toggle:
             self.storage.message(id, author, message, amount, timestamp)
+            self.username_value.text = author
         else:
             self.unread_messages_toggle = True
             self.storage.unread_message(id, author, message, amount, timestamp)
@@ -1642,11 +1649,11 @@ class Chat(Box):
             contacts = self.storage.get_contacts()
             if contacts:
                 for data in contacts:
-                    if data not in self.contacts:
-                        category = data[0]
-                        id = data[1]
-                        username = data[2]
-                        address = data[3]
+                    category = data[0]
+                    id = data[1]
+                    username = data[2]
+                    address = data[3]
+                    if id not in self.contacts:
                         contact = Contact(
                             category=category,
                             user_id=id,
@@ -1655,19 +1662,19 @@ class Chat(Box):
                             app = self.app,
                             main = self.main
                         )
-                        contact._impl.native.Click += lambda sender, event, user_id=id, username=username, address=address:self.contact_click(
-                            sender, event, user_id, username, address)
-                        contact.category_icon._impl.native.Click += lambda sender, event, user_id=id, username=username, address=address:self.contact_click(
-                            sender, event, user_id, username, address)
-                        contact.username_label._impl.native.Click += lambda sender, event, user_id=id, username=username, address=address:self.contact_click(
-                            sender, event, user_id, username, address)
-                        contact.unread_messages._impl.native.Click += lambda sender, event, user_id=id, username=username, address=address:self.contact_click(
-                            sender, event, user_id, username, address)
+                        contact._impl.native.Click += lambda sender, event, user_id=id, address=address:self.contact_click(
+                            sender, event, user_id, address)
+                        contact.category_icon._impl.native.Click += lambda sender, event, user_id=id, address=address:self.contact_click(
+                            sender, event, user_id, address)
+                        contact.username_label._impl.native.Click += lambda sender, event, user_id=id, address=address:self.contact_click(
+                            sender, event, user_id, address)
+                        contact.unread_messages._impl.native.Click += lambda sender, event, user_id=id, address=address:self.contact_click(
+                            sender, event, user_id, address)
                         
                         self.contacts_box.add(
                             contact
                         )
-                        self.contacts.append(data)
+                        self.contacts.append(id)
             await asyncio.sleep(5)
 
 
@@ -1683,9 +1690,10 @@ class Chat(Box):
             self.pending_contacts._impl.native.MouseLeave += self.pending_contacts_mouse_leave
 
 
-    def contact_click(self, sender, event, user_id, username, address):
+    def contact_click(self, sender, event, user_id, address):
         if self.user_id == user_id:
             return
+        username = self.storage.get_contact_username(user_id)
         if self.selected_contact_toggle:
             self.contact_info_box.clear()
             self.messages_box.clear()
@@ -1698,8 +1706,8 @@ class Chat(Box):
                 padding = (9,0,0,10)
             )
         )
-        username_value = Label(
-            text=username,
+        self.username_value = Label(
+            text=username[0],
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,30,30),
@@ -1740,7 +1748,7 @@ class Chat(Box):
         )
         self.contact_info_box.add(
             username_label,
-            username_value,
+            self.username_value,
             id_label,
             id_value
         )
@@ -2037,8 +2045,7 @@ class Chat(Box):
             author=author,
             message=text,
             amount=amount,
-            timestamp=timestamp,
-            app=self.app
+            timestamp=timestamp
         )
         self.messages_box.add(
             message
@@ -2051,8 +2058,7 @@ class Chat(Box):
             author=author,
             message=text,
             amount=amount,
-            timestamp=timestamp,
-            app=self.app
+            timestamp=timestamp
         )
         self.messages_box.add(
             message
