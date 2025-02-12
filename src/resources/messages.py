@@ -701,7 +701,7 @@ class Pending(Box):
 
 
 class Message(Box):
-    def __init__(self, author, message, amount, timestamp, app:App):
+    def __init__(self, author, message, amount, timestamp, app:App, output:ScrollContainer):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -712,11 +712,14 @@ class Message(Box):
 
         self.app = app
         self.utils = Utils(self.app)
+        self.output_box = output
         
         self.author = author
         self.message = message
         self.amount = amount
         self.timestamp = timestamp
+
+        self.wheel = 0
 
         if self.author == "you":
             color = GRAY
@@ -777,7 +780,8 @@ class Message(Box):
             urls=True,
             dockstyle=DockStyle.FILL,
             scrollbars=ScrollBars.NONE,
-            urls_click=self.show_url_dialog
+            urls_click=self.show_url_dialog,
+            mouse_wheel=self.on_scroll
         )
 
         self.message_box = Box(
@@ -819,6 +823,11 @@ class Message(Box):
             message=f"Are you sure you want to visit the following URL?\n\n{self.url}\n\nPlease confirm to proceed.",
             on_result=on_result
         )
+
+    
+    def on_scroll(self, value):
+        self.wheel = self.output_box.vertical_position - value
+        self.output_box.vertical_position = self.wheel
 
 
 
@@ -1774,7 +1783,8 @@ class Chat(Box):
                     message=message_text,
                     amount=message_amount,
                     timestamp=message_timestamp,
-                    app= self.app
+                    app= self.app,
+                    output = self.output_box
                 )
                 self.messages_box.insert(
                     0, message
@@ -1796,7 +1806,8 @@ class Chat(Box):
                     message=message_text,
                     amount=message_amount,
                     timestamp=message_timestamp,
-                    app= self.app
+                    app= self.app,
+                    output = self.output_box
                 )
                 self.messages_box.insert(
                     6, message
@@ -1838,14 +1849,14 @@ class Chat(Box):
             await asyncio.sleep(3)
 
     
-    def update_messages_on_scroll(self, scroll):
+    async def update_messages_on_scroll(self, scroll):
         if self.output_box.vertical_position == self.output_box.max_vertical_position:
             self.messages_box.remove(self.unread_label)
             self.clean_unread_messages()
         if not self.scroll_toggle:
             if self.output_box.vertical_position == 0:
                 self.scroll_toggle = True
-                self.load_old_messages()
+                await self.load_old_messages()
 
 
     def clean_unread_messages(self):
@@ -1861,7 +1872,7 @@ class Chat(Box):
             self.storage.delete_unread(self.user_id)
 
 
-    def load_old_messages(self):
+    async def load_old_messages(self):
         messages = self.storage.get_messages(self.user_id)
         messages = sorted(messages, key=lambda x: x[3], reverse=True)
         last_loaded_message_timestamp = self.last_message_timestamp
@@ -1878,9 +1889,11 @@ class Chat(Box):
                     message=data[1],
                     amount=data[2],
                     timestamp=data[3],
-                    app=self.app
+                    app=self.app,
+                    output=self.output_box
                 )
                 self.messages_box.insert(0, message)
+            await asyncio.sleep(1)
             self.scroll_toggle = False
 
 
@@ -2045,7 +2058,9 @@ class Chat(Box):
             author=author,
             message=text,
             amount=amount,
-            timestamp=timestamp
+            timestamp=timestamp,
+            app=self.app,
+            output=self.output_box
         )
         self.messages_box.add(
             message
@@ -2058,7 +2073,9 @@ class Chat(Box):
             author=author,
             message=text,
             amount=amount,
-            timestamp=timestamp
+            timestamp=timestamp,
+            app=self.app,
+            output=self.output_box
         )
         self.messages_box.add(
             message

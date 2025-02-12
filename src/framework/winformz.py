@@ -1157,7 +1157,8 @@ class RichLabel(Forms.RichTextBox):
         righttoleft: Optional[RightToLeft] = RightToLeft.NO,
         maxsize: tuple[int, int] = None,
         minsize: tuple[int, int] = None,
-        urls_click: Optional[Callable] = None
+        urls_click: Optional[Callable] = None,
+        mouse_wheel: Optional[Callable] = None
     ):
         super().__init__()
 
@@ -1178,6 +1179,7 @@ class RichLabel(Forms.RichTextBox):
         self._maxsize = maxsize
         self._minsize = minsize
         self._urls_click = urls_click
+        self._mouse_wheel = mouse_wheel
 
         self.tooltip = Forms.ToolTip()
         self.tooltip_visible = None
@@ -1212,6 +1214,8 @@ class RichLabel(Forms.RichTextBox):
         if self._urls_click:
             self.LinkClicked += self.on_link_clicked
             self.MouseMove += self.on_mouse_move
+        if self._mouse_wheel:
+            self.MouseWheel += self.on_mouse_wheel
 
     @property
     def text(self) -> str:
@@ -1387,3 +1391,8 @@ class RichLabel(Forms.RichTextBox):
             if start_pos <= position < end_pos:
                 return url
         return ""
+    
+
+    def on_mouse_wheel(self, sender, event):
+        if self._mouse_wheel:
+            self._mouse_wheel(event.Delta)
