@@ -722,14 +722,32 @@ class Send(Box):
         destination_address = self.destination_input.value
         amount = self.amount_input.value
         txfee = self.fee_input.value
+        balance = self.address_balance.text
         try:
             if selected_address == "Main Account" and destination_address.startswith("t"):
                 operation, _= await self.commands.sendToAddress(destination_address, amount)
                 if operation is not None:
                     self.send_button._impl.native.Enabled = True
                     self.send_label._impl.native.Enabled = True
+                    self.main.info_dialog(
+                        title="Success",
+                        message="Transaction success"
+                    )
                     await self.clear_inputs()
+                else:
+                    self.main.error_dialog(
+                        title="Error",
+                        message="Transaction failed."
+                    )
             elif selected_address != "Main Account":
+                if (float(amount)+float(txfee)) > float(balance):
+                    self.main.error_dialog(
+                        "Insufficient balance",
+                        "You don't have enough balance to complete this transaction. Please adjust the amount."
+                    )
+                    self.send_button._impl.native.Enabled = True
+                    self.send_label._impl.native.Enabled = True
+                    return
                 operation, _= await self.commands.z_sendMany(selected_address, destination_address, amount, txfee)
                 if operation:
                     transaction_status, _= await self.commands.z_getOperationStatus(operation)
@@ -744,15 +762,27 @@ class Send(Box):
                                 if isinstance(transaction_result, list) and transaction_result:
                                     self.send_button._impl.native.Enabled = True
                                     self.send_label._impl.native.Enabled = True
+                                    self.main.info_dialog(
+                                        title="Success",
+                                        message="Transaction success"
+                                    )
                                     await self.clear_inputs()
                                     return
                                 await asyncio.sleep(3)
-                    else:
-                        self.send_button._impl.native.Enabled = True
-                        self.send_label._impl.native.Enabled = True
+                        else:
+                            self.send_button._impl.native.Enabled = True
+                            self.send_label._impl.native.Enabled = True
+                            self.main.error_dialog(
+                                title="Error",
+                                message="Transaction failed."
+                            )
                 else:
                     self.send_button._impl.native.Enabled = True
                     self.send_label._impl.native.Enabled = True
+                    self.main.error_dialog(
+                        title="Error",
+                        message="Transaction failed."
+                    )
         except Exception as e:
             self.send_button._impl.native.Enabled = True
             self.send_label._impl.native.Enabled = True

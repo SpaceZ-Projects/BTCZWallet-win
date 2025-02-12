@@ -377,7 +377,7 @@ class Transactions(Box):
         self.no_transaction_toggle = True
 
 
-    async def update_transactions(self):
+    async def update_transactions(self, widget):
         sorted_transactions = await self.get_transactions(
             self.transactions_count,0
         )
