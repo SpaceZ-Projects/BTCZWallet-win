@@ -352,6 +352,21 @@ class Storage():
         conn.commit()
         conn.close()
 
+
+    def edit_username(self, old_username, new_username):
+        conn = sqlite3.connect(self.data_path)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            UPDATE identity
+            SET username = ?
+            WHERE username = ?
+            ''', (new_username, old_username)
+        )
+        conn.commit()
+        conn.close()
+
+
     def create_contacts_table(self):
         conn = sqlite3.connect(self.data_path)
         cursor = conn.cursor()

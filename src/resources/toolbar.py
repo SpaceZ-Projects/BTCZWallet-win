@@ -25,6 +25,7 @@ class AppToolBar(Box):
 
         self.app_menu_active = None
         self.wallet_menu_active = None
+        self.messages_menu_active = None
         self.help_menu_active = None
         self.generate_address_cmd_active = None
 
@@ -117,6 +118,25 @@ class AppToolBar(Box):
                 self.import_key_cmd
             ]
         )
+        self.edit_username_cmd = Command(
+            title="Edit username",
+            icon="images/edit_username_i.ico",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.edit_username_cmd_mouse_enter,
+            mouse_leave=self.edit_username_cmd_mouse_leave,
+        )
+        self.messages_menu = Command(
+            title="Messages",
+            icon="images/messages_conf_i.ico",
+            drop_opened=self.messages_menu_opened,
+            drop_closed=self.messages_menu_closed,
+            mouse_enter=self.messages_menu_mouse_enter,
+            mouse_leave=self.messages_menu_mouse_leave,
+            sub_commands=[
+                self.edit_username_cmd
+            ]
+        )
         self.check_update_cmd = Command(
             title="Check update",
             color=Color.WHITE,
@@ -140,6 +160,7 @@ class AppToolBar(Box):
             [
                 self.app_menu,
                 self.wallet_menu,
+                self.messages_menu,
                 self.help_menu
             ]
         )
@@ -185,6 +206,26 @@ class AppToolBar(Box):
         self.wallet_menu.icon = "images/wallet_i.ico"
         self.wallet_menu.color = Color.WHITE
 
+    def messages_menu_opened(self):
+        self.messages_menu_active = True
+        self.messages_menu.icon = "images/messages_conf_a.ico"
+        self.messages_menu.color = Color.BLACK
+
+    def messages_menu_closed(self):
+        self.messages_menu_active = False
+        self.messages_menu.icon = "images/messages_conf_i.ico"
+        self.messages_menu.color = Color.WHITE
+
+    def messages_menu_mouse_enter(self):
+        self.messages_menu.icon = "images/messages_conf_a.ico"
+        self.messages_menu.color = Color.BLACK
+
+    def messages_menu_mouse_leave(self):
+        if self.messages_menu_active:
+            return
+        self.messages_menu.icon = "images/messages_conf_i.ico"
+        self.messages_menu.color = Color.WHITE
+
     def generate_address_cmd_opened(self):
         self.generate_address_cmd_active = True
         self.generate_address_cmd.icon = "images/new_addr_a.ico"
@@ -220,6 +261,14 @@ class AppToolBar(Box):
     def generate_z_cmd_mouse_leave(self):
         self.generate_z_cmd.icon = "images/private_i.ico"
         self.generate_z_cmd.color = Color.WHITE
+
+    def edit_username_cmd_mouse_enter(self):
+        self.edit_username_cmd.icon = "images/edit_username_a.ico"
+        self.edit_username_cmd.color = Color.BLACK
+
+    def edit_username_cmd_mouse_leave(self):
+        self.edit_username_cmd.icon = "images/edit_username_i.ico"
+        self.edit_username_cmd.color = Color.WHITE
 
     def check_update_cmd_mouse_enter(self):
         self.check_update_cmd.icon = "images/update_a.ico"

@@ -26,6 +26,161 @@ from .client import Client
 from .notify import NotifyRequest, NotifyMessage
 
 
+class EditUser(Window):
+    def __init__(self, username):
+        super().__init__(
+            size = (500, 150),
+            resizable= False,
+            minimizable = False,
+            closable=False
+        )
+
+        self.utils = Utils(self.app)
+        self.storage = Storage(self.app)
+        self.username = username
+
+        self.title = "Edit Username"
+        position_center = self.utils.windows_screen_center(self.size)
+        self.position = position_center
+
+        self.main_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                alignment = CENTER
+            )
+        )
+        self.info_label = Label(
+            text="Edit your messages username",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                text_align = CENTER,
+                font_weight = BOLD,
+                font_size = 11,
+                padding_top = 5
+            )
+        )
+        self.username_label = Label(
+            text="Username :",
+            style=Pack(
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                font_size = 12,
+                font_weight = BOLD
+            )
+        )
+        self.username_input = TextInput(
+            value=self.username,
+            placeholder="required",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                text_align = CENTER,
+                font_size = 12,
+                font_weight = BOLD,
+                width = 250
+            )
+        )
+        self.username_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                padding_top = 15
+            )
+        )
+
+        self.close_button = ImageView(
+            image="images/close_i.png",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                padding_bottom = 10,
+                padding_right = 10
+            )
+        )
+        self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
+        self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
+        self.close_button._impl.native.Click += self.close_edit_window
+
+        self.confirm_button = ImageView(
+            image="images/confirm_i.png",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                padding_bottom = 10,
+                padding_left = 10
+            )
+        )
+        self.confirm_button._impl.native.MouseEnter += self.confirm_button_mouse_enter
+        self.confirm_button._impl.native.MouseLeave += self.confirm_button_mouse_leave
+        self.confirm_button._impl.native.Click += self.verify_username
+
+        self.buttons_box = Box(
+            style=Pack(
+                direction = ROW,
+                alignment =CENTER,
+                background_color = rgb(30,33,36)
+            )
+        )
+        self.content = self.main_box
+
+        self.main_box.add(
+            self.info_label,
+            self.username_box,
+            self.buttons_box
+        )
+        self.username_box.add(
+            self.username_label,
+            self.username_input
+        )
+        self.buttons_box.add(
+            self.close_button,
+            self.confirm_button
+        )
+
+    def verify_username(self, sender, event):
+        if not self.username_input.value:
+            self.error_dialog(
+                title="Missing Username",
+                message="The username is required for messages address."
+            )
+            self.username_input.focus()
+            return
+        if self.username_input.value == self.username:
+            self.error_dialog(
+                title="Duplicate Username",
+                message="The username you entered is the same as your current username."
+            )
+            self.username_input.focus()
+            return
+        username = self.username_input.value
+        self.storage.edit_username(self.username, username)
+        self.info_dialog(
+            title="Updated Successfully",
+            message="Your username has been successfully updated."
+        )
+        self.close()
+
+
+    def confirm_button_mouse_enter(self, sender, event):
+        self.confirm_button.image = "images/confirm_a.png"
+
+    def confirm_button_mouse_leave(self, sender, event):
+        self.confirm_button.image = "images/confirm_i.png"
+
+    def close_button_mouse_enter(self, sender, event):
+        self.close_button.image = "images/close_a.png"
+
+    def close_button_mouse_leave(self, sender, event):
+        self.close_button.image = "images/close_i.png"
+    
+    def close_edit_window(self, sender, event):
+        self.close()
+
+
 class Indentifier(Window):
     def __init__(self, messages:Box, main:Window, chat):
         super().__init__(
@@ -148,7 +303,7 @@ class Indentifier(Window):
     def verify_identity(self, sender, event):
         if not self.username_input.value:
             self.error_dialog(
-                title="Error",
+                title="Missing Username",
                 message="The username is required for messages address"
             )
             self.username_input.focus()
@@ -547,8 +702,8 @@ class Message(Box):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
-                padding = (0,30,5,15),
-                background_color=rgb(40,43,48)
+                padding = (0,30,5,10),
+                background_color=rgb(30,33,36)
             )
         )
 
@@ -572,7 +727,7 @@ class Message(Box):
             style=Pack(
                 color = color,
                 font_size = 13,
-                background_color = rgb(30,33,36),
+                background_color = rgb(30,30,30),
                 font_weight = BOLD,
                 padding = (0,0,8,5),
                 flex = 1
@@ -583,7 +738,7 @@ class Message(Box):
             text="",
             style=Pack(
                 color = YELLOW,
-                background_color = rgb(30,33,36),
+                background_color = rgb(30,30,30),
                 font_weight = BOLD,
                 padding = (8,5,0,0)
             )
@@ -593,7 +748,7 @@ class Message(Box):
             text=message_time,
             style=Pack(
                 color = GRAY,
-                background_color = rgb(30,33,36),
+                background_color = rgb(30,30,30),
                 font_weight = BOLD,
                 padding = (8,5,0,0)
             )
@@ -602,7 +757,8 @@ class Message(Box):
         self.sender_box = Box(
             style=Pack(
                 direction = ROW,
-                background_color = rgb(30,33,36)
+                background_color = rgb(30,30,30),
+                padding_bottom = 5
             )
         )
 
@@ -626,7 +782,7 @@ class Message(Box):
                 direction = ROW,
                 background_color=rgb(40,43,48),
                 height = 80,
-                padding_top = 1
+                padding_left = 10 
             )
         )
         self.add(

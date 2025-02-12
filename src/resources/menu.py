@@ -25,8 +25,9 @@ from .home import Home
 from .txs import Transactions
 from .recieve import Recieve, ImportKey
 from .send import Send
-from .messages import Messages
+from .messages import Messages, EditUser
 from .mining import Mining
+from .storage import Storage
 
 class Menu(Window):
     def __init__(self):
@@ -38,6 +39,7 @@ class Menu(Window):
         self.toolbar = AppToolBar(self.app, self.notify)
         self.statusbar = AppStatusBar(self.app)
         self.wallet = Wallet(self.app)
+        self.storage = Storage(self.app)
 
         self.title = "BitcoinZ Wallet"
         self.size = (900,600)
@@ -297,6 +299,7 @@ class Menu(Window):
         self.toolbar.generate_z_cmd.action = self.new_private_address
         self.toolbar.check_update_cmd.action = self.check_app_version
         self.toolbar.import_key_cmd.action = self.show_import_key
+        self.toolbar.edit_username_cmd.action = self.edit_messages_username
 
     def new_transparent_address(self, sender, event):
         self.app.add_background_task(self.generate_transparent_address)
@@ -333,6 +336,15 @@ class Menu(Window):
             index=0,
             row_data={0: address}
         )
+
+    def edit_messages_username(self, sender, event):
+        data = self.storage.is_exists()
+        if data:
+            username = self.storage.get_identity("username")
+            if username:
+                edit_window = EditUser(username[0])
+                edit_window._impl.native.ShowDialog()
+                
 
     def check_app_version(self, sender, event):
         self.app.add_background_task(self.fetch_repo_info)
