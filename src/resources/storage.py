@@ -157,6 +157,21 @@ class Storage():
         conn.close()
 
 
+    def unread_message(self, id, author, message, amount, timestamp):
+        self.create_unread_messages_table()
+        conn = sqlite3.connect(self.data_path)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            INSERT INTO unread_messages (id, author, message, amount, timestamp)
+            VALUES (?, ?, ?, ?, ?)
+            ''', 
+            (id, author, message, amount, timestamp)
+        )
+        conn.commit()
+        conn.close()
+
+
     def ban(self, address):
         self.create_messages_table()
         conn = sqlite3.connect(self.data_path)
@@ -178,6 +193,9 @@ class Storage():
             cursor = conn.cursor()
             if option == "address":
                 cursor.execute('SELECT address FROM contacts')
+                contacts = [row[0] for row in cursor.fetchall()]
+            elif option == "id":
+                cursor.execute('SELECT id FROM contacts')
                 contacts = [row[0] for row in cursor.fetchall()]
             elif option is None:
                 cursor.execute('SELECT * FROM contacts')
@@ -243,6 +261,21 @@ class Storage():
             return []
         
 
+    def get_unread_messages(self, user_id):
+        try:
+            conn = sqlite3.connect(self.data_path)
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT author, message, amount, timestamp FROM unread_messages WHERE id = ?',
+                (user_id,)
+            )
+            messages = cursor.fetchall()
+            conn.close()
+            return messages
+        except sqlite3.OperationalError:
+            return []
+        
+
     def get_banned(self):
         try:
             conn = sqlite3.connect(self.data_path)
@@ -280,6 +313,22 @@ class Storage():
                 DELETE FROM requests WHERE address = ?
                 ''', 
                 (address,)
+            )
+            conn.commit()
+            conn.close()
+        except sqlite3.OperationalError as e:
+            print(f"Error deleting request: {e}")
+
+
+    def delete_unread(self, user_id):
+        try:
+            conn = sqlite3.connect(self.data_path)
+            cursor = conn.cursor()
+            cursor.execute(
+                '''
+                DELETE FROM unread_messages WHERE id = ?
+                ''', 
+                (user_id,)
             )
             conn.commit()
             conn.close()
@@ -354,6 +403,23 @@ class Storage():
         cursor.execute(
             '''
             CREATE TABLE IF NOT EXISTS messages (
+                id TEXT,
+                author TEXT,
+                message TEXT,
+                amount REAL,
+                timestamp INTEGER
+            )
+            '''
+        )
+        conn.commit()
+        conn.close()
+
+    def create_unread_messages_table(self):
+        conn = sqlite3.connect(self.data_path)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS unread_messages (
                 id TEXT,
                 author TEXT,
                 message TEXT,

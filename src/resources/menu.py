@@ -288,7 +288,9 @@ class Menu(Window):
         await asyncio.sleep(0.5)
         self.home_button_click(None, None)
         self.add_actions_cmds()
-        await self.transactions_page.update_transactions()
+        self.app.add_background_task(self.transactions_page.update_transactions)
+        await asyncio.sleep(1)
+        await self.message_page.gather_unread_memos()
 
     def add_actions_cmds(self):
         self.toolbar.generate_t_cmd.action = self.new_transparent_address
