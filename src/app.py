@@ -99,7 +99,7 @@ def main():
         app_id = "com.btcz",
         home_page = "https://getbtcz.com",
         author = "BTCZCommunity",
-        version = "1.1.0"
+        version = "1.1.1"
     )
     return app
 
