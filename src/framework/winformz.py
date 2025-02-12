@@ -1211,7 +1211,7 @@ class RichLabel(Forms.RichTextBox):
             self.MinimumSize = Drawing.Size(*self._minsize)
         if self._urls_click:
             self.LinkClicked += self.on_link_clicked
-        self.MouseMove += self.on_mouse_move
+            self.MouseMove += self.on_mouse_move
 
     @property
     def text(self) -> str:
@@ -1360,11 +1360,11 @@ class RichLabel(Forms.RichTextBox):
     
     def on_link_clicked(self, sender, event):
         if self._urls_click:
-            self._urls_click(e.LinkText)
+            self._urls_click(event.LinkText)
 
     
     def on_mouse_move(self, sender, event):
-        pos = e.Location
+        pos = event.Location
         link_pos = self.GetCharIndexFromPosition(pos)
         link_text = self.get_url_at_position(link_pos)
         if link_text and not self.tooltip_visible:
