@@ -14,7 +14,7 @@ from toga import (
 from ..framework import (
     BorderStyle, ToolTip, ClipBoard, Keys,
     RichLabel,FontStyle, Color, DockStyle,
-    ScrollBars
+    ScrollBars, Forms, Command
 )
 from toga.style.pack import Pack
 from toga.constants import COLUMN, ROW, CENTER, BOLD, RIGHT, LEFT, BOTTOM
@@ -438,7 +438,7 @@ class NewMessenger(Box):
 
 
 class Contact(Box):
-    def __init__(self, category, user_id, username, address, app:App, main):
+    def __init__(self, category, user_id, username, address, app:App, chat, main:Window):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -451,8 +451,10 @@ class Contact(Box):
         self._impl.native.MouseLeave += self.contact_mouse_leave
 
         self.app =app
+        self.chat = chat
         self.main = main
         self.storage = Storage(self.app)
+        self.clipboard = ClipBoard()
 
         self.category = category
         self.user_id = user_id
@@ -508,8 +510,39 @@ class Contact(Box):
             self.username_label,
             self.unread_messages
         )
-
+        self.insert_contact_menustrip()
         self.app.add_background_task(self.update_contact)
+
+
+    def insert_contact_menustrip(self):
+        context_menu = Forms.ContextMenuStrip()
+        self.copy_address_cmd = Command(
+            title="Copy address",
+            icon="images/copy_i.ico",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            mouse_enter=self.copy_address_cmd_mouse_enter,
+            mouse_leave=self.copy_address_cmd_mouse_leave,
+            action=self.copy_contact_address
+        )
+        self.ban_contact_cmd = Command(
+            title="Ban contact",
+            icon="images/ban_i.ico",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            mouse_enter=self.ban_contact_cmd_mouse_enter,
+            mouse_leave=self.ban_contact_cmd_mouse_leave,
+            action=self.ban_contact
+        )
+        commands = [
+            self.copy_address_cmd,
+            self.ban_contact_cmd
+        ]
+        for command in commands:
+            context_menu.Items.Add(command)
+        self._impl.native.ContextMenuStrip = context_menu
+        self.category_icon._impl.native.ContextMenuStrip = context_menu
+        self.username_label._impl.native.ContextMenuStrip = context_menu
 
 
     async def update_contact(self, widget):
@@ -529,6 +562,38 @@ class Contact(Box):
             await asyncio.sleep(3)
 
 
+    def copy_contact_address(self):
+        self.clipboard.copy(self.address)
+        self.main.info_dialog(
+            title="Copied",
+            message="The address has copied to clipboard.",
+        )
+
+
+    def ban_contact(self):
+        def on_result(widget, result):
+            if result is True:
+                self.storage.ban(self.address)
+                self.storage.delete_contact(self.address)
+                self.chat.contacts_box.remove(self)
+                self.main.info_dialog(
+                    title="Contact Banned",
+                    message=f"The contact has been successfully banned and deleted:\n\n"
+                            f"- Username: {self.username}\n"
+                            f"- User ID: {self.user_id}\n"
+                            f"- Address: {self.address}"
+                )
+
+        self.main.question_dialog(
+            title="Ban Contact",
+            message=f"Are you sure you want to ban and delete this contact?\n\n"
+                    f"- Username: {self.username}\n"
+                    f"- User ID: {self.user_id}\n"
+                    f"- Address: {self.address}",
+            on_result=on_result
+        )
+
+
     def contact_mouse_enter(self, sender, event):
         self.category_icon.style.background_color = rgb(66,69,73)
         self.username_label.style.background_color = rgb(66,69,73)
@@ -538,6 +603,23 @@ class Contact(Box):
         self.category_icon.style.background_color = rgb(40,43,48)
         self.username_label.style.background_color = rgb(40,43,48)
         self.style.background_color = rgb(40,43,48)
+
+
+    def copy_address_cmd_mouse_enter(self):
+        self.copy_address_cmd.icon = "images/copy_a.ico"
+        self.copy_address_cmd.color = Color.BLACK
+
+    def copy_address_cmd_mouse_leave(self):
+        self.copy_address_cmd.icon = "images/copy_i.ico"
+        self.copy_address_cmd.color = Color.WHITE
+
+    def ban_contact_cmd_mouse_enter(self):
+        self.ban_contact_cmd.icon = "images/ban_a.ico"
+        self.ban_contact_cmd.color = Color.BLACK
+
+    def ban_contact_cmd_mouse_leave(self):
+        self.ban_contact_cmd.icon = "images/ban_i.ico"
+        self.ban_contact_cmd.color = Color.WHITE
 
 
 class Pending(Box):
@@ -1669,6 +1751,7 @@ class Chat(Box):
                             username=username,
                             address=address,
                             app = self.app,
+                            chat = self,
                             main = self.main
                         )
                         contact._impl.native.Click += lambda sender, event, user_id=id, address=address:self.contact_click(
@@ -1700,6 +1783,8 @@ class Chat(Box):
 
 
     def contact_click(self, sender, event, user_id, address):
+        if event.Button == Forms.MouseButtons.Right:
+             return
         if self.user_id == user_id:
             return
         username = self.storage.get_contact_username(user_id)

@@ -173,7 +173,7 @@ class Storage():
 
 
     def ban(self, address):
-        self.create_messages_table()
+        self.create_banned_table()
         conn = sqlite3.connect(self.data_path)
         cursor = conn.cursor()
         cursor.execute(
@@ -317,6 +317,22 @@ class Storage():
             conn.close()
         except sqlite3.OperationalError as e:
             print(f"Error deleting pending contact: {e}")
+
+
+    def delete_contact(self, address):
+        try:
+            conn = sqlite3.connect(self.data_path)
+            cursor = conn.cursor()
+            cursor.execute(
+                '''
+                DELETE FROM contacts WHERE address = ?
+                ''', 
+                (address,)
+            )
+            conn.commit()
+            conn.close()
+        except sqlite3.OperationalError as e:
+            print(f"Error deleting contact: {e}")
         
 
     def delete_request(self, address):
