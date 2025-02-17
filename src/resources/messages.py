@@ -1301,7 +1301,7 @@ class Chat(Box):
         self.utils = Utils(self.app)
         self.commands = Client(self.app)
         self.storage = Storage(self.app)
-        self.tootip = ToolTip()
+        self.tooltip = ToolTip()
         self.clipboard = ClipBoard()
 
         self.send_toggle = None
@@ -1323,7 +1323,7 @@ class Chat(Box):
         self.add_contact._impl.native.MouseEnter += self.add_contact_mouse_enter
         self.add_contact._impl.native.MouseLeave += self.add_contact_mouse_leave
         self.add_contact._impl.native.Click += self.add_contact_click
-        self.tootip.insert(self.add_contact._impl.native, "Add new contact")
+        self.tooltip.insert(self.add_contact._impl.native, "Add new contact")
 
         self.pending_contacts = ImageView(
             image="images/pending_i.png",
@@ -1333,7 +1333,7 @@ class Chat(Box):
             )
         )
         self.pending_contacts._impl.native.Click += self.pending_contacts_click
-        self.tootip.insert(self.pending_contacts._impl.native, "Show pending contacts")
+        self.tooltip.insert(self.pending_contacts._impl.native, "Show pending contacts")
 
         self.copy_address = ImageView(
             image="images/copy_i.png",
@@ -1345,7 +1345,7 @@ class Chat(Box):
         self.copy_address._impl.native.MouseEnter += self.copy_address_mouse_enter
         self.copy_address._impl.native.MouseLeave += self.copy_address_mouse_leave
         self.copy_address._impl.native.Click += self.copy_address_click
-        self.tootip.insert(self.copy_address._impl.native, "Copy your messages address")
+        self.tooltip.insert(self.copy_address._impl.native, "Copy your messages address")
 
         self.buttons_box = Box(
             style=Pack(
@@ -1784,7 +1784,7 @@ class Chat(Box):
 
     def contact_click(self, sender, event, user_id, address):
         if event.Button == Forms.MouseButtons.Right:
-             return
+            return
         if self.user_id == user_id:
             return
         username = self.storage.get_contact_username(user_id)
@@ -1979,7 +1979,7 @@ class Chat(Box):
                 )
                 self.messages_box.insert(0, message)
             await asyncio.sleep(1)
-            self.scroll_toggle = False
+        self.scroll_toggle = False
 
 
     def update_pending_list(self):
