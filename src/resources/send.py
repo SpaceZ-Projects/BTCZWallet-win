@@ -42,6 +42,7 @@ class Send(Box):
         self.transparent_toggle = None
         self.private_toggle = None
         self.is_valid_toggle = None
+        self.z_addresses_limit_toggle = None
 
         self.switch_box = Box(
             style=Pack(
@@ -886,6 +887,13 @@ class Send(Box):
         if not addresses:
             self.is_valid.image = None
             return
+        inputs_lines = addresses.strip().split('\n')
+        count_z_addresses = sum(1 for address in inputs_lines if address.strip().lower().startswith('z'))
+        if count_z_addresses > 54:
+            self.z_addresses_limit_toggle = True
+            return
+        self.z_addresses_limit_toggle = False
+
 
     
     async def verify_balance(self, input):
@@ -931,6 +939,12 @@ class Send(Box):
                 self.destination_input_many.focus()
             else:
                 self.destination_input_single.focus()
+            return
+        elif self.z_addresses_limit_toggle:
+            self.main.error_dialog(
+                title="Error",
+                message="The maximum number of zaddr outputs is 54 due to transaction size limits."
+            )
             return
         elif not self.is_valid_toggle:
             self.main.error_dialog(
