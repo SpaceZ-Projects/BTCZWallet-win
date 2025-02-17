@@ -47,12 +47,14 @@ class AppToolBar(Box):
             title="Exit",
             color=Color.RED,
             background_color=Color.rgb(40,43,48),
+            icon="images/exit.ico",
             action=self.exit_app
         )
         self.stop_exit_cmd = Command(
             title="Stop node",
             color=Color.RED,
             background_color=Color.rgb(40,43,48),
+            icon="images/stop.ico",
             action=self.stop_node_exit
         )
         self.app_menu = Command(
