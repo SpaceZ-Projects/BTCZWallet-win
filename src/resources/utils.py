@@ -35,6 +35,13 @@ class Utils():
         if not Os.Directory.Exists(str(self.app_cache)):
             Os.Directory.CreateDirectory(str(self.app_cache))
 
+
+    def generate_id(self, length=32):
+        alphabet = string.ascii_uppercase + string.ascii_lowercase + string.digits
+        random_bytes = secrets.token_bytes(length)
+        address_id = ''.join(alphabet[b % 62] for b in random_bytes)
+        return address_id
+
     
     async def get_repo_info(self):
         async with aiohttp.ClientSession() as session:

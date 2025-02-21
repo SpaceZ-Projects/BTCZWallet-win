@@ -1,7 +1,5 @@
 
 import asyncio
-import string
-import secrets
 import json
 import binascii
 from datetime import datetime
@@ -315,12 +313,11 @@ class Indentifier(Window):
         category = "individual"
         username = self.username_input.value
         messages_address, _ = await self.commands.z_getNewAddress()
-        id = self.generate_id()
         if messages_address:
             prv_key, _= await self.commands.z_ExportKey(messages_address)
             if prv_key:
                 self.storage.key(prv_key)
-            self.storage.identity(category, id, username, messages_address)
+            self.storage.identity(category, username, messages_address)
             self.info_dialog(
                 title="Identity Setup Complete!",
                 message=f"Success! Your new identity has been securely set up with the username:\n\n"
@@ -333,12 +330,6 @@ class Indentifier(Window):
                 self.chat
             )
             self.chat.run_tasks()
-
-    def generate_id(self, length=32):
-        alphabet = string.ascii_uppercase + string.ascii_lowercase + string.digits
-        random_bytes = secrets.token_bytes(length)
-        address_id = ''.join(alphabet[b % 62] for b in random_bytes)
-        return address_id
 
     def confirm_button_mouse_enter(self, sender, event):
         self.confirm_button.image = "images/confirm_a.png"
@@ -438,7 +429,7 @@ class NewMessenger(Box):
 
 
 class Contact(Box):
-    def __init__(self, category, user_id, username, address, app:App, chat, main:Window):
+    def __init__(self, category, contact_id, username, address, app:App, chat, main:Window):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -457,7 +448,7 @@ class Contact(Box):
         self.clipboard = ClipBoard()
 
         self.category = category
-        self.user_id = user_id
+        self.contact_id = contact_id
         self.username = username
         self.address = address
 
@@ -550,10 +541,10 @@ class Contact(Box):
             if not self.main.message_button_toggle:
                 await asyncio.sleep(1)
                 continue
-            username = self.storage.get_contact_username(self.user_id)
+            username = self.storage.get_contact_username(self.contact_id)
             if username:
                 self.username_label.text = username[0]
-            unread_messages = self.storage.get_unread_messages(self.user_id)
+            unread_messages = self.storage.get_unread_messages(self.contact_id)
             if unread_messages:
                 unread_count = len(unread_messages)
                 self.unread_messages.text = unread_count
@@ -580,7 +571,7 @@ class Contact(Box):
                     title="Contact Banned",
                     message=f"The contact has been successfully banned and deleted:\n\n"
                             f"- Username: {self.username}\n"
-                            f"- User ID: {self.user_id}\n"
+                            f"- User ID: {self.contact_id}\n"
                             f"- Address: {self.address}"
                 )
 
@@ -588,7 +579,7 @@ class Contact(Box):
             title="Ban Contact",
             message=f"Are you sure you want to ban and delete this contact?\n\n"
                     f"- Username: {self.username}\n"
-                    f"- User ID: {self.user_id}\n"
+                    f"- User ID: {self.contact_id}\n"
                     f"- Address: {self.address}",
             on_result=on_result
         )
@@ -623,7 +614,7 @@ class Contact(Box):
 
 
 class Pending(Box):
-    def __init__(self, category, user_id, username, address, app:App, window:Window, chat:Box):
+    def __init__(self, category, contact_id, username, address, app:App, window:Window, chat:Box):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -636,12 +627,13 @@ class Pending(Box):
 
         self.app = app
         self.commands = Client(self.app)
+        self.utils = Utils(self.app)
         self.storage = Storage(self.app)
         self.pending_window = window
         self.chat = chat
 
         self.category = category
-        self.user_id = user_id
+        self.contact_id = contact_id
         self.username = username
         self.address = address
 
@@ -711,7 +703,8 @@ class Pending(Box):
         destination_address = self.address
         amount = 0.0001
         txfee = 0.0001
-        category, id, username, address = self.storage.get_identity()
+        category, username, address = self.storage.get_identity()
+        id = self.utils.generate_id()
         memo = {"type":"identity","category":category,"id":id,"username":username,"address":address}
         memo_str = json.dumps(memo)
         self.pending_window._impl.native.Enabled = False
@@ -720,11 +713,12 @@ class Pending(Box):
             destination_address,
             amount,
             txfee,
-            memo_str
+            memo_str,
+            id
         )
 
 
-    async def send_memo(self, address, toaddress, amount, txfee, memo):
+    async def send_memo(self, address, toaddress, amount, txfee, memo, id):
         operation, _= await self.commands.SendMemo(address, toaddress, amount, txfee, memo)
         if operation:
             transaction_status, _= await self.commands.z_getOperationStatus(operation)
@@ -741,7 +735,7 @@ class Pending(Box):
                             txid = result.get('txid')
                             self.storage.tx(txid)
                             self.storage.delete_pending(self.address)
-                            self.storage.add_contact(self.category, self.user_id, self.username, self.address)
+                            self.storage.add_contact(self.category, id, self.contact_id, self.username, self.address)
                             self.pending_window.pending_list_box.remove(self)
                             self.pending_window.info_dialog(
                                 title="New Contact Added",
@@ -765,7 +759,7 @@ class Pending(Box):
     def show_pending_info(self, sender, event):
         self.pending_window.info_dialog(
             title = "Pending info",
-            message = f"- Username : {self.username}\n- ID : {self.user_id}\n- Address : {self.address}"
+            message = f"- Username : {self.username}\n- ID : {self.contact_id}\n- Address : {self.address}"
         )
 
     def confirm_button_mouse_enter(self, sender, event):
@@ -1074,7 +1068,7 @@ class NewContact(Window):
                 message="This address is already in your contacts list."
             )
             return
-        pending = self.storage.get_pending("address")
+        pending = self.storage.get_pending()
         if address in pending:
             self.error_dialog(
                 title="Address in Pending List",
@@ -1095,7 +1089,8 @@ class NewContact(Window):
         destination_address = self.address_input.value
         amount = 0.0001
         txfee = 0.0001
-        category, id, username, address = self.storage.get_identity()
+        id = self.utils.generate_id()
+        category, username, address = self.storage.get_identity()
         memo = {"type":"request","category":category,"id":id,"username":username,"address":address}
         memo_str = json.dumps(memo)
         self._impl.native.Enabled = False
@@ -1104,11 +1099,12 @@ class NewContact(Window):
             destination_address,
             amount,
             txfee,
-            memo_str
+            memo_str,
+            id
         )
 
 
-    async def send_memo(self, address, toaddress, amount, txfee, memo):
+    async def send_memo(self, address, toaddress, amount, txfee, memo, id):
         operation, _= await self.commands.SendMemo(address, toaddress, amount, txfee, memo)
         if operation:
             transaction_status, _= await self.commands.z_getOperationStatus(operation)
@@ -1124,7 +1120,7 @@ class NewContact(Window):
                             result = transaction_result[0].get('result', {})
                             txid = result.get('txid')
                             self.storage.tx(txid)
-                            self.storage.add_request(toaddress)
+                            self.storage.add_request(id, toaddress)
                             self.info_dialog(
                                 title="Request sent",
                                 message="The request has been sent successfully to the address."
@@ -1243,7 +1239,7 @@ class PendingList(Window):
                 address = data[3]
                 pending_contact = Pending(
                     category=category,
-                    user_id=id,
+                    contact_id=id,
                     username=username,
                     address=address,
                     app = self.app,
@@ -1270,7 +1266,7 @@ class PendingList(Window):
     def insert_pending(self, category, id, username, address):
         pending_contact = Pending(
             category=category,
-            user_id=id,
+            contact_id=id,
             username=username,
             address=address,
             window = self
@@ -1305,7 +1301,7 @@ class Chat(Box):
         self.clipboard = ClipBoard()
 
         self.send_toggle = None
-        self.user_id = None
+        self.contact_id = None
         self.user_address = None
         self.selected_contact_toggle = None
         self.pending_toggle = None
@@ -1662,16 +1658,16 @@ class Chat(Box):
 
     async def get_identity(self, form):
         category = form.get('category')
-        id = form.get('id')
+        contact_id = form.get('id')
         username = form.get('username')
         address = form.get('address')
         banned = self.storage.get_banned()
-        requests = self.storage.get_requests()
         if address in banned:
             return
-        elif address in requests:
+        id = self.storage.get_request(address)
+        if id:
+            self.storage.add_contact(category, id[0], contact_id, username, address)
             self.storage.delete_request(address)
-            self.storage.add_contact(category, id, username, address)
             notify = NotifyRequest()
             notify.show()
             notify.send_note(
@@ -1683,21 +1679,21 @@ class Chat(Box):
 
 
     async def get_message(self, form, amount, timestamp):
-        id = form.get('id')
+        contact_id = form.get('id')
         author = form.get('username')
         message = form.get('text')
-        contact_username = self.storage.get_contact_username(id)
+        contact_username = self.storage.get_contact_username(contact_id)
         if not contact_username:
             return
         if author != contact_username:
-            self.storage.update_contact_username(author, id)
+            self.storage.update_contact_username(author, contact_id)
 
-        if self.user_id == id and self.main.message_button_toggle:
-            self.storage.message(id, author, message, amount, timestamp)
+        if self.contact_id == contact_id and self.main.message_button_toggle:
+            self.storage.message(contact_id, author, message, amount, timestamp)
             self.username_value.text = author
         else:
             self.unread_messages_toggle = True
-            self.storage.unread_message(id, author, message, amount, timestamp)
+            self.storage.unread_message(contact_id, author, message, amount, timestamp)
             notify = NotifyMessage()
             notify.show()
             notify.send_note(
@@ -1710,17 +1706,17 @@ class Chat(Box):
 
     async def get_request(self, form):
         category = form.get('category')
-        id = form.get('id')
+        contact_id = form.get('id')
         username = form.get('username')
         address = form.get('address')
         banned = self.storage.get_banned()
         if address in banned:
             return
-        self.storage.add_pending(category, id, username, address)
+        self.storage.add_pending(category, contact_id, username, address)
         if not self.pending_toggle:
             self.update_pending_list()
         else:
-            self.pending_list.insert_pending(category, id, username, address)
+            self.pending_list.insert_pending(category, contact_id, username, address)
         notify = NotifyRequest()
         notify.show()
         notify.send_note(
@@ -1741,32 +1737,32 @@ class Chat(Box):
             if contacts:
                 for data in contacts:
                     category = data[0]
-                    id = data[1]
-                    username = data[2]
-                    address = data[3]
-                    if id not in self.contacts:
+                    contact_id = data[2]
+                    username = data[3]
+                    address = data[4]
+                    if contact_id not in self.contacts:
                         contact = Contact(
                             category=category,
-                            user_id=id,
+                            contact_id=contact_id,
                             username=username,
                             address=address,
                             app = self.app,
                             chat = self,
                             main = self.main
                         )
-                        contact._impl.native.Click += lambda sender, event, user_id=id, address=address:self.contact_click(
-                            sender, event, user_id, address)
-                        contact.category_icon._impl.native.Click += lambda sender, event, user_id=id, address=address:self.contact_click(
-                            sender, event, user_id, address)
-                        contact.username_label._impl.native.Click += lambda sender, event, user_id=id, address=address:self.contact_click(
-                            sender, event, user_id, address)
-                        contact.unread_messages._impl.native.Click += lambda sender, event, user_id=id, address=address:self.contact_click(
-                            sender, event, user_id, address)
+                        contact._impl.native.Click += lambda sender, event, contact_id=contact_id, address=address:self.contact_click(
+                            sender, event, contact_id, address)
+                        contact.category_icon._impl.native.Click += lambda sender, event, contact_id=contact_id, address=address:self.contact_click(
+                            sender, event, contact_id, address)
+                        contact.username_label._impl.native.Click += lambda sender, event, contact_id=contact_id, address=address:self.contact_click(
+                            sender, event, contact_id, address)
+                        contact.unread_messages._impl.native.Click += lambda sender, event, contact_id=contact_id, address=address:self.contact_click(
+                            sender, event, contact_id, address)
                         
                         self.contacts_box.add(
                             contact
                         )
-                        self.contacts.append(id)
+                        self.contacts.append(contact_id)
             await asyncio.sleep(5)
 
 
@@ -1782,12 +1778,12 @@ class Chat(Box):
             self.pending_contacts._impl.native.MouseLeave += self.pending_contacts_mouse_leave
 
 
-    def contact_click(self, sender, event, user_id, address):
+    def contact_click(self, sender, event, contact_id, address):
         if event.Button == Forms.MouseButtons.Right:
             return
-        if self.user_id == user_id:
+        if self.contact_id == contact_id:
             return
-        username = self.storage.get_contact_username(user_id)
+        username = self.storage.get_contact_username(contact_id)
         if self.selected_contact_toggle:
             self.contact_info_box.clear()
             self.messages_box.clear()
@@ -1819,7 +1815,7 @@ class Chat(Box):
             )
         )
         id_value = Label(
-            text=user_id,
+            text=contact_id,
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,30,30),
@@ -1846,14 +1842,14 @@ class Chat(Box):
             id_label,
             id_value
         )
-        self.user_id = user_id
+        self.contact_id = contact_id
         self.user_address = address
 
         self.selected_contact_toggle = True
         self.last_message_timestamp = None
 
-        messages = self.storage.get_messages(self.user_id)
-        unread_messages = self.storage.get_unread_messages(self.user_id)
+        messages = self.storage.get_messages(self.contact_id)
+        unread_messages = self.storage.get_unread_messages(self.contact_id)
         if messages:
             messages = sorted(messages, key=lambda x: x[3], reverse=True)
             recent_messages = messages[:5]
@@ -1902,14 +1898,14 @@ class Chat(Box):
 
 
     async def update_current_messages(self, widget):
-        self.messages = self.storage.get_messages(self.user_id)
-        self.unread_messages = self.storage.get_unread_messages(self.user_id)
+        self.messages = self.storage.get_messages(self.contact_id)
+        self.unread_messages = self.storage.get_unread_messages(self.contact_id)
         while True:
             if not self.main.message_button_toggle:
                 await asyncio.sleep(1)
                 continue
 
-            messages = self.storage.get_messages(self.user_id)
+            messages = self.storage.get_messages(self.contact_id)
             if messages:
                 for data in messages:
                     if data not in self.messages:
@@ -1920,7 +1916,7 @@ class Chat(Box):
                         self.insert_message(author, text, amount, timestamp)
                         self.messages.append(data)
 
-            unread_messages = self.storage.get_unread_messages(self.user_id)
+            unread_messages = self.storage.get_unread_messages(self.contact_id)
             if unread_messages:
                 for data in unread_messages:
                     if data not in self.unread_messages:
@@ -1945,20 +1941,20 @@ class Chat(Box):
 
 
     def clean_unread_messages(self):
-        unread_messages = self.storage.get_unread_messages(self.user_id)
+        unread_messages = self.storage.get_unread_messages(self.contact_id)
         if unread_messages:
             for data in unread_messages:
                 author = data[0]
                 text = data[1]
                 amount = data[2]
                 timestamp = data[3]
-                self.storage.message(self.user_id, author, text, amount, timestamp)
+                self.storage.message(self.contact_id, author, text, amount, timestamp)
                 self.messages.append(data)
-            self.storage.delete_unread(self.user_id)
+            self.storage.delete_unread(self.contact_id)
 
 
     async def load_old_messages(self):
-        messages = self.storage.get_messages(self.user_id)
+        messages = self.storage.get_messages(self.contact_id)
         messages = sorted(messages, key=lambda x: x[3], reverse=True)
         last_loaded_message_timestamp = self.last_message_timestamp
         try:
@@ -2075,12 +2071,13 @@ class Chat(Box):
     async def send_message(self, widget):
         author = "you"
         current_time = int(datetime.now().timestamp())
-        _, id, username, address = self.storage.get_identity()
+        _, username, address = self.storage.get_identity()
+        id = self.storage.get_id_contact(self.contact_id)
         message = self.message_input.value.replace('\n', '')
         fee = self.fee_input.value
         amount = float(fee) - 0.0001
         txfee = 0.0001
-        memo = {"type":"message","id":id,"username":username,"text":message}
+        memo = {"type":"message","id":id[0],"username":username,"text":message}
         memo_str = json.dumps(memo)
         self.message_input.readonly = True
         self.send_button._impl.native.Enabled = False
@@ -2114,7 +2111,7 @@ class Chat(Box):
                             result = transaction_result[0].get('result', {})
                             txid = result.get('txid')
                             self.storage.tx(txid)
-                            self.storage.message(self.user_id, "you", text, amount, timestamp)
+                            self.storage.message(self.contact_id, author, text, amount, timestamp)
                             self.message_input.readonly = False
                             self.send_button._impl.native.Enabled = True
                             self.send_label._impl.native.Enabled = True
@@ -2336,7 +2333,7 @@ class Messages(Box):
         id = form.get('id')
         author = form.get('username')
         message = form.get('text')
-        contacts_ids = self.storage.get_contacts("id")
+        contacts_ids = self.storage.get_contacts("contact_id")
         if id not in contacts_ids:
             return
         self.storage.unread_message(id, author, message, amount, timestamp)
