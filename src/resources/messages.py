@@ -1453,7 +1453,7 @@ class Chat(Box):
         self.message_input._impl.native.KeyDown += self.message_input_key_enter
 
         self.character_count = Label(
-            text="Limit : 0 / 250",
+            text="Limit : 0 / 325",
             style=Pack(
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
@@ -2056,10 +2056,10 @@ class Chat(Box):
                 message="Select a contact from the list before sending a message."
             )
             return
-        elif character_count > 250:
+        elif character_count > 325:
             self.main.error_dialog(
                 title="Message Too Long",
-                message="Message exceeds the maximum length of 250 characters."
+                message="Message exceeds the maximum length of 325 characters."
             )
             return
         elif float(fee) < 0.0002:
@@ -2170,16 +2170,16 @@ class Chat(Box):
     def update_character_count(self, input):
         message = self.message_input.value
         if not message:
-            self.character_count.text = f"Limit : 0 / 250"
+            self.character_count.text = f"Limit : 0 / 325"
             return
         character_count = len(message)
-        if character_count > 250:
+        if character_count > 325:
             self.character_count.style.color = RED
-        elif character_count < 250:
+        elif character_count < 325:
             self.character_count.style.color = GRAY
-        elif character_count == 250:
+        elif character_count == 325:
             self.character_count.style.color = YELLOW
-        self.character_count.text = f"Limit : {character_count} / 250"
+        self.character_count.text = f"Limit : {character_count} / 325"
         
 
     def send_button_mouse_enter(self, sender, event):
