@@ -129,7 +129,7 @@ class Client():
     
     async def SendMemo(self, uaddress, toaddress, amount, txfee, memo):
         hex_memo = binascii.hexlify(memo.encode()).decode()
-        command = command = f'{self.bitcoinz_cli_file} z_sendmany "{uaddress}" "[{{\\"address\\": \\"{toaddress}\\", \\"amount\\": {amount}, \\"memo\\": \\"{hex_memo}\\"}}]" 1 {txfee}'
+        command = f'{self.bitcoinz_cli_file} z_sendmany "{uaddress}" "[{{\\"address\\": \\"{toaddress}\\", \\"amount\\": {amount}, \\"memo\\": \\"{hex_memo}\\"}}]" 1 {txfee}'
         return await self._run_command(command)
     
     async def z_getOperationStatus(self, operation_ids):

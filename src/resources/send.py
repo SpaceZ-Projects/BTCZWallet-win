@@ -163,6 +163,7 @@ class Send(Box):
             ),
             on_change=self.single_option_on_change
         )
+        self.tooltip.insert(self.single_option._impl.native, "Send to single address")
 
         self.many_option = Switch(
             text="Many",
@@ -171,21 +172,11 @@ class Send(Box):
                 background_color = rgb(30,33,36),
                 font_weight = BOLD,
                 font_size = 11,
-                padding = (0,20,0,20)
+                padding = (0,20,0,0)
             ),
             on_change=self.many_option_on_change
         )
-
-        self.messages_option = Switch(
-            text="Messages address",
-            style=Pack(
-                color = GRAY,
-                background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 11
-            ),
-            on_change=self.messages_option_on_change
-        )
+        self.tooltip.insert(self.many_option._impl.native, "Send to many addresses")
 
         self.send_options_switch = Box(
             style=Pack(
@@ -500,8 +491,7 @@ class Send(Box):
             )
             self.send_options_switch.add(
                 self.single_option,
-                self.many_option,
-                self.messages_option
+                self.many_option
             )
             self.destination_box.add(
                 self.destination_label,
@@ -536,11 +526,25 @@ class Send(Box):
             )
             self.send_toggle = True
             self.transparent_button_click(None, None)
-            self.insert_amount_menustrip()
+            self.insert_menustrip()
         
 
-    def insert_amount_menustrip(self):
-        context_menu = Forms.ContextMenuStrip()
+    def insert_menustrip(self):
+        destination_context_menu = Forms.ContextMenuStrip()
+        self.messages_address_cmd = Command(
+            title="Send to messages address",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            action=self.set_destination_messages_address,
+            icon="images/deposit_messages_i.ico",
+            mouse_enter=self.messages_address_cmd_mouse_enter,
+            mouse_leave=self.messages_address_cmd_mouse_leave
+        )
+        messages_address_commands = [self.messages_address_cmd]
+        for command in messages_address_commands:
+            destination_context_menu.Items.Add(command)
+        self.destination_input_single._impl.native.ContextMenuStrip = destination_context_menu
+        amount_context_menu = Forms.ContextMenuStrip()
         self.max_amount_cmd = Command(
             title="Max amount",
             color=Color.WHITE,
@@ -550,10 +554,10 @@ class Send(Box):
             mouse_enter=self.max_amount_cmd_mouse_enter,
             mouse_leave=self.max_amount_cmd_mouse_leave
         )
-        commands = [self.max_amount_cmd]
-        for command in commands:
-            context_menu.Items.Add(command)
-        self.amount_input._impl.native.ContextMenuStrip = context_menu
+        amount_commands = [self.max_amount_cmd]
+        for command in amount_commands:
+            amount_context_menu.Items.Add(command)
+        self.amount_input._impl.native.ContextMenuStrip = amount_context_menu
 
 
     def transparent_button_click(self, sender, event):
@@ -651,6 +655,22 @@ class Send(Box):
         self.send_label.style.background_color = rgb(40,43,48)
 
 
+    def set_destination_messages_address(self):
+        selected_address = self.address_selection.value.select_address
+        if selected_address == "Main Account":
+            self.main.error_dialog(
+                title="Error",
+                message="You can't send amount from Main Account to messages (z) address."
+            )
+            return
+        address = self.storage.get_identity("address")
+        if address:
+            value = address[0]
+        else:
+            value = "You don't have messages address yet !"
+        self.destination_input_single.value = value
+
+
     def set_max_amount(self):
         if self.address_selection.value.select_address:
             selected_address = self.address_selection.value.select_address
@@ -664,7 +684,15 @@ class Send(Box):
                     fee = self.fee_input.value
                     amount = float(balance) - float(fee)
                     self.amount_input.value = f"{amount:.8f}"
+    
 
+    def messages_address_cmd_mouse_enter(self):
+        self.messages_address_cmd.icon = "images/deposit_messages_a.ico"
+        self.messages_address_cmd.color = Color.BLACK
+
+    def messages_address_cmd_mouse_leave(self):
+        self.messages_address_cmd.icon = "images/deposit_messages_i.ico"
+        self.messages_address_cmd.color = Color.WHITE
 
     
     def max_amount_cmd_mouse_enter(self):
@@ -682,20 +710,17 @@ class Send(Box):
             addresses_data = json.loads(addresses_data)
         else:
             addresses_data = []
-        if addresses_data:
+        if addresses_data is not None:
             address_items = [("Main Account")] + [(address_info, address_info) for address_info in addresses_data]
         else:
             address_items = [("Main Account")]
         return address_items
     
+    
     async def get_private_addresses(self):
         addresses_data, _ = await self.commands.z_listAddresses()
-        if addresses_data:
-            addresses_data = json.loads(addresses_data)
+        addresses_data = json.loads(addresses_data)
         if addresses_data is not None:
-            message_address = self.storage.get_identity("address")
-            if message_address:
-                addresses_data = [address for address in addresses_data if address != message_address[0]]
             if len(addresses_data) == 1:
                 address_items = [(addresses_data[0], addresses_data[0])]
             else:
@@ -703,6 +728,7 @@ class Send(Box):
         else:
             address_items = []
         return address_items
+    
     
     async def display_address_balance(self, selection):
         if selection.value is None:
@@ -712,7 +738,6 @@ class Send(Box):
         if selected_address != "Main Account":
             self.single_option.enabled = True
             self.many_option.enabled =True
-            self.messages_option.enabled = True
             if self.many_option.value is False:
                 self.update_fees_option(True)
             balance, _ = await self.commands.z_getBalance(selected_address)
@@ -727,7 +752,6 @@ class Send(Box):
             self.single_option.value = True
             self.single_option.enabled = False
             self.many_option.enabled =False
-            self.messages_option.enabled = False
             self.update_fees_option(False)
             total_balances, _ = await self.commands.z_getTotalBalance()
             if total_balances:
@@ -746,14 +770,13 @@ class Send(Box):
     def single_option_on_change(self, switch):
         if switch.value is True:
             self.many_option.value = False
-            self.messages_option.value = False
             self.single_option.style.color = YELLOW
             self.destination_box.insert(1, self.destination_input_single)
             self.destination_input_single.readonly = False
             self.update_fees_option(True)
             self.is_valid_toggle = None
         else:
-            if self.many_option.value is True or self.messages_option.value is True:
+            if self.many_option.value is True:
                 self.single_option.value = False
                 self.single_option.style.color = GRAY
                 self.destination_box.remove(
@@ -765,7 +788,6 @@ class Send(Box):
     def many_option_on_change(self, switch):
         if switch.value is True:
             self.single_option.value = False
-            self.messages_option.value = False
             self.many_option.style.color = YELLOW
             self.destination_box.style.height = 100
             self.destination_box.insert(1, self.destination_input_many)
@@ -773,7 +795,7 @@ class Send(Box):
             self.update_fees_option(False)
             self.is_valid_toggle = True
         else:
-            if self.single_option.value is True or self.messages_option.value is True:
+            if self.single_option.value is True:
                 self.many_option.value = False
                 self.many_option.style.color = GRAY
                 self.destination_box.style.height = 55
@@ -783,31 +805,6 @@ class Send(Box):
                 self.remove(self.amount_options_box)
             else:
                 self.many_option.value = True
-
-    def messages_option_on_change(self, switch):
-        if switch.value is True:
-            self.single_option.value = False
-            self.many_option.value = False
-            self.messages_option.style.color = YELLOW
-            address = self.storage.get_identity("address")
-            if address:
-                value = address[0]
-            else:
-                value = "You don't have messages address yet !"
-            self.destination_box.insert(1, self.destination_input_single)
-            self.destination_input_single.readonly = True
-            self.destination_input_single.value = value
-            self.update_fees_option(True)
-        else:
-            if self.single_option.value is True or self.many_option.value is True:
-                self.messages_option.value = False
-                self.messages_option.style.color = GRAY
-                self.destination_input_single.value = ""
-                self.destination_box.remove(
-                    self.destination_input_single
-                )
-            else:
-                self.messages_option.value = True
 
 
     def split_option_on_change(self, switch):
@@ -834,10 +831,10 @@ class Send(Box):
             selection_items = await self.get_private_addresses()
         self.address_selection.items.clear()
         self.address_selection.items = selection_items
-        if self.messages_option.value is False:
-            self.destination_input_single.value = ""
         if self.many_option.value is True:
             self.destination_input_many.value = ""
+        elif self.single_option.value is True:
+            self.destination_input_single.value = ""
         self.amount_input.value = ""
 
     def update_fees_option(self, option):
