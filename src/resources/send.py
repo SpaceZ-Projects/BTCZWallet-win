@@ -410,6 +410,35 @@ class Send(Box):
             ) 
         )
 
+        self.operation_label = Label(
+            text="Operation Status :",
+            style=Pack(
+                color = GRAY,
+                text_align= LEFT,
+                background_color = rgb(30,33,36),
+                font_weight = BOLD,
+                font_size = 11
+            )
+        )
+
+        self.operation_status = Label(
+            text="",
+            style=Pack(
+                color = WHITE,
+                text_align= LEFT,
+                background_color = rgb(30,33,36),
+                font_weight = BOLD,
+                font_size = 11
+            )
+        )
+
+        self.operation_box = Box(
+            style=Pack(
+                direction = ROW,
+                padding_left = 10
+            )
+        )
+
         self.send_box = Box(
             style=Pack(
                 direction = COLUMN,
@@ -434,7 +463,7 @@ class Send(Box):
             style=Pack(
                 background_color = rgb(40,43,48),
                 alignment = CENTER,
-                padding = 5,
+                padding = 7,
                 width = 200,
                 height = 40
             )
@@ -521,6 +550,13 @@ class Send(Box):
                 self.send_box,
                 self.send_button
             )
+            self.send_box.add(
+                self.operation_box
+            )
+            self.operation_box.add(
+                self.operation_label,
+                self.operation_status
+            )
             self.send_button.add(
                 self.send_label
             )
@@ -544,7 +580,35 @@ class Send(Box):
         for command in messages_address_commands:
             destination_context_menu.Items.Add(command)
         self.destination_input_single._impl.native.ContextMenuStrip = destination_context_menu
+
         amount_context_menu = Forms.ContextMenuStrip()
+        self.percentage_25_cmd = Command(
+            title="25 amount",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            action=self.set_25_amount,
+            icon="images/percentage_i.ico",
+            mouse_enter=self.percentage_25_cmd_mouse_enter,
+            mouse_leave=self.percentage_25_cmd_mouse_leave
+        )
+        self.percentage_50_cmd = Command(
+            title="50 amount",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            action=self.set_50_amount,
+            icon="images/percentage_i.ico",
+            mouse_enter=self.percentage_50_cmd_mouse_enter,
+            mouse_leave=self.percentage_50_cmd_mouse_leave
+        )
+        self.percentage_75_cmd = Command(
+            title="75 amount",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            action=self.set_75_amount,
+            icon="images/percentage_i.ico",
+            mouse_enter=self.percentage_75_cmd_mouse_enter,
+            mouse_leave=self.percentage_75_cmd_mouse_leave
+        )
         self.max_amount_cmd = Command(
             title="Max amount",
             color=Color.WHITE,
@@ -554,10 +618,52 @@ class Send(Box):
             mouse_enter=self.max_amount_cmd_mouse_enter,
             mouse_leave=self.max_amount_cmd_mouse_leave
         )
-        amount_commands = [self.max_amount_cmd]
+        amount_commands = [
+            self.percentage_25_cmd,
+            self.percentage_50_cmd,
+            self.percentage_75_cmd,
+            self.max_amount_cmd
+        ]
         for command in amount_commands:
             amount_context_menu.Items.Add(command)
         self.amount_input._impl.native.ContextMenuStrip = amount_context_menu
+
+        fee_context_menu = Forms.ContextMenuStrip()
+        self.slow_fee_cmd = Command(
+            title="Slow",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            action=self.set_slow_fee,
+            icon="images/slow_i.ico",
+            mouse_enter=self.slow_fee_cmd_mouse_enter,
+            mouse_leave=self.slow_fee_cmd_mouse_leave
+        )
+        self.normal_fee_cmd = Command(
+            title="Normal",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            action=self.set_normal_fee,
+            icon="images/normal_i.ico",
+            mouse_enter=self.normal_fee_cmd_mouse_enter,
+            mouse_leave=self.normal_fee_cmd_mouse_leave
+        )
+        self.fast_fee_cmd = Command(
+            title="Fast",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            action=self.set_fast_fee,
+            icon="images/fast_i.ico",
+            mouse_enter=self.fast_fee_cmd_mouse_enter,
+            mouse_leave=self.fast_fee_cmd_mouse_leave
+        )
+        fee_commands = [
+            self.slow_fee_cmd,
+            self.normal_fee_cmd,
+            self.fast_fee_cmd
+        ]
+        for command in fee_commands:
+            fee_context_menu.Items.Add(command)
+        self.fee_input._impl.native.ContextMenuStrip = fee_context_menu
 
 
     def transparent_button_click(self, sender, event):
@@ -671,12 +777,63 @@ class Send(Box):
         self.destination_input_single.value = value
 
 
+    def set_25_amount(self):
+        if self.address_selection.value.select_address:
+            selected_address = self.address_selection.value.select_address
+            balance = self.address_balance.text
+            if selected_address == "Main Account":
+                if float(balance) > 0.0002:
+                    balance_after_fee = float(balance) - 0.0001
+                    amount = balance_after_fee * 0.25
+                    self.amount_input.value = f"{amount:.8f}"
+            else:
+                if float(balance) > 0:
+                    fee = self.fee_input.value
+                    balance_after_fee = float(balance) - float(fee)
+                    amount = balance_after_fee * 0.25
+                    self.amount_input.value = f"{amount:.8f}"
+
+
+    def set_50_amount(self):
+        if self.address_selection.value.select_address:
+            selected_address = self.address_selection.value.select_address
+            balance = self.address_balance.text
+            if selected_address == "Main Account":
+                if float(balance) > 0.0002:
+                    balance_after_fee = float(balance) - 0.0001
+                    amount = balance_after_fee * 0.50
+                    self.amount_input.value = f"{amount:.8f}"
+            else:
+                if float(balance) > 0:
+                    fee = self.fee_input.value
+                    balance_after_fee = float(balance) - float(fee)
+                    amount = balance_after_fee * 0.50
+                    self.amount_input.value = f"{amount:.8f}"
+
+
+    def set_75_amount(self):
+        if self.address_selection.value.select_address:
+            selected_address = self.address_selection.value.select_address
+            balance = self.address_balance.text
+            if selected_address == "Main Account":
+                if float(balance) > 0.0002:
+                    balance_after_fee = float(balance) - 0.0001
+                    amount = balance_after_fee * 0.75
+                    self.amount_input.value = f"{amount:.8f}"
+            else:
+                if float(balance) > 0:
+                    fee = self.fee_input.value
+                    balance_after_fee = float(balance) - float(fee)
+                    amount = balance_after_fee * 0.75
+                    self.amount_input.value = f"{amount:.8f}"
+
+
     def set_max_amount(self):
         if self.address_selection.value.select_address:
             selected_address = self.address_selection.value.select_address
             balance = self.address_balance.text
             if selected_address == "Main Account":
-                if float(balance) > 0.0001:
+                if float(balance) > 0.0002:
                     amount = float(balance) - 0.0001
                     self.amount_input.value = f"{amount:.8f}"
             else:
@@ -684,6 +841,16 @@ class Send(Box):
                     fee = self.fee_input.value
                     amount = float(balance) - float(fee)
                     self.amount_input.value = f"{amount:.8f}"
+
+
+    def set_slow_fee(self):
+        self.fee_input.value = "0.00000100"
+
+    def set_normal_fee(self):
+        self.fee_input.value = "0.00001000"
+
+    def set_fast_fee(self):
+        self.fee_input.value = "0.00010000"
     
 
     def messages_address_cmd_mouse_enter(self):
@@ -694,6 +861,30 @@ class Send(Box):
         self.messages_address_cmd.icon = "images/deposit_messages_i.ico"
         self.messages_address_cmd.color = Color.WHITE
 
+
+    def percentage_25_cmd_mouse_enter(self):
+        self.percentage_25_cmd.icon = "images/percentage_a.ico"
+        self.percentage_25_cmd.color = Color.BLACK
+
+    def percentage_25_cmd_mouse_leave(self):
+        self.percentage_25_cmd.icon = "images/percentage_i.ico"
+        self.percentage_25_cmd.color = Color.WHITE
+
+    def percentage_50_cmd_mouse_enter(self):
+        self.percentage_50_cmd.icon = "images/percentage_a.ico"
+        self.percentage_50_cmd.color = Color.BLACK
+
+    def percentage_50_cmd_mouse_leave(self):
+        self.percentage_50_cmd.icon = "images/percentage_i.ico"
+        self.percentage_50_cmd.color = Color.WHITE
+
+    def percentage_75_cmd_mouse_enter(self):
+        self.percentage_75_cmd.icon = "images/percentage_a.ico"
+        self.percentage_75_cmd.color = Color.BLACK
+
+    def percentage_75_cmd_mouse_leave(self):
+        self.percentage_75_cmd.icon = "images/percentage_i.ico"
+        self.percentage_75_cmd.color = Color.WHITE
     
     def max_amount_cmd_mouse_enter(self):
         self.max_amount_cmd.icon = "images/max_a.ico"
@@ -702,6 +893,31 @@ class Send(Box):
     def max_amount_cmd_mouse_leave(self):
         self.max_amount_cmd.icon = "images/max_i.ico"
         self.max_amount_cmd.color = Color.WHITE
+
+    def slow_fee_cmd_mouse_enter(self):
+        self.slow_fee_cmd.icon = "images/slow_a.ico"
+        self.slow_fee_cmd.color = Color.BLACK
+
+    def slow_fee_cmd_mouse_leave(self):
+        self.slow_fee_cmd.icon = "images/slow_i.ico"
+        self.slow_fee_cmd.color = Color.WHITE
+
+    
+    def normal_fee_cmd_mouse_enter(self):
+        self.normal_fee_cmd.icon = "images/normal_a.ico"
+        self.normal_fee_cmd.color = Color.BLACK
+
+    def normal_fee_cmd_mouse_leave(self):
+        self.normal_fee_cmd.icon = "images/normal_i.ico"
+        self.normal_fee_cmd.color = Color.WHITE
+
+    def fast_fee_cmd_mouse_enter(self):
+        self.fast_fee_cmd.icon = "images/fast_a.ico"
+        self.fast_fee_cmd.color = Color.BLACK
+
+    def fast_fee_cmd_mouse_leave(self):
+        self.fast_fee_cmd.icon = "images/fast_i.ico"
+        self.fast_fee_cmd.color = Color.WHITE
 
 
     async def get_transparent_addresses(self):
@@ -734,7 +950,9 @@ class Send(Box):
         if selection.value is None:
             self.address_balance.text = "0.00000000"
             return
+        self.amount_input.value = ""
         selected_address = selection.value.select_address
+        self.tooltip.insert(self.address_selection._impl.native, selected_address)
         if selected_address != "Main Account":
             self.single_option.enabled = True
             self.many_option.enabled =True
@@ -968,8 +1186,7 @@ class Send(Box):
 
 
     async def make_transaction(self, widget):
-        self.send_button._impl.native.Enabled = False
-        self.send_label._impl.native.Enabled = False
+        self.disable_send()
         selected_address = self.address_selection.value.select_address
         amount = self.amount_input.value
         txfee = self.fee_input.value
@@ -988,8 +1205,6 @@ class Send(Box):
             if selected_address == "Main Account" and destination_address.startswith("t"):
                 operation, _= await self.commands.sendToAddress(destination_address, amount)
                 if operation is not None:
-                    self.send_button._impl.native.Enabled = True
-                    self.send_label._impl.native.Enabled = True
                     self.main.info_dialog(
                         title="Success",
                         message="Transaction success"
@@ -1000,14 +1215,14 @@ class Send(Box):
                         title="Error",
                         message="Transaction failed."
                     )
+                self.enable_send()
             elif selected_address != "Main Account":
                 if (float(amount)+float(txfee)) > float(balance):
                     self.main.error_dialog(
                         "Insufficient balance",
                         "You don't have enough balance to complete this transaction. Please adjust the amount."
                     )
-                    self.send_button._impl.native.Enabled = True
-                    self.send_label._impl.native.Enabled = True
+                    self.enable_send()
                     return
                 operation, _= await self.commands.z_sendMany(selected_address, destination_address, amount, txfee)
                 if operation:
@@ -1015,14 +1230,23 @@ class Send(Box):
                     transaction_status = json.loads(transaction_status)
                     if isinstance(transaction_status, list) and transaction_status:
                         status = transaction_status[0].get('status')
+                        self.operation_status.text = status
                         if status == "executing" or status =="success":
                             await asyncio.sleep(1)
                             while True:
                                 transaction_result, _= await self.commands.z_getOperationResult(operation)
                                 transaction_result = json.loads(transaction_result)
                                 if isinstance(transaction_result, list) and transaction_result:
-                                    self.send_button._impl.native.Enabled = True
-                                    self.send_label._impl.native.Enabled = True
+                                    status = transaction_result[0].get('status')
+                                    self.operation_status.text = status
+                                    if status == "failed":
+                                        self.enable_send()
+                                        self.main.error_dialog(
+                                            title="Error",
+                                            message="Transaction failed."
+                                        )
+                                        return
+                                    self.enable_send()
                                     self.main.info_dialog(
                                         title="Success",
                                         message="Transaction success"
@@ -1030,23 +1254,14 @@ class Send(Box):
                                     await self.clear_inputs()
                                     return
                                 await asyncio.sleep(3)
-                        else:
-                            self.send_button._impl.native.Enabled = True
-                            self.send_label._impl.native.Enabled = True
-                            self.main.error_dialog(
-                                title="Error",
-                                message="Transaction failed."
-                            )
                 else:
-                    self.send_button._impl.native.Enabled = True
-                    self.send_label._impl.native.Enabled = True
+                    self.enable_send()
                     self.main.error_dialog(
                         title="Error",
                         message="Transaction failed."
                     )
         except Exception as e:
-            self.send_button._impl.native.Enabled = True
-            self.send_label._impl.native.Enabled = True
+            self.enable_send()
             print(f"An error occurred: {e}")
 
 
@@ -1081,14 +1296,23 @@ class Send(Box):
                 transaction_status = json.loads(transaction_status)
                 if isinstance(transaction_status, list) and transaction_status:
                     status = transaction_status[0].get('status')
+                    self.operation_status.text = status
                     if status == "executing" or status =="success":
                         await asyncio.sleep(1)
                         while True:
                             transaction_result, _= await self.commands.z_getOperationResult(operation)
                             transaction_result = json.loads(transaction_result)
                             if isinstance(transaction_result, list) and transaction_result:
-                                self.send_button._impl.native.Enabled = True
-                                self.send_label._impl.native.Enabled = True
+                                status = transaction_status[0].get('status')
+                                self.operation_status.text = status
+                                if status == "failed":
+                                    self.enable_send()
+                                    self.main.error_dialog(
+                                        title="Error",
+                                        message="Transaction failed."
+                                    )
+                                    return
+                                self.enable_send()
                                 self.main.info_dialog(
                                     title="Success",
                                     message="Transaction success"
@@ -1096,21 +1320,35 @@ class Send(Box):
                                 await self.clear_inputs()
                                 return
                             await asyncio.sleep(3)
-                    else:
-                        self.send_button._impl.native.Enabled = True
-                        self.send_label._impl.native.Enabled = True
-                        self.main.error_dialog(
-                            title="Error",
-                            message="Transaction failed."
-                        )
             else:
-                self.send_button._impl.native.Enabled = True
-                self.send_label._impl.native.Enabled = True
+                self.enable_send()
                 self.main.error_dialog(
                     title="Error",
                     message="Transaction failed."
                 )
         except Exception as e:
-            self.send_button._impl.native.Enabled = True
-            self.send_label._impl.native.Enabled = True
+            self.enable_send()
             print(f"An error occurred: {e}")
+
+    
+    def disable_send(self):
+        self.send_button._impl.native.Enabled = False
+        self.send_label._impl.native.Enabled = False
+        if self.many_option.value is True:
+            self.destination_input_many.readonly = True
+        elif self.single_option.value is True:
+            self.destination_input_single.readonly = True
+        self.amount_input.readonly = True
+        self.fee_input.readonly = True
+
+
+    def enable_send(self):
+        self.send_button._impl.native.Enabled = True
+        self.send_label._impl.native.Enabled = True
+        if self.many_option.value is True:
+            self.destination_input_many.readonly = False
+        elif self.single_option.value is True:
+            self.destination_input_single.readonly = False
+        self.amount_input.readonly = False
+        self.fee_input.readonly = False
+        self.operation_status.text = ""
