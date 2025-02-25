@@ -6,8 +6,7 @@ import json
 from toga import App, Box
 from ..framework import (
     StatusBar, StatusLabel, Separator,
-    DockStyle, Color, Font, FontStyle, AlignLabel,
-    run_async
+    DockStyle, Color, Font, FontStyle, AlignLabel
 )
 from toga.style.pack import Pack
 from toga.constants import ROW, BOTTOM

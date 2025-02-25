@@ -6,7 +6,7 @@ from toga import (
     Window, Box, Label
 )
 from ..framework import (
-    Drawing, Color
+    Drawing, Color, Sys, FormState
 )
 
 from toga.style.pack import Pack
@@ -45,10 +45,14 @@ class Menu(Window):
         self.size = (900,600)
         self._impl.native.BackColor = Color.rgb(30,33,36)
         
+        self._is_minimized = None
+        
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
         self.on_close = self.on_close_menu
         self._impl.native.Resize += self._handle_on_resize
+        self._impl.native.Activated += self._handle_on_activated
+        self._impl.native.Deactivate += self._handle_on_deactivated
 
         self.main_box = Box(
             style=Pack(
@@ -545,10 +549,22 @@ class Menu(Window):
             self.mining_button.style.background_color = rgb(30,33,36)
 
     
-    def _handle_on_resize(self, sender, event):
+    def _handle_on_resize(self, sender, event:Sys.EventArgs):
         min_width = 916
         min_height = 639
-        self._impl.native.MinimumSize = Drawing.Size(min_width, min_height)        
+        self._impl.native.MinimumSize = Drawing.Size(min_width, min_height)
+
+        if self._impl.native.WindowState == FormState.NORMAL:
+            self._is_minimized = False
+        elif self._impl.native.WindowState == FormState.MINIMIZED:
+            self._is_minimized = True
+
+
+    def _handle_on_activated(self, sender, event):
+        self._is_active = True
+
+    def _handle_on_deactivated(self, sender, event):
+        self._is_active = False
             
 
     def on_close_menu(self, widget):

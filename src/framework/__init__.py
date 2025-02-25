@@ -4,5 +4,5 @@ from .winformz import (
     Toolbar, Table, DockStyle, Color, Font, FontStyle,
     AlignTable, BorderStyle, SelectMode, Keys, run_async,
     Drawing, StatusBar, StatusLabel, AlignLabel, RichLabel,
-    ScrollBars, RightToLeft, AlignRichLabel, Cursors
+    ScrollBars, RightToLeft, AlignRichLabel, Cursors, FormState
 )

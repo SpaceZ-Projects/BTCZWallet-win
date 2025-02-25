@@ -178,6 +178,11 @@ class SelectMode:
 class CopyMode:
     DISABLE = Forms.DataGridViewClipboardCopyMode.Disable
 
+
+class FormState:
+    NORMAL = Forms.FormWindowState.Normal
+    MINIMIZED = Forms.FormWindowState.Minimized
+
 class BorderStyle:
     NONE = Forms.BorderStyle(0)
 

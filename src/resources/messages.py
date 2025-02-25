@@ -1714,21 +1714,24 @@ class Chat(Box):
             return
         if author != contact_username:
             self.storage.update_contact_username(author, contact_id)
-
-        if self.contact_id == contact_id and self.main.message_button_toggle:
+        if self.contact_id == contact_id and self.main.message_button_toggle and not self.main._is_minimized and not self.main._is_active:
             self.storage.message(contact_id, author, message, amount, timestamp)
             self.username_value.text = author
         else:
-            self.unread_messages_toggle = True
-            self.storage.unread_message(contact_id, author, message, amount, timestamp)
-            notify = NotifyMessage()
-            notify.show()
-            notify.send_note(
-                title="New Message",
-                text=f"From : {author}"
-            )
-            await asyncio.sleep(5)
-            notify.hide()
+            await self.handler_unread_message(contact_id, author, message, amount, timestamp)
+
+
+    async def handler_unread_message(self,contact_id, author, message, amount, timestamp):
+        self.unread_messages_toggle = True
+        self.storage.unread_message(contact_id, author, message, amount, timestamp)
+        notify = NotifyMessage()
+        notify.show()
+        notify.send_note(
+            title="New Message",
+            text=f"From : {author}"
+        )
+        await asyncio.sleep(5)
+        notify.hide()
 
 
     async def get_request(self, form):
