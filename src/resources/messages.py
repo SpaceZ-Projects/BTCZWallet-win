@@ -16,7 +16,7 @@ from ..framework import (
 )
 from toga.style.pack import Pack
 from toga.constants import COLUMN, ROW, CENTER, BOLD, RIGHT, LEFT, BOTTOM
-from toga.colors import rgb, WHITE, GRAY, RED, YELLOW
+from toga.colors import rgb, WHITE, GRAY, RED, YELLOW, ORANGE
 
 from .storage import Storage
 from .utils import Utils
@@ -1364,6 +1364,19 @@ class Chat(Box):
             )
         )
 
+        self.list_unspent_utxos = Label(
+            "",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(40,43,48),
+                text_align = CENTER,
+                font_weight = BOLD,
+                font_size = 10,
+                padding_left = 5
+            )
+        )
+        self.tooltip.insert(self.list_unspent_utxos._impl.native, "Number of unspent shielded notes")
+
         self.info_box = Box(
             style=Pack(
                 alignment = CENTER,
@@ -1560,6 +1573,7 @@ class Chat(Box):
             self.info_box
         )
         self.info_box.add(
+            self.list_unspent_utxos,
             self.address_balance
         )
         self.contacts_scroll.content = self.contacts_box
@@ -1627,7 +1641,20 @@ class Chat(Box):
                             self.storage.tx(txid)
                             await self.unhexlify_memo(data)
 
+                    self.count_list_unspent(listunspent)
+
             await asyncio.sleep(5)
+
+
+    def count_list_unspent(self, listunspent):
+        count = len(listunspent)
+        if count < 20:
+            self.list_unspent_utxos.style.color = WHITE
+        elif count >=20:
+            self.list_unspent_utxos.style.color = ORANGE
+        elif count >=50:
+            self.list_unspent_utxos.style.color = RED
+        self.list_unspent_utxos.text = count
 
 
     async def unhexlify_memo(self, data):
