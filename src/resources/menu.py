@@ -488,6 +488,7 @@ class Menu(Window):
         self.mining_label.style.color = WHITE
         self.mining_button.style.background_color = YELLOW
         self.pages.add(self.mining_page)
+        self.app.add_background_task(self.mining_page.insert_widgets)
 
     def mining_button_mouse_enter(self, sender, event):
         if self.mining_button_toggle:

@@ -186,6 +186,10 @@ class FormState:
 class BorderStyle:
     NONE = Forms.BorderStyle(0)
 
+
+class ComboStyle:
+    FLAT = Forms.FlatStyle.Flat
+
 class ClipBoard(Forms.Clipboard):
     def __init__(self):
         super().__init__()
@@ -233,6 +237,11 @@ class Keys:
 
 
 class Separator(Forms.ToolStripSeparator):
+    def __init__(self):
+        super().__init__()
+
+
+class MenuStrip(Forms.ContextMenuStrip):
     def __init__(self):
         super().__init__()
 

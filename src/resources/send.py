@@ -6,7 +6,9 @@ from toga import (
     App, Box, Label, TextInput, Selection, 
     ImageView, Window, Switch, MultilineTextInput
 )
-from ..framework import Forms, Command, Color, ToolTip
+from ..framework import (
+    Command, Color, ToolTip, ComboStyle, MenuStrip
+)
 from toga.style.pack import Pack
 from toga.constants import (
     COLUMN, ROW, TOP, BOLD, CENTER,
@@ -129,7 +131,7 @@ class Send(Box):
             accessor="select_address",
             on_change=self.display_address_balance
         )
-        self.address_selection._impl.native.FlatStyle = Forms.FlatStyle.Flat
+        self.address_selection._impl.native.FlatStyle = ComboStyle.FLAT
 
         self.address_balance = Label(
             text="0.00000000",
@@ -566,7 +568,7 @@ class Send(Box):
         
 
     def insert_menustrip(self):
-        destination_context_menu = Forms.ContextMenuStrip()
+        destination_context_menu = MenuStrip()
         self.messages_address_cmd = Command(
             title="Send to messages address",
             color=Color.WHITE,
@@ -581,7 +583,7 @@ class Send(Box):
             destination_context_menu.Items.Add(command)
         self.destination_input_single._impl.native.ContextMenuStrip = destination_context_menu
 
-        amount_context_menu = Forms.ContextMenuStrip()
+        amount_context_menu = MenuStrip()
         self.percentage_25_cmd = Command(
             title="25 amount",
             color=Color.WHITE,
@@ -628,7 +630,7 @@ class Send(Box):
             amount_context_menu.Items.Add(command)
         self.amount_input._impl.native.ContextMenuStrip = amount_context_menu
 
-        fee_context_menu = Forms.ContextMenuStrip()
+        fee_context_menu = MenuStrip()
         self.slow_fee_cmd = Command(
             title="Slow",
             color=Color.WHITE,
