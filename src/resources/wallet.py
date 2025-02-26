@@ -216,18 +216,18 @@ class Wallet(Box):
 
     async def update_balances(self, widget):
         while True:
-            totalbalances = await self.commands.z_getTotalBalance()
+            totalbalances,_ = await self.commands.z_getTotalBalance()
             if totalbalances is not None:
-                balances = json.loads(totalbalances[0])
+                balances = json.loads(totalbalances)
                 totalbalance = self.utils.format_balance(float(balances.get('total')))
                 transparentbalance = self.utils.format_balance(float(balances.get('transparent')))
                 privatebalance = self.utils.format_balance(float(balances.get('private')))
                 self.total_value.text = totalbalance
                 self.transparent_value.text = transparentbalance
                 self.private_value.text = privatebalance
-            unconfirmed_balance = await self.commands.getUnconfirmedBalance()
+            unconfirmed_balance,_ = await self.commands.getUnconfirmedBalance()
             if unconfirmed_balance is not None:
-                unconfirmed = self.utils.format_balance(float(unconfirmed_balance[0]))
+                unconfirmed = self.utils.format_balance(float(unconfirmed_balance))
                 if float(unconfirmed) > 0:
                     self.unconfirmed_box.style.visibility = VISIBLE
                     self.unconfirmed_label.style.visibility = VISIBLE

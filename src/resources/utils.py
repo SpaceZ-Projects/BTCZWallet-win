@@ -152,12 +152,31 @@ class Utils():
         return missing_files, zk_params_path
     
 
+    def get_miner_path(self, miner):
+        miner_folder = miner
+        if miner == "MiniZ":
+            miner_file = "MiniZ.exe"
+            url = "https://github.com/ezzygarmyz/miniZ/releases/download/v2.4e/"
+            zip_file = "miniZ_v2.4e_win-x64.zip"
+        elif miner == "Gminer":
+            miner_file = "miner.exe"
+            url = "https://github.com/develsoftware/GMinerRelease/releases/download/3.44/"
+            zip_file = "gminer_3_44_windows64.zip"
+
+        miner_dir = Os.Path.Combine(str(self.app_data), miner_folder)
+        if not Os.Directory.Exists(miner_dir):
+            Os.Directory.CreateDirectory(miner_dir)
+        miner_path = Os.Path.Combine(miner_dir, miner_file)
+        if Os.File.Exists(miner_path):
+            return miner_path, url, zip_file
+        return None, url, zip_file
+    
+
     async def fetch_binary_files(self, label, progress_bar):
         file_name = "bitcoinz-c73d5cdb2b70-win64.zip"
         url = "https://github.com/btcz/bitcoinz/releases/download/2.1.0/"
         text = "Downloading binary...%"
         destination = Os.Path.Combine(str(self.app_data), file_name)
-        self.current_download_file = destination
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url + file_name, timeout=None) as response:
@@ -275,6 +294,55 @@ class Utils():
             print(f"HTTP Error: {e}")
         except Exception as e:
             print(f"An error occurred: {e}")
+
+
+    async def fetch_miner(self, miner_selection, setup_miner_box, progress_bar, miner_folder, file_name, url):
+        destination = Os.Path.Combine(str(self.app_data), file_name)
+        miner_dir = Os.Path.Combine(str(self.app_data), miner_folder)
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url + file_name, timeout=None) as response:
+                    if response.status == 200:
+                        total_size = int(response.headers.get('content-length', 0))
+                        chunk_size = 512
+                        downloaded_size = 0
+                        self.file_handle = open(destination, 'wb')
+                        async for chunk in response.content.iter_chunked(chunk_size):
+                            if not chunk:
+                                break
+                            self.file_handle.write(chunk)
+                            downloaded_size += len(chunk)
+                            progress = int(downloaded_size / total_size * 100)
+                            progress_bar._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_progress_bar(progress_bar, progress)))
+                        self.file_handle.close()
+                        self.file_handle = None
+                        await session.close()
+                        run_async(self.extract_miner(miner_selection, setup_miner_box, progress_bar, destination, miner_folder, miner_dir))
+        except RuntimeError as e:
+            print(f"RuntimeError caught: {e}")
+        except aiohttp.ClientError as e:
+            print(f"HTTP Error: {e}")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+
+    async def extract_miner(self, miner_selection, setup_miner_box, progress_bar, destination, miner_folder, miner_dir):
+        if miner_folder == "MiniZ":
+            miner_name = "miniZ.exe"
+        elif miner_folder =="Gminer":
+            miner_name = "miner.exe"
+        with zipfile.ZipFile(destination, 'r') as zip_ref:
+            zip_ref.extractall(miner_dir)
+        for file in Os.Directory.GetFiles(miner_dir):
+            file_name = Os.Path.GetFileName(file)
+            if file_name != miner_name:
+                Os.File.Delete(file)
+        
+        Os.File.Delete(destination)
+        miner_selection.enabled = True
+        setup_miner_box.remove(
+            progress_bar
+        )
 
 
     async def extract_7z_files(self, label, progress_bar):

@@ -84,7 +84,7 @@ class Menu(Window):
         self.recieve_page = Recieve(self.app, self)
         self.send_page = Send(self.app, self)
         self.message_page = Messages(self.app, self)
-        self.mining_page = Mining(self.app)
+        self.mining_page = Mining(self.app, self)
 
         self.main_box.add(
             self.toolbar,
@@ -318,6 +318,8 @@ class Menu(Window):
                 self.insert_new_address(new_address[0])
             if self.send_page.transparent_toggle:
                 await self.send_page.update_send_options(None)
+            if self.mining_page.mining_toggle:
+                await self.mining_page.update_mining_options(None)
             self.info_dialog(
                 title="New Address",
                 message=f"Generated address : {new_address[0]}"
