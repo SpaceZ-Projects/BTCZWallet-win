@@ -19,12 +19,6 @@ This full node wallet allows users to interact directly with the BitcoinZ blockc
 With its Graphical User Interface (GUI), this wallet provides an intuitive experience for both new and experienced users.  
 It enables you to securely send and receive BitcoinZ transactions, view your wallet’s transaction history, and monitor the current blockchain status, all through an easy-to-use interface.
 
----
-
-- **Note: This project is still in progress. New features and updates will be added over time.**
-
----
-
 ## Requirements to Build the App
 
 To build the BitcoinZ Wallet from source, you will need the following tools:
