@@ -2383,7 +2383,7 @@ class Messages(Box):
                         )
                         await asyncio.sleep(5)
                         notify.hide()
-                    self.timestamp = None
+
                     self.chat.run_tasks()
 
 
