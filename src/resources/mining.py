@@ -7,7 +7,7 @@ import re
 
 from toga import (
     App, Box, Label, Selection, TextInput,
-    ProgressBar, Window
+    ProgressBar, Window, ScrollContainer
 )
 from ..framework import ComboStyle
 from toga.style.pack import Pack
@@ -40,6 +40,7 @@ class Mining(Box):
         self.selected_pool = None
         self.selected_server = None
         self.worker_name = None
+        self.mining_status = None
 
         self.miner_label = Label(
             text="Miner :",
@@ -245,12 +246,22 @@ class Mining(Box):
             ) 
         )
 
-        self.separator_box = Box(
+        self.ouputs_box = Box(
            style=Pack(
-                direction = ROW,
+                direction = COLUMN,
+                background_color = rgb(40,43,48),
+                flex = 1,
+                padding = (5,10,0,10)
+            ) 
+        )
+        self.ouputs_box._impl.native.Resize += self.ouputs_box_on_resize
+
+        self.ouputs_scroll = ScrollContainer(
+            content=self.ouputs_box,
+            style=Pack(
                 background_color = rgb(40,43,48),
                 flex = 1
-            ) 
+            )
         )
 
         self.mining_box = Box(
@@ -309,7 +320,7 @@ class Mining(Box):
                 self.selection_address_box,
                 self.selection_pool_box,
                 self.worker_box,
-                self.separator_box,
+                self.ouputs_scroll,
                 self.start_mining_box
             )
             self.selection_miner_box.add(
@@ -482,14 +493,17 @@ class Mining(Box):
                 stderr=asyncio.subprocess.PIPE,
                 creationflags=subprocess.CREATE_NO_WINDOW
             )
+            self.mining_status = True
             self.update_mining_button("stop")
             self.enable_mining_button()
+            self.ouputs_box.clear()
             clean_regex = re.compile(r'\x1b\[[0-9;]*[mGK]|[^a-zA-Z0-9\s\[\]=><.%()/,`\'":]')
             while True:
                 stdout_line = await self.process.stdout.readline()
                 if stdout_line:
                     decoded_line = stdout_line.decode().strip()
                     cleaned_line = clean_regex.sub('', decoded_line)
+                    self.print_outputs(cleaned_line)
                 else:
                     break
             await self.process.wait()
@@ -508,8 +522,31 @@ class Mining(Box):
             self.enable_mining_inputs()
             self.enable_mining_button()
 
-        
 
+    def print_outputs(self, line):
+        output_value = Label(
+            text=line,
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(40,43,48),
+                font_size = 10
+            )
+        )
+        self.ouputs_box.add(
+            output_value
+        )
+        if self.ouputs_scroll.vertical_position == self.ouputs_scroll.max_vertical_position:
+            return
+        self.ouputs_scroll.vertical_position = self.ouputs_scroll.max_vertical_position
+
+
+    def ouputs_box_on_resize(self, sender, event):
+        if self.mining_toggle:
+            if self.ouputs_scroll.vertical_position == self.ouputs_scroll.max_vertical_position:
+                return
+            self.ouputs_scroll.vertical_position = self.ouputs_scroll.max_vertical_position
+
+        
     async def update_mining_options(self, widget):
         transparent_addresses = await self.get_transparent_addresses()
         self.address_selection.items.clear()
@@ -528,9 +565,11 @@ class Mining(Box):
         try:
             for proc in psutil.process_iter(['pid', 'name']):
                 if proc.info['name'] == process_name:
-                    print(f"Killing process {proc.pid} - {proc.info['name']}...")
                     proc.kill()
             self.process.terminate()
+            self.ouputs_box.clear()
+            self.mining_status = False
+            self.print_outputs("Miner Stopped !")
         except Exception as e:
             print(f"Exception occurred while killing process: {e}")
 

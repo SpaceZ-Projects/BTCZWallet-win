@@ -571,5 +571,7 @@ class Menu(Window):
             
 
     def on_close_menu(self, widget):
+        if self.mining_page.mining_status:
+            return
         self.notify.hide()
         self.app.exit()
