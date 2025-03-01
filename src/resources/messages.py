@@ -1427,6 +1427,7 @@ class Chat(Box):
                 flex = 1
             )
         )
+        self.messages_box._impl.native.Resize += self.messages_box_on_resize
 
         self.output_box = ScrollContainer(
             horizontal=False,
@@ -1638,7 +1639,6 @@ class Chat(Box):
                     for data in listunspent:
                         txid = data['txid']
                         if txid not in list_txs:
-                            self.storage.tx(txid)
                             await self.unhexlify_memo(data)
 
                     self.count_list_unspent(listunspent)
@@ -1648,19 +1648,19 @@ class Chat(Box):
 
     def count_list_unspent(self, listunspent):
         count = len(listunspent)
-        if count < 20:
-            self.list_unspent_utxos.style.color = WHITE
-        elif count >=20:
-            self.list_unspent_utxos.style.color = ORANGE
-        elif count >=50:
+        if count >= 50:
             self.list_unspent_utxos.style.color = RED
+        elif count >= 20:
+            self.list_unspent_utxos.style.color = ORANGE
+        else:
+            self.list_unspent_utxos.style.color = WHITE
         self.list_unspent_utxos.text = count
 
 
     async def unhexlify_memo(self, data):
         memo = data['memo']
         amount = data['amount']
-        current_time = int(datetime.now().timestamp())
+        txid = data['txid']
         try:
             decoded_memo = binascii.unhexlify(memo)
             form = decoded_memo.decode('utf-8')
@@ -1670,10 +1670,15 @@ class Chat(Box):
 
             if form_type == "identity":
                 await self.get_identity(form_dict)
+                self.storage.tx(txid)
             elif form_type == "message":
-                await self.get_message(form_dict, amount, current_time)
+                timestamp = await self.get_transaction_timerecived(txid)
+                if timestamp:
+                    await self.get_message(form_dict, amount, timestamp)
+                    self.storage.tx(txid)
             elif form_type == "request":
                 await self.get_request(form_dict)
+                self.storage.tx(txid)
 
         except Exception as e:
             print(f"Received new transaction. Amount: {amount}")
@@ -1681,6 +1686,14 @@ class Chat(Box):
             print(f"Received new transaction. Amount: {amount}")
         except json.decoder.JSONDecodeError as e:
             print(f"Received new transaction. Amount: {amount}")
+
+
+    async def get_transaction_timerecived(self, txid):
+        transaction = await self.commands.getTransaction(txid)
+        json_str = transaction[0]
+        data = json.loads(json_str)
+        timerecived = data.get("timereceived", None)
+        return timerecived
 
 
     async def get_identity(self, form):
@@ -1877,6 +1890,7 @@ class Chat(Box):
 
         self.selected_contact_toggle = True
         self.last_message_timestamp = None
+        self.last_unread_timestamp = None
 
         messages = self.storage.get_messages(self.contact_id)
         unread_messages = self.storage.get_unread_messages(self.contact_id)
@@ -1903,6 +1917,8 @@ class Chat(Box):
             self.output_box.vertical_position = self.output_box.max_vertical_position
         if unread_messages:
             unread_messages = sorted(unread_messages, key=lambda x: x[3], reverse=True)
+            recent_unread_messages = unread_messages[:5]
+            self.last_unread_timestamp = recent_unread_messages[-1][3]
             self.messages_box.add(
                 self.unread_label
             )
@@ -1964,10 +1980,15 @@ class Chat(Box):
         if self.output_box.vertical_position == self.output_box.max_vertical_position:
             self.messages_box.remove(self.unread_label)
             self.clean_unread_messages()
+
         if not self.scroll_toggle:
             if self.output_box.vertical_position == 0:
                 self.scroll_toggle = True
                 await self.load_old_messages()
+
+            if self.output_box.vertical_position == self.output_box.max_vertical_position:
+                self.scroll_toggle = True
+                await self.load_unread_messages()
 
 
     def clean_unread_messages(self):
@@ -2005,6 +2026,34 @@ class Chat(Box):
                 )
                 self.messages_box.insert(0, message)
             await asyncio.sleep(1)
+        self.scroll_toggle = False
+
+
+    async def load_unread_messages(self):
+        unread_messages = self.storage.get_unread_messages(self.contact_id)
+        if unread_messages:
+            unread_messages = sorted(unread_messages, key=lambda x: x[3], reverse=False)
+            more_unread_messages = [m for m in unread_messages if m[3] < self.last_unread_timestamp]
+            more_unread_messages = more_unread_messages[:5]
+
+            for data in more_unread_messages:
+                message_username = data[0]
+                message_text = data[1]
+                message_amount = data[2]
+                message_timestamp = data[3]
+                message = Message(
+                    author=message_username,
+                    message=message_text,
+                    amount=message_amount,
+                    timestamp=message_timestamp,
+                    app=self.app,
+                    output=self.output_box
+                )
+                self.messages_box.add(message)
+
+            if more_unread_messages:
+                self.last_unread_timestamp = more_unread_messages[-1][3]
+                await asyncio.sleep(1)
         self.scroll_toggle = False
 
 
@@ -2100,7 +2149,6 @@ class Chat(Box):
     
     async def send_message(self, widget):
         author = "you"
-        current_time = int(datetime.now().timestamp())
         _, username, address = self.storage.get_identity()
         id = self.storage.get_id_contact(self.contact_id)
         message = self.message_input.value.replace('\n', '')
@@ -2109,22 +2157,18 @@ class Chat(Box):
         txfee = 0.0001
         memo = {"type":"message","id":id[0],"username":username,"text":message}
         memo_str = json.dumps(memo)
-        self.message_input.readonly = True
-        self.send_button._impl.native.Enabled = False
-        self.send_label._impl.native.Enabled = False
-        self.send_icon._impl.native.Enabled = False
+        self.disable_send_button()
         await self.send_memo(
             address,
             amount,
             txfee,
             memo_str,
             author,
-            message,
-            current_time
+            message
         )
 
 
-    async def send_memo(self, address, amount, txfee, memo, author, text, timestamp):
+    async def send_memo(self, address, amount, txfee, memo, author, text):
         operation, _= await self.commands.SendMemo(address, self.user_address, amount, txfee, memo)
         if operation:
             transaction_status, _= await self.commands.z_getOperationStatus(operation)
@@ -2141,11 +2185,9 @@ class Chat(Box):
                             result = transaction_result[0].get('result', {})
                             txid = result.get('txid')
                             self.storage.tx(txid)
+                            timestamp = await self.get_transaction_timerecived(txid)
                             self.storage.message(self.contact_id, author, text, amount, timestamp)
-                            self.message_input.readonly = False
-                            self.send_button._impl.native.Enabled = True
-                            self.send_label._impl.native.Enabled = True
-                            self.send_icon._impl.native.Enabled = True
+                            self.enable_send_button()
                             self.send_button._impl.native.Focus()
                             self.fee_input.value = "0.00020000"
                             self.character_count.style.color = GRAY
@@ -2154,15 +2196,23 @@ class Chat(Box):
                             return
                         await asyncio.sleep(3)
                 else:
-                    self.message_input.readonly = False
-                    self.send_button._impl.native.Enabled = True
-                    self.send_label._impl.native.Enabled = True
-                    self.send_icon._impl.native.Enabled = True
+                    self.enable_send_button()
         else:
-            self.message_input.readonly = False
-            self.send_button._impl.native.Enabled = True
-            self.send_label._impl.native.Enabled = True
-            self.send_icon._impl.native.Enabled = True
+            self.enable_send_button()
+    
+
+    def enable_send_button(self):
+        self.message_input.readonly = False
+        self.send_button._impl.native.Enabled = True
+        self.send_label._impl.native.Enabled = True
+        self.send_icon._impl.native.Enabled = True
+
+    
+    def disable_send_button(self):
+        self.message_input.readonly = True
+        self.send_button._impl.native.Enabled = False
+        self.send_label._impl.native.Enabled = False
+        self.send_icon._impl.native.Enabled = False
 
 
     def insert_message(self, author, text, amount, timestamp):
@@ -2177,6 +2227,8 @@ class Chat(Box):
         self.messages_box.add(
             message
         )
+        if self.output_box.vertical_position == self.output_box.max_vertical_position:
+            return
         self.output_box.vertical_position = self.output_box.max_vertical_position
 
     
@@ -2192,6 +2244,11 @@ class Chat(Box):
         self.messages_box.add(
             message
         )
+
+    def messages_box_on_resize(self, sender, event):
+        if self.output_box.vertical_position == self.output_box.max_vertical_position:
+            return
+        self.output_box.vertical_position = self.output_box.max_vertical_position
 
 
     def update_character_count(self, input):
@@ -2326,7 +2383,7 @@ class Messages(Box):
                         )
                         await asyncio.sleep(5)
                         notify.hide()
-
+                    self.timestamp = None
                     self.chat.run_tasks()
 
 
@@ -2334,7 +2391,6 @@ class Messages(Box):
         memo = data['memo']
         amount = data['amount']
         txid = data['txid']
-        current_time = int(datetime.now().timestamp())
         try:
             decoded_memo = binascii.unhexlify(memo)
             form = decoded_memo.decode('utf-8')
@@ -2343,12 +2399,14 @@ class Messages(Box):
             form_type = form_dict.get('type')
 
             if form_type == "message":
-                self.storage.tx(txid)
-                await self.get_message(form_dict, amount, current_time)
-                self.message_count += 1
+                timestamp = await self.get_transaction_timerecived(txid)
+                if timestamp:
+                    await self.get_message(form_dict, amount, timestamp)
+                    self.storage.tx(txid)
+                    self.message_count += 1
             elif form_type == "request":
-                self.storage.tx(txid)
                 await self.get_request(form_dict)
+                self.storage.tx(txid)
                 self.request_count += 1
 
         except Exception as e:
@@ -2378,3 +2436,11 @@ class Messages(Box):
         if address in banned:
             return
         self.storage.add_pending(category, id, username, address)
+
+
+    async def get_transaction_timerecived(self, txid):
+        transaction = await self.commands.getTransaction(txid)
+        json_str = transaction[0]
+        data = json.loads(json_str)
+        timerecived = data.get("timereceived", None)
+        return timerecived
