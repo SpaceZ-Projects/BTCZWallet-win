@@ -6,7 +6,7 @@ from toga import (
     Window, Box, Label
 )
 from ..framework import (
-    Drawing, Color, Sys, FormState
+    Drawing, Color, Sys, FormState, Os
 )
 
 from toga.style.pack import Pack
@@ -304,6 +304,7 @@ class Menu(Window):
         self.toolbar.check_update_cmd.action = self.check_app_version
         self.toolbar.import_key_cmd.action = self.show_import_key
         self.toolbar.edit_username_cmd.action = self.edit_messages_username
+        self.toolbar.backup_messages_cmd.action = self.backup_messages
 
     def new_transparent_address(self, sender, event):
         self.app.add_background_task(self.generate_transparent_address)
@@ -350,6 +351,24 @@ class Menu(Window):
             if username:
                 edit_window = EditUser(username[0])
                 edit_window._impl.native.ShowDialog()
+
+
+    def backup_messages(self, sender, event):
+        def on_result(widget, result):
+            if result:
+                Os.File.Copy(str(self.data), str(result))
+                self.info_dialog(
+                    title="Backup Successful!",
+                    message=f"Your messages have been successfully backed up to:\n{result}"
+                )
+        self.data = self.storage.is_exists()
+        if self.data:
+            self.save_file_dialog(
+                title="Save backup to...",
+                suggested_filename=self.data,
+                file_types=["dat"],
+                on_result=on_result
+            )
                 
 
     def check_app_version(self, sender, event):

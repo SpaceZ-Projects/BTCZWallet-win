@@ -19,7 +19,7 @@ class Storage():
     def is_exists(self):
         if not Os.File.Exists(self.data_path):
             return False
-        return True
+        return self.data_path
     
     def identity(self, category, username, address):
         self.create_identity_table()

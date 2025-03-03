@@ -128,6 +128,14 @@ class AppToolBar(Box):
             mouse_enter=self.edit_username_cmd_mouse_enter,
             mouse_leave=self.edit_username_cmd_mouse_leave,
         )
+        self.backup_messages_cmd = Command(
+            title="Backup messages",
+            icon="images/backup_i.ico",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.backup_messages_cmd_mouse_enter,
+            mouse_leave=self.backup_messages_cmd_mouse_leave
+        )
         self.messages_menu = Command(
             title="Messages",
             icon="images/messages_conf_i.ico",
@@ -136,7 +144,8 @@ class AppToolBar(Box):
             mouse_enter=self.messages_menu_mouse_enter,
             mouse_leave=self.messages_menu_mouse_leave,
             sub_commands=[
-                self.edit_username_cmd
+                self.edit_username_cmd,
+                self.backup_messages_cmd
             ]
         )
         self.check_update_cmd = Command(
@@ -271,6 +280,14 @@ class AppToolBar(Box):
     def edit_username_cmd_mouse_leave(self):
         self.edit_username_cmd.icon = "images/edit_username_i.ico"
         self.edit_username_cmd.color = Color.WHITE
+
+    def backup_messages_cmd_mouse_enter(self):
+        self.backup_messages_cmd.icon = "images/backup_a.ico"
+        self.backup_messages_cmd.color = Color.BLACK
+
+    def backup_messages_cmd_mouse_leave(self):
+        self.backup_messages_cmd.icon = "images/backup_i.ico"
+        self.backup_messages_cmd.color = Color.WHITE
 
     def check_update_cmd_mouse_enter(self):
         self.check_update_cmd.icon = "images/update_a.ico"
