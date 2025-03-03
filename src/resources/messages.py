@@ -1308,6 +1308,7 @@ class Chat(Box):
         self.new_pending_toggle = None
         self.scroll_toggle = None
         self.unread_messages_toggle = None
+        self.processed_timestamps = set()
 
         self.add_contact = ImageView(
             image="images/add_contact_i.png",
@@ -1674,17 +1675,21 @@ class Chat(Box):
             elif form_type == "message":
                 timestamp = await self.get_transaction_timerecived(txid)
                 if timestamp:
+                    if timestamp in self.processed_timestamps:
+                        highest_timestamp = max(self.processed_timestamps)
+                        timestamp = highest_timestamp + 1
+                    self.processed_timestamps.add(timestamp)
                     await self.get_message(form_dict, amount, timestamp)
                     self.storage.tx(txid)
             elif form_type == "request":
                 await self.get_request(form_dict)
                 self.storage.tx(txid)
 
+        except (binascii.Error, json.decoder.JSONDecodeError) as e:
+            self.storage.tx(txid)
+            print(f"Received new transaction. Amount: {amount}")
         except Exception as e:
-            print(f"Received new transaction. Amount: {amount}")
-        except binascii.Error as e:
-            print(f"Received new transaction. Amount: {amount}")
-        except json.decoder.JSONDecodeError as e:
+            self.storage.tx(txid)
             print(f"Received new transaction. Amount: {amount}")
 
 
@@ -2246,7 +2251,7 @@ class Chat(Box):
         )
 
     def messages_box_on_resize(self, sender, event):
-        if self.output_box.vertical_position == self.output_box.max_vertical_position:
+        if self.output_box.vertical_position == self.output_box.max_vertical_position or self.scroll_toggle:
             return
         self.output_box.vertical_position = self.output_box.max_vertical_position
 
@@ -2325,6 +2330,9 @@ class Messages(Box):
         self.chat = Chat(self.app, self.main)
 
         self.messages_toggle = None
+        self.request_count = 0
+        self.message_count = 0
+        self.processed_timestamps = set()
 
         
     async def insert_widgets(self, widget):
@@ -2350,8 +2358,6 @@ class Messages(Box):
 
 
     async def gather_unread_memos(self):
-        self.request_count = 0
-        self.message_count = 0
         data = self.storage.is_exists()
         if data:
             address = self.storage.get_identity("address")
@@ -2383,7 +2389,7 @@ class Messages(Box):
                         )
                         await asyncio.sleep(5)
                         notify.hide()
-
+                        
                     self.chat.run_tasks()
 
 
@@ -2401,6 +2407,10 @@ class Messages(Box):
             if form_type == "message":
                 timestamp = await self.get_transaction_timerecived(txid)
                 if timestamp:
+                    if timestamp in self.processed_timestamps:
+                        highest_timestamp = max(self.processed_timestamps)
+                        timestamp = highest_timestamp + 1
+                    self.processed_timestamps.add(timestamp)
                     await self.get_message(form_dict, amount, timestamp)
                     self.storage.tx(txid)
                     self.message_count += 1
@@ -2409,12 +2419,10 @@ class Messages(Box):
                 self.storage.tx(txid)
                 self.request_count += 1
 
+        except (binascii.Error, json.decoder.JSONDecodeError) as e:
+            self.storage.tx(txid)
         except Exception as e:
-            pass
-        except binascii.Error as e:
-            pass
-        except json.decoder.JSONDecodeError as e:
-            pass
+            self.storage.tx(txid)
 
 
     async def get_message(self, form, amount, timestamp):
