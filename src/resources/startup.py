@@ -234,9 +234,9 @@ class BTCZSetup(Box):
         await asyncio.sleep(1)
         bitcoinz_path = self.utils.get_bitcoinz_path()
         config_file_path = self.utils.get_config_path()
-        if not Os.Directory.Exists(bitcoinz_path):
+        if not Os.Directory.Exists(bitcoinz_path) or not Os.Directory.GetFiles(bitcoinz_path):
             self.blockchaine_index = False
-            Os.Directory.CreateDirectory(bitcoinz_path) or not Os.Directory.GetFiles(bitcoinz_path)
+            Os.Directory.CreateDirectory(bitcoinz_path)
         else:
             self.blockchaine_index = True
         if not Os.File.Exists(config_file_path):
