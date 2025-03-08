@@ -156,10 +156,19 @@ class AppToolBar(Box):
             mouse_leave=self.check_update_cmd_mouse_leave,
             icon="images/update_i.ico"
         )
+        self.join_us_cmd = Command(
+            title="Join us",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.join_us_cmd_mouse_enter,
+            mouse_leave=self.join_us_cmd_mouse_leave,
+            icon="images/discord_i.ico"
+        )
         self.help_menu = Command(
             title="Help",
             sub_commands=[
-                self.check_update_cmd
+                self.check_update_cmd,
+                self.join_us_cmd
             ],
             icon="images/help_i.ico",
             drop_opened=self.help_menu_opened,
@@ -296,6 +305,14 @@ class AppToolBar(Box):
     def check_update_cmd_mouse_leave(self):
         self.check_update_cmd.icon = "images/update_i.ico"
         self.check_update_cmd.color = Color.WHITE
+
+    def join_us_cmd_mouse_enter(self):
+        self.join_us_cmd.icon = "images/discord_a.ico"
+        self.join_us_cmd.color = Color.BLACK
+
+    def join_us_cmd_mouse_leave(self):
+        self.join_us_cmd.icon = "images/discord_i.ico"
+        self.join_us_cmd.color = Color.WHITE
 
     def help_menu_opened(self):
         self.help_menu_active = True

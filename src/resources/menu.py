@@ -3,7 +3,7 @@ import asyncio
 import webbrowser
 
 from toga import (
-    Window, Box, Label
+    Window, Box, Label, ImageView
 )
 from ..framework import (
     Drawing, Color, Sys, FormState, Os
@@ -99,6 +99,12 @@ class Menu(Window):
         self.insert_menu_buttons()
 
     def insert_menu_buttons(self):
+        self.home_icon = ImageView(
+            image="images/home_i.png",
+            style=Pack(
+                background_color = rgb(30,33,36)
+            )
+        )
         self.home_label = Label(
             text="Home",
             style=Pack(
@@ -122,9 +128,18 @@ class Menu(Window):
         self.home_button._impl.native.MouseLeave += self.home_button_mouse_leave
         self.home_label._impl.native.MouseEnter += self.home_button_mouse_enter
         self.home_label._impl.native.MouseLeave += self.home_button_mouse_leave
+        self.home_icon._impl.native.MouseEnter += self.home_button_mouse_enter
+        self.home_icon._impl.native.MouseLeave += self.home_button_mouse_leave
         self.home_button._impl.native.Click += self.home_button_click
         self.home_label._impl.native.Click += self.home_button_click
+        self.home_icon._impl.native.Click += self.home_button_click
 
+        self.transactions_icon = ImageView(
+            image="images/txs_i.png",
+            style=Pack(
+                background_color = rgb(30,33,36)
+            )
+        )
         self.transactions_label = Label(
             text="Transactions",
             style=Pack(
@@ -148,9 +163,18 @@ class Menu(Window):
         self.transactions_button._impl.native.MouseLeave += self.transactions_button_mouse_leave
         self.transactions_label._impl.native.MouseEnter += self.transactions_button_mouse_enter
         self.transactions_label._impl.native.MouseLeave += self.transactions_button_mouse_leave
+        self.transactions_icon._impl.native.MouseEnter += self.transactions_button_mouse_enter
+        self.transactions_icon._impl.native.MouseLeave += self.transactions_button_mouse_leave
         self.transactions_button._impl.native.Click += self.transactions_button_click
         self.transactions_label._impl.native.Click += self.transactions_button_click
+        self.transactions_icon._impl.native.Click += self.transactions_button_click
 
+        self.recieve_icon = ImageView(
+            image="images/recieve_i.png",
+            style=Pack(
+                background_color = rgb(30,33,36)
+            )
+        )
         self.recieve_label = Label(
             text="Recieve",
             style=Pack(
@@ -174,9 +198,18 @@ class Menu(Window):
         self.recieve_button._impl.native.MouseLeave += self.recieve_button_mouse_leave
         self.recieve_label._impl.native.MouseEnter += self.recieve_button_mouse_enter
         self.recieve_label._impl.native.MouseLeave += self.recieve_button_mouse_leave
+        self.recieve_icon._impl.native.MouseEnter += self.recieve_button_mouse_enter
+        self.recieve_icon._impl.native.MouseLeave += self.recieve_button_mouse_leave
         self.recieve_button._impl.native.Click += self.recieve_button_click
         self.recieve_label._impl.native.Click += self.recieve_button_click
+        self.recieve_icon._impl.native.Click += self.recieve_button_click
 
+        self.send_icon = ImageView(
+            image="images/send_i.png",
+            style=Pack(
+                background_color = rgb(30,33,36)
+            )
+        )
         self.send_label = Label(
             text="Send",
             style=Pack(
@@ -200,9 +233,18 @@ class Menu(Window):
         self.send_button._impl.native.MouseLeave += self.send_button_mouse_leave
         self.send_label._impl.native.MouseEnter += self.send_button_mouse_enter
         self.send_label._impl.native.MouseLeave += self.send_button_mouse_leave
+        self.send_icon._impl.native.MouseEnter += self.send_button_mouse_enter
+        self.send_icon._impl.native.MouseLeave += self.send_button_mouse_leave
         self.send_button._impl.native.Click += self.send_button_click
         self.send_label._impl.native.Click += self.send_button_click
+        self.send_icon._impl.native.Click += self.send_button_click
 
+        self.message_icon = ImageView(
+            image="images/messages_i.png",
+            style=Pack(
+                background_color = rgb(30,33,36)
+            )
+        )
         self.message_label = Label(
             text="Messages",
             style=Pack(
@@ -226,9 +268,18 @@ class Menu(Window):
         self.message_button._impl.native.MouseLeave += self.message_button_mouse_leave
         self.message_label._impl.native.MouseEnter += self.message_button_mouse_enter
         self.message_label._impl.native.MouseLeave += self.message_button_mouse_leave
+        self.message_icon._impl.native.MouseEnter += self.message_button_mouse_enter
+        self.message_icon._impl.native.MouseLeave += self.message_button_mouse_leave
         self.message_button._impl.native.Click += self.message_button_click
         self.message_label._impl.native.Click += self.message_button_click
+        self.message_icon._impl.native.Click += self.message_button_click
         
+        self.mining_icon = ImageView(
+            image="images/mining_i.png",
+            style=Pack(
+                background_color = rgb(30,33,36)
+            )
+        )
         self.mining_label = Label(
             text="Mining",
             style=Pack(
@@ -252,8 +303,11 @@ class Menu(Window):
         self.mining_button._impl.native.MouseLeave += self.mining_button_mouse_leave
         self.mining_label._impl.native.MouseEnter += self.mining_button_mouse_enter
         self.mining_label._impl.native.MouseLeave += self.mining_button_mouse_leave
+        self.mining_icon._impl.native.MouseEnter += self.mining_button_mouse_enter
+        self.mining_icon._impl.native.MouseLeave += self.mining_button_mouse_leave
         self.mining_button._impl.native.Click += self.mining_button_click
         self.mining_label._impl.native.Click += self.mining_button_click
+        self.mining_icon._impl.native.Click += self.mining_button_click
 
         self.menu_bar.add(
             self.home_button,
@@ -264,21 +318,27 @@ class Menu(Window):
             self.mining_button
         )
         self.home_button.add(
+            self.home_icon,
             self.home_label
         )
         self.transactions_button.add(
+            self.transactions_icon,
             self.transactions_label
         )
         self.recieve_button.add(
+            self.recieve_icon,
             self.recieve_label
         )
         self.send_button.add(
+            self.send_icon,
             self.send_label
         )
         self.message_button.add(
+            self.message_icon,
             self.message_label
         )
         self.mining_button.add(
+            self.mining_icon,
             self.mining_label
         )
 
@@ -302,6 +362,7 @@ class Menu(Window):
         self.toolbar.generate_t_cmd.action = self.new_transparent_address
         self.toolbar.generate_z_cmd.action = self.new_private_address
         self.toolbar.check_update_cmd.action = self.check_app_version
+        self.toolbar.join_us_cmd.action = self.join_us
         self.toolbar.import_key_cmd.action = self.show_import_key
         self.toolbar.edit_username_cmd.action = self.edit_messages_username
         self.toolbar.backup_messages_cmd.action = self.backup_messages
@@ -400,11 +461,19 @@ class Menu(Window):
         self.import_window._impl.native.ShowDialog()
 
 
+    def join_us(self, sender, event):
+        discord = "https://discord.com/invite/aAU2WeJ"
+        webbrowser.open(discord)
+
+
     def home_button_click(self, sender, event):
         self.clear_buttons()
         self.home_button_toggle = True
         self.home_button._impl.native.Click -= self.home_button_click
         self.home_label._impl.native.Click -= self.home_button_click
+        self.home_icon._impl.native.Click -= self.home_button_click
+        self.home_icon.image = "images/home_a.png"
+        self.home_icon.style.background_color = YELLOW
         self.home_label.style.color = WHITE
         self.home_button.style.background_color = YELLOW
         self.pages.add(self.home_page)
@@ -414,11 +483,15 @@ class Menu(Window):
     def home_button_mouse_enter(self, sender, event):
         if self.home_button_toggle:
             return
+        self.home_icon.image = "images/home_a.png"
+        self.home_icon.style.background_color = rgb(66,69,73)
         self.home_button.style.background_color = rgb(66,69,73)
 
     def home_button_mouse_leave(self, sender, event):
         if self.home_button_toggle:
             return
+        self.home_icon.image = "images/home_i.png"
+        self.home_icon.style.background_color = rgb(30,33,36)
         self.home_button.style.background_color = rgb(30,33,36)
 
     def transactions_button_click(self, sender, event):
@@ -426,6 +499,9 @@ class Menu(Window):
         self.transactions_button_toggle = True
         self.transactions_button._impl.native.Click -= self.transactions_button_click
         self.transactions_label._impl.native.Click -= self.transactions_button_click
+        self.transactions_icon._impl.native.Click -= self.transactions_button_click
+        self.transactions_icon.image = "images/txs_a.png"
+        self.transactions_icon.style.background_color = YELLOW
         self.transactions_label.style.color = WHITE
         self.transactions_button.style.background_color = YELLOW
         self.pages.add(self.transactions_page)
@@ -434,11 +510,15 @@ class Menu(Window):
     def transactions_button_mouse_enter(self, sender, event):
         if self.transactions_button_toggle:
             return
+        self.transactions_icon.image = "images/txs_a.png"
+        self.transactions_icon.style.background_color = rgb(66,69,73)
         self.transactions_button.style.background_color = rgb(66,69,73)
 
     def transactions_button_mouse_leave(self, sender, event):
         if self.transactions_button_toggle:
             return
+        self.transactions_icon.image = "images/txs_i.png"
+        self.transactions_icon.style.background_color = rgb(30,33,36)
         self.transactions_button.style.background_color = rgb(30,33,36)
 
     def recieve_button_click(self, sender, event):
@@ -446,6 +526,9 @@ class Menu(Window):
         self.recieve_button_toggle = True
         self.recieve_button._impl.native.Click -= self.recieve_button_click
         self.recieve_label._impl.native.Click -= self.recieve_button_click
+        self.recieve_icon._impl.native.Click -= self.recieve_button_click
+        self.recieve_icon.image = "images/recieve_a.png"
+        self.recieve_icon.style.background_color = YELLOW
         self.recieve_label.style.color = WHITE
         self.recieve_button.style.background_color = YELLOW
         self.pages.add(self.recieve_page)
@@ -454,11 +537,15 @@ class Menu(Window):
     def recieve_button_mouse_enter(self, sender, event):
         if self.recieve_button_toggle:
             return
+        self.recieve_icon.image = "images/recieve_a.png"
+        self.recieve_icon.style.background_color = rgb(66,69,73)
         self.recieve_button.style.background_color = rgb(66,69,73)
 
     def recieve_button_mouse_leave(self, sender, event):
         if self.recieve_button_toggle:
             return
+        self.recieve_icon.image = "images/recieve_i.png"
+        self.recieve_icon.style.background_color = rgb(30,33,36)
         self.recieve_button.style.background_color = rgb(30,33,36)
 
     def send_button_click(self, sender, event):
@@ -466,6 +553,9 @@ class Menu(Window):
         self.send_button_toggle = True
         self.send_button._impl.native.Click -= self.send_button_click
         self.send_label._impl.native.Click -= self.send_button_click
+        self.send_icon._impl.native.Click -= self.send_button_click
+        self.send_icon.image = "images/send_a.png"
+        self.send_icon.style.background_color = YELLOW
         self.send_label.style.color = WHITE
         self.send_button.style.background_color = YELLOW
         self.pages.add(self.send_page)
@@ -474,11 +564,15 @@ class Menu(Window):
     def send_button_mouse_enter(self, sender, event):
         if self.send_button_toggle:
             return
+        self.send_icon.image = "images/send_a.png"
+        self.send_icon.style.background_color = rgb(66,69,73)
         self.send_button.style.background_color = rgb(66,69,73)
 
     def send_button_mouse_leave(self, sender, event):
         if self.send_button_toggle:
             return
+        self.send_icon.image = "images/send_i.png"
+        self.send_icon.style.background_color = rgb(30,33,36)
         self.send_button.style.background_color = rgb(30,33,36)
 
     def message_button_click(self, sender, event):
@@ -486,6 +580,8 @@ class Menu(Window):
         self.message_button_toggle = True
         self.message_button._impl.native.Click -= self.message_button_click
         self.message_label._impl.native.Click -= self.message_button_click
+        self.message_icon._impl.native.Click -= self.message_button_click
+        self.message_icon.style.background_color = YELLOW
         self.message_label.style.color = WHITE
         self.message_button.style.background_color = YELLOW
         self.pages.add(self.message_page)
@@ -494,11 +590,15 @@ class Menu(Window):
     def message_button_mouse_enter(self, sender, event):
         if self.message_button_toggle:
             return
+        self.message_icon.image = "images/messages_a.png"
+        self.message_icon.style.background_color = rgb(66,69,73)
         self.message_button.style.background_color = rgb(66,69,73)
 
     def message_button_mouse_leave(self, sender, event):
         if self.message_button_toggle:
             return
+        self.message_icon.image = "images/messages_i.png"
+        self.message_icon.style.background_color = rgb(30,33,36)
         self.message_button.style.background_color = rgb(30,33,36)
 
     def mining_button_click(self, sender, event):
@@ -506,6 +606,9 @@ class Menu(Window):
         self.mining_button_toggle = True
         self.mining_button._impl.native.Click -= self.mining_button_click
         self.mining_label._impl.native.Click -= self.mining_button_click
+        self.mining_icon._impl.native.Click -= self.mining_button_click
+        self.mining_icon.image = "images/mining_a.png"
+        self.mining_icon.style.background_color = YELLOW
         self.mining_label.style.color = WHITE
         self.mining_button.style.background_color = YELLOW
         self.pages.add(self.mining_page)
@@ -514,11 +617,15 @@ class Menu(Window):
     def mining_button_mouse_enter(self, sender, event):
         if self.mining_button_toggle:
             return
+        self.mining_icon.image = "images/mining_a.png"
+        self.mining_icon.style.background_color = rgb(66,69,73)
         self.mining_button.style.background_color = rgb(66,69,73)
 
     def mining_button_mouse_leave(self, sender, event):
         if self.mining_button_toggle:
             return
+        self.mining_icon.image = "images/mining_i.png"
+        self.mining_icon.style.background_color = rgb(30,33,36)
         self.mining_button.style.background_color = rgb(30,33,36)
 
     def clear_buttons(self):
@@ -527,6 +634,9 @@ class Menu(Window):
             self.pages.remove(self.home_page)
             self.home_button._impl.native.Click += self.home_button_click
             self.home_label._impl.native.Click += self.home_button_click
+            self.home_icon._impl.native.Click += self.home_button_click
+            self.home_icon.image = "images/home_i.png"
+            self.home_icon.style.background_color = rgb(30,33,36)
             self.home_label.style.color = GRAY
             self.home_button.style.background_color = rgb(30,33,36)
 
@@ -535,6 +645,9 @@ class Menu(Window):
             self.pages.remove(self.transactions_page)
             self.transactions_button._impl.native.Click += self.transactions_button_click
             self.transactions_label._impl.native.Click += self.transactions_button_click
+            self.transactions_icon._impl.native.Click += self.transactions_button_click
+            self.transactions_icon.image = "images/txs_i.png"
+            self.transactions_icon.style.background_color = rgb(30,33,36)
             self.transactions_label.style.color = GRAY
             self.transactions_button.style.background_color = rgb(30,33,36)
 
@@ -543,6 +656,9 @@ class Menu(Window):
             self.pages.remove(self.recieve_page)
             self.recieve_button._impl.native.Click += self.recieve_button_click
             self.recieve_label._impl.native.Click += self.recieve_button_click
+            self.recieve_icon._impl.native.Click += self.recieve_button_click
+            self.recieve_icon.image = "images/recieve_i.png"
+            self.recieve_icon.style.background_color = rgb(30,33,36)
             self.recieve_label.style.color = GRAY
             self.recieve_button.style.background_color = rgb(30,33,36)
 
@@ -551,6 +667,9 @@ class Menu(Window):
             self.pages.remove(self.send_page)
             self.send_button._impl.native.Click += self.send_button_click
             self.send_label._impl.native.Click += self.send_button_click
+            self.send_icon._impl.native.Click += self.send_button_click
+            self.send_icon.image = "images/send_i.png"
+            self.send_icon.style.background_color = rgb(30,33,36)
             self.send_label.style.color = GRAY
             self.send_button.style.background_color = rgb(30,33,36)
 
@@ -559,6 +678,9 @@ class Menu(Window):
             self.pages.remove(self.message_page)
             self.message_button._impl.native.Click += self.message_button_click
             self.message_label._impl.native.Click += self.message_button_click
+            self.message_icon._impl.native.Click += self.message_button_click
+            self.message_icon.image = "images/messages_i.png"
+            self.message_icon.style.background_color = rgb(30,33,36)
             self.message_label.style.color = GRAY
             self.message_button.style.background_color = rgb(30,33,36)
 
@@ -567,6 +689,9 @@ class Menu(Window):
             self.pages.remove(self.mining_page)
             self.mining_button._impl.native.Click += self.mining_button_click
             self.mining_label._impl.native.Click += self.mining_button_click
+            self.mining_icon._impl.native.Click += self.mining_button_click
+            self.mining_icon.image = "images/mining_i.png"
+            self.mining_icon.style.background_color = rgb(30,33,36)
             self.mining_label.style.color = GRAY
             self.mining_button.style.background_color = rgb(30,33,36)
 
