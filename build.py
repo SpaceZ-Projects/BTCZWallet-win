@@ -73,6 +73,20 @@ def select_python_version():
         print("Invalid choice. Exiting.")
         sys.exit(1)
 
+def operation_choice():
+    print("Select a operation:")
+    print("0. build app")
+    print("1. run app")
+    choice = int(input("Enter the number corresponding to your choice: "))
+    if choice == 0:
+        return 0
+    elif choice == 1:
+        return 1
+    else:
+        print("Invalid choice! Please select 0 or 1.")
+        sys.exit(1)
+
+
 def create_virtualenv(env, python_version):
     print(f"Creating virtual environment with Python {python_version}...")
     subprocess.check_call(
@@ -99,6 +113,12 @@ def build_app(env):
         shutil.rmtree(build_dir)
     subprocess.check_call(
         [os.path.join(env, 'Scripts', 'briefcase'), "build"]
+    )
+
+def run_app(env):
+    print(f"Running App...")
+    subprocess.check_call(
+        [os.path.join(env, 'Scripts', 'briefcase'), "dev"]
     )
 
 def download_nsis():
@@ -141,6 +161,8 @@ def main():
         create_virtualenv(env, python_version)
         upgrade_pip(env)
 
+    operation = operation_choice()
+
     try:
         subprocess.check_call(
             [os.path.join(env, 'Scripts', 'pip'), "show", "briefcase"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -148,10 +170,13 @@ def main():
     except subprocess.CalledProcessError:
         install_briefcase(env)
 
-    build_app(env)
-
-    download_nsis()
-    build_installer()
+    if operation == 0:
+        build_app(env)
+        download_nsis()
+        build_installer()
+        
+    elif operation == 1:
+        run_app(env)
 
 if __name__ == "__main__":
     main()
