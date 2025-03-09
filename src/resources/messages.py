@@ -1308,6 +1308,8 @@ class Chat(Box):
         self.new_pending_toggle = None
         self.scroll_toggle = None
         self.unread_messages_toggle = None
+        self.last_message_timestamp = None
+        self.last_unread_timestamp = None
         self.processed_timestamps = set()
 
         self.add_contact = ImageView(
@@ -1848,6 +1850,8 @@ class Chat(Box):
         if self.selected_contact_toggle:
             self.contact_info_box.clear()
             self.messages_box.clear()
+            self.last_message_timestamp = None
+            self.last_unread_timestamp = None
         username_label = Label(
             text="Username :",
             style=Pack(
@@ -1906,15 +1910,11 @@ class Chat(Box):
         self.contact_id = contact_id
         self.user_address = address
 
-        self.selected_contact_toggle = True
-        self.last_message_timestamp = None
-        self.last_unread_timestamp = None
-
         messages = self.storage.get_messages(self.contact_id)
         unread_messages = self.storage.get_unread_messages(self.contact_id)
         if messages:
             messages = sorted(messages, key=lambda x: x[3], reverse=True)
-            recent_messages = messages[:5]
+            recent_messages = messages[:10]
             self.last_message_timestamp = recent_messages[-1][3]
             for data in recent_messages:
                 message_username = data[0]
@@ -1932,15 +1932,13 @@ class Chat(Box):
                 self.messages_box.insert(
                     0, message
                 )
-            self.output_box.vertical_position = self.output_box.max_vertical_position
         if unread_messages:
             unread_messages = sorted(unread_messages, key=lambda x: x[3], reverse=True)
-            recent_unread_messages = unread_messages[:5]
+            recent_unread_messages = unread_messages[:10]
             self.last_unread_timestamp = recent_unread_messages[-1][3]
             self.messages_box.add(
                 self.unread_label
             )
-            self.output_box.vertical_position = self.output_box.max_vertical_position
             for data in unread_messages:
                 message_username = data[0]
                 message_text = data[1]
@@ -1958,7 +1956,8 @@ class Chat(Box):
                     6, message
                 )
         self.output_box.on_scroll = self.update_messages_on_scroll
-        self.app.add_background_task(self.update_current_messages)      
+        self.app.add_background_task(self.update_current_messages)
+        self.selected_contact_toggle = True      
 
 
     async def update_current_messages(self, widget):
