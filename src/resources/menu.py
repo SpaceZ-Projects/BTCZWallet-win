@@ -34,7 +34,7 @@ class Menu(Window):
         super().__init__()
 
         self.title = "BitcoinZ Wallet"
-        self.size = (900,600)
+        self.size = (900,607)
         self._impl.native.BackColor = Color.rgb(30,33,36)
 
         self.commands = Client(self.app)
@@ -699,7 +699,7 @@ class Menu(Window):
     
     def _handle_on_resize(self, sender, event:Sys.EventArgs):
         min_width = 916
-        min_height = 639
+        min_height = 646
         self._impl.native.MinimumSize = Drawing.Size(min_width, min_height)
 
         if self._impl.native.WindowState == FormState.NORMAL:
