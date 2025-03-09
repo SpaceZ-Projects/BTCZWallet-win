@@ -1799,33 +1799,40 @@ class Chat(Box):
             contacts = self.storage.get_contacts()
             if contacts:
                 for data in contacts:
-                    category = data[0]
-                    contact_id = data[2]
-                    username = data[3]
-                    address = data[4]
-                    if contact_id not in self.contacts:
-                        contact = Contact(
-                            category=category,
-                            contact_id=contact_id,
-                            username=username,
-                            address=address,
-                            app = self.app,
-                            chat = self,
-                            main = self.main
-                        )
-                        contact._impl.native.Click += lambda sender, event, contact_id=contact_id, address=address:self.contact_click(
-                            sender, event, contact_id, address)
-                        contact.category_icon._impl.native.Click += lambda sender, event, contact_id=contact_id, address=address:self.contact_click(
-                            sender, event, contact_id, address)
-                        contact.username_label._impl.native.Click += lambda sender, event, contact_id=contact_id, address=address:self.contact_click(
-                            sender, event, contact_id, address)
-                        contact.unread_messages._impl.native.Click += lambda sender, event, contact_id=contact_id, address=address:self.contact_click(
-                            sender, event, contact_id, address)
-                        
-                        self.contacts_box.add(
-                            contact
-                        )
-                        self.contacts.append(contact_id)
+                    try:
+                        category = data[0]
+                        contact_id = data[2]
+                        username = data[3]
+                        address = data[4]
+                        if contact_id not in self.contacts:
+                            contact = Contact(
+                                category=category,
+                                contact_id=contact_id,
+                                username=username,
+                                address=address,
+                                app = self.app,
+                                chat = self,
+                                main = self.main
+                            )
+                            contact._impl.native.Click += lambda sender, event, contact_id=contact_id, address=address:self.contact_click(
+                                sender, event, contact_id, address)
+                            contact.category_icon._impl.native.Click += lambda sender, event, contact_id=contact_id, address=address:self.contact_click(
+                                sender, event, contact_id, address)
+                            contact.username_label._impl.native.Click += lambda sender, event, contact_id=contact_id, address=address:self.contact_click(
+                                sender, event, contact_id, address)
+                            contact.unread_messages._impl.native.Click += lambda sender, event, contact_id=contact_id, address=address:self.contact_click(
+                                sender, event, contact_id, address)
+                            
+                            self.contacts_box.add(
+                                contact
+                            )
+                            self.contacts.append(contact_id)
+                    except IndexError:
+                        print(f"Skipping contact due to missing data: {data}")
+                        continue
+                    except Exception as e:
+                        print(f"Unexpected error: {e}, data: {data}")
+                        continue
             await asyncio.sleep(5)
 
 
@@ -1914,7 +1921,7 @@ class Chat(Box):
         unread_messages = self.storage.get_unread_messages(self.contact_id)
         if messages:
             messages = sorted(messages, key=lambda x: x[3], reverse=True)
-            recent_messages = messages[:10]
+            recent_messages = messages[:5]
             self.last_message_timestamp = recent_messages[-1][3]
             for data in recent_messages:
                 message_username = data[0]
@@ -1934,7 +1941,7 @@ class Chat(Box):
                 )
         if unread_messages:
             unread_messages = sorted(unread_messages, key=lambda x: x[3], reverse=True)
-            recent_unread_messages = unread_messages[:10]
+            recent_unread_messages = unread_messages[:5]
             self.last_unread_timestamp = recent_unread_messages[-1][3]
             self.messages_box.add(
                 self.unread_label
