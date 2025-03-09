@@ -1635,14 +1635,19 @@ class Chat(Box):
                 listunspent, _= await self.commands.z_listUnspent(address[0])
                 if listunspent:
                     listunspent = json.loads(listunspent)
+                    self.count_list_unspent(listunspent)
+                    if len(listunspent) >= 54:
+                        total_balance,_ = await self.commands.z_getBalance(address[0])
+                        merge_fee = 0.0002
+                        txfee = 0.0001
+                        amount = float(total_balance) - merge_fee
+                        await self.merge_utxos(address[0], amount, txfee)
+                        return
                     list_txs = self.storage.get_txs()
-
                     for data in listunspent:
                         txid = data['txid']
                         if txid not in list_txs:
                             await self.unhexlify_memo(data)
-
-                    self.count_list_unspent(listunspent)
 
             await asyncio.sleep(5)
 
@@ -1656,6 +1661,28 @@ class Chat(Box):
         else:
             self.list_unspent_utxos.style.color = WHITE
         self.list_unspent_utxos.text = count
+
+
+    async def merge_utxos(self, address, amount, txfee):
+        memo = "merge"
+        operation, _= await self.commands.SendMemo(address, address, amount, txfee, memo)
+        if operation:
+            transaction_status, _= await self.commands.z_getOperationStatus(operation)
+            transaction_status = json.loads(transaction_status)
+            if isinstance(transaction_status, list) and transaction_status:
+                status = transaction_status[0].get('status')
+                if status == "executing" or status =="success":
+                    await asyncio.sleep(1)
+                    while True:
+                        transaction_result, _= await self.commands.z_getOperationResult(operation)
+                        transaction_result = json.loads(transaction_result)
+                        if isinstance(transaction_result, list) and transaction_result:
+                            status = transaction_result[0].get('status')
+                            result = transaction_result[0].get('result', {})
+                            txid = result.get('txid')
+                            self.storage.tx(txid)
+                            return
+                        await asyncio.sleep(3)
 
 
     async def unhexlify_memo(self, data):
@@ -1673,32 +1700,16 @@ class Chat(Box):
                 await self.get_identity(form_dict)
                 self.storage.tx(txid)
             elif form_type == "message":
-                timestamp = await self.get_transaction_timerecived(txid)
-                if timestamp:
-                    if timestamp in self.processed_timestamps:
-                        highest_timestamp = max(self.processed_timestamps)
-                        timestamp = highest_timestamp + 1
-                    self.processed_timestamps.add(timestamp)
-                    await self.get_message(form_dict, amount, timestamp)
-                    self.storage.tx(txid)
+                await self.get_message(form_dict, amount)
+                self.storage.tx(txid)
             elif form_type == "request":
                 await self.get_request(form_dict)
                 self.storage.tx(txid)
 
         except (binascii.Error, json.decoder.JSONDecodeError) as e:
             self.storage.tx(txid)
-            print(f"Received new transaction. Amount: {amount}")
         except Exception as e:
             self.storage.tx(txid)
-            print(f"Received new transaction. Amount: {amount}")
-
-
-    async def get_transaction_timerecived(self, txid):
-        transaction = await self.commands.getTransaction(txid)
-        json_str = transaction[0]
-        data = json.loads(json_str)
-        timerecived = data.get("timereceived", None)
-        return timerecived
 
 
     async def get_identity(self, form):
@@ -1723,10 +1734,11 @@ class Chat(Box):
             notify.hide()
 
 
-    async def get_message(self, form, amount, timestamp):
+    async def get_message(self, form, amount):
         contact_id = form.get('id')
         author = form.get('username')
         message = form.get('text')
+        timestamp = form.get('timestamp')
         contact_username = self.storage.get_contact_username(contact_id)
         if not contact_username:
             return
@@ -1737,6 +1749,7 @@ class Chat(Box):
             self.username_value.text = author
         else:
             await self.handler_unread_message(contact_id, author, message, amount, timestamp)
+        self.processed_timestamps.add(timestamp)
 
 
     async def handler_unread_message(self,contact_id, author, message, amount, timestamp):
@@ -1746,7 +1759,7 @@ class Chat(Box):
         notify.show()
         notify.send_note(
             title="New Message",
-            text=f"From : {author}"
+            text=f"{author} : {message[:100]}"
         )
         await asyncio.sleep(5)
         notify.hide()
@@ -2160,7 +2173,8 @@ class Chat(Box):
         fee = self.fee_input.value
         amount = float(fee) - 0.0001
         txfee = 0.0001
-        memo = {"type":"message","id":id[0],"username":username,"text":message}
+        timestamp = await self.get_message_timestamp()
+        memo = {"type":"message","id":id[0],"username":username,"text":message, "timestamp":timestamp}
         memo_str = json.dumps(memo)
         self.disable_send_button()
         await self.send_memo(
@@ -2169,11 +2183,12 @@ class Chat(Box):
             txfee,
             memo_str,
             author,
-            message
+            message,
+            timestamp
         )
 
 
-    async def send_memo(self, address, amount, txfee, memo, author, text):
+    async def send_memo(self, address, amount, txfee, memo, author, text, timestamp):
         operation, _= await self.commands.SendMemo(address, self.user_address, amount, txfee, memo)
         if operation:
             transaction_status, _= await self.commands.z_getOperationStatus(operation)
@@ -2190,7 +2205,6 @@ class Chat(Box):
                             result = transaction_result[0].get('result', {})
                             txid = result.get('txid')
                             self.storage.tx(txid)
-                            timestamp = await self.get_transaction_timerecived(txid)
                             self.storage.message(self.contact_id, author, text, amount, timestamp)
                             self.enable_send_button()
                             self.send_button._impl.native.Focus()
@@ -2311,6 +2325,20 @@ class Chat(Box):
         self.copy_address.image = "images/copy_i.png"
 
 
+    async def get_message_timestamp(self):
+        blockchaininfo, _ = await self.commands.getBlockchainInfo()
+        if blockchaininfo is not None:
+            if isinstance(blockchaininfo, str):
+                info = json.loads(blockchaininfo)
+                if info is not None:
+                    timestamp = info.get('mediantime')
+                    if timestamp in self.processed_timestamps:
+                        highest_timestamp = max(self.processed_timestamps)
+                        timestamp = highest_timestamp + 1
+                    self.processed_timestamps.add(timestamp)
+                    return timestamp
+
+
 class Messages(Box):
     def __init__(self, app:App, main:Window):
         super().__init__(
@@ -2332,7 +2360,6 @@ class Messages(Box):
         self.messages_toggle = None
         self.request_count = 0
         self.message_count = 0
-        self.processed_timestamps = set()
 
         
     async def insert_widgets(self, widget):
@@ -2405,15 +2432,9 @@ class Messages(Box):
             form_type = form_dict.get('type')
 
             if form_type == "message":
-                timestamp = await self.get_transaction_timerecived(txid)
-                if timestamp:
-                    if timestamp in self.processed_timestamps:
-                        highest_timestamp = max(self.processed_timestamps)
-                        timestamp = highest_timestamp + 1
-                    self.processed_timestamps.add(timestamp)
-                    await self.get_message(form_dict, amount, timestamp)
-                    self.storage.tx(txid)
-                    self.message_count += 1
+                await self.get_message(form_dict, amount)
+                self.storage.tx(txid)
+                self.message_count += 1
             elif form_type == "request":
                 await self.get_request(form_dict)
                 self.storage.tx(txid)
@@ -2425,14 +2446,16 @@ class Messages(Box):
             self.storage.tx(txid)
 
 
-    async def get_message(self, form, amount, timestamp):
+    async def get_message(self, form, amount):
         id = form.get('id')
         author = form.get('username')
         message = form.get('text')
+        timestamp = form.get('timestamp')
         contacts_ids = self.storage.get_contacts("contact_id")
         if id not in contacts_ids:
             return
         self.storage.unread_message(id, author, message, amount, timestamp)
+        self.chat.processed_timestamps.add(timestamp)
 
 
     async def get_request(self, form):
@@ -2444,11 +2467,3 @@ class Messages(Box):
         if address in banned:
             return
         self.storage.add_pending(category, id, username, address)
-
-
-    async def get_transaction_timerecived(self, txid):
-        transaction = await self.commands.getTransaction(txid)
-        json_str = transaction[0]
-        data = json.loads(json_str)
-        timerecived = data.get("timereceived", None)
-        return timerecived
