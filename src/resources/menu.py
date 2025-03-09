@@ -33,17 +33,15 @@ class Menu(Window):
     def __init__(self):
         super().__init__()
 
-        self.commands = Client(self.app)
-        self.utils = Utils(self.app)
-        self.notify = Notify(self.app)
-        self.toolbar = AppToolBar(self.app, self.notify)
-        self.statusbar = AppStatusBar(self.app)
-        self.wallet = Wallet(self.app)
-        self.storage = Storage(self.app)
-
         self.title = "BitcoinZ Wallet"
         self.size = (900,600)
         self._impl.native.BackColor = Color.rgb(30,33,36)
+
+        self.commands = Client(self.app)
+        self.utils = Utils(self.app)
+        self.storage = Storage(self.app)
+        self.statusbar = AppStatusBar(self.app)
+        self.wallet = Wallet(self.app)
         
         self._is_minimized = None
         
@@ -79,12 +77,15 @@ class Menu(Window):
                 background_color = rgb(30,33,36)
             )
         )
+
         self.home_page = Home(self.app)
         self.transactions_page = Transactions(self.app, self)
         self.recieve_page = Recieve(self.app, self)
         self.send_page = Send(self.app, self)
         self.message_page = Messages(self.app, self)
         self.mining_page = Mining(self.app, self)
+        self.notify = Notify(self.app, self.home_page, self.mining_page)
+        self.toolbar = AppToolBar(self.app, self.notify, self.home_page, self.mining_page)
 
         self.main_box.add(
             self.toolbar,
@@ -717,5 +718,7 @@ class Menu(Window):
     def on_close_menu(self, widget):
         if self.mining_page.mining_status:
             return
+        self.home_page.bitcoinz_curve.image = None
+        self.home_page.clear_cache()
         self.notify.hide()
         self.app.exit()

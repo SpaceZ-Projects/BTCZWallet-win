@@ -4,6 +4,7 @@ import requests
 from datetime import datetime
 
 from toga import App, Box, Label, ImageView
+from ..framework import Os
 from toga.style.pack import Pack
 from toga.constants import (
     COLUMN, ROW, TOP, LEFT, BOLD, RIGHT,
@@ -33,7 +34,7 @@ class Home(Box):
         self.home_toggle = None
         self.cap_toggle = None
         self.volume_toggle = None
-        self.curve_toggle = None
+        self.curve_image = None
 
         self.market_label = Label(
             text="MarketCap :",
@@ -351,8 +352,16 @@ class Home(Box):
                 curve_image = self.utils.create_curve(data)
                 if curve_image:
                     self.bitcoinz_curve.image = curve_image
+                    if self.curve_image:
+                        Os.File.Delete(self.curve_image)
+                    self.curve_image = curve_image
 
-            await asyncio.sleep(3600)
+            await asyncio.sleep(602)
+
+
+    def clear_cache(self):
+        if self.curve_image:
+            Os.File.Delete(self.curve_image)
 
     def _add_cap_on_resize(self, sender, event):
         box_width = self.market_box._impl.native.Width

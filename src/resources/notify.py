@@ -4,9 +4,11 @@ from ..framework import NotifyIcon, Command
 
 
 class Notify(NotifyIcon):
-    def __init__(self, app:App):
+    def __init__(self, app:App, home_page, mining_page):
 
         self.app = app
+        self.home_page = home_page
+        self.mining_page = mining_page
 
         self.exit_cmd = Command(
             title="Exit",
@@ -19,6 +21,10 @@ class Notify(NotifyIcon):
         )
 
     def exit_app(self):
+        if self.mining_page.mining_status:
+            return
+        self.home_page.bitcoinz_curve.image = None
+        self.home_page.clear_cache()
         self.hide()
         self.app.exit()
 

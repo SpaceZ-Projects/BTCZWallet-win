@@ -10,7 +10,7 @@ from .client import Client
 from .utils import Utils
 
 class AppToolBar(Box):
-    def __init__(self, app:App, notify):
+    def __init__(self, app:App, notify, home_page ,mining_page):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -20,6 +20,8 @@ class AppToolBar(Box):
         )
         self.app = app
         self.notify = notify
+        self.home_page = home_page
+        self.mining_page = mining_page
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
 
@@ -354,10 +356,18 @@ class AppToolBar(Box):
         self.app.about()
 
     def exit_app(self):
+        if self.mining_page.mining_status:
+            return
+        self.home_page.bitcoinz_curve.image = None
+        self.home_page.clear_cache()
         self.notify.hide()
         self.app.exit()
 
     def stop_node_exit(self):
+        if self.mining_page.mining_status:
+            return
         run_async(self.commands.stopNode())
+        self.home_page.bitcoinz_curve.image = None
+        self.home_page.clear_cache()
         self.notify.hide()
         self.app.exit()

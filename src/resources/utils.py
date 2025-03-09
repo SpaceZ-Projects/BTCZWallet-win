@@ -532,7 +532,8 @@ addnode=37.187.76.80:1989
             price = min_price + i * price_interval
             y = scale_y(price)
             draw.text((margin_left - 100, y - 10), f"{self.format_price(price)}", font=font, fill="white")
-        curve_image_path = Os.Path.Combine(str(self.app_cache), 'curve.png')
+        timestamp_str = df['timestamp'].iloc[0].strftime('%Y%m%d_%H%M%S')
+        curve_image_path = Os.Path.Combine(str(self.app_cache), f'curve_{timestamp_str}.png')
         img.save(curve_image_path)
 
         return curve_image_path
