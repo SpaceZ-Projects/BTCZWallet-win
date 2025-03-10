@@ -4,6 +4,7 @@ import json
 import binascii
 from datetime import datetime
 import webbrowser
+from decimal import Decimal
 
 from toga import (
     App, Box, Label, Window, TextInput, ImageView,
@@ -1640,9 +1641,9 @@ class Chat(Box):
                     self.count_list_unspent(listunspent)
                     if len(listunspent) >= 54:
                         total_balance,_ = await self.commands.z_getBalance(address[0])
-                        merge_fee = 0.0002
-                        txfee = 0.0001
-                        amount = float(total_balance) - merge_fee
+                        merge_fee = Decimal('0.0002')
+                        txfee = Decimal('0.0001')
+                        amount = Decimal(total_balance) - merge_fee
                         await self.merge_utxos(address[0], amount, txfee)
                         return
                     list_txs = self.storage.get_txs()
@@ -1681,6 +1682,8 @@ class Chat(Box):
                         if isinstance(transaction_result, list) and transaction_result:
                             status = transaction_result[0].get('status')
                             result = transaction_result[0].get('result', {})
+                            if status == "failed":
+                                    return
                             txid = result.get('txid')
                             self.storage.tx(txid)
                             return
