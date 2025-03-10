@@ -440,6 +440,8 @@ class Mining(Box):
 
 
     async def update_region_server(self, selection):
+        if self.selected_pool == "Select Pool":
+            return
         self.selected_server = self.pool_region_selection.value.server
         if not self.selected_server:
             return
