@@ -2183,18 +2183,19 @@ class Chat(Box):
         amount = float(fee) - 0.0001
         txfee = 0.0001
         timestamp = await self.get_message_timestamp()
-        memo = {"type":"message","id":id[0],"username":username,"text":message, "timestamp":timestamp}
-        memo_str = json.dumps(memo)
-        self.disable_send_button()
-        await self.send_memo(
-            address,
-            amount,
-            txfee,
-            memo_str,
-            author,
-            message,
-            timestamp
-        )
+        if timestamp is not None:
+            memo = {"type":"message","id":id[0],"username":username,"text":message, "timestamp":timestamp}
+            memo_str = json.dumps(memo)
+            self.disable_send_button()
+            await self.send_memo(
+                address,
+                amount,
+                txfee,
+                memo_str,
+                author,
+                message,
+                timestamp
+            )
 
 
     async def send_memo(self, address, amount, txfee, memo, author, text, timestamp):
