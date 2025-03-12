@@ -176,7 +176,8 @@ class Mining(Box):
                 {"pool": "Zeropool"},
                 {"pool": "PCmining"},
                 {"pool": "Darkfibersmines"},
-                {"pool": "Zergpool"}
+                {"pool": "Zergpool"},
+                {"pool": "Zpool"}
             ],
             accessor="pool",
             on_change=self.update_server_selection
@@ -219,7 +220,7 @@ class Mining(Box):
             )
         )
         self.worker_input = TextInput(
-            placeholder="Wroker Name",
+            placeholder="Worker Name",
             style=Pack(
                 color = WHITE,
                 text_align= CENTER,
@@ -430,6 +431,13 @@ class Mining(Box):
                 {"region": "Europe", "server": "equihash144.eu.mine.zergpool.com:2146"},
                 {"region": "Asia", "server": "equihash144.asia.mine.zergpool.com:2146"}
             ]
+        elif self.selected_pool == "Zpool":
+            pool_rergion_items = [
+                {"region": "Europe", "server": "equihash144.eu.mine.zpool.ca:2144"},
+                {"region": "North America", "server": "equihash144.na.mine.zpool.ca:2144"},
+                {"region": "Asia", "server": "equihash144.sea.mine.zpool.ca:2144"},
+                {"region": "Japan", "server": "equihash144.jp.mine.zpool.ca:2144"}
+            ]
         else:
             self.pool_region_selection.items.clear()
             self.pool_region_selection.enabled = False
@@ -480,9 +488,15 @@ class Mining(Box):
         miner_path,_,_ = self.utils.get_miner_path(self.selected_miner)
         if miner_path:
             if self.selected_miner == "MiniZ":
-                command = [f'{miner_path} --url {self.selected_address}.{self.worker_name}@{self.selected_server} --pass x --par 144,5 --pers BitcoinZ']
+                if self.selected_pool == "Zpool":
+                    command = [f'{miner_path} --url {self.selected_address}.{self.worker_name}@{self.selected_server} --pass c=BTCZ,zap=BTCZ']
+                else:
+                    command = [f'{miner_path} --url {self.selected_address}.{self.worker_name}@{self.selected_server} --pass x --par 144,5 --pers BitcoinZ']
             elif self.selected_miner == "Gminer":
-                command = [f'{miner_path} --server {self.selected_server} --user {self.selected_address}.{self.worker_name} --pass x --algo 144_5 --pers BitcoinZ']
+                if self.selected_pool == "Zpool":
+                    command = [f'{miner_path} --server {self.selected_server} --user {self.selected_address}.{self.worker_name} --pass c=BTCZ,zap=BTCZ --algo 144_5 --pers BitcoinZ']
+                else:
+                    command = [f'{miner_path} --server {self.selected_server} --user {self.selected_address}.{self.worker_name} --pass x --algo 144_5 --pers BitcoinZ']
             self.disable_mining_inputs()
             await self.start_mining_command(command)
 
@@ -523,6 +537,7 @@ class Mining(Box):
             self.update_mining_button("start")
             self.enable_mining_inputs()
             self.enable_mining_button()
+            self.mining_status = False
 
 
     def print_outputs(self, line):
