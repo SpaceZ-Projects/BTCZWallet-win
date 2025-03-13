@@ -261,7 +261,8 @@ class Mining(Box):
             content=self.ouputs_box,
             style=Pack(
                 background_color = rgb(40,43,48),
-                flex = 1
+                flex = 1,
+                padding_right = 6
             )
         )
 

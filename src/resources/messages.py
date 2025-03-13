@@ -16,7 +16,7 @@ from ..framework import (
     ScrollBars, Forms, Command
 )
 from toga.style.pack import Pack
-from toga.constants import COLUMN, ROW, CENTER, BOLD, RIGHT, LEFT, BOTTOM
+from toga.constants import COLUMN, ROW, CENTER, BOLD, RIGHT, LEFT, BOTTOM, HIDDEN, VISIBLE
 from toga.colors import rgb, WHITE, GRAY, RED, YELLOW, ORANGE
 
 from .storage import Storage
@@ -452,6 +452,7 @@ class Contact(Box):
         self.contact_id = contact_id
         self.username = username
         self.address = address
+        self.unread_count = 0
 
         if self.category == "individual":
             image_path = "images/individual.png"
@@ -544,13 +545,18 @@ class Contact(Box):
                 continue
             username = self.storage.get_contact_username(self.contact_id)
             if username:
-                self.username_label.text = username[0]
+                if username[0] != self.username:
+                    self.username_label.text = username[0]
             unread_messages = self.storage.get_unread_messages(self.contact_id)
             if unread_messages:
                 unread_count = len(unread_messages)
-                self.unread_messages.text = unread_count
+                if unread_count > self.unread_count:
+                    self.unread_messages.text = unread_count
+                    self.unread_messages.style.visibility = VISIBLE
+                    self.unread_count = unread_count
             else:
-                self.unread_messages.text = ""
+                self.unread_messages.style.visibility = HIDDEN
+                self.unread_count = 0
             await asyncio.sleep(3)
 
 
@@ -564,6 +570,14 @@ class Contact(Box):
 
     def ban_contact(self):
         def on_result(widget, result):
+            def on_second_result(widget, result):
+                if result is None:
+                    if self.chat.selected_contact_toggle:
+                        self.chat.contact_info_box.clear()
+                        self.chat.messages_box.clear()
+                        self.chat.last_message_timestamp = None
+                        self.chat.last_unread_timestamp = None
+                        self.chat.selected_contact_toggle = None
             if result is True:
                 self.storage.ban(self.address)
                 self.storage.delete_contact(self.address)
@@ -573,7 +587,8 @@ class Contact(Box):
                     message=f"The contact has been successfully banned and deleted:\n\n"
                             f"- Username: {self.username}\n"
                             f"- User ID: {self.contact_id}\n"
-                            f"- Address: {self.address}"
+                            f"- Address: {self.address}",
+                    on_result=on_second_result
                 )
 
         self.main.question_dialog(
@@ -1311,6 +1326,8 @@ class Chat(Box):
         self.unread_messages_toggle = None
         self.last_message_timestamp = None
         self.last_unread_timestamp = None
+        self.messages = []
+        self.unread_messages = []
         self.processed_timestamps = set()
 
         self.add_contact = ImageView(
@@ -1645,7 +1662,6 @@ class Chat(Box):
                         txfee = Decimal('0.0001')
                         amount = Decimal(total_balance) - merge_fee
                         await self.merge_utxos(address[0], amount, txfee)
-                        return
                     list_txs = self.storage.get_txs()
                     for data in listunspent:
                         txid = data['txid']
@@ -1747,14 +1763,14 @@ class Chat(Box):
         contact_username = self.storage.get_contact_username(contact_id)
         if not contact_username:
             return
+        self.processed_timestamps.add(timestamp)
         if author != contact_username:
             self.storage.update_contact_username(author, contact_id)
-        if self.contact_id == contact_id and self.main.message_button_toggle and not self.main._is_minimized and not self.main._is_active:
+        if self.contact_id == contact_id and self.main.message_button_toggle and not self.main._is_minimized and self.main._is_active:
             self.storage.message(contact_id, author, message, amount, timestamp)
             self.username_value.text = author
         else:
             await self.handler_unread_message(contact_id, author, message, amount, timestamp)
-        self.processed_timestamps.add(timestamp)
 
 
     async def handler_unread_message(self,contact_id, author, message, amount, timestamp):
@@ -1852,6 +1868,8 @@ class Chat(Box):
 
 
     def contact_click(self, sender, event, contact_id, address):
+        if self.send_toggle:
+            return
         if event.Button == Forms.MouseButtons.Right:
             return
         if self.contact_id == contact_id:
@@ -1862,6 +1880,8 @@ class Chat(Box):
             self.messages_box.clear()
             self.last_message_timestamp = None
             self.last_unread_timestamp = None
+        self.selected_contact_toggle = True
+        self.processed_timestamps.clear()
         username_label = Label(
             text="Username :",
             style=Pack(
@@ -1920,10 +1940,10 @@ class Chat(Box):
         self.contact_id = contact_id
         self.user_address = address
 
-        messages = self.storage.get_messages(self.contact_id)
-        unread_messages = self.storage.get_unread_messages(self.contact_id)
-        if messages:
-            messages = sorted(messages, key=lambda x: x[3], reverse=True)
+        self.messages = self.storage.get_messages(self.contact_id)
+        self.unread_messages = self.storage.get_unread_messages(self.contact_id)
+        if self.messages:
+            messages = sorted(self.messages, key=lambda x: x[3], reverse=True)
             recent_messages = messages[:5]
             self.last_message_timestamp = recent_messages[-1][3]
             for data in recent_messages:
@@ -1931,6 +1951,7 @@ class Chat(Box):
                 message_text = data[1]
                 message_amount = data[2]
                 message_timestamp = data[3]
+                self.processed_timestamps.add(message_timestamp)
                 message = Message(
                     author=message_username,
                     message=message_text,
@@ -1942,8 +1963,8 @@ class Chat(Box):
                 self.messages_box.insert(
                     0, message
                 )
-        if unread_messages:
-            unread_messages = sorted(unread_messages, key=lambda x: x[3], reverse=True)
+        if self.unread_messages:
+            unread_messages = sorted(self.unread_messages, key=lambda x: x[3], reverse=True)
             recent_unread_messages = unread_messages[:5]
             self.last_unread_timestamp = recent_unread_messages[-1][3]
             self.messages_box.add(
@@ -1954,6 +1975,7 @@ class Chat(Box):
                 message_text = data[1]
                 message_amount = data[2]
                 message_timestamp = data[3]
+                self.processed_timestamps.add(message_timestamp)
                 message = Message(
                     author=message_username,
                     message=message_text,
@@ -1966,8 +1988,7 @@ class Chat(Box):
                     6, message
                 )
         self.output_box.on_scroll = self.update_messages_on_scroll
-        self.app.add_background_task(self.update_current_messages)
-        self.selected_contact_toggle = True      
+        self.app.add_background_task(self.update_current_messages)     
 
 
     async def update_current_messages(self, widget):
@@ -1986,7 +2007,7 @@ class Chat(Box):
                         text = data[1]
                         amount = data[2]
                         timestamp = data[3]
-                        self.insert_message(author, text, amount, timestamp)
+                        await self.insert_message(author, text, amount, timestamp)
                         self.messages.append(data)
 
             unread_messages = self.storage.get_unread_messages(self.contact_id)
@@ -2068,6 +2089,7 @@ class Chat(Box):
                 message_text = data[1]
                 message_amount = data[2]
                 message_timestamp = data[3]
+                self.processed_timestamps.add(message_timestamp)
                 message = Message(
                     author=message_username,
                     message=message_text,
@@ -2216,7 +2238,6 @@ class Chat(Box):
                             txid = result.get('txid')
                             self.storage.tx(txid)
                             self.storage.message(self.contact_id, author, text, amount, timestamp)
-                            self.enable_send_button()
                             self.send_button._impl.native.Focus()
                             self.fee_input.value = "0.00020000"
                             self.character_count.style.color = GRAY
@@ -2231,6 +2252,7 @@ class Chat(Box):
     
 
     def enable_send_button(self):
+        self.send_toggle = False
         self.message_input.readonly = False
         self.send_button._impl.native.Enabled = True
         self.send_label._impl.native.Enabled = True
@@ -2238,13 +2260,14 @@ class Chat(Box):
 
     
     def disable_send_button(self):
+        self.send_toggle = True
         self.message_input.readonly = True
         self.send_button._impl.native.Enabled = False
         self.send_label._impl.native.Enabled = False
         self.send_icon._impl.native.Enabled = False
 
 
-    def insert_message(self, author, text, amount, timestamp):
+    async def insert_message(self, author, text, amount, timestamp):
         message = Message(
             author=author,
             message=text,
@@ -2256,9 +2279,9 @@ class Chat(Box):
         self.messages_box.add(
             message
         )
-        if self.output_box.vertical_position == self.output_box.max_vertical_position:
-            return
+        await asyncio.sleep(0.1)
         self.output_box.vertical_position = self.output_box.max_vertical_position
+        self.enable_send_button()
 
     
     def insert_unread_message(self, author, text, amount, timestamp):

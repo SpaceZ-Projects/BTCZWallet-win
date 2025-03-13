@@ -563,8 +563,8 @@ class Send(Box):
                 self.send_label
             )
             self.send_toggle = True
-            self.transparent_button_click(None, None)
             self.insert_menustrip()
+            self.transparent_button_click(None, None)
         
 
     def insert_menustrip(self):
@@ -676,7 +676,6 @@ class Send(Box):
         self.transparent_label.style.color = YELLOW
         self.transparent_label.style.background_color = rgb(66,69,73)
         self.transparent_button.style.background_color = rgb(66,69,73)
-        self.address_selection.focus()
         self.app.add_background_task(self.update_send_options)
 
     
@@ -703,7 +702,6 @@ class Send(Box):
         self.private_label.style.color = rgb(114,137,218)
         self.private_label.style.background_color = rgb(66,69,73)
         self.private_button.style.background_color = rgb(66,69,73)
-        self.address_selection.focus()
         self.app.add_background_task(self.update_send_options)
 
     
@@ -987,13 +985,15 @@ class Send(Box):
             self.address_balance.text = "0.00000000"
 
 
-    def single_option_on_change(self, switch):
+    async def single_option_on_change(self, switch):
         if switch.value is True:
             self.many_option.value = False
             self.single_option.style.color = YELLOW
+            selected_address = self.address_selection.value.select_address
+            if selected_address != "Main Account":
+                self.update_fees_option(True)
             self.destination_box.insert(1, self.destination_input_single)
             self.destination_input_single.readonly = False
-            self.update_fees_option(True)
             self.is_valid_toggle = None
         else:
             if self.many_option.value is True:
@@ -1005,14 +1005,14 @@ class Send(Box):
             else:
                 self.single_option.value = True
         
-    def many_option_on_change(self, switch):
+    async def many_option_on_change(self, switch):
         if switch.value is True:
             self.single_option.value = False
             self.many_option.style.color = YELLOW
             self.destination_box.style.height = 100
+            self.update_fees_option(False)
             self.destination_box.insert(1, self.destination_input_many)
             self.insert(5, self.amount_options_box)
-            self.update_fees_option(False)
             self.is_valid_toggle = True
         else:
             if self.single_option.value is True:
