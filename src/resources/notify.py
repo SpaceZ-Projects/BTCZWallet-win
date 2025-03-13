@@ -1,6 +1,8 @@
 
 from toga import App
-from ..framework import NotifyIcon, Command
+from ..framework import NotifyIcon, Command, run_async
+
+from .client import Client
 
 
 class Notify(NotifyIcon):
@@ -10,19 +12,41 @@ class Notify(NotifyIcon):
         self.home_page = home_page
         self.mining_page = mining_page
 
+        self.commands = Client(self.app)
+
+        self.stop_exit_cmd = Command(
+            title="Stop node",
+            action=self.stop_node_exit,
+            icon="images/stop.ico"
+        )
+
         self.exit_cmd = Command(
             title="Exit",
-            action=self.exit_app
+            action=self.exit_app,
+            icon="images/exit.ico"
         )
         super().__init__(
             icon="images/BitcoinZ.ico",
             text = "BitcoinZ Wallet",
-            commands=[self.exit_cmd]
+            commands=[
+                self.stop_exit_cmd,
+                self.exit_cmd
+            ]
         )
 
     def exit_app(self):
         if self.mining_page.mining_status:
             return
+        self.home_page.bitcoinz_curve.image = None
+        self.home_page.clear_cache()
+        self.hide()
+        self.app.exit()
+
+
+    def stop_node_exit(self):
+        if self.mining_page.mining_status:
+            return
+        run_async(self.commands.stopNode())
         self.home_page.bitcoinz_curve.image = None
         self.home_page.clear_cache()
         self.hide()
