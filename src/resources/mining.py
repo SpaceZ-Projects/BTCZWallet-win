@@ -7,9 +7,10 @@ import re
 
 from toga import (
     App, Box, Label, Selection, TextInput,
-    ProgressBar, Window, ScrollContainer
+    ProgressBar, Window, ScrollContainer,
+    Button
 )
-from ..framework import ComboStyle
+from ..framework import FlatStyle
 from toga.style.pack import Pack
 from toga.constants import COLUMN, CENTER, BOLD, ROW
 from toga.colors import rgb, GRAY, WHITE, GREENYELLOW, BLACK, RED
@@ -71,7 +72,7 @@ class Mining(Box):
             accessor="miner",
             on_change=self.verify_miners_apps
         )
-        self.miner_selection._impl.native.FlatStyle = ComboStyle.FLAT
+        self.miner_selection._impl.native.FlatStyle = FlatStyle.FLAT
 
         self.progress_bar = ProgressBar(
             max = 100,
@@ -124,7 +125,7 @@ class Mining(Box):
             accessor="select_address",
             on_change=self.display_address_balance
         )
-        self.address_selection._impl.native.FlatStyle = ComboStyle.FLAT
+        self.address_selection._impl.native.FlatStyle = FlatStyle.FLAT
 
         self.address_balance = Label(
             text="0.00000000",
@@ -182,9 +183,10 @@ class Mining(Box):
             accessor="pool",
             on_change=self.update_server_selection
         )
-        self.pool_selection._impl.native.FlatStyle = ComboStyle.FLAT
+        self.pool_selection._impl.native.FlatStyle = FlatStyle.FLAT
 
         self.pool_region_selection = Selection(
+            enabled=False,
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -196,7 +198,7 @@ class Mining(Box):
             accessor="region",
             on_change=self.update_region_server
         )
-        self.pool_region_selection._impl.native.FlatStyle = ComboStyle.FLAT
+        self.pool_region_selection._impl.native.FlatStyle = FlatStyle.FLAT
 
         self.selection_pool_box = Box(
             style=Pack(
@@ -274,33 +276,21 @@ class Mining(Box):
             )
         )
 
-        self.start_mining_label = Label(
+        self.start_mining_button = Button(
             text="Start Mining",
             style=Pack(
                 color = GRAY,
-                background_color = rgb(40,43,48),
-                text_align = CENTER,
+                background_color = rgb(30,33,36),
                 font_weight = BOLD,
                 font_size = 12,
-                flex = 1
-            )
+                width = 150,
+                padding_right = 10
+            ),
+            on_press=self.start_mining_button_click
         )
-
-        self.start_mining_button = Box(
-            style=Pack(
-                background_color = rgb(40,43,48),
-                alignment = CENTER,
-                padding = 7,
-                width = 200,
-                height = 40
-            )
-        )
+        self.start_mining_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.start_mining_button._impl.native.MouseEnter += self.start_mining_button_mouse_enter
         self.start_mining_button._impl.native.MouseLeave += self.start_mining_button_mouse_leave
-        self.start_mining_label._impl.native.MouseEnter += self.start_mining_button_mouse_enter
-        self.start_mining_label._impl.native.MouseLeave += self.start_mining_button_mouse_leave
-        self.start_mining_button._impl.native.Click += self.start_mining_button_click
-        self.start_mining_label._impl.native.Click += self.start_mining_button_click
 
         self.start_mining_box = Box(
             style=Pack(
@@ -348,9 +338,6 @@ class Mining(Box):
             self.start_mining_box.add(
                 self.mining_box,
                 self.start_mining_button
-            )
-            self.start_mining_button.add(
-                self.start_mining_label
             )
             self.mining_toggle = True
             self.app.add_background_task(self.update_mining_options)
@@ -462,7 +449,7 @@ class Mining(Box):
             return
 
 
-    def start_mining_button_click(self, sender, event):
+    def start_mining_button_click(self, button):
         if not self.selected_miner or self.selected_miner == "Select Miner":
             self.main.error_dialog(
                 "Missing Selection",
@@ -546,8 +533,9 @@ class Mining(Box):
             text=line,
             style=Pack(
                 color = WHITE,
-                background_color = rgb(40,43,48),
-                font_size = 10
+                background_color = rgb(60,62,64),
+                font_size = 10,
+                padding = 2
             )
         )
         self.ouputs_box.add(
@@ -571,11 +559,7 @@ class Mining(Box):
         self.address_selection.items = transparent_addresses
 
 
-    def stop_mining_button_click(self, sender, event):
-        self.app.add_background_task(self.stop_mining)
-
-
-    async def stop_mining(self, widget):
+    async def stop_mining_button_click(self, button):
         if self.selected_miner == "MiniZ":
             process_name =  "miniZ.exe"
         elif self.selected_miner == "Gminer":
@@ -594,47 +578,30 @@ class Mining(Box):
 
     def update_mining_button(self, option):
         if option == "stop":
-            self.start_mining_label.text = "Stop"
-            self.start_mining_label.style.color = WHITE
-            self.start_mining_label.style.background_color = RED
+            self.start_mining_button.text = "Stop"
             self.start_mining_button.style.background_color = RED
             self.start_mining_button._impl.native.MouseEnter -= self.start_mining_button_mouse_enter
             self.start_mining_button._impl.native.MouseLeave -= self.start_mining_button_mouse_leave
-            self.start_mining_label._impl.native.MouseEnter -= self.start_mining_button_mouse_enter
-            self.start_mining_label._impl.native.MouseLeave -= self.start_mining_button_mouse_leave
-            self.start_mining_button._impl.native.Click -= self.start_mining_button_click
-            self.start_mining_label._impl.native.Click -= self.start_mining_button_click
+            self.start_mining_button.on_press = None
 
             self.start_mining_button._impl.native.MouseEnter += self.stop_mining_button_mouse_enter
             self.start_mining_button._impl.native.MouseLeave += self.stop_mining_button_mouse_leave
-            self.start_mining_label._impl.native.MouseEnter += self.stop_mining_button_mouse_enter
-            self.start_mining_label._impl.native.MouseLeave += self.stop_mining_button_mouse_leave
-            self.start_mining_button._impl.native.Click += self.stop_mining_button_click
-            self.start_mining_label._impl.native.Click += self.stop_mining_button_click
+            self.start_mining_button.on_press = self.stop_mining_button_click
 
         elif option == "start":
-            self.start_mining_label.text = "Start Mining"
-            self.start_mining_label.style.color = BLACK
-            self.start_mining_label.style.background_color = GREENYELLOW
+            self.start_mining_button.text = "Start Mining"
             self.start_mining_button.style.background_color = GREENYELLOW
             self.start_mining_button._impl.native.MouseEnter -= self.stop_mining_button_mouse_enter
             self.start_mining_button._impl.native.MouseLeave -= self.stop_mining_button_mouse_leave
-            self.start_mining_label._impl.native.MouseEnter -= self.stop_mining_button_mouse_enter
-            self.start_mining_label._impl.native.MouseLeave -= self.stop_mining_button_mouse_leave
-            self.start_mining_button._impl.native.Click -= self.stop_mining_button_click
-            self.start_mining_label._impl.native.Click -= self.stop_mining_button_click
+            self.start_mining_button.on_press = None
 
             self.start_mining_button._impl.native.MouseEnter += self.start_mining_button_mouse_enter
             self.start_mining_button._impl.native.MouseLeave += self.start_mining_button_mouse_leave
-            self.start_mining_label._impl.native.MouseEnter += self.start_mining_button_mouse_enter
-            self.start_mining_label._impl.native.MouseLeave += self.start_mining_button_mouse_leave
-            self.start_mining_button._impl.native.Click += self.start_mining_button_click
-            self.start_mining_label._impl.native.Click += self.start_mining_button_click
+            self.start_mining_button.on_press = self.start_mining_button_click
 
     
     def disable_mining_button(self):
-        self.start_mining_button._impl.native.Enabled = False
-        self.start_mining_label._impl.native.Enabled = False
+        self.start_mining_button.enabled = False
 
     def disable_mining_inputs(self):
         self.miner_selection.enabled = False
@@ -652,28 +619,23 @@ class Mining(Box):
 
 
     def enable_mining_button(self):
-        self.start_mining_button._impl.native.Enabled = True
-        self.start_mining_label._impl.native.Enabled = True
+        self.start_mining_button.enabled = True
 
 
     def start_mining_button_mouse_enter(self, sender, event):
-        self.start_mining_label.style.color = BLACK
-        self.start_mining_label.style.background_color = GREENYELLOW
+        self.start_mining_button.style.color = BLACK
         self.start_mining_button.style.background_color = GREENYELLOW
 
 
     def start_mining_button_mouse_leave(self, sender, event):
-        self.start_mining_label.style.color = GRAY
-        self.start_mining_label.style.background_color = rgb(40,43,48)
-        self.start_mining_button.style.background_color = rgb(40,43,48)
+        self.start_mining_button.style.color = GRAY
+        self.start_mining_button.style.background_color = rgb(30,33,36)
 
     def stop_mining_button_mouse_enter(self, sender, event):
-        self.start_mining_label.style.color = WHITE
-        self.start_mining_label.style.background_color = RED
+        self.start_mining_button.style.color = BLACK
         self.start_mining_button.style.background_color = RED
 
 
     def stop_mining_button_mouse_leave(self, sender, event):
-        self.start_mining_label.style.color = GRAY
-        self.start_mining_label.style.background_color = rgb(40,43,48)
-        self.start_mining_button.style.background_color = rgb(40,43,48)
+        self.start_mining_button.style.color = GRAY
+        self.start_mining_button.style.background_color = rgb(30,33,36)

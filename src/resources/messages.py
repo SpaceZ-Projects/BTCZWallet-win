@@ -8,16 +8,23 @@ from decimal import Decimal
 
 from toga import (
     App, Box, Label, Window, TextInput, ImageView,
-    ScrollContainer, MultilineTextInput
+    ScrollContainer, Button
 )
 from ..framework import (
-    BorderStyle, ToolTip, ClipBoard, Keys,
-    RichLabel,FontStyle, Color, DockStyle,
-    ScrollBars, Forms, Command
+    BorderStyle, ToolTip, ClipBoard, RichLabel,
+    FontStyle, Color, DockStyle, ScrollBars,
+    Forms, Command, FlatStyle, Drawing, Relation,
+    Os, AlignContent
 )
 from toga.style.pack import Pack
-from toga.constants import COLUMN, ROW, CENTER, BOLD, RIGHT, LEFT, BOTTOM, HIDDEN, VISIBLE
-from toga.colors import rgb, WHITE, GRAY, RED, YELLOW, ORANGE
+from toga.constants import (
+    COLUMN, ROW, CENTER, BOLD, RIGHT,
+    BOTTOM, HIDDEN, VISIBLE
+)
+from toga.colors import (
+    rgb, WHITE, GRAY, RED, YELLOW, ORANGE, BLACK,
+    GREENYELLOW
+)
 
 from .storage import Storage
 from .utils import Utils
@@ -30,8 +37,7 @@ class EditUser(Window):
         super().__init__(
             size = (500, 150),
             resizable= False,
-            minimizable = False,
-            closable=False
+            minimizable = False
         )
 
         self.utils = Utils(self.app)
@@ -56,7 +62,6 @@ class EditUser(Window):
                 color = WHITE,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                font_weight = BOLD,
                 font_size = 11,
                 padding_top = 5
             )
@@ -87,35 +92,43 @@ class EditUser(Window):
                 direction = ROW,
                 background_color = rgb(30,33,36),
                 flex = 1,
-                padding_top = 15
+                padding_top = 25
             )
         )
 
-        self.close_button = ImageView(
-            image="images/close_i.png",
+        self.cancel_button = Button(
+            text="Cancel",
             style=Pack(
+                color = RED,
+                font_size=10,
+                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
                 padding_bottom = 10,
-                padding_right = 10
-            )
+                width = 100
+            ),
+            on_press=self.close_edit_window
         )
-        self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
-        self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
-        self.close_button._impl.native.Click += self.close_edit_window
+        self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
+        self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
 
-        self.confirm_button = ImageView(
-            image="images/confirm_i.png",
+        self.confirm_button = Button(
+            text="Confirm",
             style=Pack(
+                color = GRAY,
+                font_size=10,
+                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
-                padding_bottom = 10,
-                padding_left = 10
-            )
+                padding = (0,0,10,20),
+                width = 100
+            ),
+            on_press=self.verify_username
         )
+        self.confirm_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.confirm_button._impl.native.MouseEnter += self.confirm_button_mouse_enter
         self.confirm_button._impl.native.MouseLeave += self.confirm_button_mouse_leave
-        self.confirm_button._impl.native.Click += self.verify_username
 
         self.buttons_box = Box(
             style=Pack(
@@ -136,11 +149,11 @@ class EditUser(Window):
             self.username_input
         )
         self.buttons_box.add(
-            self.close_button,
+            self.cancel_button,
             self.confirm_button
         )
 
-    def verify_username(self, sender, event):
+    def verify_username(self, button):
         if not self.username_input.value:
             self.error_dialog(
                 title="Missing Username",
@@ -165,18 +178,22 @@ class EditUser(Window):
 
 
     def confirm_button_mouse_enter(self, sender, event):
-        self.confirm_button.image = "images/confirm_a.png"
+        self.confirm_button.style.color = BLACK
+        self.confirm_button.style.background_color = GREENYELLOW
 
     def confirm_button_mouse_leave(self, sender, event):
-        self.confirm_button.image = "images/confirm_i.png"
+        self.confirm_button.style.color = GRAY
+        self.confirm_button.style.background_color = rgb(30,33,36)
 
-    def close_button_mouse_enter(self, sender, event):
-        self.close_button.image = "images/close_a.png"
+    def cancel_button_mouse_enter(self, sender, event):
+        self.cancel_button.style.color = BLACK
+        self.cancel_button.style.background_color = RED
 
-    def close_button_mouse_leave(self, sender, event):
-        self.close_button.image = "images/close_i.png"
+    def cancel_button_mouse_leave(self, sender, event):
+        self.cancel_button.style.color = RED
+        self.cancel_button.style.background_color = rgb(30,33,36)
     
-    def close_edit_window(self, sender, event):
+    def close_edit_window(self, button):
         self.close()
 
 
@@ -185,8 +202,7 @@ class Indentifier(Window):
         super().__init__(
             size = (600, 150),
             resizable= False,
-            minimizable = False,
-            closable=False
+            minimizable = False
         )
 
         self.main = main
@@ -215,7 +231,6 @@ class Indentifier(Window):
                 color = WHITE,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                font_weight = BOLD,
                 font_size = 11,
                 padding_top = 5
             )
@@ -245,35 +260,43 @@ class Indentifier(Window):
                 direction = ROW,
                 background_color = rgb(30,33,36),
                 flex = 1,
-                padding_top = 15
+                padding_top = 25
             )
         )
 
-        self.close_button = ImageView(
-            image="images/close_i.png",
+        self.cancel_button = Button(
+            text="Cancel",
             style=Pack(
+                color = RED,
+                font_size=10,
+                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
                 padding_bottom = 10,
-                padding_right = 10
-            )
+                width = 100
+            ),
+            on_press=self.close_indentity_setup
         )
-        self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
-        self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
-        self.close_button._impl.native.Click += self.close_indentity_setup
+        self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
+        self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
 
-        self.confirm_button = ImageView(
-            image="images/confirm_i.png",
+        self.confirm_button = Button(
+            text="Confirm",
             style=Pack(
+                color = GRAY,
+                font_size=10,
+                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
-                padding_bottom = 10,
-                padding_left = 10
-            )
+                padding = (0,0,10,20),
+                width = 100
+            ),
+            on_press=self.verify_identity
         )
+        self.confirm_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.confirm_button._impl.native.MouseEnter += self.confirm_button_mouse_enter
         self.confirm_button._impl.native.MouseLeave += self.confirm_button_mouse_leave
-        self.confirm_button._impl.native.Click += self.verify_identity
 
         self.buttons_box = Box(
             style=Pack(
@@ -295,11 +318,11 @@ class Indentifier(Window):
             self.username_input
         )
         self.buttons_box.add(
-            self.close_button,
+            self.cancel_button,
             self.confirm_button
         )
 
-    def verify_identity(self, sender, event):
+    def verify_identity(self, button):
         if not self.username_input.value:
             self.error_dialog(
                 title="Missing Username",
@@ -333,24 +356,28 @@ class Indentifier(Window):
             self.chat.run_tasks()
 
     def confirm_button_mouse_enter(self, sender, event):
-        self.confirm_button.image = "images/confirm_a.png"
+        self.confirm_button.style.color = BLACK
+        self.confirm_button.style.background_color = GREENYELLOW
 
     def confirm_button_mouse_leave(self, sender, event):
-        self.confirm_button.image = "images/confirm_i.png"
+        self.confirm_button.style.color = GRAY
+        self.confirm_button.style.background_color = rgb(30,33,36)
 
-    def close_button_mouse_enter(self, sender, event):
-        self.close_button.image = "images/close_a.png"
+    def cancel_button_mouse_enter(self, sender, event):
+        self.cancel_button.style.color = BLACK
+        self.cancel_button.style.background_color = RED
 
-    def close_button_mouse_leave(self, sender, event):
-        self.close_button.image = "images/close_i.png"
+    def cancel_button_mouse_leave(self, sender, event):
+        self.cancel_button.style.color = RED
+        self.cancel_button.style.background_color = rgb(30,33,36)
     
-    def close_indentity_setup(self, sender, event):
+    def close_indentity_setup(self, button):
         self.close()
 
 
 
 class NewMessenger(Box):
-    def __init__(self, messages, main:Window, chat):
+    def __init__(self, app:App, messages, main:Window, chat):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -361,6 +388,7 @@ class NewMessenger(Box):
             )
         )
 
+        self.app = app
         self.messages_page = messages
         self.main = main
         self.chat = chat
@@ -375,58 +403,51 @@ class NewMessenger(Box):
                 font_size = 12
             )
         )
-        self.create_label = Label(
+        self.create_button = Button(
             text="New Messenger",
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                text_align = CENTER,
                 font_weight = BOLD,
                 font_size = 12,
-                flex = 1,
-                padding_top = 7
-            )
-        )
-        self.create_button = Box(
-            style=Pack(
-                direction = ROW,
-                background_color = rgb(30,33,36),
-                alignment = CENTER,
-                padding_top = 10,
                 width = 200,
-                height = 40
-            )
+                padding_top = 7
+            ),
+            on_press=self.create_button_click
         )
+        new_i_id = self.messages_icon("images/new_id_i.png")
+        self.create_button._impl.native.Image = Drawing.Image.FromFile(new_i_id)
+        self.create_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.create_button._impl.native.TextImageRelation = Relation.IMAGEBEFORETEXT
+        self.create_button._impl.native.ImageAlign = AlignContent.RIGHT
         self.create_button._impl.native.MouseEnter += self.create_button_mouse_enter
         self.create_button._impl.native.MouseLeave += self.create_button_mouse_leave
-        self.create_label._impl.native.MouseEnter += self.create_button_mouse_enter
-        self.create_label._impl.native.MouseLeave += self.create_button_mouse_leave
-        self.create_button._impl.native.Click += self.create_button_click
-        self.create_label._impl.native.Click += self.create_button_click
 
         self.add(
             self.new_label,
             self.create_button
         )
-        self.create_button.add(
-            self.create_label
-        )
 
     
-    def create_button_click(self, sender, event):
+    def create_button_click(self, button):
         self.indentity = Indentifier(self.messages_page, self.main, self.chat)
         self.indentity._impl.native.ShowDialog()
 
     
     def create_button_mouse_enter(self, sender, event):
-        self.create_label.style.color = WHITE
-        self.create_label.style.background_color = rgb(114,137,218)
+        new_a_id = self.messages_icon("images/new_id_a.png")
+        self.create_button._impl.native.Image = Drawing.Image.FromFile(new_a_id)
+        self.create_button.style.color = BLACK
         self.create_button.style.background_color = rgb(114,137,218)
 
     def create_button_mouse_leave(self, sender, event):
-        self.create_label.style.color = GRAY
-        self.create_label.style.background_color = rgb(30,33,36)
+        new_i_id = self.messages_icon("images/new_id_i.png")
+        self.create_button._impl.native.Image = Drawing.Image.FromFile(new_i_id)
+        self.create_button.style.color = GRAY
         self.create_button.style.background_color = rgb(30,33,36)
+
+    def messages_icon(self, path):
+        return Os.Path.Combine(str(self.app.paths.app), path)
 
 
 class Contact(Box):
@@ -681,27 +702,39 @@ class Pending(Box):
         )
         self.username_label._impl.native.DoubleClick += self.show_pending_info
 
-        self.confirm_button = ImageView(
-            image="images/confirm_i.png",
+        self.confirm_button = Button(
+            text="Confirm",
             style=Pack(
-                background_color = rgb(40,43,48),
-                padding_top = 14
-            )
+                color = GRAY,
+                font_size=10,
+                font_weight = BOLD,
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                padding_top = 10,
+                width = 100
+            ),
+            on_press=self.send_identity
         )
+        self.confirm_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.confirm_button._impl.native.MouseEnter += self.confirm_button_mouse_enter
         self.confirm_button._impl.native.MouseLeave += self.confirm_button_mouse_leave
-        self.confirm_button._impl.native.Click += self.confirm_button_click
 
-        self.reject_button = ImageView(
-            image="images/reject_i.png",
+        self.reject_button = Button(
+            text="Reject",
             style=Pack(
-                background_color = rgb(40,43,48),
-                padding = (14,10,0,10)
-            )
+                color = GRAY,
+                font_size=10,
+                font_weight = BOLD,
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                padding = (10,10,0,10),
+                width = 100
+            ),
+            on_press=self.reject_button_click
         )
+        self.reject_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.reject_button._impl.native.MouseEnter += self.reject_button_mouse_enter
         self.reject_button._impl.native.MouseLeave += self.reject_button_mouse_leave
-        self.reject_button._impl.native.Click += self.reject_button_click
 
         self.add(
             self.category_icon,
@@ -711,11 +744,7 @@ class Pending(Box):
         )
 
 
-    def confirm_button_click(self, sender, event):
-        self.app.add_background_task(self.send_identity)
-
-
-    async def send_identity(self, widget):
+    async def send_identity(self, button):
         destination_address = self.address
         amount = 0.0001
         txfee = 0.0001
@@ -766,7 +795,7 @@ class Pending(Box):
             self.pending_window._impl.native.Enabled = True
 
 
-    def reject_button_click(self, sender, event):
+    def reject_button_click(self, button):
         self.storage.ban(self.address)
         self.storage.delete_pending(self.address)
         self.pending_window.pending_list_box.remove(self)
@@ -779,16 +808,20 @@ class Pending(Box):
         )
 
     def confirm_button_mouse_enter(self, sender, event):
-        self.confirm_button.image = "images/confirm_a.png"
+        self.confirm_button.style.color = BLACK
+        self.confirm_button.style.background_color = GREENYELLOW
 
     def confirm_button_mouse_leave(self, sender, event):
-        self.confirm_button.image = "images/confirm_i.png"
+        self.confirm_button.style.color = GRAY
+        self.confirm_button.style.background_color = rgb(30,33,36)
 
     def reject_button_mouse_enter(self, sender, event):
-        self.reject_button.image = "images/reject_a.png"
+        self.reject_button.style.color = BLACK
+        self.reject_button.style.background_color = RED
 
     def reject_button_mouse_leave(self, sender, event):
-        self.reject_button.image = "images/reject_i.png"
+        self.reject_button.style.color = GRAY
+        self.reject_button.style.background_color = rgb(30,33,36)
 
 
 
@@ -797,7 +830,7 @@ class Message(Box):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
-                padding = (0,30,5,10),
+                padding = (0,10,5,5),
                 background_color=rgb(30,33,36)
             )
         )
@@ -824,7 +857,7 @@ class Message(Box):
             text=f"{self.author} :",
             style=Pack(
                 color = color,
-                font_size = 13,
+                font_size = 12,
                 background_color = rgb(30,30,30),
                 font_weight = BOLD,
                 padding = (0,0,8,5),
@@ -928,8 +961,7 @@ class NewContact(Window):
         super().__init__(
             size = (600, 150),
             resizable= False,
-            minimizable = False,
-            closable=False
+            minimizable = False
         )
 
         self.utils = Utils(self.app)
@@ -957,7 +989,6 @@ class NewContact(Window):
                 color = WHITE,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                font_weight = BOLD,
                 font_size = 11,
                 padding_top = 5
             )
@@ -995,31 +1026,39 @@ class NewContact(Window):
             )
         )
 
-        self.close_button = ImageView(
-            image="images/close_i.png",
+        self.cancel_button = Button(
+            text="Cancel",
             style=Pack(
+                color = RED,
+                font_size=10,
+                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
                 padding_bottom = 10,
-                padding_right = 10
-            )
+                width = 100
+            ),
+            on_press=self.close_indentity_setup
         )
-        self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
-        self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
-        self.close_button._impl.native.Click += self.close_indentity_setup
+        self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
+        self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
 
-        self.confirm_button = ImageView(
-            image="images/confirm_i.png",
+        self.confirm_button = Button(
+            text="Confirm",
             style=Pack(
+                color = GRAY,
+                font_size=10,
+                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
-                padding_bottom = 10,
-                padding_left = 10
-            )
+                padding = (0,0,10,20),
+                width = 100
+            ),
+            on_press=self.verify_address
         )
+        self.confirm_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.confirm_button._impl.native.MouseEnter += self.confirm_button_mouse_enter
         self.confirm_button._impl.native.MouseLeave += self.confirm_button_mouse_leave
-        self.confirm_button._impl.native.Click += self.verify_address
 
         self.buttons_box = Box(
             style=Pack(
@@ -1041,7 +1080,7 @@ class NewContact(Window):
             self.is_valid
         )
         self.buttons_box.add(
-            self.close_button,
+            self.cancel_button,
             self.confirm_button
         )
 
@@ -1067,14 +1106,14 @@ class NewContact(Window):
                 self.is_valid_toggle = False
 
     
-    def verify_address(self, sender, event):
+    def verify_address(self, button):
         address = self.address_input.value
         if not address:
             return
         if not self.is_valid_toggle:
             self.error_dialog(
                 title="Invalid Address",
-                message="The address entered is not valid. Please check and try again."
+                message="The address entered is not valid."
             )
             return
         contacts = self.storage.get_contacts("address")
@@ -1096,6 +1135,13 @@ class NewContact(Window):
             self.error_dialog(
                 title="Address in Requests",
                 message="This address is already in your requests list."
+            )
+            return
+        banned = self.storage.get_banned()
+        if address in banned:
+            self.error_dialog(
+                title="Address Banned",
+                message="This address has been banned."
             )
             return
         self.app.add_background_task(self.send_request)
@@ -1150,18 +1196,22 @@ class NewContact(Window):
             self._impl.native.Enabled = True
 
     def confirm_button_mouse_enter(self, sender, event):
-        self.confirm_button.image = "images/confirm_a.png"
+        self.confirm_button.style.color = BLACK
+        self.confirm_button.style.background_color = GREENYELLOW
 
     def confirm_button_mouse_leave(self, sender, event):
-        self.confirm_button.image = "images/confirm_i.png"
+        self.confirm_button.style.color = GRAY
+        self.confirm_button.style.background_color = rgb(30,33,36)
 
-    def close_button_mouse_enter(self, sender, event):
-        self.close_button.image = "images/close_a.png"
+    def cancel_button_mouse_enter(self, sender, event):
+        self.cancel_button.style.color = BLACK
+        self.cancel_button.style.background_color = RED
 
-    def close_button_mouse_leave(self, sender, event):
-        self.close_button.image = "images/close_i.png"
+    def cancel_button_mouse_leave(self, sender, event):
+        self.cancel_button.style.color = RED
+        self.cancel_button.style.background_color = rgb(30,33,36)
     
-    def close_indentity_setup(self, sender, event):
+    def close_indentity_setup(self, button):
         self.close()
 
 
@@ -1170,8 +1220,7 @@ class PendingList(Window):
         super().__init__(
             size = (500, 400),
             resizable= False,
-            minimizable = False,
-            closable=False
+            minimizable = False
         )
 
         self.utils = Utils(self.app)
@@ -1230,14 +1279,19 @@ class PendingList(Window):
             )
         )
 
-        self.close_button = ImageView(
-            image="images/close_i.png",
+        self.close_button = Button(
+            text="Close",
             style=Pack(
+                color = RED,
+                font_size=10,
+                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
-                padding_bottom = 10
+                padding_bottom = 10,
+                width = 100
             )
         )
+        self.close_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
         self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
 
@@ -1290,10 +1344,12 @@ class PendingList(Window):
         self.pending_list_box.add(pending_contact)
 
     def close_button_mouse_enter(self, sender, event):
-        self.close_button.image = "images/close_a.png"
+        self.close_button.style.color = BLACK
+        self.close_button.style.background_color = RED
 
     def close_button_mouse_leave(self, sender, event):
-        self.close_button.image = "images/close_i.png"
+        self.close_button.style.color = RED
+        self.close_button.style.background_color = rgb(30,33,36)
 
 
 class Chat(Box):
@@ -1455,38 +1511,37 @@ class Chat(Box):
             style=Pack(
                 background_color = rgb(40,43,48),
                 flex = 1,
-                padding_bottom = 5
+                padding = (0,5,5,0)
             )
         )
 
         self.input_box = Box(
             style=Pack(
                 direction = ROW,
-                background_color = rgb(30,33,36),
-                height = 100
+                background_color = rgb(40,43,48),
+                height = 100,
+                alignment = BOTTOM
             )
         )
 
-        self.message_input = MultilineTextInput(
+        self.message_input = TextInput(
             placeholder="Write message",
             style=Pack(
                 color = WHITE,
-                font_size = 11,
+                font_size = 12,
                 font_weight = BOLD,
                 background_color = rgb(30,30,30),
-                height = 90,
                 flex = 1,
-                padding =(3,0,0,5)
+                padding =(3,0,5,8)
             ),
-            on_change=self.update_character_count
+            on_change=self.update_character_count,
+            on_confirm=self.verify_message
         )
-        self.message_input._impl.native.BorderStyle = BorderStyle.NONE
-        self.message_input._impl.native.KeyDown += self.message_input_key_enter
 
         self.character_count = Label(
             text="Limit : 0 / 325",
             style=Pack(
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 text_align = CENTER,
                 color = GRAY,
                 font_size = 10,
@@ -1502,7 +1557,7 @@ class Chat(Box):
                 font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 color = rgb(114,137,218),
-                padding_bottom = 2,
+                padding_bottom = 5,
                 text_align = CENTER
             )
         )
@@ -1510,49 +1565,29 @@ class Chat(Box):
         self.options_box = Box(
             style=Pack(
                 direction = COLUMN,
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 alignment = CENTER
             )
         )
 
-        self.send_icon = ImageView(
-            image="images/send_message_i.png",
-            style=Pack(
-                background_color = rgb(40,43,48),
-                padding_left = 40
-            )
-        )
-
-        self.send_label = Label(
-            text="Send",
+        self.send_button = Button(
+            text="  Send",
             style=Pack(
                 color = GRAY,
-                background_color = rgb(40,43,48),
-                font_size = 12,
+                background_color = rgb(30,33,36),
+                font_size = 11,
                 font_weight = BOLD,
-                text_align = LEFT,
                 flex = 1
-            )
+            ),
+            on_press=self.verify_message
         )
-
-        self.send_button = Box(
-            style=Pack(
-                direction = ROW,
-                alignment = CENTER,
-                background_color = rgb(40,43,48),
-                width = 150,
-                height = 40
-            )
-        )
+        send_i_icon = self.messages_icon("images/send_message_i.png")
+        self.send_button._impl.native.Image = Drawing.Image.FromFile(send_i_icon)
+        self.send_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.send_button._impl.native.TextImageRelation = Relation.IMAGEBEFORETEXT
+        self.send_button._impl.native.ImageAlign = AlignContent.RIGHT
         self.send_button._impl.native.MouseEnter += self.send_button_mouse_enter
         self.send_button._impl.native.MouseLeave += self.send_button_mouse_leave
-        self.send_icon._impl.native.MouseEnter += self.send_button_mouse_enter
-        self.send_icon._impl.native.MouseLeave += self.send_button_mouse_leave
-        self.send_label._impl.native.MouseEnter += self.send_button_mouse_enter
-        self.send_label._impl.native.MouseLeave += self.send_button_mouse_leave
-        self.send_button._impl.native.Click += self.send_button_click
-        self.send_icon._impl.native.Click += self.send_button_click
-        self.send_label._impl.native.Click += self.send_button_click
 
         self.send_box = Box(
             style=Pack(
@@ -1565,7 +1600,7 @@ class Chat(Box):
         self.chat_buttons = Box(
             style=Pack(
                 direction = COLUMN,
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 width = 150,
                 padding = 5
             )
@@ -1574,7 +1609,7 @@ class Chat(Box):
         self.chat_box = Box(
             style=Pack(
                 direction = COLUMN,
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 flex = 7,
                 padding_left = 5
             )
@@ -1619,10 +1654,6 @@ class Chat(Box):
         )
         self.send_box.add(
             self.send_button
-        )
-        self.send_button.add(
-            self.send_icon,
-            self.send_label
         )
 
 
@@ -2133,12 +2164,12 @@ class Chat(Box):
             self.pending_contacts.image = "images/pending_i.png"
             self.new_pending_toggle = None
         self.pending_list = PendingList(self)
-        self.pending_list.close_button._impl.native.Click += self.close_pending_list
+        self.pending_list.close_button.on_press = self.close_pending_list
         self.pending_list._impl.native.ShowDialog()
         self.pending_toggle = True
 
 
-    def close_pending_list(self, sender, event):
+    def close_pending_list(self, button):
         self.pending_list.close()
         self.pending_toggle = False
 
@@ -2152,15 +2183,6 @@ class Chat(Box):
         )
 
 
-    def message_input_key_enter(self, sender, event):
-        if event.KeyCode == Keys.Enter:
-            self.app.add_background_task(self.verify_message)
-
-
-    def send_button_click(self, sender, event):
-        self.app.add_background_task(self.verify_message)
-
-
     async def verify_message(self, widget):
         message = self.message_input.value.strip()
         character_count = len(message)
@@ -2168,7 +2190,7 @@ class Chat(Box):
         if not message:
             self.send_button._impl.native.Focus()
             self.message_input.value = ""
-            self.main.info_dialog(
+            self.main.error_dialog(
                 title="Message Required",
                 message="Enter a message before sending."
             )
@@ -2254,17 +2276,13 @@ class Chat(Box):
     def enable_send_button(self):
         self.send_toggle = False
         self.message_input.readonly = False
-        self.send_button._impl.native.Enabled = True
-        self.send_label._impl.native.Enabled = True
-        self.send_icon._impl.native.Enabled = True
+        self.send_button.on_press = self.verify_message
 
     
     def disable_send_button(self):
         self.send_toggle = True
         self.message_input.readonly = True
-        self.send_button._impl.native.Enabled = False
-        self.send_label._impl.native.Enabled = False
-        self.send_icon._impl.native.Enabled = False
+        self.send_button.on_press = None
 
 
     async def insert_message(self, author, text, amount, timestamp):
@@ -2319,19 +2337,16 @@ class Chat(Box):
         
 
     def send_button_mouse_enter(self, sender, event):
-        self.send_icon.image = "images/send_message_a.png"
-        self.send_label.style.color = WHITE
-        self.send_icon.style.background_color = rgb(114,137,218)
-        self.send_label.style.background_color = rgb(114,137,218)
+        send_a_icon = self.messages_icon("images/send_message_a.png")
+        self.send_button._impl.native.Image = Drawing.Image.FromFile(send_a_icon)
+        self.send_button.style.color = BLACK
         self.send_button.style.background_color = rgb(114,137,218)
 
     def send_button_mouse_leave(self, sender, event):
-        self.send_icon.image = "images/send_message_i.png"
-        self.send_label.style.color = GRAY
-        self.send_icon.style.background_color = rgb(40,43,48)
-        self.send_label.style.background_color = rgb(40,43,48)
-        self.send_button.style.background_color = rgb(40,43,48)
-
+        send_i_icon = self.messages_icon("images/send_message_i.png")
+        self.send_button._impl.native.Image = Drawing.Image.FromFile(send_i_icon)
+        self.send_button.style.color = GRAY
+        self.send_button.style.background_color = rgb(30,33,36)
 
     def add_contact_mouse_enter(self, sender, event):
         self.add_contact.image = "images/add_contact_a.png"
@@ -2370,6 +2385,10 @@ class Chat(Box):
                         timestamp = highest_timestamp + 1
                     self.processed_timestamps.add(timestamp)
                     return timestamp
+                
+
+    def messages_icon(self, path):
+        return Os.Path.Combine(str(self.app.paths.app), path)
 
 
 class Messages(Box):
@@ -2413,7 +2432,7 @@ class Messages(Box):
 
 
     def create_new_messenger(self):
-        self.new_messenger = NewMessenger(self, self.main, self.chat)
+        self.new_messenger = NewMessenger(self.app, self, self.main, self.chat)
         self.add(self.new_messenger)
 
 

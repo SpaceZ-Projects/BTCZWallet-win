@@ -4,10 +4,11 @@ import json
 
 from toga import (
     App, Box, Label, TextInput, Selection, 
-    ImageView, Window, Switch, MultilineTextInput
+    ImageView, Window, Switch, MultilineTextInput,
+    Button
 )
 from ..framework import (
-    Command, Color, ToolTip, ComboStyle, MenuStrip
+    Command, Color, ToolTip, FlatStyle, MenuStrip
 )
 from toga.style.pack import Pack
 from toga.constants import (
@@ -131,7 +132,7 @@ class Send(Box):
             accessor="select_address",
             on_change=self.display_address_balance
         )
-        self.address_selection._impl.native.FlatStyle = ComboStyle.FLAT
+        self.address_selection._impl.native.FlatStyle = FlatStyle.FLAT
 
         self.address_balance = Label(
             text="0.00000000",
@@ -449,33 +450,21 @@ class Send(Box):
             )
         )
 
-        self.send_label = Label(
+        self.send_button = Button(
             text="Cash Out",
             style=Pack(
                 color = GRAY,
-                background_color = rgb(40,43,48),
-                text_align = CENTER,
+                background_color = rgb(30,33,36),
                 font_weight = BOLD,
                 font_size = 12,
-                flex = 1
-            )
+                width = 150,
+                padding = (10,10,0,0)
+            ),
+            on_press=self.send_button_click
         )
-
-        self.send_button = Box(
-            style=Pack(
-                background_color = rgb(40,43,48),
-                alignment = CENTER,
-                padding = 7,
-                width = 200,
-                height = 40
-            )
-        )
+        self.send_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.send_button._impl.native.MouseEnter += self.send_button_mouse_enter
         self.send_button._impl.native.MouseLeave += self.send_button_mouse_leave
-        self.send_label._impl.native.MouseEnter += self.send_button_mouse_enter
-        self.send_label._impl.native.MouseLeave += self.send_button_mouse_leave
-        self.send_button._impl.native.Click += self.send_button_click
-        self.send_label._impl.native.Click += self.send_button_click
 
         self.confirmation_box = Box(
             style=Pack(
@@ -558,9 +547,6 @@ class Send(Box):
             self.operation_box.add(
                 self.operation_label,
                 self.operation_status
-            )
-            self.send_button.add(
-                self.send_label
             )
             self.send_toggle = True
             self.insert_menustrip()
@@ -746,19 +732,15 @@ class Send(Box):
             self.private_toggle = None
 
     def send_button_mouse_enter(self, sender, event):
+        self.send_button.style.color = BLACK
         if self.transparent_toggle:
-            self.send_label.style.color = BLACK
             self.send_button.style.background_color = YELLOW
-            self.send_label.style.background_color = YELLOW
         elif self.private_toggle:
-            self.send_label.style.color = WHITE
             self.send_button.style.background_color = rgb(114,137,218)
-            self.send_label.style.background_color = rgb(114,137,218)
 
     def send_button_mouse_leave(self, sender, event):
-        self.send_label.style.color = GRAY
-        self.send_button.style.background_color = rgb(40,43,48)
-        self.send_label.style.background_color = rgb(40,43,48)
+        self.send_button.style.color = GRAY
+        self.send_button.style.background_color = rgb(30,33,36)
 
 
     def set_destination_messages_address(self):
@@ -937,8 +919,9 @@ class Send(Box):
         addresses_data, _ = await self.commands.z_listAddresses()
         addresses_data = json.loads(addresses_data)
         if addresses_data is not None:
-            if len(addresses_data) == 1:
-                address_items = [(addresses_data[0], addresses_data[0])]
+            message_address = self.storage.get_identity("address")
+            if message_address:
+                address_items = [address_info for address_info in addresses_data if address_info != message_address[0]]
             else:
                 address_items = [(address, address) for address in addresses_data]
         else:
@@ -1132,7 +1115,7 @@ class Send(Box):
             self.fee_input.value = ""
 
 
-    def send_button_click(self, sender, event):
+    def send_button_click(self, button):
         selected_address = self.address_selection.value.select_address if self.address_selection.value else None
         if self.many_option.value is True:
             destination_address = self.destination_input_many.value
@@ -1334,8 +1317,7 @@ class Send(Box):
 
     
     def disable_send(self):
-        self.send_button._impl.native.Enabled = False
-        self.send_label._impl.native.Enabled = False
+        self.send_button.enabled = False
         if self.many_option.value is True:
             self.destination_input_many.readonly = True
         elif self.single_option.value is True:
@@ -1345,8 +1327,7 @@ class Send(Box):
 
 
     def enable_send(self):
-        self.send_button._impl.native.Enabled = True
-        self.send_label._impl.native.Enabled = True
+        self.send_button.enabled = True
         if self.many_option.value is True:
             self.destination_input_many.readonly = False
         elif self.single_option.value is True:

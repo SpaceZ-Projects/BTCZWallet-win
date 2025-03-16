@@ -4,16 +4,20 @@ import json
 import webbrowser
 
 from toga import (
-    App, Box, Label, ImageView, Window, TextInput
+    App, Box, Label, ImageView, Window, TextInput,
+    Button
 )
 from ..framework import (
     Table, DockStyle, BorderStyle, AlignTable,
     FontStyle, Font, Color, Command, ClipBoard,
-    RichLabel, ScrollBars, AlignRichLabel, Cursors
+    RichLabel, ScrollBars, AlignRichLabel, Cursors,
+    FlatStyle
 )
 from toga.style.pack import Pack
 from toga.constants import COLUMN, ROW, CENTER, BOLD, TOP
-from toga.colors import rgb, WHITE, GRAY, YELLOW
+from toga.colors import (
+    rgb, WHITE, GRAY, YELLOW, GREENYELLOW, BLACK, RED
+)
 
 from .utils import Utils
 from .client import Client
@@ -25,8 +29,7 @@ class ImportKey(Window):
         super().__init__(
             size = (600, 150),
             resizable= False,
-            minimizable = False,
-            closable=False
+            minimizable = False
         )
         
         self.utils = Utils(self.app)
@@ -51,7 +54,6 @@ class ImportKey(Window):
                 color = WHITE,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                font_weight = BOLD,
                 font_size = 11,
                 padding_top = 5
             )
@@ -68,32 +70,21 @@ class ImportKey(Window):
             )
         )
         
-        self.import_label = Label(
+        self.import_button = Button(
             text="Import",
             style=Pack(
                 color= GRAY,
                 background_color = rgb(30,33,36),
-                text_align = CENTER,
                 font_weight = BOLD,
-                font_size=12,
-                flex = 1
-            )
-        )
-        self.import_button = Box(
-            style=Pack(
-                direction = ROW,
-                background_color = rgb(30,33,36),
-                alignment = CENTER,
+                font_size=10,
                 flex = 1,
-                padding = 10
-            )
+                padding = (0,10,0,10)
+            ),
+            on_press=self.import_button_click
         )
+        self.import_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.import_button._impl.native.MouseEnter += self.import_button_mouse_enter
         self.import_button._impl.native.MouseLeave += self.import_button_mouse_leave
-        self.import_label._impl.native.MouseEnter += self.import_button_mouse_enter
-        self.import_label._impl.native.MouseLeave += self.import_button_mouse_leave
-        self.import_button._impl.native.Click += self.import_button_click
-        self.import_label._impl.native.Click += self.import_button_click
 
         self.input_box = Box(
             style=Pack(
@@ -105,34 +96,36 @@ class ImportKey(Window):
             )
         )
 
-        self.close_button = ImageView(
-            image="images/close_i.png",
+        self.cancel_button = Button(
+            text="Cancel",
             style=Pack(
+                color = RED,
+                font_size=10,
+                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
-                padding_bottom = 10
-            )
+                padding_bottom = 10,
+                width = 100
+            ),
+            on_press=self.close_import_key
         )
-        self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
-        self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
-        self.close_button._impl.native.Click += self.close_import_key
+        self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
+        self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
 
         self.content = self.main_box
 
         self.main_box.add(
             self.info_label,
             self.input_box,
-            self.close_button
+            self.cancel_button
         )
         self.input_box.add(
             self.key_input,
             self.import_button
         )
-        self.import_button.add(
-            self.import_label
-        )
 
-    def import_button_click(self, sender, event):
+    def import_button_click(self, button):
         if not self.key_input.value:
             self.error_dialog(
                 "Missing Private Key",
@@ -141,11 +134,9 @@ class ImportKey(Window):
             self.key_input.focus()
             return
         self.key_input.readonly = True
-        self.import_button._impl.native.Click -= self.import_button_click
-        self.import_label._impl.native.Click -= self.import_button_click
+        self.import_button.on_press = None
         self.import_button._impl.native.Cursor = Cursors.WAIT
-        self.import_label._impl.native.Cursor = Cursors.WAIT
-        self.close_button.enabled = False
+        self.cancel_button.enabled = False
         self.app.add_background_task(self.import_private_key)
 
 
@@ -169,30 +160,28 @@ class ImportKey(Window):
     def update_import_window(self):
         self.key_input.readonly = False
         self.key_input.value = ""
-        self.import_button._impl.native.Click += self.import_button_click
-        self.import_label._impl.native.Click += self.import_button_click
+        self.import_button.on_press = self.import_button_click
         self.import_button._impl.native.Cursor = Cursors.DEFAULT
-        self.import_label._impl.native.Cursor = Cursors.DEFAULT
-        self.close_button.enabled = True
+        self.cancel_button.enabled = True
 
 
     def import_button_mouse_enter(self, sender, event):
-        self.import_label.style.color = WHITE
-        self.import_label.style.background_color = rgb(40,43,48)
-        self.import_button.style.background_color = rgb(40,43,48)
+        self.import_button.style.color = BLACK
+        self.import_button.style.background_color = GREENYELLOW
 
     def import_button_mouse_leave(self, sender, event):
-        self.import_label.style.color = GRAY
-        self.import_label.style.background_color = rgb(30,33,36)
+        self.import_button.style.color = GRAY
         self.import_button.style.background_color = rgb(30,33,36)
 
-    def close_button_mouse_enter(self, sender, event):
-        self.close_button.image = "images/close_a.png"
+    def cancel_button_mouse_enter(self, sender, event):
+        self.cancel_button.style.color = BLACK
+        self.cancel_button.style.background_color = RED
 
-    def close_button_mouse_leave(self, sender, event):
-        self.close_button.image = "images/close_i.png"
+    def cancel_button_mouse_leave(self, sender, event):
+        self.cancel_button.style.color = RED
+        self.cancel_button.style.background_color = rgb(30,33,36)
 
-    def close_import_key(self, sender, event):
+    def close_import_key(self, button):
         self.close()
 
 

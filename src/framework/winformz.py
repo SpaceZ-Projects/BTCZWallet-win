@@ -1,97 +1,4 @@
 
-"""
-WinformZ
-
-This script extends the Toga library by integrating .NET Windows Forms UI components through the use of 
-the CLR (Common Language Runtime) to interact with the Windows Forms API. The code provides abstractions 
-for various UI elements and controls like fonts, colors, toolbars, status bars, and clipboard handling, etc... 
-allowing for more complex and customized UI applications.
-
-Key Features:
--------------
-1. **Font and Style Management**:
-    - Predefined font families: Serif, Monospace, and SansSerif.
-    - Font styles such as Regular, Bold, and Italic.
-    - Customizable font properties, allowing for flexible text styling across UI elements.
-
-2. **Color Management**:
-    - Predefined common colors (e.g., White, Black, Red, Green, etc.) and support for RGB color creation through `Color.rgb(r, g, b)`.
-    - Full control over foreground and background colors of UI elements.
-    - Easy integration of color management into toolbars, buttons, and other controls for a consistent design.
-
-3. **UI Alignment and Layout**:
-    - Common alignment options for UI components like labels and tables (e.g., Left, Center, Right).
-    - DataGridView cell alignment customization for optimal table presentation.
-    - Docking styles (Top, Bottom, Left, Right, Fill) to easily manage the layout of components within the window.
-
-4. **Clipboard and ToolTip Integration**:
-    - Streamlined clipboard handling with the ability to copy text to the system clipboard.
-    - Tooltips for UI components (e.g., buttons, labels) to provide additional context or instructions when the user hovers over them.
-
-5. **Toolbar and StatusBar**:
-    - Customizable `Toolbar` class for creating menus with commands, colors, icons, and backgrounds.
-    - `StatusBar` class to display status information at the bottom of the window with the ability to add items and customize the appearance.
-
-6. **Keyboard Handling**:
-    - Easy access to common key codes (e.g., Backspace, Enter, F1-F12) for handling keyboard input and assigning shortcut keys to commands.
-
-7. **Asynchronous Operations**:
-    - `run_async(action)` utility to execute tasks asynchronously in the background, making it easier to handle long-running operations without freezing the UI.
-
-8. **DataGridView Customization**:
-    - Extended `DataGridView` functionality with options for custom columns, row management, cell alignment, and more.
-    - Specialized `ImageColumn` class for displaying images within the grid.
-    - Configurable selection modes and clipboard handling within tables.
-
-9. **System Tray and Context Menus**:
-    - `NotifyIcon` class to display a system tray icon with custom text and icon.
-    - Built-in support for context menus on system tray icons, allowing for easy addition, removal, and management of commands.
-
-10. **Command Management**:
-    - Custom `Command` class to create commands for toolbars, context menus, or other UI components.
-    - Each command can be associated with an action, icon, color, and even keyboard shortcut keys.
-    - Full event handling support for mouse interactions (e.g., mouse enter, leave, up, down), checked states, and dropdown menu interactions.
-
-Classes and Components:
-------------------------
-1. **Font**: Defines predefined font families.
-2. **FontStyle**: Defines commonly used font styles (Regular, Bold, Italic).
-3. **AlignLabel**: Defines common alignment options for labels.
-4. **AlignTable**: Defines alignment for DataGridView cells.
-5. **DockStyle**: Defines docking styles for UI controls.
-6. **ProgressStyle**: Defines progress bar styles.
-7. **Color**: Handles predefined colors and custom RGB creation.
-8. **SelectMode**: Defines selection modes for DataGridView controls.
-9. **CopyMode**: Defines clipboard copy modes for DataGridView controls.
-10. **BorderStyle**: Defines border styles for UI elements.
-11. **ClipBoard**: Extends .NET's Clipboard class to provide text copying functionality.
-12. **ToolTip**: Extends .NET's ToolTip class to associate tooltips with UI components.
-13. **Keys**: Provides key codes for common keyboard inputs.
-14. **Separator**: A custom class for creating separators in toolbars and menus.
-15. **Toolbar**: A custom toolbar that can contain commands, set colors, and manage layout.
-16. **StatusBar**: A custom status bar that displays information at the bottom of the window.
-17. **Table**: A custom DataGridView implementation that allows customization of columns, rows, selection, and other table properties.
-18. **Command**: A custom class for creating commands in toolbars or menus, with customizable actions, appearance, and events.
-19. **NotifyIcon**: A custom class for creating system tray icons with context menus and commands.
-20. **ImageColumn**: A custom class that extends the `DataGridViewImageColumn` to display images in a DataGridView.
-21. **RichLabel**: A custom class that extends `RichTextBox` to provide enhanced functionality for displaying rich text content.
-
-Note:
------
-This module is designed specifically for Windows-based applications using the .NET Windows Forms API,
-and it leverages the Common Language Runtime (CLR) to facilitate integration with .NET libraries. The requirements for running this script are as follows:
-
-1. A Python environment capable of interfacing with the .NET Framework, typically achieved through the `pythonnet` package or a similar CLR bridge.
-2. The .NET Framework (or .NET Core) installed on the system to enable Windows Forms functionality.
-
-This solution is **not cross-platform** and is intended for use only on Windows operating systems.
-
-While it may be possible to run it on other platforms with tools like Mono,
-such configurations are not officially supported and may require additional modifications for full compatibility.
-
-"""
-
-
 import asyncio
 import clr
 from pathlib import Path
@@ -129,7 +36,7 @@ class FontStyle:
     BOLD = Drawing.FontStyle.Bold
     ITALIC = Drawing.FontStyle.Italic
 
-class AlignLabel:
+class AlignContent:
     LEFT = Drawing.ContentAlignment.MiddleLeft
     CENTER = Drawing.ContentAlignment.MiddleCenter
     RIGHT = Drawing.ContentAlignment.MiddleRight
@@ -187,14 +94,20 @@ class BorderStyle:
     NONE = Forms.BorderStyle(0)
 
 
-class ComboStyle:
+class FlatStyle:
     FLAT = Forms.FlatStyle.Flat
+
+
+class Relation:
+    IMAGEBEFORETEXT = Forms.TextImageRelation.ImageBeforeText
+    
 
 class ClipBoard(Forms.Clipboard):
     def __init__(self):
         super().__init__()
     def copy(self, value):
         self.SetText(value)
+
 
 class ToolTip(Forms.ToolTip):
     def __init__(self):
@@ -362,8 +275,8 @@ class StatusLabel(Forms.ToolStripStatusLabel):
         font_size: Optional[int] = 9,
         color : Optional[Color] = None,
         background_color :Optional[Color] = None,
-        text_align:Optional[AlignLabel] = None,
-        image_align:Optional[AlignLabel] =None,
+        text_align:Optional[AlignContent] = None,
+        image_align:Optional[AlignContent] =None,
         spring : bool = None,
         size:tuple[int, int] = None,
         autotooltip:bool = False
@@ -822,7 +735,7 @@ class Table(Forms.DataGridView):
         background_color: Optional[Color] = None,
         cell_color: Optional[Color] = None,
         font: Optional[Font] = Font.SERIF,
-        align: Optional[AlignLabel] = None,
+        align: Optional[AlignContent] = None,
         data_source: Optional[Union[List[dict], List[List]]] = None,
         dockstyle: Optional[DockStyle] = None,
         column_count: Optional[int] = None,
@@ -1172,7 +1085,8 @@ class RichLabel(Forms.RichTextBox):
         maxsize: tuple[int, int] = None,
         minsize: tuple[int, int] = None,
         urls_click: Optional[Callable] = None,
-        mouse_wheel: Optional[Callable] = None
+        mouse_wheel: Optional[Callable] = None,
+        mouse_move: bool = False
     ):
         super().__init__()
 
@@ -1194,6 +1108,7 @@ class RichLabel(Forms.RichTextBox):
         self._minsize = minsize
         self._urls_click = urls_click
         self._mouse_wheel = mouse_wheel
+        self._mouse_move = mouse_move
 
         self.tooltip = Forms.ToolTip()
         self.tooltip_visible = None
@@ -1227,6 +1142,7 @@ class RichLabel(Forms.RichTextBox):
             self.MinimumSize = Drawing.Size(*self._minsize)
         if self._urls_click:
             self.LinkClicked += self.on_link_clicked
+        if self._mouse_move:
             self.MouseMove += self.on_mouse_move
         if self._mouse_wheel:
             self.MouseWheel += self.on_mouse_wheel

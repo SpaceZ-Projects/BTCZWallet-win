@@ -6,7 +6,7 @@ import json
 from toga import App, Box
 from ..framework import (
     StatusBar, StatusLabel, Separator,
-    DockStyle, Color, Font, FontStyle, AlignLabel
+    DockStyle, Color, Font, FontStyle, AlignContent
 )
 from toga.style.pack import Pack
 from toga.constants import ROW, BOTTOM
@@ -55,7 +55,7 @@ class AppStatusBar(Box):
             font=Font.SERIF,
             style=FontStyle.BOLD,
             spring=True,
-            text_align=AlignLabel.LEFT,
+            text_align=AlignContent.LEFT,
             autotooltip=True
         )
         self.deprecation_status = StatusLabel(
@@ -69,7 +69,7 @@ class AppStatusBar(Box):
             color=Color.WHITE,
             font=Font.SERIF,
             style=FontStyle.BOLD,
-            text_align=AlignLabel.LEFT,
+            text_align=AlignContent.LEFT,
             autotooltip=True
         )
         self.date_status = StatusLabel(
@@ -84,7 +84,7 @@ class AppStatusBar(Box):
             font=Font.SERIF,
             style=FontStyle.BOLD,
             spring=True,
-            text_align=AlignLabel.LEFT,
+            text_align=AlignContent.LEFT,
             autotooltip=True
         )
         self.sync_status = StatusLabel(
@@ -99,7 +99,7 @@ class AppStatusBar(Box):
             font=Font.SERIF,
             style=FontStyle.BOLD,
             spring=True,
-            text_align=AlignLabel.LEFT,
+            text_align=AlignContent.LEFT,
             autotooltip=True
         )
         self.network_status = StatusLabel(
@@ -113,7 +113,7 @@ class AppStatusBar(Box):
             color=Color.WHITE,
             font=Font.SERIF,
             style=FontStyle.BOLD,
-            text_align=AlignLabel.LEFT,
+            text_align=AlignContent.LEFT,
             autotooltip=True
         )
         self.size_status = StatusLabel(
@@ -127,7 +127,7 @@ class AppStatusBar(Box):
             color=Color.WHITE,
             font=Font.SERIF,
             style=FontStyle.BOLD,
-            text_align=AlignLabel.LEFT,
+            text_align=AlignContent.LEFT,
             autotooltip=True
         )
         self.statusbar.add_items(

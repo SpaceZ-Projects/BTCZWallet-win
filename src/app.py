@@ -31,16 +31,16 @@ class BitcoinZGUI(Window):
         )
         self.bitcoinz_logo = ImageView(
             image="images/BitcoinZ.png",
-            style=(Pack(
+            style=Pack(
                 background_color = rgb(30,33,36),
                 padding_top = 22,
                 flex = 8
-            ))
+            )
         )
         self.version_box = Box(
             style=Pack(
-            direction = ROW,
-            background_color= rgb(30,33,36),
+                direction = ROW,
+                background_color= rgb(30,33,36),
             )
         )
         self.empty_box = Box(
@@ -99,7 +99,7 @@ def main():
         app_id = "com.btcz",
         home_page = "https://getbtcz.com",
         author = "BTCZCommunity",
-        version = "1.1.9"
+        version = "1.2.0"
     )
     return app
 
