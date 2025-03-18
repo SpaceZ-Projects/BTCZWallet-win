@@ -24,7 +24,7 @@ from .notify import Notify
 from .wallet import Wallet
 from .home import Home
 from .txs import Transactions
-from .recieve import Recieve, ImportKey
+from .receive import Receive, ImportKey
 from .send import Send
 from .messages import Messages, EditUser
 from .mining import Mining
@@ -81,7 +81,7 @@ class Menu(Window):
 
         self.home_page = Home(self.app)
         self.transactions_page = Transactions(self.app, self)
-        self.recieve_page = Recieve(self.app, self)
+        self.recieve_page = Receive(self.app, self)
         self.send_page = Send(self.app, self)
         self.message_page = Messages(self.app, self)
         self.mining_page = Mining(self.app, self)
@@ -568,7 +568,7 @@ class Menu(Window):
             if result is True:
                 self.home_page.bitcoinz_curve.image = None
                 self.home_page.clear_cache()
-                self.hide()
+                self.notify.hide()
                 self.app.exit()
         if self.mining_page.mining_status:
             return

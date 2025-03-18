@@ -185,7 +185,7 @@ class ImportKey(Window):
         self.close()
 
 
-class Recieve(Box):
+class Receive(Box):
     def __init__(self, app:App, main:Window):
         super().__init__(
             style=Pack(

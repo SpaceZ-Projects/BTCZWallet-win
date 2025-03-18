@@ -5,15 +5,15 @@ import json
 from datetime import datetime
 import webbrowser
 
-from toga import App, Box, Label, Window, ImageView
+from toga import App, Box, Label, Window, Button
 from ..framework import (
     Table, Command, Color, DockStyle,
     Font, FontStyle, AlignTable, SelectMode,
-    BorderStyle, ClipBoard
+    BorderStyle, ClipBoard, FlatStyle
 )
 from toga.style.pack import Pack
-from toga.colors import rgb, GRAY, WHITE, GREEN, RED, ORANGE
-from toga.constants import COLUMN, CENTER, BOLD, ROW, LEFT
+from toga.colors import rgb, GRAY, WHITE, GREEN, RED, ORANGE, BLACK
+from toga.constants import COLUMN, CENTER, BOLD, ROW
 
 from .client import Client
 from .utils import Utils
@@ -24,10 +24,9 @@ from .notify import NotifyTx
 class Txid(Window):
     def __init__(self, txid):
         super().__init__(
-            size =(600, 150),
+            size =(600, 160),
             resizable= False,
-            minimizable = False,
-            closable=False
+            minimizable = False
         )
 
         self.utils = Utils(self.app)
@@ -81,19 +80,16 @@ class Txid(Window):
             text="Confirmations : ",
             style=Pack(
                 font_weight = BOLD,
-                text_align = LEFT,
                 color = GRAY,
-                background_color = rgb(30,33,36),
-                padding_left = 50
+                background_color = rgb(40,43,48)
             )
         )
         self.confirmations_value = Label(
             text="",
             style=Pack(
                 font_weight = BOLD,
-                text_align = LEFT,
                 color = WHITE,
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 flex = 1
             )
         )
@@ -102,7 +98,7 @@ class Txid(Window):
                 direction = ROW,
                 background_color = rgb(30,33,36),
                 flex = 1,
-                alignment = LEFT
+                padding = (0,50,0,50)
             )
         )
 
@@ -110,20 +106,33 @@ class Txid(Window):
             text="Category : ",
             style=Pack(
                 font_weight = BOLD,
-                text_align = LEFT,
                 color = GRAY,
-                background_color = rgb(30,33,36),
-                padding_left = 50
+                background_color = rgb(40,43,48)
             )
         )
         self.category_value = Label(
             text="",
             style=Pack(
                 font_weight = BOLD,
-                text_align = LEFT,
                 color = WHITE,
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 flex = 1
+            )
+        )
+        self.time_label = Label(
+            text="Time : ",
+            style=Pack(
+                font_weight = BOLD,
+                color = GRAY,
+                background_color = rgb(40,43,48)
+            )
+        )
+        self.time_value = Label(
+            text="",
+            style=Pack(
+                font_weight = BOLD,
+                color = WHITE,
+                background_color = rgb(40,43,48)
             )
         )
         self.category_box = Box(
@@ -131,7 +140,7 @@ class Txid(Window):
                 direction = ROW,
                 background_color = rgb(30,33,36),
                 flex = 1,
-                alignment = LEFT
+                padding = (0,50,0,50)
             )
         )
 
@@ -139,20 +148,33 @@ class Txid(Window):
             text="Amount : ",
             style=Pack(
                 font_weight = BOLD,
-                text_align = LEFT,
                 color = GRAY,
-                background_color = rgb(30,33,36),
-                padding_left = 50
+                background_color = rgb(40,43,48)
             )
         )
         self.amount_value = Label(
             text="",
             style=Pack(
                 font_weight = BOLD,
-                text_align = LEFT,
                 color = WHITE,
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 flex = 1
+            )
+        )
+        self.fee_label = Label(
+            text="Fee : ",
+            style=Pack(
+                font_weight = BOLD,
+                color = GRAY,
+                background_color = rgb(40,43,48)
+            )
+        )
+        self.fee_value = Label(
+            text="",
+            style=Pack(
+                font_weight = BOLD,
+                color = WHITE,
+                background_color = rgb(40,43,48)
             )
         )
         self.amount_box = Box(
@@ -160,21 +182,26 @@ class Txid(Window):
                 direction = ROW,
                 background_color = rgb(30,33,36),
                 flex = 1,
-                alignment = LEFT
+                padding = (0,50,0,50)
             )
         )
         
-        self.close_button = ImageView(
-            image="images/close_i.png",
+        self.close_button = Button(
+            text="Close",
             style=Pack(
+                color = RED,
+                font_size=10,
+                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
-                padding_bottom = 10
-            )
+                padding_bottom = 10,
+                width = 100
+            ),
+            on_press=self.close_transaction_info
         )
+        self.close_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
         self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
-        self.close_button._impl.native.Click += self.close_transaction_info
 
         self.content = self.main_box
 
@@ -195,11 +222,15 @@ class Txid(Window):
         )
         self.category_box.add(
             self.category_label,
-            self.category_value
+            self.category_value,
+            self.time_label,
+            self.time_value
         )
         self.amount_box.add(
             self.amount_label,
-            self.amount_value
+            self.amount_value,
+            self.fee_label,
+            self.fee_value
         )
 
         self.app.add_background_task(self.update_transaction_info)
@@ -216,8 +247,14 @@ class Txid(Window):
                     transaction_info = json.loads(transaction_info)
                 if transaction_info:
                     category = transaction_info['details'][0]['category']
+                    if category == "send":
+                        fee = self.utils.format_balance(float(transaction_info['fee']))
+                    else:
+                        fee = "NaN"
                     amount = self.utils.format_balance(float(transaction_info['amount']))
                     confirmations = transaction_info['confirmations']
+                    timereceived = transaction_info['timereceived']
+                    formatted_timereceived = datetime.fromtimestamp(timereceived).strftime("%Y-%m-%d %H:%M:%S")
                     if confirmations <= 0:
                         color = RED
                     elif 1 <= confirmations < 6:
@@ -227,17 +264,21 @@ class Txid(Window):
                     self.confirmations_value.style.color = color
                     self.confirmations_value.text = confirmations
                     self.category_value.text = category
+                    self.time_value.text = formatted_timereceived
                     self.amount_value.text = amount
+                    self.fee_value.text = fee
                 
                 await asyncio.sleep(5)
 
     def close_button_mouse_enter(self, sender, event):
-        self.close_button.image = "images/close_a.png"
+        self.close_button.style.color = BLACK
+        self.close_button.style.background_color = RED
 
     def close_button_mouse_leave(self, sender, event):
-        self.close_button.image = "images/close_i.png"
+        self.close_button.style.color = RED
+        self.close_button.style.background_color = rgb(30,33,36)
 
-    def close_transaction_info(self, sender, event):
+    def close_transaction_info(self, button):
         self.updating_txid = None
         self.close()
 

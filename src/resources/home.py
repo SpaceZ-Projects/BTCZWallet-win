@@ -1,6 +1,6 @@
 
 import asyncio
-import requests
+import aiohttp
 from datetime import datetime
 
 from toga import App, Box, Label, ImageView
@@ -282,31 +282,33 @@ class Home(Box):
             self.app.add_background_task(self.update_circulating_supply)
 
 
-    def fetch_marketcap(self):
-        api_url = "https://api.coingecko.com/api/v3/coins/bitcoinz"
+    async def fetch_marketcap(self):
+        api = "https://api.coingecko.com/api/v3/coins/bitcoinz"
         try:
-            response = requests.get(api_url)
-            if response.status_code == 200:
-                data = response.json()
-                return data
-            else:
-                print("Failed to fetch data. Status code:", response.status_code)
-                return None
+            async with aiohttp.ClientSession() as session:
+                headers={'User-Agent': 'Mozilla/5.0'}
+                async with session.get(api, headers=headers) as response:
+                    response.raise_for_status()
+                    data = await response.json()
+                    return data
         except Exception as e:
             print(f"Error occurred during fetch: {e}")
             return None
 
-    def fetch_marketchart(self):
-        url = "https://api.coingecko.com/api/v3/coins/bitcoinz/market_chart"
+    async def fetch_marketchart(self):
+        api = "https://api.coingecko.com/api/v3/coins/bitcoinz/market_chart"
         params = {
             'vs_currency': 'usd',
             'days': '1',
         }
         try:
-            response = requests.get(url, params=params)
-            data = response.json()
-            prices = data['prices']
-            return prices
+            async with aiohttp.ClientSession() as session:
+                headers={'User-Agent': 'Mozilla/5.0'}
+                async with session.get(api, params=params, headers=headers) as response:
+                    response.raise_for_status()
+                    data = await response.json()
+                    prices = data.get('prices', [])
+                    return prices
         except Exception as e:
             print(f"Error occurred during fetch: {e}")
             return None
@@ -325,7 +327,7 @@ class Home(Box):
 
     async def update_marketcap(self, widget):
         while True:
-            data = self.fetch_marketcap()
+            data = await self.fetch_marketcap()
             if data:
                 market_price = data["market_data"]["current_price"]["usd"]
                 market_cap = data["market_data"]["market_cap"]["usd"]
@@ -347,7 +349,7 @@ class Home(Box):
 
     async def update_marketchar(self, widget):
         while True:
-            data = self.fetch_marketchart()
+            data = await self.fetch_marketchart()
             if data:
                 curve_image = self.utils.create_curve(data)
                 if curve_image:
