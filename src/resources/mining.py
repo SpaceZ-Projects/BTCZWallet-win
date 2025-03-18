@@ -4,13 +4,14 @@ import json
 import psutil
 import subprocess
 import re
+import aiohttp
 
 from toga import (
     App, Box, Label, Selection, TextInput,
     ProgressBar, Window, ScrollContainer,
-    Button
+    Button, ImageView
 )
-from ..framework import FlatStyle
+from ..framework import FlatStyle, Os
 from toga.style.pack import Pack
 from toga.constants import COLUMN, CENTER, BOLD, ROW
 from toga.colors import rgb, GRAY, WHITE, GREENYELLOW, BLACK, RED
@@ -42,6 +43,8 @@ class Mining(Box):
         self.selected_server = None
         self.worker_name = None
         self.mining_status = None
+        self.pool_api = None
+        self.miner_command = None
 
         self.miner_label = Label(
             text="Miner :",
@@ -171,14 +174,7 @@ class Mining(Box):
                 padding_top = 10
             ),
             items=[
-                {"pool": "Select Pool"},
-                {"pool": "2Mars"},
-                {"pool": "Swgroupe"},
-                {"pool": "Zeropool"},
-                {"pool": "PCmining"},
-                {"pool": "Darkfibersmines"},
-                {"pool": "Zergpool"},
-                {"pool": "Zpool"}
+                {"pool": "Select Pool"}
             ],
             accessor="pool",
             on_change=self.update_server_selection
@@ -268,10 +264,101 @@ class Mining(Box):
             )
         )
 
+        self.totalshares_icon = ImageView(
+            image="images/shares.png",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                padding_left = 20
+            )
+        )
+
+        self.totalshares_value = Label(
+            text="0.00",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                font_weight = BOLD,
+                padding_left = 5
+            )
+        )
+
+        self.balance_icon = ImageView(
+            image="images/balance.png",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                padding_left = 20
+            )
+        )
+
+        self.balance_value = Label(
+            text="0.00",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                font_weight = BOLD,
+                padding_left = 5
+            )
+        )
+
+        self.immature_icon = ImageView(
+            image="images/immature.png",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                padding_left = 20
+            )
+        )
+
+        self.immature_value = Label(
+            text="0.00",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                font_weight = BOLD,
+                padding_left = 2
+            )
+        )
+
+        self.paid_icon = ImageView(
+            image="images/paid.png",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                padding = (2,0,0,20)
+            )
+        )
+
+        self.paid_value = Label(
+            text="0.00",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                font_weight = BOLD,
+                padding_left = 6
+            )
+        )
+
+        self.solutions_icon = ImageView(
+            image="images/hash_speed.png",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                padding_left = 20
+            )
+        )
+
+        self.solutions_value = Label(
+            text="0.00 Sol/s",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                font_weight = BOLD,
+                padding_left = 6
+            )
+        )
+
         self.mining_box = Box(
             style=Pack(
-                direction = COLUMN,
+                direction = ROW,
                 background_color = rgb(30,33,36),
+                alignment= CENTER,
                 flex = 1
             )
         )
@@ -284,6 +371,7 @@ class Mining(Box):
                 font_weight = BOLD,
                 font_size = 12,
                 width = 150,
+                alignment= CENTER,
                 padding_right = 10
             ),
             on_press=self.start_mining_button_click
@@ -339,6 +427,18 @@ class Mining(Box):
                 self.mining_box,
                 self.start_mining_button
             )
+            self.mining_box.add(
+                self.totalshares_icon,
+                self.totalshares_value,
+                self.balance_icon,
+                self.balance_value,
+                self.immature_icon,
+                self.immature_value,
+                self.paid_icon,
+                self.paid_value,
+                self.solutions_icon,
+                self.solutions_value
+            )
             self.mining_toggle = True
             self.app.add_background_task(self.update_mining_options)
 
@@ -390,49 +490,33 @@ class Mining(Box):
         self.selected_pool = self.pool_selection.value.pool
         if not self.selected_pool:
             return
-        if self.selected_pool == "2Mars":
-            pool_rergion_items = [
-                {"region": "Canada", "server": "btcz.ca.2mars.biz:1234"},
-                {"region": "USA", "server": "btcz.us.2mars.biz:1234"},
-                {"region": "Netherlands", "server": "btcz.eu.2mars.biz:1234"},
-                {"region": "Singapore", "server": "btcz.sg.2mars.biz:1234"}
-            ]
-        elif self.selected_pool == "Swgroupe":
-            pool_rergion_items = [
-                {"region": "France", "server": "swgroupe.fr:2001"}
-            ]
-        elif self.selected_pool == "Zeropool":
-            pool_rergion_items = [
-                {"region": "USA", "server": "zeropool.io:1235"}
-            ]
-        elif self.selected_pool == "PCmining":
-            pool_rergion_items = [
-                {"region": "Germany", "server": "btcz.pcmining.xyz:3333"}
-            ]
-        elif self.selected_pool == "Darkfibersmines":
-            pool_rergion_items = [
-                {"region": "USA", "server": "142.4.211.28:4000"},
-            ]
-        elif self.selected_pool == "Zergpool":
-            pool_rergion_items = [
-                {"region": "North America", "server": "equihash144.na.mine.zergpool.com:2146"},
-                {"region": "Europe", "server": "equihash144.eu.mine.zergpool.com:2146"},
-                {"region": "Asia", "server": "equihash144.asia.mine.zergpool.com:2146"}
-            ]
-        elif self.selected_pool == "Zpool":
-            pool_rergion_items = [
-                {"region": "Europe", "server": "equihash144.eu.mine.zpool.ca:2144"},
-                {"region": "North America", "server": "equihash144.na.mine.zpool.ca:2144"},
-                {"region": "Asia", "server": "equihash144.sea.mine.zpool.ca:2144"},
-                {"region": "Japan", "server": "equihash144.jp.mine.zpool.ca:2144"}
-            ]
+        
+        pools_data = self.get_pools_data()
+        if self.selected_pool in pools_data:
+            self.pool_api = pools_data[self.selected_pool]["api"]
+            pool_rergion_items = pools_data[self.selected_pool]["regions"]
+            self.pool_region_selection.items = pool_rergion_items
+            self.pool_region_selection.enabled = True
         else:
             self.pool_region_selection.items.clear()
             self.pool_region_selection.enabled = False
-            return
+
+
+    def get_pools_data(self):
+        try:
+            pools_json = Os.Path.Combine(str(self.app.paths.app), 'resources', 'pools.json')
+            with open(pools_json, 'r') as f:
+                pools_data = json.load(f)
+                return pools_data
+        except (FileNotFoundError, json.JSONDecodeError):
+            return None
         
-        self.pool_region_selection.items = pool_rergion_items
-        self.pool_region_selection.enabled = True
+
+    def get_pools_list(self):
+        pools_data = self.get_pools_data()
+        if pools_data:
+            pool_items = [{"pool": pool} for pool in pools_data.keys()]
+            return pool_items
 
 
     async def update_region_server(self, selection):
@@ -468,39 +552,38 @@ class Mining(Box):
                 "Please set a worker name."
             )
             return
-        self.disable_mining_button()
-        self.app.add_background_task(self.prepare_mining)
+        self.prepare_mining()
 
 
-    async def prepare_mining(self, widegt):
+    def prepare_mining(self):
         miner_path,_,_ = self.utils.get_miner_path(self.selected_miner)
         if miner_path:
             if self.selected_miner == "MiniZ":
                 if self.selected_pool == "Zpool":
-                    command = [f'{miner_path} --url {self.selected_address}.{self.worker_name}@{self.selected_server} --pass c=BTCZ,zap=BTCZ']
+                    self.miner_command = [f'{miner_path} --url {self.selected_address}.{self.worker_name}@{self.selected_server} --pass c=BTCZ,zap=BTCZ --pers auto']
                 else:
-                    command = [f'{miner_path} --url {self.selected_address}.{self.worker_name}@{self.selected_server} --pass x --par 144,5 --pers BitcoinZ']
+                    self.miner_command = [f'{miner_path} --url {self.selected_address}.{self.worker_name}@{self.selected_server} --pass x --par 144,5 --pers BitcoinZ']
             elif self.selected_miner == "Gminer":
                 if self.selected_pool == "Zpool":
-                    command = [f'{miner_path} --server {self.selected_server} --user {self.selected_address}.{self.worker_name} --pass c=BTCZ,zap=BTCZ --algo 144_5 --pers BitcoinZ']
+                    self.miner_command = [f'{miner_path} --server {self.selected_server} --user {self.selected_address}.{self.worker_name} --pass c=BTCZ,zap=BTCZ --algo 144_5 --pers auto']
                 else:
-                    command = [f'{miner_path} --server {self.selected_server} --user {self.selected_address}.{self.worker_name} --pass x --algo 144_5 --pers BitcoinZ']
+                    self.miner_command = [f'{miner_path} --server {self.selected_server} --user {self.selected_address}.{self.worker_name} --pass x --algo 144_5 --pers BitcoinZ']
             self.disable_mining_inputs()
-            await self.start_mining_command(command)
+            self.app.add_background_task(self.start_mining_command)
+            self.mining_status = True
+            self.app.add_background_task(self.fetch_miner_stats)
 
 
-    async def start_mining_command(self, command):
+    async def start_mining_command(self, widget):
+        self.update_mining_button("stop")
+        self.ouputs_box.clear()
         try:
             self.process = await asyncio.create_subprocess_shell(
-                *command,
+                *self.miner_command,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 creationflags=subprocess.CREATE_NO_WINDOW
             )
-            self.mining_status = True
-            self.update_mining_button("stop")
-            self.enable_mining_button()
-            self.ouputs_box.clear()
             clean_regex = re.compile(r'\x1b\[[0-9;]*[mGK]|[^a-zA-Z0-9\s\[\]=><.%()/,`\'":]')
             while True:
                 stdout_line = await self.process.stdout.readline()
@@ -521,11 +604,10 @@ class Mining(Box):
         except Exception as e:
             print(f"Exception occurred: {e}")
         finally:
-            self.disable_mining_button()
             self.update_mining_button("start")
             self.enable_mining_inputs()
-            self.enable_mining_button()
             self.mining_status = False
+            self.miner_command = None
 
 
     def print_outputs(self, line):
@@ -546,6 +628,54 @@ class Mining(Box):
         self.ouputs_scroll.vertical_position = self.ouputs_scroll.max_vertical_position
 
 
+    async def fetch_miner_stats(self, widget):
+        api = self.pool_api + self.selected_address
+        async with aiohttp.ClientSession() as session:
+            while True:
+                if not self.mining_status:
+                    return
+                try:
+                    headers = {'User-Agent': 'Mozilla/5.0'}
+                    async with session.get(api, headers=headers) as response:
+                        response.raise_for_status()
+                        mining_data = await response.json()
+                        total_share = mining_data.get("totalShares") or sum(miner.get("accepted", 0) for miner in mining_data.get("miners", []))
+                        balance = mining_data.get("balance", 0)
+                        immature_bal = mining_data.get("immature", mining_data.get("unpaid", 0))
+                        paid = mining_data.get("paid", mining_data.get("paidtotal", 0))
+                        workers_data = mining_data.get("workers", {})
+                        if workers_data:
+                            for worker_name, worker_info in workers_data.items():
+                                worker_name_parts = worker_name.split(".")
+                                if len(worker_name_parts) > 1:
+                                    name = worker_name_parts[1]
+                                else:
+                                    name = worker_name
+                                if name == self.worker_name:
+                                    hashrate = worker_info.get("hashrate", None)
+                                    if hashrate:
+                                        rate = self.utils.hash_to_solutions(hashrate)
+                                        self.solutions_value.text = f"{rate:.2f} Sol/s"
+                        else:
+                            total_hashrates = mining_data.get("total_hashrates", [])
+                            if total_hashrates:
+                                for hashrate in total_hashrates:
+                                    for algo, rate in hashrate.items():
+                                        self.solutions_value.text = f"{rate:.2f} Sol/s"
+
+                        self.totalshares_value.text = f"{total_share:.2f}"
+                        self.balance_value.text = self.utils.format_balance(balance)
+                        self.immature_value.text = self.utils.format_balance(immature_bal)
+                        self.paid_value.text = self.utils.format_balance(paid)
+
+                except aiohttp.ClientError as e:
+                    print(f"Error while fetching data: {e}")
+                except Exception as e:
+                    print(f"An unexpected error occurred: {e}")
+
+                await asyncio.sleep(150)
+
+
     def ouputs_box_on_resize(self, sender, event):
         if self.mining_toggle:
             if self.ouputs_scroll.vertical_position == self.ouputs_scroll.max_vertical_position:
@@ -557,6 +687,9 @@ class Mining(Box):
         transparent_addresses = await self.get_transparent_addresses()
         self.address_selection.items.clear()
         self.address_selection.items = transparent_addresses
+        pools_list = self.get_pools_list()
+        for pool in pools_list:
+            self.pool_selection.items.insert(1, pool)
 
 
     async def stop_mining_button_click(self, button):
@@ -570,8 +703,12 @@ class Mining(Box):
                     proc.kill()
             self.process.terminate()
             self.ouputs_box.clear()
-            self.mining_status = False
             self.print_outputs("Miner Stopped !")
+            self.totalshares_value.text = "0.00"
+            self.balance_value.text = "0.00"
+            self.immature_value.text = "0.00"
+            self.paid_value.text = "0.00"
+            self.solutions_value.text = "0.00 Sol/s"
         except Exception as e:
             print(f"Exception occurred while killing process: {e}")
 
@@ -599,11 +736,10 @@ class Mining(Box):
             self.start_mining_button._impl.native.MouseLeave += self.start_mining_button_mouse_leave
             self.start_mining_button.on_press = self.start_mining_button_click
 
-    
-    def disable_mining_button(self):
-        self.start_mining_button.enabled = False
 
     def disable_mining_inputs(self):
+        self.start_mining_button.style.color = BLACK
+        self.start_mining_button.style.background_color = RED
         self.miner_selection.enabled = False
         self.address_selection.enabled = False
         self.pool_selection.enabled = False
@@ -611,15 +747,13 @@ class Mining(Box):
         self.worker_input.readonly = True
 
     def enable_mining_inputs(self):
+        self.start_mining_button.style.color = BLACK
+        self.start_mining_button.style.background_color = GREENYELLOW
         self.miner_selection.enabled = True
         self.address_selection.enabled = True
         self.pool_selection.enabled = True
         self.pool_region_selection.enabled = True
         self.worker_input.readonly = False
-
-
-    def enable_mining_button(self):
-        self.start_mining_button.enabled = True
 
 
     def start_mining_button_mouse_enter(self, sender, event):

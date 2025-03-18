@@ -492,6 +492,10 @@ addnode=37.187.76.80:1989
         remaining_days = remaining_time_delta.days
         return remaining_days
     
+    def hash_to_solutions(self, hashrate):
+        mh_s = hashrate / 500_000
+        return mh_s
+    
     def create_curve(self, data):
         df = pd.DataFrame(data, columns=["timestamp", "price"])
         df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
