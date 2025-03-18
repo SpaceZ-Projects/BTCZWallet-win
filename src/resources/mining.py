@@ -17,6 +17,7 @@ from toga.constants import COLUMN, CENTER, BOLD, ROW
 from toga.colors import rgb, GRAY, WHITE, GREENYELLOW, BLACK, RED
 
 from .utils import Utils
+from .units import Units
 from .client import Client
 
 
@@ -34,6 +35,7 @@ class Mining(Box):
         self.app = app
         self.main = main
         self.utils = Utils(self.app)
+        self.units = Units()
         self.commands = Client(self.app)
 
         self.mining_toggle = None
@@ -470,7 +472,7 @@ class Mining(Box):
                 self.address_balance.style.color = GRAY
             else:
                 self.address_balance.style.color = WHITE
-            format_balance = self.utils.format_balance(float(balance))
+            format_balance = self.units.format_balance(float(balance))
             self.address_balance.text = format_balance
 
     
@@ -654,7 +656,7 @@ class Mining(Box):
                                 if name == self.worker_name:
                                     hashrate = worker_info.get("hashrate", None)
                                     if hashrate:
-                                        rate = self.utils.hash_to_solutions(hashrate)
+                                        rate = self.units.hash_to_solutions(hashrate)
                                         self.solutions_value.text = f"{rate:.2f} Sol/s"
                         else:
                             total_hashrates = mining_data.get("total_hashrates", [])
@@ -664,9 +666,9 @@ class Mining(Box):
                                         self.solutions_value.text = f"{rate:.2f} Sol/s"
 
                         self.totalshares_value.text = f"{total_share:.2f}"
-                        self.balance_value.text = self.utils.format_balance(balance)
-                        self.immature_value.text = self.utils.format_balance(immature_bal)
-                        self.paid_value.text = self.utils.format_balance(paid)
+                        self.balance_value.text = self.units.format_balance(balance)
+                        self.immature_value.text = self.units.format_balance(immature_bal)
+                        self.paid_value.text = self.units.format_balance(paid)
 
                 except aiohttp.ClientError as e:
                     print(f"Error while fetching data: {e}")

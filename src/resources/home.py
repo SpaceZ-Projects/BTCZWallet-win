@@ -12,8 +12,9 @@ from toga.constants import (
 )
 from toga.colors import rgb, GRAY, WHITE
 
-from .utils import Utils
+from .units import Units
 from .client import Client
+from .curve import Curve
 
 
 class Home(Box):
@@ -28,8 +29,9 @@ class Home(Box):
             )
         )
         self.app = app
-        self.utils = Utils(self.app)
+        self.units = Units()
         self.commands = Client(self.app)
+        self.curve = Curve(self.app)
 
         self.home_toggle = None
         self.cap_toggle = None
@@ -295,30 +297,12 @@ class Home(Box):
             print(f"Error occurred during fetch: {e}")
             return None
 
-    async def fetch_marketchart(self):
-        api = "https://api.coingecko.com/api/v3/coins/bitcoinz/market_chart"
-        params = {
-            'vs_currency': 'usd',
-            'days': '1',
-        }
-        try:
-            async with aiohttp.ClientSession() as session:
-                headers={'User-Agent': 'Mozilla/5.0'}
-                async with session.get(api, params=params, headers=headers) as response:
-                    response.raise_for_status()
-                    data = await response.json()
-                    prices = data.get('prices', [])
-                    return prices
-        except Exception as e:
-            print(f"Error occurred during fetch: {e}")
-            return None
-
     async def update_circulating_supply(self, widget):
         while True:
             current_block = await self.commands.getBlockCount()
-            circulating = self.utils.calculate_circulating(int(current_block[0]))
-            remaiming_blocks = self.utils.remaining_blocks_until_halving(int(current_block[0]))
-            remaining_days = self.utils.remaining_days_until_halving(int(current_block[0]))
+            circulating = self.units.calculate_circulating(int(current_block[0]))
+            remaiming_blocks = self.units.remaining_blocks_until_halving(int(current_block[0]))
+            remaining_days = self.units.remaining_days_until_halving(int(current_block[0]))
             self.circulating_value.text = int(circulating)
             self.halving_label.text = f"Next Halving in {remaiming_blocks} Blocks"
             self.remaining_label.text = f"Remaining {remaining_days} Days"
@@ -338,7 +322,7 @@ class Home(Box):
 
                 last_updated_datetime = datetime.fromisoformat(last_updated.replace("Z", ""))
                 formatted_last_updated = last_updated_datetime.strftime("%Y-%m-%d %H:%M:%S UTC")
-                btcz_price = self.utils.format_price(market_price)
+                btcz_price = self.units.format_price(market_price)
                 self.price_value.text = f"${btcz_price}"
                 self.percentage_24_value.text = f"%{price_percentage_24}"
                 self.percentage_7_value.text = f"%{price_percentage_7d}"
@@ -349,9 +333,9 @@ class Home(Box):
 
     async def update_marketchar(self, widget):
         while True:
-            data = await self.fetch_marketchart()
+            data = await self.curve.fetch_marketchart()
             if data:
-                curve_image = self.utils.create_curve(data)
+                curve_image = self.curve.create_curve(data)
                 if curve_image:
                     self.bitcoinz_curve.image = curve_image
                     if self.curve_image:

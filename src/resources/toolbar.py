@@ -7,7 +7,6 @@ from toga.style.pack import Pack
 from toga.constants import ROW, TOP
 
 from .client import Client
-from .utils import Utils
 
 class AppToolBar(Box):
     def __init__(self, app:App, main:Window, notify, home_page ,mining_page):
@@ -24,7 +23,6 @@ class AppToolBar(Box):
         self.home_page = home_page
         self.mining_page = mining_page
         self.commands = Client(self.app)
-        self.utils = Utils(self.app)
 
         self.app_menu_active = None
         self.wallet_menu_active = None

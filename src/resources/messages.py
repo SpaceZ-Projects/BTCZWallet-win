@@ -28,6 +28,7 @@ from toga.colors import (
 
 from .storage import Storage
 from .utils import Utils
+from .units import Units
 from .client import Client
 from .notify import NotifyRequest, NotifyMessage
 
@@ -665,6 +666,7 @@ class Pending(Box):
         self.app = app
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
+        self.units = Units()
         self.storage = Storage(self.app)
         self.pending_window = window
         self.chat = chat
@@ -749,7 +751,7 @@ class Pending(Box):
         amount = 0.0001
         txfee = 0.0001
         category, username, address = self.storage.get_identity()
-        id = self.utils.generate_id()
+        id = self.units.generate_id()
         memo = {"type":"identity","category":category,"id":id,"username":username,"address":address}
         memo_str = json.dumps(memo)
         self.pending_window._impl.native.Enabled = False
@@ -837,6 +839,7 @@ class Message(Box):
 
         self.app = app
         self.utils = Utils(self.app)
+        self.units = Units()
         self.output_box = output
         
         self.author = author
@@ -923,7 +926,7 @@ class Message(Box):
         )
         if self.amount > 0.0001:
             gift = self.amount - 0.0001
-            gift_format = self.utils.format_balance(gift)
+            gift_format = self.units.format_balance(gift)
             self.gift_value.text = f"Gift : {gift_format}"
             self.sender_box.add(
                 self.author_value,
@@ -965,6 +968,7 @@ class NewContact(Window):
         )
 
         self.utils = Utils(self.app)
+        self.units = Units()
         self.commands = Client(self.app)
         self.storage = Storage(self.app)
 
@@ -1151,7 +1155,7 @@ class NewContact(Window):
         destination_address = self.address_input.value
         amount = 0.0001
         txfee = 0.0001
-        id = self.utils.generate_id()
+        id = self.units.generate_id()
         category, username, address = self.storage.get_identity()
         memo = {"type":"request","category":category,"id":id,"username":username,"address":address}
         memo_str = json.dumps(memo)
@@ -1367,6 +1371,7 @@ class Chat(Box):
         self.main = main
 
         self.utils = Utils(self.app)
+        self.units = Units()
         self.commands = Client(self.app)
         self.storage = Storage(self.app)
         self.tooltip = ToolTip()
@@ -1673,7 +1678,7 @@ class Chat(Box):
             if address:
                 balance, _= await self.commands.z_getBalance(address[0])
                 if balance:
-                    balance = self.utils.format_balance(balance)
+                    balance = self.units.format_balance(balance)
                     self.address_balance.text = f"Balance : {balance}"
             
             await asyncio.sleep(5)

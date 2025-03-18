@@ -3,24 +3,17 @@ import asyncio
 import aiohttp
 import zipfile
 import py7zr
-import string
-import secrets
-from decimal import Decimal
 import qrcode
-from datetime import timedelta
-import pandas as pd
-from PIL import Image, ImageDraw, ImageFont
 
 from toga import App
 from ..framework import (
     Os, Sys, ProgressStyle, Forms, run_async
 )
 
+from .units import Units
+
 GITHUB_API_URL = "https://api.github.com/repos/SpaceZ-Projects/BTCZWallet-win"
 RELEASES_URL = "https://github.com/SpaceZ-Projects/BTCZWallet-win/releases"
-
-INITIAL_REWARD = 12500
-HALVING_INTERVAL = 840000
 
 
 class Utils():
@@ -35,12 +28,7 @@ class Utils():
         if not Os.Directory.Exists(str(self.app_cache)):
             Os.Directory.CreateDirectory(str(self.app_cache))
 
-
-    def generate_id(self, length=32):
-        alphabet = string.ascii_uppercase + string.ascii_lowercase + string.digits
-        random_bytes = secrets.token_bytes(length)
-        address_id = ''.join(alphabet[b % 62] for b in random_bytes)
-        return address_id
+        self.units = Units()
 
     
     async def get_repo_info(self):
@@ -115,10 +103,6 @@ class Utils():
             total_size += file_info.Length
         total_size_gb = total_size / (1024 ** 2)
         return total_size_gb
-
-    def generate_random_string(self, length=16):
-        characters = string.ascii_letters + string.digits + string.punctuation
-        return ''.join(secrets.choice(characters) for _ in range(length))
 
     def get_binary_files(self):
         required_files = [
@@ -408,8 +392,8 @@ class Utils():
 
     def create_config_file(self, config_file_path):
         try:
-            rpcuser = self.generate_random_string(16)
-            rpcpassword = self.generate_random_string(32)
+            rpcuser = self.units.generate_random_string(16)
+            rpcpassword = self.units.generate_random_string(32)
             with open(config_file_path, 'w') as config_file:
                 config_content = f"""# BitcoinZ configuration file
 # Add your configuration settings below
@@ -424,120 +408,3 @@ addnode=37.187.76.80:1989
                 config_file.write(config_content)
         except Exception as e:
             print(f"Error creating config file: {e}")
-
-
-    def format_balance(self, value):
-        value = Decimal(value)
-        formatted_value = f"{value:.8f}"
-        integer_part, decimal_part = formatted_value.split('.')
-        if len(integer_part) > 4:
-            digits_to_remove = len(integer_part) - 4
-            formatted_decimal = decimal_part[:-digits_to_remove]
-        else:
-            formatted_decimal = decimal_part
-        formatted_balance = f"{integer_part}.{formatted_decimal}"
-        return formatted_balance
-    
-
-    def format_price(self, price):
-        price = Decimal(price)
-
-        if price > Decimal('0.00000001') and price < Decimal('0.0000001'):
-            return f"{price:.10f}"
-        elif price > Decimal('0.0000001') and price < Decimal('0.000001'):
-            return f"{price:.9f}"
-        elif price > Decimal('0.000001') and price < Decimal('0.00001'):
-            return f"{price:.8f}"
-        elif price > Decimal('0.00001') and price < Decimal('0.0001'):
-            return f"{price:.7f}"
-        elif price > Decimal('0.0001') and price < Decimal('0.001'):
-            return f"{price:.6f}"
-        elif price > Decimal('0.001') and price < Decimal('0.01'):
-            return f"{price:.5f}"
-        elif price > Decimal('0.01') and price < Decimal('0.1'):
-            return f"{price:.4f}"
-        elif price > Decimal('0.1') and price < Decimal('1'):
-            return f"{price:.3f}"
-        elif price > Decimal('1') and price < Decimal('10'):
-            return f"{price:.2f}"
-        elif price > Decimal('10') and price < Decimal('100'):
-            return f"{price:.1f}"
-        else:
-            return f"{price:.0f}"
-        
-
-    def calculate_circulating(self, current_block):
-        halvings = current_block // HALVING_INTERVAL
-        total_supply = 0
-        for i in range(halvings + 1):
-            if i == halvings:
-                blocks_in_period = current_block - i * HALVING_INTERVAL
-            else:
-                blocks_in_period = HALVING_INTERVAL
-            total_supply += blocks_in_period * (INITIAL_REWARD / (2 ** i))
-        return total_supply
-    
-    
-    def remaining_blocks_until_halving(self, current_block):
-        next_halving_block = (current_block // HALVING_INTERVAL + 1) * HALVING_INTERVAL
-        remaining_blocks = next_halving_block - current_block
-        return remaining_blocks
-    
-
-    def remaining_days_until_halving(self, current_block, block_time_minutes=2.5):
-        next_halving_block = (current_block // HALVING_INTERVAL + 1) * HALVING_INTERVAL
-        remaining_blocks = next_halving_block - current_block
-        remaining_time_minutes = remaining_blocks * block_time_minutes
-        remaining_time_delta = timedelta(minutes=remaining_time_minutes)
-        remaining_days = remaining_time_delta.days
-        return remaining_days
-    
-    def hash_to_solutions(self, hashrate):
-        mh_s = hashrate / 500_000
-        return mh_s
-    
-    def create_curve(self, data):
-        df = pd.DataFrame(data, columns=["timestamp", "price"])
-        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-        df['formatted_price'] = df['price'].apply(lambda x: self.format_price(x))
-        width, height = 2400, 600
-        img = Image.new("RGB", (width, height), color="#1e2124")
-        draw = ImageDraw.Draw(img)
-        margin_left = 120
-        margin_top = 50
-        margin_bottom = 50
-        margin_right = 50
-        plot_width = width - margin_left - margin_right
-        plot_height = height - margin_top - margin_bottom
-        min_price = df['price'].min()
-        max_price = df['price'].max()
-        min_timestamp = df['timestamp'].min()
-        max_timestamp = df['timestamp'].max()
-        def scale_x(timestamp):
-            return margin_left + (timestamp - min_timestamp) / (max_timestamp - min_timestamp) * plot_width
-        def scale_y(price):
-            return margin_top + (max_price - price) / (max_price - min_price) * plot_height
-        draw.line([(margin_left, margin_top), (margin_left, height - margin_bottom)], fill="white", width=2)
-        draw.line([(margin_left, height - margin_bottom), (width - margin_right, height - margin_bottom)], fill="white", width=2)
-        for i in range(1, len(df)):
-            x1 = scale_x(df['timestamp'].iloc[i-1])
-            y1 = scale_y(df['price'].iloc[i-1])
-            x2 = scale_x(df['timestamp'].iloc[i])
-            y2 = scale_y(df['price'].iloc[i])
-            draw.line([(x1, y1), (x2, y2)], fill="green", width=3)
-        font = ImageFont.load_default(size=18)
-        for i in range(0, len(df), len(df) // 10):
-            timestamp = df['timestamp'].iloc[i]
-            x = scale_x(timestamp)
-            y = height - margin_bottom + 10
-            draw.text((x, y), timestamp.strftime('%H:%M:%S'), font=font, fill="white")
-        price_interval = (max_price - min_price) / 7
-        for i in range(0, 8):
-            price = min_price + i * price_interval
-            y = scale_y(price)
-            draw.text((margin_left - 100, y - 10), f"{self.format_price(price)}", font=font, fill="white")
-        timestamp_str = df['timestamp'].iloc[0].strftime('%Y%m%d_%H%M%S')
-        curve_image_path = Os.Path.Combine(str(self.app_cache), f'curve_{timestamp_str}.png')
-        img.save(curve_image_path)
-
-        return curve_image_path

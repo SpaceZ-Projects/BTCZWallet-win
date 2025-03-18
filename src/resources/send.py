@@ -19,8 +19,8 @@ from toga.colors import (
     rgb, GRAY, WHITE, YELLOW, BLACK, RED
 )
 from .client import Client
-from .utils import Utils
 from .storage import Storage
+from .units import Units
 
 
 class Send(Box):
@@ -37,7 +37,7 @@ class Send(Box):
         self.app = app
         self.main = main
         self.commands = Client(self.app)
-        self.utils = Utils(self.app)
+        self.units = Units()
         self.storage = Storage(self.app)
         self.tooltip = ToolTip()
 
@@ -947,7 +947,7 @@ class Send(Box):
                     self.address_balance.style.color = GRAY
                 else:
                     self.address_balance.style.color = WHITE
-                format_balance = self.utils.format_balance(float(balance))
+                format_balance = self.units.format_balance(float(balance))
                 self.address_balance.text = format_balance
         elif selected_address == "Main Account":
             self.single_option.value = True
@@ -962,7 +962,7 @@ class Send(Box):
                     self.address_balance.style.color = GRAY
                 else:
                     self.address_balance.style.color = WHITE
-                format_balance = self.utils.format_balance(float(transparent))
+                format_balance = self.units.format_balance(float(transparent))
                 self.address_balance.text = format_balance
         else:
             self.address_balance.text = "0.00000000"

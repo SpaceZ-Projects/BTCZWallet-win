@@ -20,6 +20,7 @@ from toga.colors import (
 )
 
 from .utils import Utils
+from .units import Units
 from .client import Client
 from .storage import Storage
 
@@ -200,6 +201,7 @@ class Receive(Box):
         self.main = main
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
+        self.units = Units()
         self.storage = Storage(self.app)
         self.clipboard = ClipBoard()
 
@@ -548,7 +550,7 @@ class Receive(Box):
             self.address_value.text = None
             return
         qr_image = self.utils.qr_generate(self.selected_address)
-        balance = self.utils.format_balance(balance)
+        balance = self.units.format_balance(balance)
         self.address_qr.image = qr_image
         self.address_value.text = self.selected_address
         self.address_balance.text = f"Balance : {balance}"
