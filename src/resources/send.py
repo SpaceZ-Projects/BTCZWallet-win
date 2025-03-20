@@ -37,7 +37,7 @@ class Send(Box):
         self.app = app
         self.main = main
         self.commands = Client(self.app)
-        self.units = Units()
+        self.units = Units(self.app)
         self.storage = Storage(self.app)
         self.tooltip = ToolTip()
 

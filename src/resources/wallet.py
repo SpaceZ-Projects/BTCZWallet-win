@@ -27,7 +27,7 @@ class Wallet(Box):
 
         self.app = app
         self.commands = Client(self.app)
-        self.units = Units()
+        self.units = Units(self.app)
 
         self.bitcoinz_logo = ImageView(
             image="images/BTCZ.png",

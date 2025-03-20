@@ -32,7 +32,7 @@ class Txid(Window):
         )
 
         self.utils = Utils(self.app)
-        self.units = Units()
+        self.units = Units(self.app)
         self.commands = Client(self.app)
         self.txid = txid
 
@@ -303,7 +303,7 @@ class Transactions(Box):
         self.notify = NotifyTx()
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
-        self.units = Units()
+        self.units = Units(self.app)
         self.clipboard = ClipBoard()
         self.settings = Settings(self.app)
 

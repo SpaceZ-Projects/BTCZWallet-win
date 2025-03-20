@@ -201,7 +201,7 @@ class Receive(Box):
         self.main = main
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
-        self.units = Units()
+        self.units = Units(self.app)
         self.storage = Storage(self.app)
         self.clipboard = ClipBoard()
 

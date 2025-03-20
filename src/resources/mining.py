@@ -35,7 +35,7 @@ class Mining(Box):
         self.app = app
         self.main = main
         self.utils = Utils(self.app)
-        self.units = Units()
+        self.units = Units(self.app)
         self.commands = Client(self.app)
 
         self.mining_toggle = None
@@ -356,6 +356,24 @@ class Mining(Box):
             )
         )
 
+        self.estimated_icon = ImageView(
+            image="images/estimated.png",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                padding_left = 20
+            )
+        )
+
+        self.estimated_value = Label(
+            text="0.00 /Day",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                font_weight = BOLD,
+                padding_left = 6
+            )
+        )
+
         self.mining_box = Box(
             style=Pack(
                 direction = ROW,
@@ -439,7 +457,9 @@ class Mining(Box):
                 self.paid_icon,
                 self.paid_value,
                 self.solutions_icon,
-                self.solutions_value
+                self.solutions_value,
+                self.estimated_icon,
+                self.estimated_value
             )
             self.mining_toggle = True
             self.app.add_background_task(self.update_mining_options)
@@ -658,6 +678,8 @@ class Mining(Box):
                                     if hashrate:
                                         rate = self.units.hash_to_solutions(hashrate)
                                         self.solutions_value.text = f"{rate:.2f} Sol/s"
+                                        estimated_24h = await self.units.estimated_earn(24, hashrate)
+                                        self.estimated_value.text = f"{int(estimated_24h)} /Day"
                         else:
                             total_hashrates = mining_data.get("total_hashrates", [])
                             if total_hashrates:
@@ -711,6 +733,7 @@ class Mining(Box):
             self.immature_value.text = "0.00"
             self.paid_value.text = "0.00"
             self.solutions_value.text = "0.00 Sol/s"
+            self.estimated_value.text = "0.00 /Day"
         except Exception as e:
             print(f"Exception occurred while killing process: {e}")
 

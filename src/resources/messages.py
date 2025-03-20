@@ -667,7 +667,7 @@ class Pending(Box):
         self.app = app
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
-        self.units = Units()
+        self.units = Units(self.app)
         self.storage = Storage(self.app)
         self.pending_window = window
         self.chat = chat
@@ -840,7 +840,7 @@ class Message(Box):
 
         self.app = app
         self.utils = Utils(self.app)
-        self.units = Units()
+        self.units = Units(self.app)
         self.output_box = output
         
         self.author = author
@@ -969,7 +969,7 @@ class NewContact(Window):
         )
 
         self.utils = Utils(self.app)
-        self.units = Units()
+        self.units = Units(self.app)
         self.commands = Client(self.app)
         self.storage = Storage(self.app)
 
@@ -1372,7 +1372,7 @@ class Chat(Box):
         self.main = main
 
         self.utils = Utils(self.app)
-        self.units = Units()
+        self.units = Units(self.app)
         self.commands = Client(self.app)
         self.storage = Storage(self.app)
         self.tooltip = ToolTip()

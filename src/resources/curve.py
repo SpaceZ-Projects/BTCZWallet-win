@@ -17,7 +17,7 @@ class Curve():
         self.app = app
         self.app_cache = self.app.paths.cache
 
-        self.units = Units()
+        self.units = Units(self.app)
 
 
     async def fetch_marketchart(self):

@@ -28,7 +28,7 @@ class Utils():
         if not Os.Directory.Exists(str(self.app_cache)):
             Os.Directory.CreateDirectory(str(self.app_cache))
 
-        self.units = Units()
+        self.units = Units(self.app)
 
     
     async def get_repo_info(self):

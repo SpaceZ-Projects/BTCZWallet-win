@@ -3,14 +3,22 @@ import string
 import secrets
 from decimal import Decimal
 from datetime import timedelta
+import json
+
+from toga import App
+
+from .client import Client
 
 INITIAL_REWARD = 12500
 HALVING_INTERVAL = 840000
 
 
 class Units():
-    def __init__(self):
+    def __init__(self, app:App):
         super().__init__()
+
+        self.app = app
+        self.commands = Client(self.app)
 
     def generate_id(self, length=32):
         alphabet = string.ascii_uppercase + string.ascii_lowercase + string.digits
@@ -90,6 +98,38 @@ class Units():
         remaining_days = remaining_time_delta.days
         return remaining_days
     
+    
+    async def estimated_earn(self, period, hashrate):
+        blockchaininfo, _ = await self.commands.getBlockchainInfo()
+        if blockchaininfo is not None:
+            if isinstance(blockchaininfo, str):
+                info = json.loads(blockchaininfo)
+            if info is not None:
+                blocks = info.get('blocks')
+                difficulty = info.get('difficulty')
+        networksol, _ = await self.commands.getNetworkSolps()
+        if networksol is not None:
+            if isinstance(networksol, str):
+                info = json.loads(networksol)
+            if info is not None:
+                netsol = info
+                net_hashrate = self.solution_to_hash(netsol)
+
+            period_seconds = period * 3600
+            block_time_seconds = difficulty * 2**32 / net_hashrate
+                
+            user_block_fraction = hashrate / net_hashrate
+            estimated_blocks = period_seconds / block_time_seconds * user_block_fraction
+                
+            reward = INITIAL_REWARD / 2 ** (blocks // HALVING_INTERVAL)
+            estimated_earnings = estimated_blocks * reward
+            return estimated_earnings
+
+    
     def hash_to_solutions(self, hashrate):
         mh_s = hashrate / 500_000
+        return mh_s
+    
+    def solution_to_hash(self, solutions):
+        mh_s = solutions * 500_000
         return mh_s
