@@ -43,10 +43,18 @@ class AppToolBar(Box):
             mouse_enter=self.notification_cmd_mouse_enter,
             mouse_leave=self.notification_cmd_mouse_leave
         )
+        self.startup_cmd = Command(
+            title="Run at Startup",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.startup_cmd_mouse_enter,
+            mouse_leave=self.startup_cmd_mouse_leave
+        )
         self.settings_cmd = Command(
             title="Settings",
             sub_commands=[
-                self.notification_cmd
+                self.notification_cmd,
+                self.startup_cmd
             ],
             background_color=Color.rgb(40,43,48),
             color=Color.WHITE,
@@ -255,6 +263,12 @@ class AppToolBar(Box):
 
     def notification_cmd_mouse_leave(self):
         self.notification_cmd.color = Color.WHITE
+
+    def startup_cmd_mouse_enter(self):
+        self.startup_cmd.color = Color.BLACK
+
+    def startup_cmd_mouse_leave(self):
+        self.startup_cmd.color = Color.WHITE
 
     def wallet_menu_opened(self):
         self.wallet_menu_active = True

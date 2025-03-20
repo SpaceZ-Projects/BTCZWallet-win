@@ -36,3 +36,12 @@ class Settings():
                 return True
             else:
                 return settings['notifications']
+            
+    
+    def startup(self):
+        with open(self.settings_path, 'r') as f:
+            settings = json.load(f)
+            if 'startup' not in settings:
+                return False
+            else:
+                return settings['startup']

@@ -246,7 +246,14 @@ class Menu(Window):
             self.toolbar.notification_cmd.checked = True
         else:
             self.toolbar.notification_cmd.checked = is_active
+        startup = self.settings.startup()
+        if startup:
+            self.toolbar.startup_cmd.checked = True
+        else:
+            self.toolbar.startup_cmd.checked = startup
+            
         self.toolbar.notification_cmd.action = self.update_notifications
+        self.toolbar.startup_cmd.action = self.update_app_startup
         self.toolbar.generate_t_cmd.action = self.new_transparent_address
         self.toolbar.generate_z_cmd.action = self.new_private_address
         self.toolbar.check_update_cmd.action = self.check_app_version
@@ -263,6 +270,16 @@ class Menu(Window):
         else:
             self.toolbar.notification_cmd.checked = True
             self.settings.update_settings("notifications", True)
+
+    def update_app_startup(self, sender, event):
+        if self.toolbar.startup_cmd.checked:
+            self.toolbar.startup_cmd.checked = False
+            self.settings.update_settings("startup", False)
+            self.utils.remove_from_startup()
+        else:
+            self.toolbar.startup_cmd.checked = True
+            self.settings.update_settings("startup", True)
+            self.utils.add_to_startup()
 
     def new_transparent_address(self, sender, event):
         self.app.add_background_task(self.generate_transparent_address)

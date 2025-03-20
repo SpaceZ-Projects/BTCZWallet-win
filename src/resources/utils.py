@@ -4,6 +4,7 @@ import aiohttp
 import zipfile
 import py7zr
 import qrcode
+import winreg as reg
 
 from toga import App
 from ..framework import (
@@ -21,6 +22,7 @@ class Utils():
         super().__init__()
 
         self.app = app
+        self.app_path = self.app.paths.app
         self.app_data = self.app.paths.data
         self.app_cache = self.app.paths.cache
         if not Os.Directory.Exists(str(self.app_data)):
@@ -408,3 +410,23 @@ addnode=37.187.76.80:1989
                 config_file.write(config_content)
         except Exception as e:
             print(f"Error creating config file: {e}")
+
+
+    def add_to_startup(self):
+        wallet_path = Os.Path.Combine(str(self.app_path.parents[1]), 'BTCZWallet.exe')
+        key = r"Software\Microsoft\Windows\CurrentVersion\Run"
+        try:
+            registry_key = reg.OpenKey(reg.HKEY_CURRENT_USER, key, 0, reg.KEY_WRITE)
+            reg.SetValueEx(registry_key, "BTCZWallet", 0, reg.REG_SZ, wallet_path)
+            reg.CloseKey(registry_key)
+        except Exception as e:
+            print(f"Error adding BTCZWallet to startup: {e}")
+
+    def remove_from_startup(self):
+        key = r"Software\Microsoft\Windows\CurrentVersion\Run"
+        try:
+            registry_key = reg.OpenKey(reg.HKEY_CURRENT_USER, key, 0, reg.KEY_WRITE)
+            reg.DeleteValue(registry_key, "BTCZWallet")
+            reg.CloseKey(registry_key)
+        except Exception as e:
+            print(f"Error removing BTCZWallet from startup: {e}")
