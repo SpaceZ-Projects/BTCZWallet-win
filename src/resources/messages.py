@@ -31,6 +31,7 @@ from .utils import Utils
 from .units import Units
 from .client import Client
 from .notify import NotifyRequest, NotifyMessage
+from .settings import Settings
 
 
 class EditUser(Window):
@@ -1376,6 +1377,7 @@ class Chat(Box):
         self.storage = Storage(self.app)
         self.tooltip = ToolTip()
         self.clipboard = ClipBoard()
+        self.settings = Settings(self.app)
 
         self.send_toggle = None
         self.contact_id = None
@@ -1781,14 +1783,16 @@ class Chat(Box):
         if id:
             self.storage.add_contact(category, id[0], contact_id, username, address)
             self.storage.delete_request(address)
-            notify = NotifyRequest()
-            notify.show()
-            notify.send_note(
-                title="Request Accepted",
-                text=f"By {username}"
-            )
-            await asyncio.sleep(5)
-            notify.hide()
+            is_active = self.settings.notification()
+            if is_active:
+                notify = NotifyRequest()
+                notify.show()
+                notify.send_note(
+                    title="Request Accepted",
+                    text=f"By {username}"
+                )
+                await asyncio.sleep(5)
+                notify.hide()
 
 
     async def get_message(self, form, amount):
@@ -1812,14 +1816,16 @@ class Chat(Box):
     async def handler_unread_message(self,contact_id, author, message, amount, timestamp):
         self.unread_messages_toggle = True
         self.storage.unread_message(contact_id, author, message, amount, timestamp)
-        notify = NotifyMessage()
-        notify.show()
-        notify.send_note(
-            title="New Message",
-            text=f"{author} : {message[:100]}"
-        )
-        await asyncio.sleep(5)
-        notify.hide()
+        is_active = self.settings.notification()
+        if is_active:
+            notify = NotifyMessage()
+            notify.show()
+            notify.send_note(
+                title="New Message",
+                text=f"{author} : {message[:100]}"
+            )
+            await asyncio.sleep(5)
+            notify.hide()
 
 
     async def get_request(self, form):
@@ -1835,14 +1841,16 @@ class Chat(Box):
             self.update_pending_list()
         else:
             self.pending_list.insert_pending(category, contact_id, username, address)
-        notify = NotifyRequest()
-        notify.show()
-        notify.send_note(
-            title="New Request",
-            text=f"From : {username}"
-        )
-        await asyncio.sleep(5)
-        notify.hide()
+        is_active = self.settings.notification()
+        if is_active:
+            notify = NotifyRequest()
+            notify.show()
+            notify.send_note(
+                title="New Request",
+                text=f"From : {username}"
+            )
+            await asyncio.sleep(5)
+            notify.hide()
 
 
     async def update_contacts_list(self, widget):
@@ -2413,6 +2421,7 @@ class Messages(Box):
         self.commands = Client(self.app)
         self.storage = Storage(self.app)
         self.chat = Chat(self.app, self.main)
+        self.settings = Settings(self.app)
 
         self.messages_toggle = None
         self.request_count = 0
@@ -2455,24 +2464,27 @@ class Messages(Box):
                         if txid not in list_txs:
                             await self.unhexlify_memo(data)
 
+                    is_active = self.settings.notification()
                     if self.request_count > 0:
-                        notify = NotifyRequest()
-                        notify.show()
-                        notify.send_note(
-                            title="New Request(s)",
-                            text=f"{self.request_count} New Request(s)"
-                        )
-                        await asyncio.sleep(5)
-                        notify.hide()
+                        if is_active:
+                            notify = NotifyRequest()
+                            notify.show()
+                            notify.send_note(
+                                title="New Request(s)",
+                                text=f"{self.request_count} New Request(s)"
+                            )
+                            await asyncio.sleep(5)
+                            notify.hide()
                     if self.message_count > 0:
-                        notify = NotifyMessage()
-                        notify.show()
-                        notify.send_note(
-                            title="New Message(s)",
-                            text=f"{self.message_count} New Message(s)"
-                        )
-                        await asyncio.sleep(5)
-                        notify.hide()
+                        if is_active:
+                            notify = NotifyMessage()
+                            notify.show()
+                            notify.send_note(
+                                title="New Message(s)",
+                                text=f"{self.message_count} New Message(s)"
+                            )
+                            await asyncio.sleep(5)
+                            notify.hide()
                         
                     self.chat.run_tasks()
 

@@ -25,6 +25,7 @@ class AppToolBar(Box):
         self.commands = Client(self.app)
 
         self.app_menu_active = None
+        self.settings_cmd_active = None
         self.wallet_menu_active = None
         self.messages_menu_active = None
         self.help_menu_active = None
@@ -33,6 +34,27 @@ class AppToolBar(Box):
         self.toolbar = Toolbar(
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48)
+        )
+
+        self.notification_cmd = Command(
+            title="Notifications",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.notification_cmd_mouse_enter,
+            mouse_leave=self.notification_cmd_mouse_leave
+        )
+        self.settings_cmd = Command(
+            title="Settings",
+            sub_commands=[
+                self.notification_cmd
+            ],
+            background_color=Color.rgb(40,43,48),
+            color=Color.WHITE,
+            drop_opened=self.settings_cmd_opened,
+            drop_closed=self.settings_cmd_closed,
+            mouse_enter=self.settings_cmd_mouse_enter,
+            mouse_leave=self.settings_cmd_mouse_leave,
+            icon="images/settings_i.ico"
         )
 
         self.about_cmd = Command(
@@ -61,6 +83,7 @@ class AppToolBar(Box):
         self.app_menu = Command(
             title="App",
             sub_commands=[
+                self.settings_cmd,
                 self.about_cmd,
                 self.exit_cmd,
                 self.stop_exit_cmd
@@ -206,6 +229,32 @@ class AppToolBar(Box):
             return
         self.app_menu.icon = "images/app_i.ico"
         self.app_menu.color = Color.WHITE
+
+    def settings_cmd_mouse_enter(self):
+        self.settings_cmd.icon = "images/settings_a.ico"
+        self.settings_cmd.color = Color.BLACK
+
+    def settings_cmd_mouse_leave(self):
+        if self.settings_cmd_active:
+            return
+        self.settings_cmd.icon = "images/settings_i.ico"
+        self.settings_cmd.color = Color.WHITE
+
+    def settings_cmd_opened(self):
+        self.settings_cmd_active = True
+        self.settings_cmd.icon = "images/settings_a.ico"
+        self.settings_cmd.color = Color.BLACK
+
+    def settings_cmd_closed(self):
+        self.settings_cmd_active = False
+        self.settings_cmd.icon = "images/settings_i.ico"
+        self.settings_cmd.color = Color.WHITE
+
+    def notification_cmd_mouse_enter(self):
+        self.notification_cmd.color = Color.BLACK
+
+    def notification_cmd_mouse_leave(self):
+        self.notification_cmd.color = Color.WHITE
 
     def wallet_menu_opened(self):
         self.wallet_menu_active = True

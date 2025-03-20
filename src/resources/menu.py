@@ -29,6 +29,7 @@ from .send import Send
 from .messages import Messages, EditUser
 from .mining import Mining
 from .storage import Storage
+from .settings import Settings
 
 class Menu(Window):
     def __init__(self):
@@ -43,6 +44,7 @@ class Menu(Window):
         self.storage = Storage(self.app)
         self.statusbar = AppStatusBar(self.app)
         self.wallet = Wallet(self.app)
+        self.settings = Settings(self.app)
         
         self._is_minimized = None
         
@@ -239,6 +241,12 @@ class Menu(Window):
         await self.message_page.gather_unread_memos()
 
     def add_actions_cmds(self):
+        is_active = self.settings.notification()
+        if is_active:
+            self.toolbar.notification_cmd.checked = True
+        else:
+            self.toolbar.notification_cmd.checked = is_active
+        self.toolbar.notification_cmd.action = self.update_notifications
         self.toolbar.generate_t_cmd.action = self.new_transparent_address
         self.toolbar.generate_z_cmd.action = self.new_private_address
         self.toolbar.check_update_cmd.action = self.check_app_version
@@ -246,6 +254,15 @@ class Menu(Window):
         self.toolbar.import_key_cmd.action = self.show_import_key
         self.toolbar.edit_username_cmd.action = self.edit_messages_username
         self.toolbar.backup_messages_cmd.action = self.backup_messages
+
+
+    def update_notifications(self, sender, event):
+        if self.toolbar.notification_cmd.checked:
+            self.toolbar.notification_cmd.checked = False
+            self.settings.update_settings("notifications", False)
+        else:
+            self.toolbar.notification_cmd.checked = True
+            self.settings.update_settings("notifications", True)
 
     def new_transparent_address(self, sender, event):
         self.app.add_background_task(self.generate_transparent_address)

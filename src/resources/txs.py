@@ -19,6 +19,7 @@ from .client import Client
 from .utils import Utils
 from .units import Units
 from .notify import NotifyTx
+from .settings import Settings
 
 
 
@@ -304,6 +305,7 @@ class Transactions(Box):
         self.utils = Utils(self.app)
         self.units = Units()
         self.clipboard = ClipBoard()
+        self.settings = Settings(self.app)
 
         self.transactions_toggle = None
         self.no_transaction_toggle = None
@@ -447,15 +449,17 @@ class Transactions(Box):
                         }
                         self.transactions_data.insert(0, row)
                         self.add_transaction(0, row)
-                        notify = NotifyTx()
-                        notify.show()
-                        notify.send_note(
-                            title=f"[{category}] : {amount} BTCZ",
-                            text=f"Txid : {txid}",
-                            on_click=lambda sender, event:self.on_notification_click(txid)
-                        )
-                        await asyncio.sleep(5)
-                        notify.hide()
+                        is_active = self.settings.notification()
+                        if is_active:
+                            notify = NotifyTx()
+                            notify.show()
+                            notify.send_note(
+                                title=f"[{category}] : {amount} BTCZ",
+                                text=f"Txid : {txid}",
+                                on_click=lambda sender, event:self.on_notification_click(txid)
+                            )
+                            await asyncio.sleep(5)
+                            notify.hide()
             await asyncio.sleep(5)
 
 
