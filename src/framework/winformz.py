@@ -96,6 +96,7 @@ class BorderStyle:
 
 class FlatStyle:
     FLAT = Forms.FlatStyle.Flat
+    STANDARD = Forms.FlatStyle.Standard
 
 
 class Relation:
