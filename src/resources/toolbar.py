@@ -1,12 +1,15 @@
 
+import json
+
 from toga import App, Box, Window
 from ..framework import (
-    Toolbar, Command, Color, run_async
+    Toolbar, Command, Color, run_async, Os
 )
 from toga.style.pack import Pack
 from toga.constants import ROW, TOP
 
 from .client import Client
+from .settings import Settings
 
 class AppToolBar(Box):
     def __init__(self, app:App, main:Window, notify, home_page ,mining_page):
@@ -23,9 +26,10 @@ class AppToolBar(Box):
         self.home_page = home_page
         self.mining_page = mining_page
         self.commands = Client(self.app)
+        self.settings = Settings(self.app)
 
         self.app_menu_active = None
-        self.settings_cmd_active = None
+        self.settings_menu_active = None
         self.wallet_menu_active = None
         self.messages_menu_active = None
         self.help_menu_active = None
@@ -36,6 +40,15 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48)
         )
 
+        self.currency_cmd = Command(
+            title="Currency",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.currency_cmd_mouse_enter,
+            mouse_leave=self.currency_cmd_mouse_leave,
+            icon="images/currency_i.ico"
+        )
+
         self.notification_cmd = Command(
             title="Notifications",
             color=Color.WHITE,
@@ -44,24 +57,24 @@ class AppToolBar(Box):
             mouse_leave=self.notification_cmd_mouse_leave
         )
         self.startup_cmd = Command(
-            title="Run at Startup",
+            title="Run on Startup",
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.startup_cmd_mouse_enter,
             mouse_leave=self.startup_cmd_mouse_leave
         )
-        self.settings_cmd = Command(
+        self.settings_menu = Command(
             title="Settings",
             sub_commands=[
+                self.currency_cmd,
                 self.notification_cmd,
                 self.startup_cmd
             ],
             background_color=Color.rgb(40,43,48),
-            color=Color.WHITE,
-            drop_opened=self.settings_cmd_opened,
-            drop_closed=self.settings_cmd_closed,
-            mouse_enter=self.settings_cmd_mouse_enter,
-            mouse_leave=self.settings_cmd_mouse_leave,
+            drop_opened=self.settings_menu_opened,
+            drop_closed=self.settings_menu_closed,
+            mouse_enter=self.settings_menu_mouse_enter,
+            mouse_leave=self.settings_menu_mouse_leave,
             icon="images/settings_i.ico"
         )
 
@@ -91,7 +104,6 @@ class AppToolBar(Box):
         self.app_menu = Command(
             title="App",
             sub_commands=[
-                self.settings_cmd,
                 self.about_cmd,
                 self.exit_cmd,
                 self.stop_exit_cmd
@@ -211,12 +223,31 @@ class AppToolBar(Box):
         self.toolbar.add_command(
             [
                 self.app_menu,
+                self.settings_menu,
                 self.wallet_menu,
                 self.messages_menu,
                 self.help_menu
             ]
         )
         self._impl.native.Controls.Add(self.toolbar)
+
+    def load_currencies(self):
+        try:
+            currencies_json = Os.Path.Combine(str(self.app.paths.app), 'resources', 'currencies.json')
+            with open(currencies_json, 'r') as file:
+                data = json.load(file)
+                currencies_items = [currency['currency'] for currency in data]
+                current_currency = self.settings.currency()
+                selected_currency_info = next(
+                    (currency for currency in data if currency['value'] == current_currency), 
+                    None
+                )
+                if selected_currency_info:
+                    selected_index = selected_currency_info['index']
+                    self.currency_selection.items = currencies_items
+                    self.currency_selection.selected_index = selected_index
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
 
     def app_menu_opened(self):
         self.app_menu_active = True
@@ -238,25 +269,33 @@ class AppToolBar(Box):
         self.app_menu.icon = "images/app_i.ico"
         self.app_menu.color = Color.WHITE
 
-    def settings_cmd_mouse_enter(self):
-        self.settings_cmd.icon = "images/settings_a.ico"
-        self.settings_cmd.color = Color.BLACK
+    def settings_menu_mouse_enter(self):
+        self.settings_menu.icon = "images/settings_a.ico"
+        self.settings_menu.color = Color.BLACK
 
-    def settings_cmd_mouse_leave(self):
-        if self.settings_cmd_active:
+    def settings_menu_mouse_leave(self):
+        if self.settings_menu_active:
             return
-        self.settings_cmd.icon = "images/settings_i.ico"
-        self.settings_cmd.color = Color.WHITE
+        self.settings_menu.icon = "images/settings_i.ico"
+        self.settings_menu.color = Color.WHITE
 
-    def settings_cmd_opened(self):
-        self.settings_cmd_active = True
-        self.settings_cmd.icon = "images/settings_a.ico"
-        self.settings_cmd.color = Color.BLACK
+    def settings_menu_opened(self):
+        self.settings_menu_active = True
+        self.settings_menu.icon = "images/settings_a.ico"
+        self.settings_menu.color = Color.BLACK
 
-    def settings_cmd_closed(self):
-        self.settings_cmd_active = False
-        self.settings_cmd.icon = "images/settings_i.ico"
-        self.settings_cmd.color = Color.WHITE
+    def settings_menu_closed(self):
+        self.settings_menu_active = False
+        self.settings_menu.icon = "images/settings_i.ico"
+        self.settings_menu.color = Color.WHITE
+
+    def currency_cmd_mouse_enter(self):
+        self.currency_cmd.icon = "images/currency_a.ico"
+        self.currency_cmd.color = Color.BLACK
+
+    def currency_cmd_mouse_leave(self):
+        self.currency_cmd.icon = "images/currency_i.ico"
+        self.currency_cmd.color = Color.WHITE
 
     def notification_cmd_mouse_enter(self):
         self.notification_cmd.color = Color.BLACK

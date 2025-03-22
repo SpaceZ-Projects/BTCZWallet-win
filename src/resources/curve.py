@@ -7,6 +7,7 @@ from toga import App
 from ..framework import Os
 
 from .units import Units
+from .settings import Settings
 
 COINGECKO_API = "https://api.coingecko.com/api/v3/coins/bitcoinz/market_chart"
 
@@ -18,11 +19,12 @@ class Curve():
         self.app_cache = self.app.paths.cache
 
         self.units = Units(self.app)
+        self.settings = Settings(self.app)
 
 
     async def fetch_marketchart(self):
         params = {
-            'vs_currency': 'usd',
+            'vs_currency': self.settings.currency(),
             'days': '1',
         }
         try:

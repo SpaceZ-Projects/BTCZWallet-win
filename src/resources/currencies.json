@@ -1,0 +1,140 @@
+{
+    "AED": {
+        "symbol": "د.إ"
+    },
+    "ARS": {
+        "symbol": "$"
+    },
+    "AUD": {
+        "symbol": "$"
+    },
+    "BDT": {
+        "symbol": "৳"
+    },
+    "BHD": {
+        "symbol": "د.ب"
+    },
+    "BMD": {
+        "symbol": "$"
+    },
+    "BRL": {
+        "symbol": "R$"
+    },
+    "CAD": {
+        "symbol": "$"
+    },
+    "CHF": {
+        "symbol": "CHF"
+    },
+    "CLP": {
+        "symbol": "$"
+    },
+    "CNY": {
+        "symbol": "¥"
+    },
+    "CZK": {
+        "symbol": "Kč"
+    },
+    "DKK": {
+        "symbol": "kr"
+    },
+    "EUR": {
+        "symbol": "€"
+    },
+    "GBP": {
+        "symbol": "£"
+    },
+    "GEL": {
+        "symbol": "₾"
+    },
+    "HKD": {
+        "symbol": "$"
+    },
+    "HUF": {
+        "symbol": "Ft"
+    },
+    "IDR": {
+        "symbol": "Rp"
+    },
+    "ILS": {
+        "symbol": "₪"
+    },
+    "INR": {
+        "symbol": "₹"
+    },
+    "JPY": {
+        "symbol": "¥"
+    },
+    "KRW": {
+        "symbol": "₩"
+    },
+    "KWD": {
+        "symbol": "د.ك"
+    },
+    "LKR": {
+        "symbol": "Rs"
+    },
+    "MMK": {
+        "symbol": "Ks"
+    },
+    "MXN": {
+        "symbol": "$"
+    },
+    "MYR": {
+        "symbol": "RM"
+    },
+    "NGN": {
+        "symbol": "₦"
+    },
+    "NOK": {
+        "symbol": "kr"
+    },
+    "NZD": {
+        "symbol": "$"
+    },
+    "PHP": {
+        "symbol": "₱"
+    },
+    "PKR": {
+        "symbol": "₨"
+    },
+    "PLN": {
+        "symbol": "zł"
+    },
+    "RUB": {
+        "symbol": "₽"
+    },
+    "SAR": {
+        "symbol": "ر.س"
+    },
+    "SEK": {
+        "symbol": "kr"
+    },
+    "SGD": {
+        "symbol": "$"
+    },
+    "THB": {
+        "symbol": "฿"
+    },
+    "TRY": {
+        "symbol": "₺"
+    },
+    "TWD": {
+        "symbol": "NT$"
+    },
+    "UAH": {
+        "symbol": "₴"
+    },
+    "USD": {
+        "symbol": "$"
+    },
+    "VEF": {
+        "symbol": "Bs"
+    },
+    "VND": {
+        "symbol": "₫"
+    },
+    "ZAR": {
+        "symbol": "R"
+    }
+}

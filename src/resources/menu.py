@@ -22,7 +22,7 @@ from .toolbar import AppToolBar
 from .status import AppStatusBar
 from .notify import Notify
 from .wallet import Wallet
-from .home import Home
+from .home import Home, Currency
 from .txs import Transactions
 from .receive import Receive, ImportKey
 from .send import Send
@@ -30,6 +30,7 @@ from .messages import Messages, EditUser
 from .mining import Mining
 from .storage import Storage
 from .settings import Settings
+
 
 class Menu(Window):
     def __init__(self):
@@ -251,9 +252,10 @@ class Menu(Window):
             self.toolbar.startup_cmd.checked = True
         else:
             self.toolbar.startup_cmd.checked = startup
-            
+
         self.toolbar.notification_cmd.action = self.update_notifications
         self.toolbar.startup_cmd.action = self.update_app_startup
+        self.toolbar.currency_cmd.action = self.show_currencies_list
         self.toolbar.generate_t_cmd.action = self.new_transparent_address
         self.toolbar.generate_z_cmd.action = self.new_private_address
         self.toolbar.check_update_cmd.action = self.check_app_version
@@ -281,6 +283,10 @@ class Menu(Window):
             self.settings.update_settings("startup", True)
             self.utils.add_to_startup()
 
+    def show_currencies_list(self, sender, event):
+        self.currencies_window = Currency()
+        self.currencies_window._impl.native.ShowDialog()
+
     def new_transparent_address(self, sender, event):
         self.app.add_background_task(self.generate_transparent_address)
 
@@ -288,29 +294,35 @@ class Menu(Window):
         self.app.add_background_task(self.generate_private_address)
 
     async def generate_transparent_address(self, widget):
+        async def on_result(widget, result):
+            if result is None:
+                if self.recieve_page.transparent_toggle:
+                    self.insert_new_address(new_address[0])
+                if self.send_page.transparent_toggle:
+                    await self.send_page.update_send_options(None)
+                if self.mining_page.mining_toggle:
+                    await self.mining_page.update_mining_options(None)
         new_address = await self.commands.getNewAddress()
         if new_address:
-            if self.recieve_page.transparent_toggle:
-                self.insert_new_address(new_address[0])
-            if self.send_page.transparent_toggle:
-                await self.send_page.update_send_options(None)
-            if self.mining_page.mining_toggle:
-                await self.mining_page.update_mining_options(None)
             self.info_dialog(
                 title="New Address",
-                message=f"Generated address : {new_address[0]}"
+                message=f"Generated address : {new_address[0]}",
+                on_result=on_result
             )
 
     async def generate_private_address(self, widget):
+        async def on_result(widget, result):
+            if result is None:
+                if self.recieve_page.private_toggle:
+                    self.insert_new_address(new_address[0])
+                if self.send_page.private_toggle:
+                    await self.send_page.update_send_options(None)
         new_address = await self.commands.z_getNewAddress()
         if new_address:
-            if self.recieve_page.private_toggle:
-                self.insert_new_address(new_address[0])
-            if self.send_page.private_toggle:
-                await self.send_page.update_send_options(None)
             self.info_dialog(
                 title="New Address",
-                message=f"Generated address : {new_address[0]}"
+                message=f"Generated address : {new_address[0]}",
+                on_result=on_result
             )
 
     def insert_new_address(self, address):
@@ -320,7 +332,7 @@ class Menu(Window):
         )
 
     def edit_messages_username(self, sender, event):
-        data = self.storage.is_exists()
+        data = self.storage.messages_exists()
         if data:
             username = self.storage.get_identity("username")
             if username:
@@ -336,7 +348,7 @@ class Menu(Window):
                     title="Backup Successful!",
                     message=f"Your messages have been successfully backed up to:\n{result}"
                 )
-        self.data = self.storage.is_exists()
+        self.data = self.storage.messages_exists()
         if self.data:
             self.save_file_dialog(
                 title="Save backup to...",
@@ -350,6 +362,9 @@ class Menu(Window):
         self.app.add_background_task(self.fetch_repo_info)
 
     async def fetch_repo_info(self, widget):
+        def on_result(widget, result):
+                if result is True:
+                    webbrowser.open(self.git_link)
         git_version, link = await self.utils.get_repo_info()
         if git_version:
             self.git_link = link
@@ -363,12 +378,8 @@ class Menu(Window):
                 self.question_dialog(
                     title="Check updates",
                     message=f"Current version: {current_version}\nGit version: {git_version}\nWould you like to update the app ?",
-                    on_result=self.update_app_result
+                    on_result=on_result
                 )
-
-    def update_app_result(self, widget, result):
-        if result is True:
-            webbrowser.open(self.git_link)
 
     def show_import_key(self, sender, event):
         self.import_window = ImportKey()
