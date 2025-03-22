@@ -11,7 +11,7 @@ from toga import (
     ProgressBar, Window, ScrollContainer,
     Button, ImageView
 )
-from ..framework import FlatStyle, Os
+from ..framework import FlatStyle, Os, ToolTip
 from toga.style.pack import Pack
 from toga.constants import COLUMN, CENTER, BOLD, ROW
 from toga.colors import rgb, GRAY, WHITE, GREENYELLOW, BLACK, RED
@@ -37,6 +37,7 @@ class Mining(Box):
         self.utils = Utils(self.app)
         self.units = Units(self.app)
         self.commands = Client(self.app)
+        self.tooltip = ToolTip()
 
         self.mining_toggle = None
         self.selected_miner = None
@@ -131,6 +132,7 @@ class Mining(Box):
             on_change=self.display_address_balance
         )
         self.address_selection._impl.native.FlatStyle = FlatStyle.FLAT
+        self.address_selection._impl.native.DropDownHeight = 150
 
         self.address_balance = Label(
             text="0.00000000",
@@ -273,6 +275,7 @@ class Mining(Box):
                 padding_left = 20
             )
         )
+        self.tooltip.insert(self.totalshares_icon._impl.native, "Total shares")
 
         self.totalshares_value = Label(
             text="0.00",
@@ -291,6 +294,7 @@ class Mining(Box):
                 padding_left = 20
             )
         )
+        self.tooltip.insert(self.balance_icon._impl.native, "Balance")
 
         self.balance_value = Label(
             text="0.00",
@@ -309,6 +313,7 @@ class Mining(Box):
                 padding_left = 20
             )
         )
+        self.tooltip.insert(self.immature_icon._impl.native, "Immature balance")
 
         self.immature_value = Label(
             text="0.00",
@@ -327,6 +332,7 @@ class Mining(Box):
                 padding = (2,0,0,20)
             )
         )
+        self.tooltip.insert(self.paid_icon._impl.native, "Total paid")
 
         self.paid_value = Label(
             text="0.00",
@@ -345,6 +351,7 @@ class Mining(Box):
                 padding_left = 20
             )
         )
+        self.tooltip.insert(self.solutions_icon._impl.native, "Solutions speed")
 
         self.solutions_value = Label(
             text="0.00 Sol/s",
@@ -363,6 +370,7 @@ class Mining(Box):
                 padding_left = 20
             )
         )
+        self.tooltip.insert(self.estimated_icon._impl.native, "Estimated reward")
 
         self.estimated_value = Label(
             text="0.00 /Day",
@@ -508,7 +516,7 @@ class Mining(Box):
         return address_items
     
 
-    async def update_server_selection(self, selection):
+    def update_server_selection(self, selection):
         self.selected_pool = self.pool_selection.value.pool
         if not self.selected_pool:
             return

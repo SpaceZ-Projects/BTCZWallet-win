@@ -13,17 +13,17 @@ class Storage():
 
         self.app = app
         self.app_data = self.app.paths.data
-        self.data_path = Os.Path.Combine(str(self.app_data), messages_data)
+        self.messages_data = Os.Path.Combine(str(self.app_data), messages_data)
 
 
-    def is_exists(self):
-        if not Os.File.Exists(self.data_path):
+    def messages_exists(self):
+        if not Os.File.Exists(self.messages_data):
             return False
-        return self.data_path
+        return self.messages_data
     
     def identity(self, category, username, address):
         self.create_identity_table()
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -38,7 +38,7 @@ class Storage():
 
     def get_identity(self, option = None):
         try:
-            conn = sqlite3.connect(self.data_path)
+            conn = sqlite3.connect(self.messages_data)
             cursor = conn.cursor()
             if option == "category":
                 cursor.execute(
@@ -68,7 +68,7 @@ class Storage():
 
     def add_contact(self, category, id, contact_id, username, address):
         self.create_contacts_table()
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -83,7 +83,7 @@ class Storage():
 
     def add_pending(self, category, id, username, address):
         self.create_pending_table()
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -97,7 +97,7 @@ class Storage():
 
     def add_request(self, id, address):
         self.create_requests_table()
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -111,7 +111,7 @@ class Storage():
 
     def tx(self, txid):
         self.create_txs_table()
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -125,7 +125,7 @@ class Storage():
 
     def key(self, prv_key):
         self.create_key_table()
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -139,7 +139,7 @@ class Storage():
 
     def message(self, id, author, message, amount, timestamp):
         self.create_messages_table()
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -154,7 +154,7 @@ class Storage():
 
     def unread_message(self, id, author, message, amount, timestamp):
         self.create_unread_messages_table()
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -169,7 +169,7 @@ class Storage():
 
     def ban(self, address):
         self.create_banned_table()
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -184,7 +184,7 @@ class Storage():
 
     def get_contacts(self, option = None):
         try:
-            conn = sqlite3.connect(self.data_path)
+            conn = sqlite3.connect(self.messages_data)
             cursor = conn.cursor()
             if option == "address":
                 cursor.execute('SELECT address FROM contacts')
@@ -203,7 +203,7 @@ class Storage():
 
     def get_contact_username(self, contact_id):
         try:
-            conn = sqlite3.connect(self.data_path)
+            conn = sqlite3.connect(self.messages_data)
             cursor = conn.cursor()
             cursor.execute(
                 'SELECT username FROM contacts WHERE contact_id = ?',
@@ -218,7 +218,7 @@ class Storage():
     
     def get_id_contact(self, contact_id):
         try:
-            conn = sqlite3.connect(self.data_path)
+            conn = sqlite3.connect(self.messages_data)
             cursor = conn.cursor()
             cursor.execute(
                 'SELECT id FROM contacts WHERE contact_id = ?',
@@ -233,7 +233,7 @@ class Storage():
 
     def get_pending(self, option = None):
         try:
-            conn = sqlite3.connect(self.data_path)
+            conn = sqlite3.connect(self.messages_data)
             cursor = conn.cursor()
             if option == "address":
                 cursor.execute("SELECT address FROM pending")
@@ -249,7 +249,7 @@ class Storage():
 
     def get_requests(self):
         try:
-            conn = sqlite3.connect(self.data_path)
+            conn = sqlite3.connect(self.messages_data)
             cursor = conn.cursor()
             cursor.execute('SELECT address FROM requests')
             txs = [row[0] for row in cursor.fetchall()]
@@ -261,7 +261,7 @@ class Storage():
         
     def get_request(self, address):
         try:
-            conn = sqlite3.connect(self.data_path)
+            conn = sqlite3.connect(self.messages_data)
             cursor = conn.cursor()
             cursor.execute(
                 'SELECT id FROM requests WHERE address = ?',
@@ -276,7 +276,7 @@ class Storage():
 
     def get_txs(self):
         try:
-            conn = sqlite3.connect(self.data_path)
+            conn = sqlite3.connect(self.messages_data)
             cursor = conn.cursor()
             cursor.execute('SELECT txid FROM txs')
             txs = [row[0] for row in cursor.fetchall()]
@@ -288,7 +288,7 @@ class Storage():
     
     def get_messages(self, contact_id):
         try:
-            conn = sqlite3.connect(self.data_path)
+            conn = sqlite3.connect(self.messages_data)
             cursor = conn.cursor()
             cursor.execute(
                 'SELECT author, message, amount, timestamp FROM messages WHERE id = ?',
@@ -303,7 +303,7 @@ class Storage():
 
     def get_unread_messages(self, contact_id):
         try:
-            conn = sqlite3.connect(self.data_path)
+            conn = sqlite3.connect(self.messages_data)
             cursor = conn.cursor()
             cursor.execute(
                 'SELECT author, message, amount, timestamp FROM unread_messages WHERE id = ?',
@@ -318,7 +318,7 @@ class Storage():
 
     def get_banned(self):
         try:
-            conn = sqlite3.connect(self.data_path)
+            conn = sqlite3.connect(self.messages_data)
             cursor = conn.cursor()
             cursor.execute('SELECT address FROM banned')
             txs = [row[0] for row in cursor.fetchall()]
@@ -330,7 +330,7 @@ class Storage():
 
     def delete_pending(self, address):
         try:
-            conn = sqlite3.connect(self.data_path)
+            conn = sqlite3.connect(self.messages_data)
             cursor = conn.cursor()
             cursor.execute(
                 '''
@@ -346,7 +346,7 @@ class Storage():
 
     def delete_contact(self, address):
         try:
-            conn = sqlite3.connect(self.data_path)
+            conn = sqlite3.connect(self.messages_data)
             cursor = conn.cursor()
             cursor.execute(
                 '''
@@ -362,7 +362,7 @@ class Storage():
 
     def delete_request(self, address):
         try:
-            conn = sqlite3.connect(self.data_path)
+            conn = sqlite3.connect(self.messages_data)
             cursor = conn.cursor()
             cursor.execute(
                 '''
@@ -378,7 +378,7 @@ class Storage():
 
     def delete_unread(self, contact_id):
         try:
-            conn = sqlite3.connect(self.data_path)
+            conn = sqlite3.connect(self.messages_data)
             cursor = conn.cursor()
             cursor.execute(
                 '''
@@ -393,7 +393,7 @@ class Storage():
 
 
     def create_identity_table(self):
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -409,7 +409,7 @@ class Storage():
 
 
     def edit_username(self, old_username, new_username):
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -423,7 +423,7 @@ class Storage():
 
 
     def create_contacts_table(self):
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -440,7 +440,7 @@ class Storage():
         conn.close()
 
     def update_contact_username(self, username, contact_id):
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -453,7 +453,7 @@ class Storage():
         conn.close()
 
     def create_pending_table(self):
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -469,7 +469,7 @@ class Storage():
         conn.close()
 
     def create_txs_table(self):
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -482,7 +482,7 @@ class Storage():
         conn.close()
 
     def create_messages_table(self):
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -499,7 +499,7 @@ class Storage():
         conn.close()
 
     def create_unread_messages_table(self):
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -516,7 +516,7 @@ class Storage():
         conn.close()
 
     def create_key_table(self):
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -529,7 +529,7 @@ class Storage():
         conn.close()
 
     def create_requests_table(self):
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -543,7 +543,7 @@ class Storage():
         conn.close()
 
     def create_banned_table(self):
-        conn = sqlite3.connect(self.data_path)
+        conn = sqlite3.connect(self.messages_data)
         cursor = conn.cursor()
         cursor.execute(
             '''

@@ -39,7 +39,8 @@ class EditUser(Window):
         super().__init__(
             size = (500, 150),
             resizable= False,
-            minimizable = False
+            minimizable = False,
+            closable=False
         )
 
         self.utils = Utils(self.app)
@@ -204,7 +205,8 @@ class Indentifier(Window):
         super().__init__(
             size = (600, 150),
             resizable= False,
-            minimizable = False
+            minimizable = False,
+            closable=False
         )
 
         self.main = main
@@ -965,7 +967,8 @@ class NewContact(Window):
         super().__init__(
             size = (600, 150),
             resizable= False,
-            minimizable = False
+            minimizable = False,
+            closable=False
         )
 
         self.utils = Utils(self.app)
@@ -1225,7 +1228,8 @@ class PendingList(Window):
         super().__init__(
             size = (500, 400),
             resizable= False,
-            minimizable = False
+            minimizable = False,
+            closable=False
         )
 
         self.utils = Utils(self.app)
@@ -1690,7 +1694,7 @@ class Chat(Box):
         while True:
             address = self.storage.get_identity("address")
             if address:
-                listunspent, _= await self.commands.z_listUnspent(address[0])
+                listunspent, _= await self.commands.z_listUnspent(address[0], 0)
                 if listunspent:
                     listunspent = json.loads(listunspent)
                     self.count_list_unspent(listunspent)
@@ -2431,7 +2435,7 @@ class Messages(Box):
     async def insert_widgets(self, widget):
         await asyncio.sleep(0.2)
         if not self.messages_toggle:
-            data = self.storage.is_exists()
+            data = self.storage.messages_exists()
             if data:
                 identity = self.storage.get_identity()
                 if identity:
@@ -2451,11 +2455,11 @@ class Messages(Box):
 
 
     async def gather_unread_memos(self):
-        data = self.storage.is_exists()
+        data = self.storage.messages_exists()
         if data:
             address = self.storage.get_identity("address")
             if address:
-                listunspent, _= await self.commands.z_listUnspent(address[0])
+                listunspent, _= await self.commands.z_listUnspent(address[0], 0)
                 if listunspent:
                     listunspent = json.loads(listunspent)
                     list_txs = self.storage.get_txs()
@@ -2464,9 +2468,8 @@ class Messages(Box):
                         if txid not in list_txs:
                             await self.unhexlify_memo(data)
 
-                    is_active = self.settings.notification()
                     if self.request_count > 0:
-                        if is_active:
+                        if self.settings.notification():
                             notify = NotifyRequest()
                             notify.show()
                             notify.send_note(
@@ -2476,7 +2479,7 @@ class Messages(Box):
                             await asyncio.sleep(5)
                             notify.hide()
                     if self.message_count > 0:
-                        if is_active:
+                        if self.settings.notification():
                             notify = NotifyMessage()
                             notify.show()
                             notify.send_note(

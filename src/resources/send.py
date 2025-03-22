@@ -133,6 +133,7 @@ class Send(Box):
             on_change=self.display_address_balance
         )
         self.address_selection._impl.native.FlatStyle = FlatStyle.FLAT
+        self.address_selection._impl.native.DropDownHeight = 150
 
         self.address_balance = Label(
             text="0.00000000",
@@ -214,7 +215,7 @@ class Send(Box):
         )
 
         self.destination_input_single = TextInput(
-            placeholder="address",
+            placeholder=" Address",
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -227,7 +228,7 @@ class Send(Box):
         )
 
         self.destination_input_many = MultilineTextInput(
-            placeholder="addresses list",
+            placeholder=" Addresses list",
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),

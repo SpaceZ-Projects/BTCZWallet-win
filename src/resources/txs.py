@@ -396,7 +396,7 @@ class Transactions(Box):
                 self._impl.native.Controls.Add(self.transactions_table)
                 self.transactions_table.data_source = self.transactions_data
             else:
-                await self.no_transactions_found()
+                self.no_transactions_found()
             self.transactions_toggle = True
 
 
@@ -418,7 +418,7 @@ class Transactions(Box):
             self.transactions_data.append(row)
 
 
-    async def no_transactions_found(self):
+    def no_transactions_found(self):
         self.add(self.no_transaction)
         self.no_transaction_toggle = True
 
@@ -449,8 +449,7 @@ class Transactions(Box):
                         }
                         self.transactions_data.insert(0, row)
                         self.add_transaction(0, row)
-                        is_active = self.settings.notification()
-                        if is_active:
+                        if self.settings.notification():
                             notify = NotifyTx()
                             notify.show()
                             notify.send_note(

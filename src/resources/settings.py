@@ -45,3 +45,20 @@ class Settings():
                 return False
             else:
                 return settings['startup']
+            
+
+    def currency(self):
+        with open(self.settings_path, 'r') as f:
+            settings = json.load(f)
+            if 'currency' not in settings:
+                return "usd"
+            else:
+                return settings['currency']
+            
+    def symbol(self):
+        with open(self.settings_path, 'r') as f:
+            settings = json.load(f)
+            if 'symbol' not in settings:
+                return "$"
+            else:
+                return settings['symbol']

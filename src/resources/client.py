@@ -156,6 +156,6 @@ class Client():
         command = f'{self.bitcoinz_cli_file} z_exportkey "{address}"'
         return await self._run_command(command)
     
-    async def z_listUnspent(self, address):
-        command = f'{self.bitcoinz_cli_file} z_listunspent 0 9999999 true "[\\"{address}\\"]"'
+    async def z_listUnspent(self, address, minconf):
+        command = f'{self.bitcoinz_cli_file} z_listunspent {minconf} 9999999 true "[\\"{address}\\"]"'
         return await self._run_command(command)

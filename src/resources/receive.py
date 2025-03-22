@@ -30,7 +30,8 @@ class ImportKey(Window):
         super().__init__(
             size = (600, 150),
             resizable= False,
-            minimizable = False
+            minimizable = False,
+            closable=False
         )
         
         self.utils = Utils(self.app)
