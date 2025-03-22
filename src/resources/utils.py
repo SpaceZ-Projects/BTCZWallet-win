@@ -414,13 +414,16 @@ addnode=37.187.76.80:1989
 
     def add_to_startup(self):
         wallet_path = Os.Path.Combine(str(self.app_path.parents[1]), 'BTCZWallet.exe')
+        if not Os.File.Exists(wallet_path):
+            return None
         key = r"Software\Microsoft\Windows\CurrentVersion\Run"
         try:
             registry_key = reg.OpenKey(reg.HKEY_CURRENT_USER, key, 0, reg.KEY_WRITE)
             reg.SetValueEx(registry_key, "BTCZWallet", 0, reg.REG_SZ, wallet_path)
             reg.CloseKey(registry_key)
+            return True
         except Exception as e:
-            print(f"Error adding BTCZWallet to startup: {e}")
+            return None
 
     def remove_from_startup(self):
         key = r"Software\Microsoft\Windows\CurrentVersion\Run"
@@ -428,5 +431,6 @@ addnode=37.187.76.80:1989
             registry_key = reg.OpenKey(reg.HKEY_CURRENT_USER, key, 0, reg.KEY_WRITE)
             reg.DeleteValue(registry_key, "BTCZWallet")
             reg.CloseKey(registry_key)
+            return True
         except Exception as e:
-            print(f"Error removing BTCZWallet from startup: {e}")
+            return None

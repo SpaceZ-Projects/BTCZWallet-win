@@ -275,13 +275,15 @@ class Menu(Window):
 
     def update_app_startup(self, sender, event):
         if self.toolbar.startup_cmd.checked:
-            self.toolbar.startup_cmd.checked = False
-            self.settings.update_settings("startup", False)
-            self.utils.remove_from_startup()
+            reg = self.utils.remove_from_startup()
+            if reg:
+                self.toolbar.startup_cmd.checked = False
+                self.settings.update_settings("startup", False)
         else:
-            self.toolbar.startup_cmd.checked = True
-            self.settings.update_settings("startup", True)
-            self.utils.add_to_startup()
+            reg = self.utils.add_to_startup()
+            if reg:
+                self.toolbar.startup_cmd.checked = True
+                self.settings.update_settings("startup", True)
 
     def show_currencies_list(self, sender, event):
         self.currencies_window = Currency()
