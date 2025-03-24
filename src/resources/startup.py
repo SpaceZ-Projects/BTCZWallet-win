@@ -314,14 +314,16 @@ class BTCZSetup(Box):
         else:
             while True:
                 result, error_message = await self.commands.getInfo()
-                if result:
+                if result and error_message is None:
                     self.node_status = True
                     await self.verify_sync_progress()
                     return
-                else:
-                    if error_message:
-                        self.status_label.text = error_message
-                await asyncio.sleep(4)
+                elif error_message and result is None:
+                    self.status_label.text = error_message
+                elif error_message is None and result is None:
+                    self.app.add_background_task(self.execute_bitcoinz_node)
+                    return
+                await asyncio.sleep(3)
 
 
     async def verify_sync_progress(self):
