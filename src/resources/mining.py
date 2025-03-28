@@ -370,7 +370,7 @@ class Mining(Box):
                 padding_left = 20
             )
         )
-        self.tooltip.insert(self.estimated_icon._impl.native, "Estimated rewards")
+        self.tooltip.insert(self.estimated_icon._impl.native, "Estimated reward")
 
         self.estimated_value = Label(
             text="0.00 /Day",

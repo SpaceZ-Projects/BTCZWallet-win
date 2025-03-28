@@ -26,12 +26,14 @@ from toga.colors import (
     GREENYELLOW
 )
 
-from .storage import Storage
+from .storage import StorageMessages
 from .utils import Utils
 from .units import Units
 from .client import Client
 from .notify import NotifyRequest, NotifyMessage
 from .settings import Settings
+            
+
 
 
 class EditUser(Window):
@@ -44,7 +46,7 @@ class EditUser(Window):
         )
 
         self.utils = Utils(self.app)
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
         self.username = username
 
         self.title = "Edit Username"
@@ -214,7 +216,7 @@ class Indentifier(Window):
 
         self.utils = Utils(self.app)
         self.commands = Client(self.app)
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
         self.messages_page = messages
 
         self.title = "Setup Indentity"
@@ -470,7 +472,7 @@ class Contact(Box):
         self.app =app
         self.chat = chat
         self.main = main
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
         self.clipboard = ClipBoard()
 
         self.category = category
@@ -670,7 +672,7 @@ class Pending(Box):
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
         self.units = Units(self.app)
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
         self.pending_window = window
         self.chat = chat
 
@@ -974,7 +976,7 @@ class NewContact(Window):
         self.utils = Utils(self.app)
         self.units = Units(self.app)
         self.commands = Client(self.app)
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
 
         self.is_valid_toggle = None
 
@@ -1234,7 +1236,7 @@ class PendingList(Window):
 
         self.utils = Utils(self.app)
         self.commands = Client(self.app)
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
         self.chat = chat
 
         self.title = "Pending List"
@@ -1378,7 +1380,7 @@ class Chat(Box):
         self.utils = Utils(self.app)
         self.units = Units(self.app)
         self.commands = Client(self.app)
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
         self.tooltip = ToolTip()
         self.clipboard = ClipBoard()
         self.settings = Settings(self.app)
@@ -1680,6 +1682,9 @@ class Chat(Box):
             if not self.main.message_button_toggle:
                 await asyncio.sleep(1)
                 continue
+            if self.main.import_key_toggle:
+                await asyncio.sleep(1)
+                continue
             address = self.storage.get_identity("address")
             if address:
                 balance, _= await self.commands.z_getBalance(address[0])
@@ -1692,6 +1697,9 @@ class Chat(Box):
 
     async def waiting_new_memos(self, widget):
         while True:
+            if self.main.import_key_toggle:
+                await asyncio.sleep(1)
+                continue
             address = self.storage.get_identity("address")
             if address:
                 listunspent, _= await self.commands.z_listUnspent(address[0], 0)
@@ -2423,7 +2431,7 @@ class Messages(Box):
         self.app = app
         self.main = main
         self.commands = Client(self.app)
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
         self.chat = Chat(self.app, self.main)
         self.settings = Settings(self.app)
 
@@ -2435,7 +2443,7 @@ class Messages(Box):
     async def insert_widgets(self, widget):
         await asyncio.sleep(0.2)
         if not self.messages_toggle:
-            data = self.storage.messages_exists()
+            data = self.storage.is_exists()
             if data:
                 identity = self.storage.get_identity()
                 if identity:
@@ -2455,7 +2463,7 @@ class Messages(Box):
 
 
     async def gather_unread_memos(self):
-        data = self.storage.messages_exists()
+        data = self.storage.is_exists()
         if data:
             address = self.storage.get_identity("address")
             if address:

@@ -430,6 +430,9 @@ class Transactions(Box):
         if sorted_transactions:
             self.create_rows(sorted_transactions)
         while True:
+            if self.main.import_key_toggle:
+                await asyncio.sleep(1)
+                continue
             new_transactions = await self.get_transactions(self.transactions_count,0)
             if new_transactions:
                 for data in new_transactions:

@@ -5,6 +5,8 @@ import zipfile
 import py7zr
 import qrcode
 import winreg as reg
+import sys
+import urllib
 
 from toga import App
 from ..framework import (
@@ -65,6 +67,7 @@ class Utils():
             qr_img.save(f)
         
         return qr_path
+    
 
     def get_bitcoinz_path(self):
         bitcoinz_path = Os.Path.Combine(
@@ -413,13 +416,13 @@ addnode=37.187.76.80:1989
 
 
     def add_to_startup(self):
-        wallet_path = Os.Path.Combine(str(self.app_path.parents[1]), 'BTCZWallet.exe')
-        if not Os.File.Exists(wallet_path):
+        excutable_file = Os.Path.Combine(str(self.app_path.parents[1]), 'BTCZWallet.exe')
+        if not Os.File.Exists(excutable_file):
             return None
         key = r"Software\Microsoft\Windows\CurrentVersion\Run"
         try:
             registry_key = reg.OpenKey(reg.HKEY_CURRENT_USER, key, 0, reg.KEY_WRITE)
-            reg.SetValueEx(registry_key, "BTCZWallet", 0, reg.REG_SZ, wallet_path)
+            reg.SetValueEx(registry_key, "BTCZWallet", 0, reg.REG_SZ, excutable_file)
             reg.CloseKey(registry_key)
             return True
         except Exception as e:

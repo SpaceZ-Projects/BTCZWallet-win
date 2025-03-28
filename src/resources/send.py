@@ -19,7 +19,7 @@ from toga.colors import (
     rgb, GRAY, WHITE, YELLOW, BLACK, RED
 )
 from .client import Client
-from .storage import Storage
+from .storage import StorageMessages
 from .units import Units
 
 
@@ -38,7 +38,7 @@ class Send(Box):
         self.main = main
         self.commands = Client(self.app)
         self.units = Units(self.app)
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
         self.tooltip = ToolTip()
 
         self.send_toggle = None

@@ -22,11 +22,11 @@ from toga.colors import (
 from .utils import Utils
 from .units import Units
 from .client import Client
-from .storage import Storage
+from .storage import StorageMessages
 
 
 class ImportKey(Window):
-    def __init__(self):
+    def __init__(self, main:Window):
         super().__init__(
             size = (600, 150),
             resizable= False,
@@ -34,6 +34,7 @@ class ImportKey(Window):
             closable=False
         )
         
+        self.main = main
         self.utils = Utils(self.app)
         self.commands = Client(self.app)
 
@@ -139,23 +140,26 @@ class ImportKey(Window):
         self.import_button.on_press = None
         self.import_button._impl.native.Cursor = Cursors.WAIT
         self.cancel_button.enabled = False
+        self.main.import_key_toggle = True
         self.app.add_background_task(self.import_private_key)
 
 
     async def import_private_key(self, widget):
+        def on_result(widget, result):
+            if result is None:
+                self.main.import_key_toggle = None
         key = self.key_input.value
-        result, _= await self.commands.ImportPrivKey(key)
-        if result is not None:
-            pass
-        else:
-            result, _= await self.commands.z_ImportKey(key)
-            if result is not None:
-                pass
-            else:
+        result, error_message = await self.commands.ImportPrivKey(key)
+        if error_message:
+            result, error_message = await self.commands.z_ImportKey(key)
+            if error_message:
                 self.error_dialog(
                     "Invalid Private Key",
-                    "The private key you entered is not valid. Please check the format and try again."
+                    "The private key you entered is not valid. Please check the format and try again.",
+                    on_result=on_result
                 )
+                return
+        self.main.import_key_toggle = None      
         self.update_import_window()
 
 
@@ -203,7 +207,7 @@ class Receive(Box):
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
         self.units = Units(self.app)
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
         self.clipboard = ClipBoard()
 
         self.recieve_toggle = None

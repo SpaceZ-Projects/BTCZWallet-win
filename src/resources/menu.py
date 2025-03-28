@@ -28,8 +28,10 @@ from .receive import Receive, ImportKey
 from .send import Send
 from .messages import Messages, EditUser
 from .mining import Mining
-from .storage import Storage
+from .storage import StorageMessages
 from .settings import Settings
+from .invoices import Invoices
+from .server import WebServer
 
 
 class Menu(Window):
@@ -42,12 +44,14 @@ class Menu(Window):
 
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
-        self.storage = Storage(self.app)
-        self.statusbar = AppStatusBar(self.app)
-        self.wallet = Wallet(self.app)
+        self.storage = StorageMessages(self.app)
+        self.statusbar = AppStatusBar(self.app, self)
+        self.wallet = Wallet(self.app, self)
         self.settings = Settings(self.app)
+        self.server = WebServer(self.app)
         
         self._is_minimized = None
+        self.import_key_toggle = None
         
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
@@ -82,7 +86,7 @@ class Menu(Window):
             )
         )
 
-        self.home_page = Home(self.app)
+        self.home_page = Home(self.app, self)
         self.transactions_page = Transactions(self.app, self)
         self.recieve_page = Receive(self.app, self)
         self.send_page = Send(self.app, self)
@@ -90,6 +94,8 @@ class Menu(Window):
         self.mining_page = Mining(self.app, self)
         self.notify = Notify(self.app, self, self.home_page, self.mining_page)
         self.toolbar = AppToolBar(self.app, self, self.notify, self.home_page, self.mining_page)
+
+        self.invoices_window = Invoices(self, self.server)
 
         self.main_box.add(
             self.toolbar,
@@ -237,6 +243,7 @@ class Menu(Window):
         await asyncio.sleep(0.5)
         self.home_button_click(None)
         self.add_actions_cmds()
+        self.invoices_window.load_invoices()
         self.app.add_background_task(self.transactions_page.update_transactions)
         await asyncio.sleep(1)
         await self.message_page.gather_unread_memos()
@@ -253,6 +260,7 @@ class Menu(Window):
         else:
             self.toolbar.startup_cmd.checked = startup
 
+        self.toolbar.invoices_cmd.action = self.show_invoices
         self.toolbar.notification_cmd.action = self.update_notifications
         self.toolbar.startup_cmd.action = self.update_app_startup
         self.toolbar.currency_cmd.action = self.show_currencies_list
@@ -263,6 +271,11 @@ class Menu(Window):
         self.toolbar.import_key_cmd.action = self.show_import_key
         self.toolbar.edit_username_cmd.action = self.edit_messages_username
         self.toolbar.backup_messages_cmd.action = self.backup_messages
+
+
+    def show_invoices(self, sender, event):
+        self.invoices_window.show()
+        self.hide()
 
 
     def update_notifications(self, sender, event):
@@ -334,7 +347,7 @@ class Menu(Window):
         )
 
     def edit_messages_username(self, sender, event):
-        data = self.storage.messages_exists()
+        data = self.storage.is_exists()
         if data:
             username = self.storage.get_identity("username")
             if username:
@@ -350,7 +363,7 @@ class Menu(Window):
                     title="Backup Successful!",
                     message=f"Your messages have been successfully backed up to:\n{result}"
                 )
-        self.data = self.storage.messages_exists()
+        self.data = self.storage.is_exists()
         if self.data:
             self.save_file_dialog(
                 title="Save backup to...",
@@ -384,7 +397,7 @@ class Menu(Window):
                 )
 
     def show_import_key(self, sender, event):
-        self.import_window = ImportKey()
+        self.import_window = ImportKey(self)
         self.import_window._impl.native.ShowDialog()
 
 

@@ -40,6 +40,15 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48)
         )
 
+        self.invoices_cmd = Command(
+            title="Invoices",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            icon="images/invoices_i.ico",
+            mouse_enter=self.invoices_cmd_mouse_enter,
+            mouse_leave=self.invoices_cmd_mouse_leave
+        )
+
         self.currency_cmd = Command(
             title="Currency",
             color=Color.WHITE,
@@ -104,6 +113,7 @@ class AppToolBar(Box):
         self.app_menu = Command(
             title="App",
             sub_commands=[
+                self.invoices_cmd,
                 self.about_cmd,
                 self.exit_cmd,
                 self.stop_exit_cmd
@@ -231,24 +241,6 @@ class AppToolBar(Box):
         )
         self._impl.native.Controls.Add(self.toolbar)
 
-    def load_currencies(self):
-        try:
-            currencies_json = Os.Path.Combine(str(self.app.paths.app), 'resources', 'currencies.json')
-            with open(currencies_json, 'r') as file:
-                data = json.load(file)
-                currencies_items = [currency['currency'] for currency in data]
-                current_currency = self.settings.currency()
-                selected_currency_info = next(
-                    (currency for currency in data if currency['value'] == current_currency), 
-                    None
-                )
-                if selected_currency_info:
-                    selected_index = selected_currency_info['index']
-                    self.currency_selection.items = currencies_items
-                    self.currency_selection.selected_index = selected_index
-        except (FileNotFoundError, json.JSONDecodeError):
-            pass
-
     def app_menu_opened(self):
         self.app_menu_active = True
         self.app_menu.icon = "images/app_a.ico"
@@ -268,6 +260,14 @@ class AppToolBar(Box):
             return
         self.app_menu.icon = "images/app_i.ico"
         self.app_menu.color = Color.WHITE
+
+    def invoices_cmd_mouse_enter(self):
+        self.invoices_cmd.icon = "images/invoices_a.ico"
+        self.invoices_cmd.color = Color.BLACK
+
+    def invoices_cmd_mouse_leave(self):
+        self.invoices_cmd.icon = "images/invoices_i.ico"
+        self.invoices_cmd.color = Color.WHITE
 
     def settings_menu_mouse_enter(self):
         self.settings_menu.icon = "images/settings_a.ico"
@@ -392,6 +392,14 @@ class AppToolBar(Box):
     def edit_username_cmd_mouse_leave(self):
         self.edit_username_cmd.icon = "images/edit_username_i.ico"
         self.edit_username_cmd.color = Color.WHITE
+
+    def import_messages_cmd_mouse_enter(self):
+        self.import_messages_cmd.icon = "images/importmsg_a.ico"
+        self.import_messages_cmd.color = Color.BLACK
+
+    def import_messages_cmd_mouse_leave(self):
+        self.import_messages_cmd.icon = "images/importmsg_i.ico"
+        self.import_messages_cmd.color = Color.WHITE
 
     def backup_messages_cmd_mouse_enter(self):
         self.backup_messages_cmd.icon = "images/backup_a.ico"

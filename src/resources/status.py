@@ -3,7 +3,7 @@ import asyncio
 from datetime import datetime
 import json
 
-from toga import App, Box
+from toga import App, Box, Window
 from ..framework import (
     StatusBar, StatusLabel, Separator,
     DockStyle, Color, Font, FontStyle, AlignContent
@@ -16,7 +16,7 @@ from .utils import Utils
 
 
 class AppStatusBar(Box):
-    def __init__(self, app:App):
+    def __init__(self, app:App, main:Window):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -26,6 +26,7 @@ class AppStatusBar(Box):
         )
 
         self.app = app
+        self.main = main
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
 
@@ -167,6 +168,9 @@ class AppStatusBar(Box):
         node_status = None
         last_node_status = None
         while True:
+            if self.main.import_key_toggle:
+                await asyncio.sleep(1)
+                continue
             blockchaininfo, _ = await self.commands.getBlockchainInfo()
             if blockchaininfo is not None:
                 if isinstance(blockchaininfo, str):
@@ -209,6 +213,9 @@ class AppStatusBar(Box):
 
     async def update_networkhash(self, widget):
         while True:
+            if self.main.import_key_toggle:
+                await asyncio.sleep(1)
+                continue
             networksol, _ = await self.commands.getNetworkSolps()
             if networksol is not None:
                 if isinstance(networksol, str):

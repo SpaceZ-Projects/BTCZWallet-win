@@ -147,7 +147,7 @@ class Currency(Window):
 
 
 class Home(Box):
-    def __init__(self, app:App):
+    def __init__(self, app:App, main:Window):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -157,7 +157,10 @@ class Home(Box):
                 alignment = CENTER
             )
         )
+
         self.app = app
+        self.main = main
+
         self.units = Units(self.app)
         self.commands = Client(self.app)
         self.curve = Curve(self.app)
@@ -429,10 +432,13 @@ class Home(Box):
 
     async def update_circulating_supply(self, widget):
         while True:
-            current_block = await self.commands.getBlockCount()
-            circulating = self.units.calculate_circulating(int(current_block[0]))
-            remaiming_blocks = self.units.remaining_blocks_until_halving(int(current_block[0]))
-            remaining_days = self.units.remaining_days_until_halving(int(current_block[0]))
+            if self.main.import_key_toggle:
+                await asyncio.sleep(1)
+                continue
+            current_block,_ = await self.commands.getBlockCount()
+            circulating = self.units.calculate_circulating(int(current_block))
+            remaiming_blocks = self.units.remaining_blocks_until_halving(int(current_block))
+            remaining_days = self.units.remaining_days_until_halving(int(current_block))
             self.circulating_value.text = int(circulating)
             self.halving_label.text = f"Next Halving in {remaiming_blocks} Blocks"
             self.remaining_label.text = f"Remaining {remaining_days} Days"

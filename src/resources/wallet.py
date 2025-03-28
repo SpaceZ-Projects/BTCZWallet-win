@@ -2,7 +2,7 @@
 import asyncio
 import json
 
-from toga import App, Box, Label, ImageView
+from toga import App, Box, Label, ImageView, Window
 from toga.style.pack import Pack
 from toga.colors import rgb, WHITE, GRAY, YELLOW, RED
 from toga.constants import (
@@ -14,7 +14,7 @@ from .client import Client
 from .units import Units
 
 class Wallet(Box):
-    def __init__(self, app:App):
+    def __init__(self, app:App, main:Window):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -26,6 +26,7 @@ class Wallet(Box):
         )
 
         self.app = app
+        self.main = main
         self.commands = Client(self.app)
         self.units = Units(self.app)
 
@@ -216,6 +217,9 @@ class Wallet(Box):
 
     async def update_balances(self, widget):
         while True:
+            if self.main.import_key_toggle:
+                await asyncio.sleep(1)
+                continue
             totalbalances,_ = await self.commands.z_getTotalBalance()
             if totalbalances is not None:
                 balances = json.loads(totalbalances)
