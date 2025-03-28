@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Methods & Examples</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2c2c2c;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h2 {
+            color: #202020;
+            background-color: #f39c12;
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 2px 5px rgba(25, 29, 26, 0.651);
+        }
+        h1 {
+            color: #ffffff;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        .card {
+            background-color: #5a5a5a;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            padding: 20px;
+        }
+        pre {
+            background-color: #272727;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 14px;
+            margin: 10px 0;
+            box-shadow: 0 2px 5px rgba(25, 29, 26, 0.651);
+        }
+        .button {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .button:hover {
+            background-color: #2980b9;
+        }
+        .code-block {
+            margin-bottom: 20px;
+        }
+        .example-container {
+            margin-top: 20px;
+            border-top: 2px solid #ddd;
+            padding-top: 20px;
+        }
+        .example-container p {
+            font-size: 14px;
+        }
+        .copy-button {
+            background-color: #f39c12;
+            color: rgb(0, 0, 0);
+            padding: 6px 12px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 12px;
+            box-shadow: 0 2px 5px rgba(25, 29, 26, 0.651);
+        }
+        .copy-button:hover {
+            background-color: #eeff01;
+        }
+        .copy-note {
+            display: none;
+            color: #ffffff;
+            font-size: 12px;
+            margin-left: 10px;
+            background-color: #3498db;
+            border-radius: 5px;
+            padding: 5px;
+            box-shadow: 0 2px 5px rgba(25, 29, 26, 0.651);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>PayGate API Methods & Examples</h1>
+    
+    <div class="card">
+        <h2>Method: help</h2>
+        <p>Returns a list of available methods.</p>
+        <pre>http://{{ host }}:{{ port }}/api/?method=help</pre>
+        <button class="copy-button" onclick="copyText('http://{{ host }}:{{ port }}/api/?method=help', 'help-note')">Copy Example</button>
+        <span id="help-note" class="copy-note">Copied!</span>
+    </div>
+
+    <div class="card">
+        <h2>Method: request_payment</h2>
+        <p>To request a payment with parameters.</p>
+        <div class="code-block">
+            <h3>Example:</h3>
+            <pre>http://{{ host }}:{{ port }}/api/request_payment/?expect=1000&currency=BTCZ&expired=3600&message=BTCZCommunity&seller=&customerMail=test@test.com&cliSuccessURL=https%3A%2F%2Fwww.google.com&cliErrorURL=https%3A%2F%2Fwww.google.com</pre>
+            <button class="copy-button" onclick="copyText('http://{{ host }}:{{ port }}/api/request_payment/?expect=1000&currency=BTCZ&expired=3600&message=BTCZCommunity&seller=<your address>&customerMail=test@test.com&cliSuccessURL=https%3A%2F%2Fwww.google.com&cliErrorURL=https%3A%2F%2Fwww.google.com', 'request-payment-note')">Copy Example</button>
+            <span id="request-payment-note" class="copy-note">Copied!</span>
+        </div>
+        <div class="example-container">
+            <h3>Expected Response:</h3>
+            <pre>{
+    "id": "c5e9631d-b107-4022-8de5-ae9f0efd03af",
+    "address": "t1gwku8spbCFUodyJ26njknnDxeZGM8hVmm",
+    "link": "bitcoinz:t1gwku8spbCFUodyJ26njknnDxeZGM8hVmm?amount=1000&message=BTCZCommunity",
+    "qr": "http://{{ host }}:{{ port }}/generate_qr/bitcoinz%3At1gwku8spbCFUodyJ26njknnDxeZGM8hVmm%3Famount%3D1000%26message%3DBTCZCommunity",
+    "qr_simple": "http://{{ host }}:{{ port }}/generate_qr/bitcoinz:t1gwku8spbCFUodyJ26njknnDxeZGM8hVmm?amount=1000"
+}</pre>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Method: Invoice Example</h2>
+        <p>Example to view an invoice with a QR code:</p>
+        <pre>http://{{ host }}:{{ port }}/invoice/f22c44cb-e26a-4022-864f-00f0d523d48a</pre>
+        <button class="copy-button" onclick="copyText('http://{{ host }}:{{ port }}/invoice/f22c44cb-e26a-4022-864f-00f0d523d48a', 'invoice-note')">Copy Example</button>
+        <span id="invoice-note" class="copy-note">Copied!</span>
+    </div>
+
+    <div class="card">
+        <h2>Method: check_payment</h2>
+        <p>Check the status of a payment using the invoice ID:</p>
+        <div class="code-block">
+            <h3>Example:</h3>
+            <pre>http://{{ host }}:{{ port }}/api/check_payment/f22c44cb-e26a-4022-864f-00f0d523d48a</pre>
+            <button class="copy-button" onclick="copyText('http://{{ host }}:{{ port }}/api/check_payment/f22c44cb-e26a-4022-864f-00f0d523d48a', 'check-payment-note')">Copy Example</button>
+            <span id="check-payment-note" class="copy-note">Copied!</span>
+        </div>
+        <div class="example-container">
+            <h3>Expected Response:</h3>
+            <pre>{
+    "generated": "t1gwku8spbCFUodyJ26njknnDxeZGM8hVmm",
+    "btcz_expected": "14.77818972",
+    "btcz_actual": "0",
+    "currency": "USD",
+    "amount": "0.01",
+    "timestamp_start": "1537815608394",
+    "timestamp_now": "1537816142575",
+    "timestamp_stop": "1537816808394",
+    "state": "1",
+    "successURL": "https://mysite_or_IP/result/?Hello=1",
+    "errURL": "https://mysite_or_IP/result/?Hello=0"
+}</pre>
+        </div>
+    </div>
+</div>
+
+<script>
+    function copyText(text, noteId) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+
+        const note = document.getElementById(noteId);
+        note.style.display = 'inline';
+
+        setTimeout(() => {
+            note.style.display = 'none';
+        }, 1000);
+    }
+</script>
+
+</body>
+</html>

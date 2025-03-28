@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Invoice - {{ invoice_id }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2c2c2c;
+            padding: 10px;
+            color: #fff;
+        }
+
+        .invoice-container {
+            max-width: 800px;
+            min-width: 500px;
+            margin: 0 auto;
+            background-color: #5a5a5a;
+            border-radius: 50px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .invoice-header {
+            text-align: center;
+            margin-bottom: 50px;
+            background-color: #2c2c2c;
+            padding: 8px;
+            box-shadow: 0 5px 10px rgba(0, 225, 255, 0.432);
+            border-radius: 15px;
+        }
+
+        .invoice-header h1 {
+            color: #f39c12;
+            font-size: 25px;
+            font-weight: bold;
+        }
+
+        .invoice-details {
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .invoice-details p {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: #ffffff;
+            background-color: #2c2c2c;
+            padding: 8px;
+            border-radius: 15px;
+        }
+
+        .invoice-table {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .invoice-table th,
+        .invoice-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #444;
+        }
+
+        .invoice-table th {
+            background-color: #444;
+            color: #f39c12;
+            font-weight: bold;
+        }
+
+        .invoice-table td {
+            color: #ccc;
+            font-weight: bold;
+        }
+
+        .invoice-footer {
+            text-align: center;
+            margin-top: 50px;
+            color: #ccc;
+            text-shadow: 0 5px 5px rgba(0, 0, 0, 0.938);
+            font-weight: bold;
+        }
+
+        .qr-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .qr-container img {
+            width: 180px;
+            height: 180px;
+            border-radius: 10px;
+            border: 3px solid #3d3d3d;
+        }
+
+        .qr-link {
+            text-align: center;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .qr-link a {
+            color: #f39c12;
+            font-size: 1.2rem;
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s ease;
+        }
+
+        .qr-link a:hover {
+            color: #e67e22;
+        }
+
+        .copy-btn {
+            background-color: #f39c12;
+            color: #0e0d0d;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-left: 10px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background-color: #fbff00;
+        }
+
+        #notification {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #00ff88;
+            color: rgb(0, 0, 0);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 9999;
+            font-size: 1rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .time-remaining-container {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            color: #f39c12;
+            margin-left: 10px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .time-remaining-container i {
+            margin-left: 10px;
+            font-size: 1.5rem;
+        }
+
+        .time-remaining-container span {
+            font-weight: bold;
+        }
+
+        .expired-message {
+            color: red;
+            font-size: 1.8rem;
+            text-align: center;
+            font-weight: bold;
+            margin-top: 50px;
+            background-color: #2c2c2c;
+            border-radius: 15px;
+            padding: 5px;
+            display: none;
+        }
+
+        .completed-message {
+            color: green;
+            font-size: 1.8rem;
+            text-align: center;
+            font-weight: bold;
+            margin-top: 50px;
+            background-color: #2c2c2c;
+            border-radius: 15px;
+            padding: 5px;
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .invoice-container {
+                padding: 20px;
+            }
+
+            .invoice-header h1 {
+                font-size: 1.8rem;
+            }
+
+            .invoice-details p {
+                font-size: 1rem;
+            }
+
+            .time-remaining-container {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container" id="invoice-container">
+        <div class="invoice-header", id="invoice-header">
+            <h1>Invoice | <span id="invoice-id">{{ invoice_id }}</span></h1>
+        </div>
+
+        <div class="invoice-details" id="invoice-details">
+            <p><strong>Total Amount:</strong> {{ expect_amount }} BTCZ</p>
+            <p><strong>Paid: </strong> <span id="paid-amount">{{ paid_amount }}</span> BTCZ</p>
+        </div>
+
+        <div class="time-remaining-container" id="time-remaining-container">
+            <span id="time-remaining">{{ expired_seconds }}</span>
+            <i class="fas fa-hourglass-half"></i>
+        </div>
+
+        <table class="invoice-table" id="invoice-table">
+            <tr>
+                <th>Payment Method</th>
+                <th>Payment Address</th>
+            </tr>
+            <tr>
+                <td>BTCZ</td>
+                <td>
+                    <span id="paymentAddress">{{ payment_address }}</span>
+                    <button class="copy-btn" onclick="copyAddress()">Copy</button>
+                </td>
+            </tr>
+        </table>
+
+        <div class="qr-container" id="qr-container">
+            <img src="{{ qr_link }}" alt="Payment QR Code">
+        </div>
+
+        <div class="qr-link" id="qr-link">
+            <p>Scan the QR code to make the payment</p>
+            <a href="{{ qr_link }}" target="_blank">View QR Code in Full Size</a>
+        </div>
+
+        <div id="completed-message" class="completed-message">
+            <p>Invoice Completed!</p>
+        </div>
+
+        <div id="expired-message" class="expired-message">
+            This invoice has expired.
+        </div>
+
+        <div class="invoice-footer">
+            <p>Made by BTCZCommunity</p>
+        </div>
+    </div>
+
+    <div id="notification">Payment address copied to clipboard!</div>
+
+    <script>
+
+        function copyAddress() {
+            const paymentAddress = document.getElementById('paymentAddress').textContent;
+            navigator.clipboard.writeText(paymentAddress).then(() => {
+                const notification = document.getElementById('notification');
+                notification.style.display = 'block';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 3000);
+            }).catch(err => {
+                alert('Failed to copy address: ' + err);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            let invoiceState = null;
+        
+            function fetchInvoiceData() {
+                const invoiceId = document.getElementById('invoice-id').textContent.trim();
+
+                const invoiceContainer = document.getElementById('invoice-container');
+                const invoiceHeader = document.getElementById('invoice-header');
+                const expiredMessage = document.getElementById('expired-message');
+                const invoiceDetails = document.getElementById('invoice-details');
+                const invoiceTimer = document.getElementById('time-remaining-container');
+                const invoiceTable = document.getElementById('invoice-table');
+                const invoiceQr = document.getElementById('qr-container');
+                const invoiceQrlink = document.getElementById('qr-link');
+
+                const completedMessage = document.getElementById('completed-message');
+        
+                fetch(`/api/check_payment/${invoiceId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.state === 2) {
+                            invoiceHeader.style.boxShadow = '0 5px 10px rgba(255, 0, 0, 0.6)';
+                            expiredMessage.style.display = 'block';
+                            invoiceDetails.style.display = 'none';
+                            invoiceTimer.style.display = 'none';
+                            invoiceTable.style.display = 'none';
+                            invoiceQr.style.display = 'none';
+                            invoiceQrlink.style.display = "none";
+                            clearInterval(fetchInterval);
+
+                        } else if (data.state === 5) {
+                            
+                            invoiceHeader.style.boxShadow = '0 5px 10px rgba(9, 255, 1, 0.432)'
+                            completedMessage.style.display = 'block';
+                            invoiceDetails.style.display = 'block';
+                            invoiceTimer.style.display = 'none';
+                            invoiceTable.style.display = 'none';
+                            invoiceQr.style.display = 'none';
+                            invoiceQrlink.style.display = "none";
+                            document.getElementById('paid-amount').textContent = data.btcz_actual;
+                            clearInterval(fetchInterval);
+
+                        } else {
+                            invoiceDetails.style.display = 'block';
+                            invoiceTimer.style.display = 'block';
+                            invoiceQrlink.style.display = "block";
+                            document.getElementById('paid-amount').textContent = data.btcz_actual;
+                            document.getElementById('time-remaining').textContent = calculateTimeRemaining(data.timestamp_stop);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error fetching data:', err);
+                    });
+            }
+
+            function calculateTimeRemaining(timestamp_stop) {
+                const now = Date.now();
+                const timestampStopInMilliseconds = timestamp_stop * 1000;
+        
+                const timeRemaining = timestampStopInMilliseconds - now;
+        
+                if (timeRemaining <= 0) {
+                    return "00:00:00";
+                }
+        
+                const seconds = Math.floor((timeRemaining / 1000) % 60).toString().padStart(2, '0');
+                const minutes = Math.floor((timeRemaining / 1000 / 60) % 60).toString().padStart(2, '0');
+                const hours = Math.floor((timeRemaining / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
+        
+                return `${hours}:${minutes}:${seconds}`;
+            }
+
+            fetchInvoiceData();
+            let fetchInterval = setInterval(fetchInvoiceData, 1000);
+        });
+    </script>
+</body>
+</html>
