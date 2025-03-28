@@ -97,6 +97,10 @@ class Client():
         command = f'{self.bitcoinz_cli_file} z_getbalance "{address}"'
         return await self._run_command(command)
     
+    async def getReceivedByAddress(self, address, minconf):
+        command = f'{self.bitcoinz_cli_file} getreceivedbyaddress "{address}" {minconf}'
+        return await self._run_command(command) 
+    
     async def getUnconfirmedBalance(self):
         command = f'{self.bitcoinz_cli_file} getunconfirmedbalance'
         return await self._run_command(command)
@@ -154,6 +158,10 @@ class Client():
     
     async def z_ExportKey(self, address):
         command = f'{self.bitcoinz_cli_file} z_exportkey "{address}"'
+        return await self._run_command(command)
+    
+    async def ListUnspent(self, address, minconf):
+        command = f'{self.bitcoinz_cli_file} listunspent {minconf} 9999999 "[\\"{address}\\"]"'
         return await self._run_command(command)
     
     async def z_listUnspent(self, address, minconf):
