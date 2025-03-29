@@ -284,58 +284,84 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
-            let invoiceState = null;
-        
-            function fetchInvoiceData() {
-                const invoiceId = document.getElementById('invoice-id').textContent.trim();
 
-                const invoiceContainer = document.getElementById('invoice-container');
-                const invoiceHeader = document.getElementById('invoice-header');
-                const expiredMessage = document.getElementById('expired-message');
-                const invoiceDetails = document.getElementById('invoice-details');
-                const invoiceTimer = document.getElementById('time-remaining-container');
-                const invoiceTable = document.getElementById('invoice-table');
-                const invoiceQr = document.getElementById('qr-container');
-                const invoiceQrlink = document.getElementById('qr-link');
+            let timeRemainingInterval, fetchInterval;
 
-                const completedMessage = document.getElementById('completed-message');
-        
-                fetch(`/api/check_payment/${invoiceId}`)
+            const invoiceId = document.getElementById('invoice-id').textContent.trim();
+
+            const invoiceContainer = document.getElementById('invoice-container');
+            const invoiceHeader = document.getElementById('invoice-header');
+            const expiredMessage = document.getElementById('expired-message');
+            const invoiceDetails = document.getElementById('invoice-details');
+            const invoiceTimer = document.getElementById('time-remaining-container');
+            const invoiceTable = document.getElementById('invoice-table');
+            const invoiceQr = document.getElementById('qr-container');
+            const invoiceQrlink = document.getElementById('qr-link');
+
+            const completedMessage = document.getElementById('completed-message');
+
+            function fetchData(invoiceId) {
+                return fetch(`/api/check_payment/${invoiceId}`)
                     .then(response => response.json())
+                    .catch(err => {
+                        console.error('Error fetching data:', err);
+                        return null;
+                    });
+            }
+        
+            function verifyInvoiceData() {
+        
+                fetchData(invoiceId)
                     .then(data => {
                         if (data.state === 2) {
-                            invoiceHeader.style.boxShadow = '0 5px 10px rgba(255, 0, 0, 0.6)';
-                            expiredMessage.style.display = 'block';
-                            invoiceDetails.style.display = 'none';
-                            invoiceTimer.style.display = 'none';
-                            invoiceTable.style.display = 'none';
-                            invoiceQr.style.display = 'none';
-                            invoiceQrlink.style.display = "none";
-                            clearInterval(fetchInterval);
+
+                            expiredState();
 
                         } else if (data.state === 5) {
                             
-                            invoiceHeader.style.boxShadow = '0 5px 10px rgba(9, 255, 1, 0.432)'
-                            completedMessage.style.display = 'block';
-                            invoiceDetails.style.display = 'block';
-                            invoiceTimer.style.display = 'none';
-                            invoiceTable.style.display = 'none';
-                            invoiceQr.style.display = 'none';
-                            invoiceQrlink.style.display = "none";
-                            document.getElementById('paid-amount').textContent = data.btcz_actual;
+                            completedState();
+
+                        } else {
+                            fetchInvoiceData();
+                            fetchInterval = setInterval(() => fetchInvoiceData(), 10000);
+                            timeRemainingInterval = setInterval(() => calculateTimeRemaining(data.timestamp_stop), 1000);
+                        }
+                    })
+            }
+
+            function fetchInvoiceData() {
+        
+                fetchData(invoiceId)
+                    .then(data => {
+                        if (data.state === 2) {
+
+                            expiredState();
+                            clearInterval(timeRemainingInterval);
                             clearInterval(fetchInterval);
+                            if (data.errURL && data.errURL !== '') {
+                                setTimeout(() => {
+                                    window.location.href = data.errURL;
+                                }, 5000);
+                            }
+
+                        } else if (data.state === 5) {
+                            
+                            completedState();
+                            clearInterval(timeRemainingInterval);
+                            clearInterval(fetchInterval);
+                            if (data.successURL && data.successURL !== '') {
+                                setTimeout(() => {
+                                    window.location.href = data.successURL;
+                                }, 5000);
+                            }
 
                         } else {
                             invoiceDetails.style.display = 'block';
                             invoiceTimer.style.display = 'block';
                             invoiceQrlink.style.display = "block";
                             document.getElementById('paid-amount').textContent = data.btcz_actual;
-                            document.getElementById('time-remaining').textContent = calculateTimeRemaining(data.timestamp_stop);
                         }
                     })
-                    .catch(err => {
-                        console.error('Error fetching data:', err);
-                    });
             }
 
             function calculateTimeRemaining(timestamp_stop) {
@@ -352,11 +378,31 @@
                 const minutes = Math.floor((timeRemaining / 1000 / 60) % 60).toString().padStart(2, '0');
                 const hours = Math.floor((timeRemaining / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
         
-                return `${hours}:${minutes}:${seconds}`;
+                document.getElementById('time-remaining').textContent = `${hours}:${minutes}:${seconds}`;
             }
 
-            fetchInvoiceData();
-            let fetchInterval = setInterval(fetchInvoiceData, 1000);
+            function expiredState() {
+                invoiceHeader.style.boxShadow = '0 5px 10px rgba(255, 0, 0, 0.6)';
+                expiredMessage.style.display = 'block';
+                invoiceDetails.style.display = 'none';
+                invoiceTimer.style.display = 'none';
+                invoiceTable.style.display = 'none';
+                invoiceQr.style.display = 'none';
+                invoiceQrlink.style.display = "none";
+            }
+
+            function completedState() {
+                invoiceHeader.style.boxShadow = '0 5px 10px rgba(9, 255, 1, 0.432)'
+                completedMessage.style.display = 'block';
+                invoiceDetails.style.display = 'block';
+                invoiceTimer.style.display = 'none';
+                invoiceTable.style.display = 'none';
+                invoiceQr.style.display = 'none';
+                invoiceQrlink.style.display = "none";
+                document.getElementById('paid-amount').textContent = data.btcz_actual;
+            }
+
+            verifyInvoiceData();
         });
     </script>
 </body>
