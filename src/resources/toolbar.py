@@ -40,15 +40,6 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48)
         )
 
-        self.invoices_cmd = Command(
-            title="Invoices",
-            color=Color.WHITE,
-            background_color=Color.rgb(40,43,48),
-            icon="images/invoices_i.ico",
-            mouse_enter=self.invoices_cmd_mouse_enter,
-            mouse_leave=self.invoices_cmd_mouse_leave
-        )
-
         self.currency_cmd = Command(
             title="Currency",
             color=Color.WHITE,
@@ -113,7 +104,6 @@ class AppToolBar(Box):
         self.app_menu = Command(
             title="App",
             sub_commands=[
-                self.invoices_cmd,
                 self.about_cmd,
                 self.exit_cmd,
                 self.stop_exit_cmd
@@ -260,14 +250,6 @@ class AppToolBar(Box):
             return
         self.app_menu.icon = "images/app_i.ico"
         self.app_menu.color = Color.WHITE
-
-    def invoices_cmd_mouse_enter(self):
-        self.invoices_cmd.icon = "images/invoices_a.ico"
-        self.invoices_cmd.color = Color.BLACK
-
-    def invoices_cmd_mouse_leave(self):
-        self.invoices_cmd.icon = "images/invoices_i.ico"
-        self.invoices_cmd.color = Color.WHITE
 
     def settings_menu_mouse_enter(self):
         self.settings_menu.icon = "images/settings_a.ico"

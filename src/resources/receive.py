@@ -22,7 +22,7 @@ from toga.colors import (
 from .utils import Utils
 from .units import Units
 from .client import Client
-from .storage import StorageMessages
+from .storage import Storage
 
 
 class ImportKey(Window):
@@ -207,7 +207,7 @@ class Receive(Box):
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
         self.units = Units(self.app)
-        self.storage = StorageMessages(self.app)
+        self.storage = Storage(self.app)
         self.clipboard = ClipBoard()
 
         self.recieve_toggle = None

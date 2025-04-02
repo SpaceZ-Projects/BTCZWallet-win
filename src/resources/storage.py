@@ -5,179 +5,21 @@ from toga import App
 from ..framework import Os
 
 messages_data = 'messages.dat'
-invoices_data = 'invoices.dat'
 
 
 class Storage:
-    def __init__(self, app:App, path):
+    def __init__(self, app:App):
+        super().__init__()
 
         self.app = app
         self.app_data = self.app.paths.data
-        if path == "messages":
-            self.data = Os.Path.Combine(str(self.app_data), messages_data)
-        elif path == "invoices":
-            self.data = Os.Path.Combine(str(self.app_data), invoices_data)
+        self.data = Os.Path.Combine(str(self.app_data), messages_data)
+
 
     def is_exists(self):
-        if Os.File.Exists(self.data):
-            return self.data
-        return None
-    
-    def tx(self, txid):
-        self.create_txs_table()
-        conn = sqlite3.connect(self.data)
-        cursor = conn.cursor()
-        cursor.execute(
-            '''
-            INSERT INTO txs (txid)
-            VALUES (?)
-            ''', 
-            (txid,)
-        )
-        conn.commit()
-        conn.close()
-
-    def get_txs(self):
-        try:
-            conn = sqlite3.connect(self.data)
-            cursor = conn.cursor()
-            cursor.execute('SELECT txid FROM txs')
-            txs = [row[0] for row in cursor.fetchall()]
-            conn.close()
-            return txs
-        except sqlite3.OperationalError:
-            return []
-
-    def create_txs_table(self):
-        conn = sqlite3.connect(self.data)
-        cursor = conn.cursor()
-        cursor.execute(
-            '''
-            CREATE TABLE IF NOT EXISTS txs (
-                txid TEXT
-            )
-            '''
-        )
-        conn.commit()
-        conn.close()
-
-
-class StorageInvoices(Storage):
-    def __init__(self, app):
-        super().__init__(app, "invoices")
-
-    
-    def invoice(
-            self, id, address, seller, currency, amount, expect, message, mail,
-            success, error, created, expired, paid, status
-        ):
-        self.create_incoices_table()
-        conn = sqlite3.connect(self.data)
-        cursor = conn.cursor()
-        cursor.execute(
-            '''
-            INSERT INTO invoices (
-                id, address, seller, currency, amount, expect, message, mail,
-                success, error, created, expired, paid, status
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', 
-            (
-                id, address, seller, currency, amount, expect, message, mail,
-                success, error, created, expired, paid, status
-            )
-        )
-        conn.commit()
-        conn.close()
-
-    def get_invoices(self):
-        try:
-            conn = sqlite3.connect(self.data)
-            cursor = conn.cursor()
-            cursor.execute('SELECT * FROM invoices')
-            invoices = cursor.fetchall()
-            conn.close()
-            return invoices
-        except sqlite3.OperationalError:
-            return []
-        
-    def get_invoice(self, invoice_id, option=None):
-        try:
-            conn = sqlite3.connect(self.data)
-            cursor = conn.cursor()
-            if option == "status":
-                cursor.execute(
-                    'SELECT status FROM invoices WHERE id = ?',
-                    (invoice_id,)
-                )
-                invoice = cursor.fetchone()
-            elif option is None:
-                cursor.execute(
-                    'SELECT * FROM invoices WHERE id = ?',
-                    (invoice_id,)
-                )
-                invoice = cursor.fetchone()
-            conn.close()
-            return invoice
-        except sqlite3.OperationalError:
+        if not Os.File.Exists(self.data):
             return None
-        
-    def update_status(self, invoice_id, status):
-        conn = sqlite3.connect(self.data)
-        cursor = conn.cursor()
-        cursor.execute(
-            '''
-            UPDATE invoices
-            SET status = ?
-            WHERE id = ?
-            ''', (status, invoice_id)
-        )
-        conn.commit()
-        conn.close()
-
-    def update_paid(self, invoice_id, balance):
-        conn = sqlite3.connect(self.data)
-        cursor = conn.cursor()
-        cursor.execute(
-            '''
-            UPDATE invoices
-            SET paid = ?
-            WHERE id = ?
-            ''', (balance, invoice_id)
-        )
-        conn.commit()
-        conn.close()
-
-    def create_incoices_table(self):
-        conn = sqlite3.connect(self.data)
-        cursor = conn.cursor()
-        cursor.execute(
-            '''
-            CREATE TABLE IF NOT EXISTS invoices (
-                id TEXT,
-                address TEXT,
-                seller TEXT,
-                currency TEXT,
-                amount REAL,
-                expect REAL,
-                message TEXT,
-                mail TEXT,
-                success TEXT,
-                error TEXT,
-                created INTEGER,
-                expired INTEGER,
-                paid REAL,
-                status INTEGER
-            )
-            '''
-        )
-        conn.commit()
-        conn.close()
-
-
-class StorageMessages(Storage):
-    def __init__(self, app):
-        super().__init__(app, "messages")
+        return self.data
 
     
     def identity(self, category, username, address):
@@ -325,6 +167,32 @@ class StorageMessages(Storage):
         )
         conn.commit()
         conn.close()
+
+    
+    def tx(self, txid):
+        self.create_txs_table()
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            INSERT INTO txs (txid)
+            VALUES (?)
+            ''', 
+            (txid,)
+        )
+        conn.commit()
+        conn.close()
+
+    def get_txs(self):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute('SELECT txid FROM txs')
+            txs = [row[0] for row in cursor.fetchall()]
+            conn.close()
+            return txs
+        except sqlite3.OperationalError:
+            return []
 
 
     def get_contacts(self, option = None):
@@ -629,6 +497,19 @@ class StorageMessages(Storage):
                 message TEXT,
                 amount REAL,
                 timestamp INTEGER
+            )
+            '''
+        )
+        conn.commit()
+        conn.close()
+
+    def create_txs_table(self):
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS txs (
+                txid TEXT
             )
             '''
         )
