@@ -29,11 +29,15 @@ class Notify(NotifyIcon):
         super().__init__(
             icon="images/BitcoinZ.ico",
             text = "BitcoinZ Wallet",
+            double_click=self.show_menu,
             commands=[
                 self.stop_exit_cmd,
                 self.exit_cmd
             ]
         )
+
+    def show_menu(self):
+        self.main.show()
 
     def exit_app(self):
         def on_result(widget, result):

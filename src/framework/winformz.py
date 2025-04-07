@@ -632,11 +632,13 @@ class NotifyIcon(Forms.NotifyIcon):
         self,
         text: Optional[str] = None,
         icon: Path = None,
+        double_click: Optional[Callable] = None,
         commands: Optional[List[type]] = None
     ):
         super().__init__()
         self._text = text
         self._icon = icon
+        self._double_click = double_click
         self._commands = commands
 
         self.app_path = get_app_path()
@@ -647,6 +649,9 @@ class NotifyIcon(Forms.NotifyIcon):
 
         if self._text:
             self.Text = self._text
+
+        if self._double_click:
+            self.MouseDoubleClick += self._on_double_click
 
         if self._commands:
             self.context_menu = Forms.ContextMenuStrip()
@@ -689,6 +694,10 @@ class NotifyIcon(Forms.NotifyIcon):
         self.BalloonTipTitle = title
         self.BalloonTipText = text
         self.ShowBalloonTip(timeout)
+
+    def _on_double_click(self, sender, event):
+        if self._double_click:
+            self._double_click()
 
     def show(self):
         self.Visible = True

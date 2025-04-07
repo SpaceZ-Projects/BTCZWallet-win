@@ -1,9 +1,7 @@
 
-import json
-
 from toga import App, Box, Window
 from ..framework import (
-    Toolbar, Command, Color, run_async, Os
+    Toolbar, Command, Color, run_async
 )
 from toga.style.pack import Pack
 from toga.constants import ROW, TOP
@@ -374,14 +372,6 @@ class AppToolBar(Box):
     def edit_username_cmd_mouse_leave(self):
         self.edit_username_cmd.icon = "images/edit_username_i.ico"
         self.edit_username_cmd.color = Color.WHITE
-
-    def import_messages_cmd_mouse_enter(self):
-        self.import_messages_cmd.icon = "images/importmsg_a.ico"
-        self.import_messages_cmd.color = Color.BLACK
-
-    def import_messages_cmd_mouse_leave(self):
-        self.import_messages_cmd.icon = "images/importmsg_i.ico"
-        self.import_messages_cmd.color = Color.WHITE
 
     def backup_messages_cmd_mouse_enter(self):
         self.backup_messages_cmd.icon = "images/backup_a.ico"

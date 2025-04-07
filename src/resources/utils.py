@@ -5,8 +5,6 @@ import zipfile
 import py7zr
 import qrcode
 import winreg as reg
-import sys
-import urllib
 
 from toga import App
 from ..framework import (

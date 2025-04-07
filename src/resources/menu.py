@@ -21,10 +21,10 @@ from .utils import Utils
 from .toolbar import AppToolBar
 from .status import AppStatusBar
 from .notify import Notify
-from .wallet import Wallet
+from .wallet import Wallet, ImportKey
 from .home import Home, Currency
 from .txs import Transactions
-from .receive import Receive, ImportKey
+from .receive import Receive
 from .send import Send
 from .messages import Messages, EditUser
 from .mining import Mining
@@ -305,11 +305,11 @@ class Menu(Window):
                     await self.send_page.update_send_options(None)
                 if self.mining_page.mining_toggle:
                     await self.mining_page.update_mining_options(None)
-        new_address = await self.commands.getNewAddress()
+        new_address,_ = await self.commands.getNewAddress()
         if new_address:
             self.info_dialog(
                 title="New Address",
-                message=f"Generated address : {new_address[0]}",
+                message=f"Generated address : {new_address}",
                 on_result=on_result
             )
 
@@ -320,11 +320,11 @@ class Menu(Window):
                     self.insert_new_address(new_address[0])
                 if self.send_page.private_toggle:
                     await self.send_page.update_send_options(None)
-        new_address = await self.commands.z_getNewAddress()
+        new_address,_ = await self.commands.z_getNewAddress()
         if new_address:
             self.info_dialog(
                 title="New Address",
-                message=f"Generated address : {new_address[0]}",
+                message=f"Generated address : {new_address}",
                 on_result=on_result
             )
 
@@ -612,16 +612,4 @@ class Menu(Window):
             
 
     def on_close_menu(self, widget):
-        def on_result(widget, result):
-            if result is True:
-                self.home_page.bitcoinz_curve.image = None
-                self.home_page.clear_cache()
-                self.notify.hide()
-                self.app.exit()
-        if self.mining_page.mining_status:
-            return
-        self.question_dialog(
-            title="Exit app",
-            message="Are you sure you want to exit the application ?",
-            on_result=on_result
-        )
+        self.hide()
