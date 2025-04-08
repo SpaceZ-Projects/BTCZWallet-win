@@ -85,7 +85,7 @@ class Menu(Window):
 
         self.home_page = Home(self.app, self)
         self.transactions_page = Transactions(self.app, self)
-        self.recieve_page = Receive(self.app, self)
+        self.receive_page = Receive(self.app, self)
         self.send_page = Send(self.app, self)
         self.message_page = Messages(self.app, self)
         self.mining_page = Mining(self.app, self)
@@ -141,8 +141,8 @@ class Menu(Window):
         self.transactions_button._impl.native.MouseEnter += self.transactions_button_mouse_enter
         self.transactions_button._impl.native.MouseLeave += self.transactions_button_mouse_leave
 
-        self.recieve_button = Button(
-            text="  Recieve",
+        self.receive_button = Button(
+            text="  Receive",
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -150,15 +150,15 @@ class Menu(Window):
                 font_size = 12,
                 flex = 1
             ),
-            on_press=self.recieve_button_click
+            on_press=self.receive_button_click
         )
-        recieve_i_icon = self.menu_icon("images/recieve_i.png")
-        self.recieve_button._impl.native.Image = Drawing.Image.FromFile(recieve_i_icon)
-        self.recieve_button._impl.native.FlatStyle = FlatStyle.FLAT
-        self.recieve_button._impl.native.TextImageRelation = Relation.IMAGEBEFORETEXT
-        self.recieve_button._impl.native.ImageAlign = AlignContent.RIGHT
-        self.recieve_button._impl.native.MouseEnter += self.recieve_button_mouse_enter
-        self.recieve_button._impl.native.MouseLeave += self.recieve_button_mouse_leave
+        receive_i_icon = self.menu_icon("images/receive_i.png")
+        self.receive_button._impl.native.Image = Drawing.Image.FromFile(receive_i_icon)
+        self.receive_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.receive_button._impl.native.TextImageRelation = Relation.IMAGEBEFORETEXT
+        self.receive_button._impl.native.ImageAlign = AlignContent.RIGHT
+        self.receive_button._impl.native.MouseEnter += self.receive_button_mouse_enter
+        self.receive_button._impl.native.MouseLeave += self.receive_button_mouse_leave
 
         self.send_button = Button(
             text="  Send",
@@ -220,7 +220,7 @@ class Menu(Window):
         self.menu_bar.add(
             self.home_button,
             self.transactions_button,
-            self.recieve_button,
+            self.receive_button,
             self.send_button,
             self.message_button,
             self.mining_button
@@ -228,7 +228,7 @@ class Menu(Window):
 
         self.home_button_toggle = None
         self.transactions_button_toggle = None
-        self.recieve_button_toggle = None
+        self.receive_button_toggle = None
         self.send_button_toggle = None
         self.message_button_toggle = None
         self.mining_button_toggle = None
@@ -299,7 +299,7 @@ class Menu(Window):
     async def generate_transparent_address(self, widget):
         async def on_result(widget, result):
             if result is None:
-                if self.recieve_page.transparent_toggle:
+                if self.receive_page.transparent_toggle:
                     self.insert_new_address(new_address[0])
                 if self.send_page.transparent_toggle:
                     await self.send_page.update_send_options(None)
@@ -316,7 +316,7 @@ class Menu(Window):
     async def generate_private_address(self, widget):
         async def on_result(widget, result):
             if result is None:
-                if self.recieve_page.private_toggle:
+                if self.receive_page.private_toggle:
                     self.insert_new_address(new_address[0])
                 if self.send_page.private_toggle:
                     await self.send_page.update_send_options(None)
@@ -329,7 +329,7 @@ class Menu(Window):
             )
 
     def insert_new_address(self, address):
-        self.recieve_page.addresses_table.add_row(
+        self.receive_page.addresses_table.add_row(
             index=0,
             row_data={0: address}
         )
@@ -441,28 +441,28 @@ class Menu(Window):
         self.transactions_button.style.color = GRAY
         self.transactions_button.style.background_color = rgb(30,33,36)
 
-    def recieve_button_click(self, button):
+    def receive_button_click(self, button):
         self.clear_buttons()
-        self.recieve_button_toggle = True
-        self.recieve_button.on_press = None
-        recieve_a_icon = self.menu_icon("images/recieve_a.png")
-        self.recieve_button._impl.native.Image = Drawing.Image.FromFile(recieve_a_icon)
-        self.recieve_button.style.color = BLACK
-        self.recieve_button.style.background_color = YELLOW
-        self.pages.add(self.recieve_page)
-        self.app.add_background_task(self.recieve_page.insert_widgets)
+        self.receive_button_toggle = True
+        self.receive_button.on_press = None
+        receive_a_icon = self.menu_icon("images/receive_a.png")
+        self.receive_button._impl.native.Image = Drawing.Image.FromFile(receive_a_icon)
+        self.receive_button.style.color = BLACK
+        self.receive_button.style.background_color = YELLOW
+        self.pages.add(self.receive_page)
+        self.app.add_background_task(self.receive_page.insert_widgets)
 
-    def recieve_button_mouse_enter(self, sender, event):
-        if self.recieve_button_toggle:
+    def receive_button_mouse_enter(self, sender, event):
+        if self.receive_button_toggle:
             return
-        self.recieve_button.style.color = WHITE
-        self.recieve_button.style.background_color = rgb(66,69,73)
+        self.receive_button.style.color = WHITE
+        self.receive_button.style.background_color = rgb(66,69,73)
 
-    def recieve_button_mouse_leave(self, sender, event):
-        if self.recieve_button_toggle:
+    def receive_button_mouse_leave(self, sender, event):
+        if self.receive_button_toggle:
             return
-        self.recieve_button.style.color = GRAY
-        self.recieve_button.style.background_color = rgb(30,33,36)
+        self.receive_button.style.color = GRAY
+        self.receive_button.style.background_color = rgb(30,33,36)
 
     def send_button_click(self, button):
         self.clear_buttons()
@@ -552,14 +552,14 @@ class Menu(Window):
             self.transactions_button.style.background_color = rgb(30,33,36)
             self.transactions_button.on_press = self.transactions_button_click
 
-        elif self.recieve_button_toggle:
-            self.recieve_button_toggle = None
-            self.pages.remove(self.recieve_page)
-            recieve_i_icon = self.menu_icon("images/recieve_i.png")
-            self.recieve_button._impl.native.Image = Drawing.Image.FromFile(recieve_i_icon)
-            self.recieve_button.style.color = GRAY
-            self.recieve_button.style.background_color = rgb(30,33,36)
-            self.recieve_button.on_press = self.recieve_button_click
+        elif self.receive_button_toggle:
+            self.receive_button_toggle = None
+            self.pages.remove(self.receive_page)
+            receive_i_icon = self.menu_icon("images/receive_i.png")
+            self.receive_button._impl.native.Image = Drawing.Image.FromFile(receive_i_icon)
+            self.receive_button.style.color = GRAY
+            self.receive_button.style.background_color = rgb(30,33,36)
+            self.receive_button.on_press = self.receive_button_click
 
         elif self.send_button_toggle:
             self.send_button_toggle = None

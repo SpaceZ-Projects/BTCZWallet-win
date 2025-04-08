@@ -42,7 +42,7 @@ class Receive(Box):
         self.storage = Storage(self.app)
         self.clipboard = ClipBoard()
 
-        self.recieve_toggle = None
+        self.receive_toggle = None
         self.transparent_toggle = None
         self.private_toggle = None
 
@@ -250,7 +250,7 @@ class Receive(Box):
         
     async def insert_widgets(self, widget):
         await asyncio.sleep(0.2)
-        if not self.recieve_toggle:
+        if not self.receive_toggle:
             self.addresses_list._impl.native.Controls.Add(self.addresses_table)
             self.addresses_box.add(
                 self.addresses_list_box,
@@ -280,7 +280,7 @@ class Receive(Box):
             self.add(
                 self.addresses_box
             )
-            self.recieve_toggle = True
+            self.receive_toggle = True
             self.transparent_button_click(None, None)
     
 
