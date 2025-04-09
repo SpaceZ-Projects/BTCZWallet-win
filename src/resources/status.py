@@ -117,6 +117,20 @@ class AppStatusBar(Box):
             text_align=AlignContent.LEFT,
             autotooltip=True
         )
+        self.connections_status = StatusLabel(
+            text="Connections :",
+            color=Color.GRAY,
+            font=Font.SERIF,
+            style=FontStyle.BOLD
+        )
+        self.connections_value = StatusLabel(
+            text="",
+            color=Color.WHITE,
+            font=Font.SERIF,
+            style=FontStyle.BOLD,
+            text_align=AlignContent.LEFT,
+            autotooltip=True
+        )
         self.size_status = StatusLabel(
             text="Size :",
             color=Color.GRAY,
@@ -148,6 +162,9 @@ class AppStatusBar(Box):
                 self.network_status,
                 self.network_value,
                 Separator(),
+                self.connections_status,
+                self.connections_value,
+                Separator(),
                 self.deprecation_status,
                 self.deprecation_value,
                 Separator(),
@@ -162,6 +179,7 @@ class AppStatusBar(Box):
         self.app.add_background_task(self.update_blockchaininfo)
         self.app.add_background_task(self.update_deprecationinfo)
         self.app.add_background_task(self.update_networkhash)
+        self.app.add_background_task(self.update_connections_count)
 
 
     async def update_blockchaininfo(self, widget):
@@ -226,6 +244,16 @@ class AppStatusBar(Box):
                     netsol = "N/A"
             self.network_value.text = f"{netsol} Sol/s"
             await asyncio.sleep(5)
+
+
+    async def update_connections_count(self, widget):
+        while True:
+            if self.main.import_key_toggle:
+                await asyncio.sleep(1)
+                continue
+            connection_count,_ = await self.commands.getConnectionCount()
+            if connection_count is not None:
+                self.connections_value.text = connection_count
 
 
     async def update_deprecationinfo(self, widget):

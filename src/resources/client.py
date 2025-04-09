@@ -73,6 +73,13 @@ class Client():
         command = f'{self.bitcoinz_cli_file} getnetworksolps'
         return await self._run_command(command)
     
+    async def getConnectionCount(self):
+        """
+        Returns the number of connections to other nodes.
+        """
+        command = f'{self.bitcoinz_cli_file} getconnectioncount'
+        return await self._run_command(command)
+    
     async def getDeprecationInfo(self):
         """
         Returns an object containing current version and deprecation block height.
