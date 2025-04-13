@@ -357,16 +357,16 @@ class Menu(Window):
     def backup_messages(self, sender, event):
         def on_result(widget, result):
             if result:
-                Os.File.Copy(str(self.data), str(result))
+                Os.File.Copy(str(data), str(result), True)
                 self.info_dialog(
                     title="Backup Successful!",
                     message=f"Your messages have been successfully backed up to:\n{result}"
                 )
-        self.data = self.storage.is_exists()
-        if self.data:
+        data = self.storage.is_exists()
+        if data:
             self.save_file_dialog(
                 title="Save backup to...",
-                suggested_filename=self.data,
+                suggested_filename=data,
                 file_types=["dat"],
                 on_result=on_result
             )
