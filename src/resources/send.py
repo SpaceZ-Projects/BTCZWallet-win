@@ -480,7 +480,6 @@ class Send(Box):
 
 
     async def insert_widgets(self, widget):
-        await asyncio.sleep(0.2)
         if not self.send_toggle:
             self.add(
                 self.switch_box,

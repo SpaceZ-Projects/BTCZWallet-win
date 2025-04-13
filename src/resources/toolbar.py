@@ -47,12 +47,19 @@ class AppToolBar(Box):
             icon="images/currency_i.ico"
         )
 
-        self.notification_cmd = Command(
-            title="Notifications",
+        self.notification_txs_cmd = Command(
+            title="Notifications txs",
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
-            mouse_enter=self.notification_cmd_mouse_enter,
-            mouse_leave=self.notification_cmd_mouse_leave
+            mouse_enter=self.notification_txs_cmd_mouse_enter,
+            mouse_leave=self.notification_txs_cmd_mouse_leave
+        )
+        self.notification_messages_cmd = Command(
+            title="Notifications messages",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.notification_messages_cmd_mouse_enter,
+            mouse_leave=self.notification_messages_cmd_mouse_leave
         )
         self.startup_cmd = Command(
             title="Run on Startup",
@@ -65,7 +72,8 @@ class AppToolBar(Box):
             title="Settings",
             sub_commands=[
                 self.currency_cmd,
-                self.notification_cmd,
+                self.notification_txs_cmd,
+                self.notification_messages_cmd,
                 self.startup_cmd
             ],
             background_color=Color.rgb(40,43,48),
@@ -277,11 +285,17 @@ class AppToolBar(Box):
         self.currency_cmd.icon = "images/currency_i.ico"
         self.currency_cmd.color = Color.WHITE
 
-    def notification_cmd_mouse_enter(self):
-        self.notification_cmd.color = Color.BLACK
+    def notification_txs_cmd_mouse_enter(self):
+        self.notification_txs_cmd.color = Color.BLACK
 
-    def notification_cmd_mouse_leave(self):
-        self.notification_cmd.color = Color.WHITE
+    def notification_txs_cmd_mouse_leave(self):
+        self.notification_txs_cmd.color = Color.WHITE
+
+    def notification_messages_cmd_mouse_enter(self):
+        self.notification_messages_cmd.color = Color.BLACK
+
+    def notification_messages_cmd_mouse_leave(self):
+        self.notification_messages_cmd.color = Color.WHITE
 
     def startup_cmd_mouse_enter(self):
         self.startup_cmd.color = Color.BLACK

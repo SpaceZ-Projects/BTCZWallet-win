@@ -249,7 +249,6 @@ class Receive(Box):
 
         
     async def insert_widgets(self, widget):
-        await asyncio.sleep(0.2)
         if not self.receive_toggle:
             self.addresses_list._impl.native.Controls.Add(self.addresses_table)
             self.addresses_box.add(
@@ -410,6 +409,8 @@ class Receive(Box):
         for cell in selected_cells:
             if cell.ColumnIndex == 0:
                 txid = cell.Value
+                if txid.startswith("z"):
+                    return
                 transaction_url = url + txid
                 webbrowser.open(transaction_url)
 

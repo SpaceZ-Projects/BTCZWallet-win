@@ -390,7 +390,6 @@ class Transactions(Box):
 
 
     async def insert_widgets(self, widget):
-        await asyncio.sleep(0.2)
         if not self.transactions_toggle:
             if self.transactions_data:
                 self._impl.native.Controls.Add(self.transactions_table)
@@ -452,7 +451,7 @@ class Transactions(Box):
                         }
                         self.transactions_data.insert(0, row)
                         self.add_transaction(0, row)
-                        if self.settings.notification():
+                        if self.settings.notification_txs():
                             notify = NotifyTx()
                             notify.show()
                             notify.send_note(

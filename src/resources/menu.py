@@ -243,18 +243,21 @@ class Menu(Window):
         await self.message_page.gather_unread_memos()
 
     def add_actions_cmds(self):
-        is_active = self.settings.notification()
-        if is_active:
-            self.toolbar.notification_cmd.checked = True
+        if self.settings.notification_txs():
+            self.toolbar.notification_txs_cmd.checked = True
         else:
-            self.toolbar.notification_cmd.checked = is_active
-        startup = self.settings.startup()
-        if startup:
+            self.toolbar.notification_txs_cmd.checked = self.settings.notification_txs()
+        if self.settings.notification_messages():
+            self.toolbar.notification_messages_cmd.checked = True
+        else:
+            self.toolbar.notification_messages_cmd.checked = self.settings.notification_messages()
+        if self.settings.startup():
             self.toolbar.startup_cmd.checked = True
         else:
-            self.toolbar.startup_cmd.checked = startup
+            self.toolbar.startup_cmd.checked = self.settings.startup()
 
-        self.toolbar.notification_cmd.action = self.update_notifications
+        self.toolbar.notification_txs_cmd.action = self.update_notifications_txs
+        self.toolbar.notification_messages_cmd.action = self.update_notifications_messages
         self.toolbar.startup_cmd.action = self.update_app_startup
         self.toolbar.currency_cmd.action = self.show_currencies_list
         self.toolbar.generate_t_cmd.action = self.new_transparent_address
@@ -266,13 +269,21 @@ class Menu(Window):
         self.toolbar.backup_messages_cmd.action = self.backup_messages
 
 
-    def update_notifications(self, sender, event):
-        if self.toolbar.notification_cmd.checked:
-            self.toolbar.notification_cmd.checked = False
-            self.settings.update_settings("notifications", False)
+    def update_notifications_txs(self, sender, event):
+        if self.toolbar.notification_txs_cmd.checked:
+            self.toolbar.notification_txs_cmd.checked = False
+            self.settings.update_settings("notifications_txs", False)
         else:
-            self.toolbar.notification_cmd.checked = True
-            self.settings.update_settings("notifications", True)
+            self.toolbar.notification_txs_cmd.checked = True
+            self.settings.update_settings("notifications_txs", True)
+
+    def update_notifications_messages(self, sender, event):
+        if self.toolbar.notification_messages_cmd.checked:
+            self.toolbar.notification_messages_cmd.checked = False
+            self.settings.update_settings("notifications_messages", False)
+        else:
+            self.toolbar.notification_messages_cmd.checked = True
+            self.settings.update_settings("notifications_messages", True)
 
     def update_app_startup(self, sender, event):
         if self.toolbar.startup_cmd.checked:
@@ -300,7 +311,7 @@ class Menu(Window):
         async def on_result(widget, result):
             if result is None:
                 if self.receive_page.transparent_toggle:
-                    self.insert_new_address(new_address[0])
+                    self.insert_new_address(new_address)
                 if self.send_page.transparent_toggle:
                     await self.send_page.update_send_options(None)
                 if self.mining_page.mining_toggle:
@@ -317,7 +328,7 @@ class Menu(Window):
         async def on_result(widget, result):
             if result is None:
                 if self.receive_page.private_toggle:
-                    self.insert_new_address(new_address[0])
+                    self.insert_new_address(new_address)
                 if self.send_page.private_toggle:
                     await self.send_page.update_send_options(None)
         new_address,_ = await self.commands.z_getNewAddress()

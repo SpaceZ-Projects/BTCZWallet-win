@@ -582,6 +582,7 @@ class Contact(Box):
                     self.unread_messages.style.visibility = VISIBLE
                     self.unread_count = unread_count
             else:
+                self.unread_messages.text = ""
                 self.unread_messages.style.visibility = HIDDEN
                 self.unread_count = 0
             await asyncio.sleep(3)
@@ -1795,8 +1796,7 @@ class Chat(Box):
         if id:
             self.storage.add_contact(category, id[0], contact_id, username, address)
             self.storage.delete_request(address)
-            is_active = self.settings.notification()
-            if is_active:
+            if self.settings.notification_messages():
                 notify = NotifyRequest()
                 notify.show()
                 notify.send_note(
@@ -1828,8 +1828,7 @@ class Chat(Box):
     async def handler_unread_message(self,contact_id, author, message, amount, timestamp):
         self.unread_messages_toggle = True
         self.storage.unread_message(contact_id, author, message, amount, timestamp)
-        is_active = self.settings.notification()
-        if is_active:
+        if self.settings.notification_messages():
             notify = NotifyMessage()
             notify.show()
             notify.send_note(
@@ -1853,8 +1852,7 @@ class Chat(Box):
             self.update_pending_list()
         else:
             self.pending_list.insert_pending(category, contact_id, username, address)
-        is_active = self.settings.notification()
-        if is_active:
+        if self.settings.notification_messages():
             notify = NotifyRequest()
             notify.show()
             notify.send_note(
@@ -2441,7 +2439,6 @@ class Messages(Box):
 
         
     async def insert_widgets(self, widget):
-        await asyncio.sleep(0.2)
         if not self.messages_toggle:
             data = self.storage.is_exists()
             if data:
@@ -2477,7 +2474,7 @@ class Messages(Box):
                             await self.unhexlify_memo(data)
 
                     if self.request_count > 0:
-                        if self.settings.notification():
+                        if self.settings.notification_messages():
                             notify = NotifyRequest()
                             notify.show()
                             notify.send_note(
@@ -2487,7 +2484,7 @@ class Messages(Box):
                             await asyncio.sleep(5)
                             notify.hide()
                     if self.message_count > 0:
-                        if self.settings.notification():
+                        if self.settings.notification_messages():
                             notify = NotifyMessage()
                             notify.show()
                             notify.send_note(

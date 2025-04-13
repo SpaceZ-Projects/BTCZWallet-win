@@ -421,7 +421,6 @@ class Mining(Box):
 
 
     async def insert_widgets(self, widget):
-        await asyncio.sleep(0.2)
         if not self.mining_toggle:
             self.add(
                 self.selection_miner_box,
