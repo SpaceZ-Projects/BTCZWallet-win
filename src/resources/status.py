@@ -55,7 +55,6 @@ class AppStatusBar(Box):
             color=Color.WHITE,
             font=Font.SERIF,
             style=FontStyle.BOLD,
-            spring=True,
             text_align=AlignContent.LEFT,
             autotooltip=True
         )
@@ -99,7 +98,6 @@ class AppStatusBar(Box):
             color=Color.WHITE,
             font=Font.SERIF,
             style=FontStyle.BOLD,
-            spring=True,
             text_align=AlignContent.LEFT,
             autotooltip=True
         )
@@ -118,7 +116,7 @@ class AppStatusBar(Box):
             autotooltip=True
         )
         self.connections_status = StatusLabel(
-            text="Connections :",
+            text="Conns :",
             color=Color.GRAY,
             font=Font.SERIF,
             style=FontStyle.BOLD
