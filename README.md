@@ -10,9 +10,9 @@ It enables you to securely send and receive BitcoinZ transactions, view your wal
 
 ## Requirements :
 
-- **Git**: `Download Git <https://git-scm.com/downloads>`
+- **Git**: https://git-scm.com/downloads
 
-- **Python** (version 3.9 or higher): `Download Python <https://www.python.org/downloads/>`
+- **Python** (version 3.9 or higher): https://www.python.org/downloads/
 
 - Run the `build.py` script.
 
