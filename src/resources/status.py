@@ -214,7 +214,7 @@ class AppStatusBar(Box):
 
             self.blocks_value.text = str(blocks)
             self.date_value.text = mediantime_date
-            self.sync_value.text = f"%{float(sync_percentage):.2f}"
+            self.sync_value.text = f"{float(sync_percentage):.2f}%"
             self.size_value.text = f"{int(bitcoinz_size)} MB"
             await asyncio.sleep(5)
 
@@ -243,7 +243,7 @@ class AppStatusBar(Box):
             self.network_value.text = f"{netsol} Sol/s"
             await asyncio.sleep(5)
 
-
+    
     async def update_connections_count(self, widget):
         while True:
             if self.main.import_key_toggle:

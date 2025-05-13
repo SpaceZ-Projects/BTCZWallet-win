@@ -148,6 +148,8 @@ class Keys:
     F1 = Forms.Keys.F1
     F4 = Forms.Keys.F4
     A = Forms.Keys.A
+    C = Forms.Keys.C
+    Q = Forms.Keys.Q
 
 
 class Separator(Forms.ToolStripSeparator):
@@ -280,7 +282,7 @@ class StatusLabel(Forms.ToolStripStatusLabel):
         image_align:Optional[AlignContent] =None,
         spring : bool = None,
         size:tuple[int, int] = None,
-        autotooltip:bool = False
+        autotooltip:bool = False,
     ):
         super().__init__()
 
