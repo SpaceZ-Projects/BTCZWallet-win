@@ -220,18 +220,32 @@ class Client():
         command = f'{self.bitcoinz_cli_file} z_getoperationresult "[\\"{operation_ids}\\"]"'
         return await self._run_command(command)
     
+    async def z_ImportWallet(self, path):
+        """
+        Imports taddr and zaddr keys from a wallet export file.
+        """
+        command = f'{self.bitcoinz_cli_file} z_importwallet "{path}"'
+        return await self._run_command(command)
+    
+    async def z_ExportWallet(self, file_name):
+        """
+        Exports all wallet keys, for taddr and zaddr, in a human-readable format.  Overwriting an existing file is not permitted.
+        """
+        command = f'{self.bitcoinz_cli_file} z_exportwallet "{file_name}"'
+        return await self._run_command(command)
+    
     async def ImportPrivKey(self, key:str):
         """
         Adds a private key (as returned by dumpprivkey) to your wallet.
         """
-        command = f'{self.bitcoinz_cli_file} importprivkey "{key}" true'
+        command = f'{self.bitcoinz_cli_file} importprivkey "{key}" false'
         return await self._run_command(command)
     
     async def z_ImportKey(self, key:str):
         """
         Adds a zkey (as returned by z_exportkey) to your wallet.
         """
-        command = f'{self.bitcoinz_cli_file} z_importkey "{key}" yes'
+        command = f'{self.bitcoinz_cli_file} z_importkey "{key}" no'
         return await self._run_command(command)
     
     async def DumpPrivKey(self, address:str):

@@ -1,7 +1,7 @@
 
 from toga import App, Box, Window
 from ..framework import (
-    Toolbar, Command, Color, run_async
+    Toolbar, Command, Color, run_async, Keys
 )
 from toga.style.pack import Pack
 from toga.constants import ROW, TOP
@@ -38,13 +38,53 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48)
         )
 
+        self.about_cmd = Command(
+            title="About",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            icon="images/about_i.ico",
+            mouse_enter=self.about_cmd_mouse_enter,
+            mouse_leave=self.about_cmd_mouse_leave,
+            action=self.display_about_dialog
+        )
+        self.exit_cmd = Command(
+            title="Exit               |",
+            color=Color.RED,
+            background_color=Color.rgb(40,43,48),
+            icon="images/exit.ico",
+            action=self.exit_app,
+            shortcut_key=Keys.Alt | Keys.F4
+        )
+        self.stop_exit_cmd = Command(
+            title="Stop node   |",
+            color=Color.RED,
+            background_color=Color.rgb(40,43,48),
+            icon="images/stop.ico",
+            action=self.stop_node_exit,
+            shortcut_key=Keys.Control | Keys.Q
+        )
+        self.app_menu = Command(
+            title="App",
+            sub_commands=[
+                self.about_cmd,
+                self.exit_cmd,
+                self.stop_exit_cmd
+            ],
+            icon="images/app_i.ico",
+            drop_opened=self.app_menu_opened,
+            drop_closed=self.app_menu_closed,
+            mouse_enter=self.app_menu_mouse_enter,
+            mouse_leave=self.app_menu_mouse_leave
+        )
+
         self.currency_cmd = Command(
-            title="Currency",
+            title="Currency                            |",
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.currency_cmd_mouse_enter,
             mouse_leave=self.currency_cmd_mouse_leave,
-            icon="images/currency_i.ico"
+            icon="images/currency_i.ico",
+            shortcut_key=Keys.Control | Keys.Shift | Keys.C
         )
 
         self.notification_txs_cmd = Command(
@@ -84,42 +124,6 @@ class AppToolBar(Box):
             icon="images/settings_i.ico"
         )
 
-        self.about_cmd = Command(
-            title="About",
-            color=Color.WHITE,
-            background_color=Color.rgb(40,43,48),
-            icon="images/about_i.ico",
-            mouse_enter=self.about_cmd_mouse_enter,
-            mouse_leave=self.about_cmd_mouse_leave,
-            action=self.display_about_dialog
-        )
-        self.exit_cmd = Command(
-            title="Exit",
-            color=Color.RED,
-            background_color=Color.rgb(40,43,48),
-            icon="images/exit.ico",
-            action=self.exit_app
-        )
-        self.stop_exit_cmd = Command(
-            title="Stop node",
-            color=Color.RED,
-            background_color=Color.rgb(40,43,48),
-            icon="images/stop.ico",
-            action=self.stop_node_exit
-        )
-        self.app_menu = Command(
-            title="App",
-            sub_commands=[
-                self.about_cmd,
-                self.exit_cmd,
-                self.stop_exit_cmd
-            ],
-            icon="images/app_i.ico",
-            drop_opened=self.app_menu_opened,
-            drop_closed=self.app_menu_closed,
-            mouse_enter=self.app_menu_mouse_enter,
-            mouse_leave=self.app_menu_mouse_leave
-        )
         self.generate_t_cmd = Command(
             title="Transparent address",
             background_color=Color.rgb(40,43,48),
@@ -158,6 +162,22 @@ class AppToolBar(Box):
             mouse_leave=self.import_key_cmd_mouse_leave,
             icon = "images/importkey_i.ico"
         )
+        self.export_wallet_cmd = Command(
+            title="Export wallet",
+            background_color=Color.rgb(40,43,48),
+            color=Color.WHITE,
+            mouse_enter=self.export_wallet_cmd_mouse_enter,
+            mouse_leave=self.export_wallet_cmd_mouse_leave,
+            icon="images/export_i.ico"
+        )
+        self.import_wallet_cmd = Command(
+            title="Import wallet",
+            background_color=Color.rgb(40,43,48),
+            color=Color.WHITE,
+            mouse_enter=self.import_wallet_cmd_mouse_enter,
+            mouse_leave=self.import_wallet_cmd_mouse_leave,
+            icon="images/import_i.ico"
+        )
         self.wallet_menu = Command(
             title="Wallet",
             icon="images/wallet_i.ico",
@@ -167,7 +187,9 @@ class AppToolBar(Box):
             mouse_leave=self.wallet_menu_mouse_leave,
             sub_commands=[
                 self.generate_address_cmd,
-                self.import_key_cmd
+                self.import_key_cmd,
+                self.export_wallet_cmd,
+                self.import_wallet_cmd
             ]
         )
         self.edit_username_cmd = Command(
@@ -446,6 +468,22 @@ class AppToolBar(Box):
     def import_key_cmd_mouse_leave(self):
         self.import_key_cmd.icon = "images/importkey_i.ico"
         self.import_key_cmd.color = Color.WHITE
+
+    def export_wallet_cmd_mouse_enter(self):
+        self.export_wallet_cmd.icon = "images/export_a.ico"
+        self.export_wallet_cmd.color = Color.BLACK
+
+    def export_wallet_cmd_mouse_leave(self):
+        self.export_wallet_cmd.icon = "images/export_i.ico"
+        self.export_wallet_cmd.color = Color.WHITE
+
+    def import_wallet_cmd_mouse_enter(self):
+        self.import_wallet_cmd.icon = "images/import_a.ico"
+        self.import_wallet_cmd.color = Color.BLACK
+
+    def import_wallet_cmd_mouse_leave(self):
+        self.import_wallet_cmd.icon = "images/import_i.ico"
+        self.import_wallet_cmd.color = Color.WHITE
 
     def display_about_dialog(self):
         self.app.about()

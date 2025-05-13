@@ -1,13 +1,14 @@
 
 import asyncio
 import webbrowser
+from datetime import datetime
 
 from toga import (
     Window, Box, Button
 )
 from ..framework import (
     Drawing, Color, Sys, FormState, Os, FlatStyle,
-    Relation, AlignContent
+    Relation, AlignContent, run_async
 )
 
 from toga.style.pack import Pack
@@ -21,7 +22,7 @@ from .utils import Utils
 from .toolbar import AppToolBar
 from .status import AppStatusBar
 from .notify import Notify
-from .wallet import Wallet, ImportKey
+from .wallet import Wallet, ImportKey, ImportWallet
 from .home import Home, Currency
 from .txs import Transactions
 from .receive import Receive
@@ -265,6 +266,8 @@ class Menu(Window):
         self.toolbar.check_update_cmd.action = self.check_app_version
         self.toolbar.join_us_cmd.action = self.join_us
         self.toolbar.import_key_cmd.action = self.show_import_key
+        self.toolbar.export_wallet_cmd.action = self.export_wallet
+        self.toolbar.import_wallet_cmd.action = self.show_import_wallet
         self.toolbar.edit_username_cmd.action = self.edit_messages_username
         self.toolbar.backup_messages_cmd.action = self.backup_messages
 
@@ -397,6 +400,59 @@ class Menu(Window):
 
     def show_import_key(self, sender, event):
         self.import_window = ImportKey(self)
+        self.import_window._impl.native.ShowDialog()
+
+    
+    def export_wallet(self, sender, event):
+        def on_result(widget, result):
+            if result is True:
+                self.set_export_dir()
+        export_dir = self.utils.verify_export_dir()
+        if export_dir:
+            self.app.add_background_task(self.run_export_wallet)
+        else:
+            self.question_dialog(
+                title="Missing Export Dir",
+                message="The '-exportdir' option is not configured in your bitcoinz.conf file.\n"
+                        "Would you like to configure it ?",
+                on_result=on_result
+            )
+
+    def set_export_dir(self):
+        def on_result(widget, result):
+            if result is not None:
+                self.utils.update_config(result)
+                self.question_dialog(
+                    title="Export Directory Set",
+                    message="Your export folder has been successfully saved. Would you like to restart your node now to apply this change?",
+                    on_result=self.restart_node
+                )
+        self.select_folder_dialog(
+            title="Select Folder",
+            on_result=on_result
+        )
+        
+
+    def restart_node(self, widget, result):
+        if result is True:
+            restart = self.utils.restart_app()
+            if restart:
+                run_async(self.commands.stopNode())
+                self.notify.hide()
+                self.app.exit()
+
+
+    async def run_export_wallet(self, widget):
+        file_name = f"wallet{datetime.today().strftime('%d%m%Y%H%M%S')}"
+        exported_file, error_message = await self.commands.z_ExportWallet(file_name)
+        if exported_file and error_message is None:
+            self.info_dialog(
+                title="Wallet Exported Successfully",
+                message=f"Your wallet has been exported as '{exported_file}'."
+            )
+
+    def show_import_wallet(self, sender, event):
+        self.import_window = ImportWallet(self)
         self.import_window._impl.native.ShowDialog()
 
 

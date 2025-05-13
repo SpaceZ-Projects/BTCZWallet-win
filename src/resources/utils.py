@@ -85,6 +85,38 @@ class Utils():
         config_file_path = Os.Path.Combine(bitcoinz_path, config_file)
         return config_file_path
     
+    def verify_export_dir(self):
+        config_file_path = self.get_config_path()
+        with open(config_file_path, 'r') as config:
+            lines = config.readlines()
+            for line in lines:
+                if line.startswith("exportdir"):
+                    return True
+            return None
+            
+    def update_config(self, path):
+        config_file_path = self.get_config_path()
+        updated_lines = []
+        with open(config_file_path, 'r') as config:
+            lines = config.readlines()
+        key_found = False
+        for line in lines:
+            stripped_line = line.strip()
+            if "=" in stripped_line:
+                current_key, _ = map(str.strip, stripped_line.split('=', 1))
+                if current_key == "exportdir":
+                    key_found = True
+                    if path is not None and path != "":
+                        updated_lines.append(f"exportdir={path}\n")
+                else:
+                    updated_lines.append(line)
+            else:
+                updated_lines.append(line)
+        if not key_found and path is not None and path != "":
+            updated_lines.append(f"exportdir={path}\n")
+        with open(config_file_path, 'w') as file:
+            file.writelines(updated_lines)
+    
     def windows_screen_center(self, size):
         screen_size = self.app.screens[0].size
         screen_width, screen_height = screen_size
@@ -407,6 +439,9 @@ addnode=178.193.205.17:1989
 addnode=51.222.50.26:1989
 addnode=146.59.69.245:1989
 addnode=37.187.76.80:1989
+
+#Send change back to from t address if possible
+sendchangeback=1
 """
                 config_file.write(config_content)
         except Exception as e:
@@ -435,3 +470,26 @@ addnode=37.187.76.80:1989
             return True
         except Exception as e:
             return None
+        
+
+    def restart_app(self):
+        excutable_file = Os.Path.Combine(str(self.app_path.parents[1]), 'BTCZWallet.exe')
+        if not Os.File.Exists(excutable_file):
+            return None
+        batch_script = f"""
+@echo off
+timeout /t 10 /nobreak > NUL
+start "" "{excutable_file}"
+del "%~f0"
+"""
+        batch_path = Os.Path.Combine(str(self.app.paths.cache), 'restart_app.bat')
+        with open(batch_path, "w") as file:
+            file.write(batch_script)
+
+        psi = Sys.Diagnostics.ProcessStartInfo()
+        psi.FileName = batch_path
+        psi.UseShellExecute = True
+        psi.WindowStyle = Sys.Diagnostics.ProcessWindowStyle.Hidden
+        
+        Sys.Diagnostics.Process.Start(psi)
+        return True
