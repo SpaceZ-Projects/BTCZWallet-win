@@ -115,12 +115,21 @@ class AppToolBar(Box):
             mouse_leave=self.startup_cmd_mouse_leave,
             tooltip="Enable/Disable app startup on boot"
         )
+        self.minimize_cmd = Command(
+            title="Minimize to tray",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.minimize_cmd_mouse_enter,
+            mouse_leave=self.minimize_cmd_mouse_leave,
+            tooltip="Enable/Disable minimizing the application to the system tray on close"
+        )
         self.settings_menu = Command(
             title="Settings",
             sub_commands=[
                 self.currency_cmd,
                 self.notification_txs_cmd,
                 self.notification_messages_cmd,
+                self.minimize_cmd,
                 self.startup_cmd
             ],
             background_color=Color.rgb(40,43,48),
@@ -334,6 +343,12 @@ class AppToolBar(Box):
 
     def notification_messages_cmd_mouse_leave(self):
         self.notification_messages_cmd.color = Color.WHITE
+
+    def minimize_cmd_mouse_enter(self):
+        self.minimize_cmd.color = Color.BLACK
+
+    def minimize_cmd_mouse_leave(self):
+        self.minimize_cmd.color = Color.WHITE
 
     def startup_cmd_mouse_enter(self):
         self.startup_cmd.color = Color.BLACK

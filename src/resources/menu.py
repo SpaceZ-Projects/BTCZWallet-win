@@ -252,6 +252,10 @@ class Menu(Window):
             self.toolbar.notification_messages_cmd.checked = True
         else:
             self.toolbar.notification_messages_cmd.checked = self.settings.notification_messages()
+        if self.settings.minimize_to_tray():
+            self.toolbar.minimize_cmd.checked = True
+        else:
+            self.toolbar.minimize_cmd.checked = self.settings.minimize_to_tray()
         if self.settings.startup():
             self.toolbar.startup_cmd.checked = True
         else:
@@ -259,6 +263,7 @@ class Menu(Window):
 
         self.toolbar.notification_txs_cmd.action = self.update_notifications_txs
         self.toolbar.notification_messages_cmd.action = self.update_notifications_messages
+        self.toolbar.minimize_cmd.action = self.update_minimize_to_tray
         self.toolbar.startup_cmd.action = self.update_app_startup
         self.toolbar.currency_cmd.action = self.show_currencies_list
         self.toolbar.generate_t_cmd.action = self.new_transparent_address
@@ -287,6 +292,14 @@ class Menu(Window):
         else:
             self.toolbar.notification_messages_cmd.checked = True
             self.settings.update_settings("notifications_messages", True)
+
+    def update_minimize_to_tray(self, sender, event):
+        if self.toolbar.minimize_cmd.checked:
+            self.toolbar.minimize_cmd.checked = False
+            self.settings.update_settings("minimize", False)
+        else:
+            self.toolbar.minimize_cmd.checked = True
+            self.settings.update_settings("minimize", True)
 
     def update_app_startup(self, sender, event):
         if self.toolbar.startup_cmd.checked:
@@ -679,4 +692,7 @@ class Menu(Window):
             
 
     def on_close_menu(self, widget):
-        self.hide()
+        if self.settings.minimize_to_tray():
+            self.hide()
+            return
+        self.toolbar.exit_app()
