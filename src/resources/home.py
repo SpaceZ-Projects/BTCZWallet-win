@@ -8,7 +8,7 @@ from toga import (
     App, Box, Label, ImageView, Window, Button,
     Selection, Divider
 )
-from ..framework import Os, FlatStyle, ToolTip
+from ..framework import Os, FlatStyle, ToolTip, Forms
 from toga.style.pack import Pack
 from toga.constants import (
     COLUMN, ROW, TOP, LEFT, BOLD, RIGHT,
@@ -470,6 +470,8 @@ class Home(Box):
                 await asyncio.sleep(1)
                 continue
             current_block,_ = await self.commands.getBlockCount()
+            if not current_block:
+                return
             self.circulating = self.units.calculate_circulating(int(current_block))
             remaiming_blocks = self.units.remaining_blocks_until_halving(int(current_block))
             remaining_days = self.units.remaining_days_until_halving(int(current_block))
@@ -494,11 +496,11 @@ class Home(Box):
                 last_updated_datetime = datetime.fromisoformat(last_updated.replace("Z", ""))
                 formatted_last_updated = last_updated_datetime.strftime("%Y-%m-%d %H:%M:%S UTC")
                 btcz_price = self.units.format_price(market_price)
-                self.price_value.text = f"{self.settings.symbol()}{btcz_price}"
-                self.percentage_24_value.text = f"%{price_percentage_24}"
-                self.percentage_7_value.text = f"%{price_percentage_7d}"
-                self.cap_value.text = f"{self.settings.symbol()}{market_cap}"
-                self.volume_value.text = f"{self.settings.symbol()}{market_volume}"
+                self.price_value.text = f"{btcz_price} {self.settings.symbol()}"
+                self.percentage_24_value.text = f"{price_percentage_24} %"
+                self.percentage_7_value.text = f"{price_percentage_7d} %"
+                self.cap_value.text = f"{market_cap} {self.settings.symbol()}"
+                self.volume_value.text = f"{market_volume} {self.settings.symbol()}"
                 self.last_updated_label.text = formatted_last_updated
 
             await asyncio.sleep(601)
@@ -557,6 +559,8 @@ class Home(Box):
 
 
     def circulating_value_click(self, sender, event):
+        if event.Button == Forms.MouseButtons.Right:
+            return
         if not self.circulating_toggle:
             self.circulating_toggle = True
             self.app.add_background_task(self.show_max_emissions)

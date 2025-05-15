@@ -4,9 +4,11 @@ import json
 
 from toga import (
     App, Box, Label, ImageView, Window, TextInput,
-    Button
+    Button, ProgressBar
 )
-from ..framework import Cursors, FlatStyle
+from ..framework import (
+    Cursors, FlatStyle, Forms, ProgressStyle, Os
+)
 from toga.style.pack import Pack
 from toga.colors import (
     rgb, WHITE, GRAY, YELLOW, RED, GREENYELLOW, BLACK
@@ -57,6 +59,26 @@ class Wallet(Box):
                 text_align = LEFT,
                 flex = 1,
                 padding_top = 35
+            )
+        )
+        self.bitcoinz_version = Label(
+            text="",
+            style=Pack(
+                color = GRAY,
+                background_color = rgb(40,43,48),
+                font_size = 8,
+                font_weight = BOLD,
+                text_align = LEFT,
+                flex = 1,
+                padding_left = 5
+            )
+        )
+        self.bitcoinz_title_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(40,43,48),
+                alignment=CENTER,
+                flex = 1
             )
         )
         self.balances_box = Box(
@@ -190,9 +212,13 @@ class Wallet(Box):
 
         self.add(
             self.bitcoinz_logo,
-            self.bitcoinz_title,
+            self.bitcoinz_title_box,
             self.unconfirmed_box,
             self.balances_box
+        )
+        self.bitcoinz_title_box.add(
+            self.bitcoinz_title,
+            self.bitcoinz_version
         )
         self.unconfirmed_box.add(
             self.unconfirmed_label,
@@ -218,8 +244,24 @@ class Wallet(Box):
             self.private_label,
             self.private_value
         )
-
+        self.app.add_background_task(self.get_node_version)
         self.app.add_background_task(self.update_balances)
+
+
+    async def get_node_version(self, widget):
+        result, _ = await self.commands.getInfo()
+        if result:
+            result = json.loads(result)
+            subversion = result.get('subversion')
+            build = result.get('build')
+            clean_version = subversion.strip('/')
+            if ':' in clean_version:
+                name, version = clean_version.split(':', 1)
+                formatted_version = f"{name} v {version}"
+            else:
+                formatted_version = clean_version
+            build_suffix = build.split('-')[1] if build and '-' in build else build
+            self.bitcoinz_version.text = f"Core : {formatted_version} | Build : {build_suffix}"
 
 
     async def update_balances(self, widget):
@@ -279,7 +321,7 @@ class ImportKey(Window):
         )
 
         self.info_label = Label(
-            text="Please enter your private key for transparent or private addresses.\n(This operation may take up to 10 minutes to complete.)",
+            text="(This operation may take up to 10 minutes to complete.)",
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -315,6 +357,15 @@ class ImportKey(Window):
         self.import_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.import_button._impl.native.MouseEnter += self.import_button_mouse_enter
         self.import_button._impl.native.MouseLeave += self.import_button_mouse_leave
+
+        self.progress_bar = ProgressBar(
+            style=Pack(
+                height= 25,
+                flex = 1,
+                padding = (0,10,0,10)
+            )
+        )
+        self.progress_bar._impl.native.Style = ProgressStyle.MARQUEE
 
         self.input_box = Box(
             style=Pack(
@@ -363,9 +414,13 @@ class ImportKey(Window):
             )
             self.key_input.focus()
             return
+        self.input_box.remove(
+            self.import_button
+        )
+        self.input_box.add(
+            self.progress_bar
+        )
         self.key_input.readonly = True
-        self.import_button.on_press = None
-        self.import_button._impl.native.Cursor = Cursors.WAIT
         self.cancel_button.enabled = False
         self.main.import_key_toggle = True
         self.app.add_background_task(self.import_private_key)
@@ -375,7 +430,14 @@ class ImportKey(Window):
         def on_result(widget, result):
             if result is None:
                 self.main.import_key_toggle = None
-                self.update_import_window()
+                self.input_box.remove(
+                    self.progress_bar
+                )
+                self.input_box.add(
+                    self.import_button
+                )
+                self.key_input.readonly = False
+                self.cancel_button.enabled = True
         key = self.key_input.value
         result, error_message = await self.commands.ImportPrivKey(key)
         if error_message:
@@ -438,7 +500,7 @@ class ImportWallet(Window):
         self.utils = Utils(self.app)
         self.commands = Client(self.app)
 
-        self.title = "Import Key"
+        self.title = "Import Wallet"
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
 
@@ -452,7 +514,7 @@ class ImportWallet(Window):
         )
 
         self.info_label = Label(
-            text="Please set your wallet file.\n(This operation may take up to 10 minutes to complete.)",
+            text="(This operation may take up to 10 minutes to complete.)",
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -461,12 +523,12 @@ class ImportWallet(Window):
                 padding_top = 5
             )
         )
-        self.key_input = TextInput(
-            value="Open file...",
+        self.file_input = TextInput(
+            value="+ Select / Drag and Drop File",
             style=Pack(
-                color = WHITE,
+                color = GRAY,
                 text_align= CENTER,
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 font_weight = BOLD,
                 font_size = 12,
                 flex = 3,
@@ -474,7 +536,11 @@ class ImportWallet(Window):
             ),
             readonly=True
         )
-        self.key_input._impl.native.Click += self.select_wallet_file
+        self.file_input._impl.native.AllowDrop = True
+        self.file_input._impl.native.Click += self.select_wallet_file
+        self.file_input._impl.native.DragEnter += Forms.DragEventHandler(self.on_drag_enter)
+        self.file_input._impl.native.DragDrop += Forms.DragEventHandler(self.on_drag_drop)
+        self.file_input._impl.native.Cursor = Cursors.HAND
         
         self.import_button = Button(
             text="Import",
@@ -485,11 +551,21 @@ class ImportWallet(Window):
                 font_size=10,
                 flex = 1,
                 padding = (0,10,0,10)
-            )
+            ),
+            on_press = self.import_button_click
         )
         self.import_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.import_button._impl.native.MouseEnter += self.import_button_mouse_enter
         self.import_button._impl.native.MouseLeave += self.import_button_mouse_leave
+
+        self.progress_bar = ProgressBar(
+            style=Pack(
+                height= 25,
+                flex = 1,
+                padding = (0,10,0,10)
+            )
+        )
+        self.progress_bar._impl.native.Style = ProgressStyle.MARQUEE
 
         self.input_box = Box(
             style=Pack(
@@ -512,7 +588,7 @@ class ImportWallet(Window):
                 padding_bottom = 10,
                 width = 100
             ),
-            on_press=self.close_import_key
+            on_press=self.close_import_file
         )
         self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
@@ -526,38 +602,67 @@ class ImportWallet(Window):
             self.cancel_button
         )
         self.input_box.add(
-            self.key_input,
+            self.file_input,
             self.import_button
         )
 
     def select_wallet_file(self, sender, event):
         def on_result(widget, result):
             if result:
-                self.key_input.value = result
-                self.import_button.on_press = self.import_button_click
+                self.file_input.value = result
+                self.file_input.style.color = WHITE
         self.open_file_dialog(
             title="Select file",
             on_result=on_result
         )
+        
+
+    def on_drag_enter(self, sender, event):
+        if event.Data.GetDataPresent("FileDrop"):
+            event.Effect = Forms.DragDropEffects.Copy
+        else:
+            event.Effect = Forms.DragDropEffects(0)
+
+
+    def on_drag_drop(self, sender, event):
+        files = event.Data.GetData("FileDrop")
+        if files and len(files) > 0:
+            self.file_input.value = files[0]
+            self.file_input.style.color = WHITE
+
 
     def import_button_click(self, button):
-        if not self.key_input.value:
+        if self.file_input.value == "+ Select / Drag and Drop File":
             self.error_dialog(
-                "Missing file",
-                "Please set a wallet file to proceed."
+                "Missing File",
+                "Please select a wallet file to proceed."
             )
             return
-        self.key_input._impl.native.Click -= self.select_wallet_file
-        self.import_button.on_press = None
-        self.import_button._impl.native.Cursor = Cursors.WAIT
+
+        extension = Os.Path.GetExtension(self.file_input.value)
+        if extension:
+            self.error_dialog(
+                "Invalid File Format",
+                "Unsupported file type. Please select a valid wallet file."
+            )
+            return
+        
+        self.input_box.remove(
+            self.import_button
+        )
+        self.input_box.add(
+            self.progress_bar
+        )
+        self.file_input._impl.native.Click -= self.select_wallet_file
+        self.file_input._impl.native.AllowDrop = False
         self.cancel_button.enabled = False
         self.main.import_key_toggle = True
         self.app.add_background_task(self.import_wallet_file)
 
 
     async def import_wallet_file(self, widget):
-        wallet = self.key_input.value
-        await self.commands.z_ImportWallet(wallet)      
+        file_path = self.file_input.value
+        await self.commands.z_ImportWallet(file_path) 
         await self.update_import_window()
 
 
@@ -590,5 +695,5 @@ class ImportWallet(Window):
         self.cancel_button.style.color = RED
         self.cancel_button.style.background_color = rgb(30,33,36)
 
-    def close_import_key(self, button):
+    def close_import_file(self, button):
         self.close()

@@ -30,6 +30,8 @@ class AppStatusBar(Box):
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
 
+        self.node_status = None
+
         self.statusbar = StatusBar(
             background_color=Color.rgb(40,43,48),
             dockstyle=DockStyle.BOTTOM
@@ -173,7 +175,7 @@ class AppStatusBar(Box):
         self._impl.native.Controls.Add(self.statusbar)
 
     
-    def update_statusbar(self):
+    def run_statusbar_tasks(self):
         self.app.add_background_task(self.update_blockchaininfo)
         self.app.add_background_task(self.update_deprecationinfo)
         self.app.add_background_task(self.update_networkhash)
@@ -181,50 +183,49 @@ class AppStatusBar(Box):
 
 
     async def update_blockchaininfo(self, widget):
-        node_status = None
-        last_node_status = None
         while True:
             if self.main.import_key_toggle:
                 await asyncio.sleep(1)
                 continue
-            blockchaininfo, _ = await self.commands.getBlockchainInfo()
+            blockchaininfo,_ = await self.commands.getBlockchainInfo()
             if blockchaininfo is not None:
-                if isinstance(blockchaininfo, str):
-                    info = json.loads(blockchaininfo)
-                if info is not None:
-                    blocks = info.get('blocks')
-                    sync = info.get('verificationprogress')
-                    mediantime = info.get('mediantime')
-                    node_status = True
-                else:
-                    blocks = sync = mediantime = "N/A"
-                    node_status = False
-            else:
-                blocks = sync = mediantime = "N/A"
-                node_status = False
-            if isinstance(mediantime, int):
-                mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
-            else:
-                mediantime_date = "N/A"
-            bitcoinz_size = self.utils.get_bitcoinz_size()
-            sync_percentage = sync * 100
-            if node_status != last_node_status:
-                await self.update_statusbar_icon(node_status)
-                last_node_status = node_status
+                self.node_status = True
 
-            self.blocks_value.text = str(blocks)
-            self.date_value.text = mediantime_date
-            self.sync_value.text = f"{float(sync_percentage):.2f}%"
-            self.size_value.text = f"{int(bitcoinz_size)} MB"
+                info = json.loads(blockchaininfo)
+                blocks = info.get('blocks')
+                sync = info.get('verificationprogress')
+                sync_percentage = float(sync) * 100
+                sync_text = f"{sync_percentage:.2f}%"
+                mediantime = info.get('mediantime')
+                mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
+                status_icon = "images/on.png"
+                
+            else:
+                self.node_status = None
+                blocks = "N/A"
+                sync_text = "N/A"
+                mediantime_date = "N/A"
+                status_icon = "images/off.png"
+
+            bitcoinz_size = self.utils.get_bitcoinz_size()
+
+            await self.update_statusbar(status_icon, blocks, sync_text, mediantime_date, bitcoinz_size)
             await asyncio.sleep(5)
 
 
-    async def update_statusbar_icon(self, status):
-        if status:
-            status_icon = "images/on.png"
-        else:
-            status_icon = "images/off.png"
+    async def update_statusbar(self, status_icon, blocks, sync, mediantime, bitcoinz_size):
         self.status_icon.image = status_icon
+        self.blocks_value.text = str(blocks)
+        self.date_value.text = mediantime
+        self.sync_value.text = sync
+        self.size_value.text = f"{int(bitcoinz_size)} MB"
+        if not self.node_status:
+            await asyncio.sleep(1)
+            restart = self.utils.restart_app()
+            if restart:
+                self.main.notify.hide()
+                self.app.exit()
+                return
 
 
     async def update_networkhash(self, widget):

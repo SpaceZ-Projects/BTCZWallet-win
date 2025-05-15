@@ -127,6 +127,7 @@ class RightToLeft:
 class Cursors:
     DEFAULT = Forms.Cursors.Default
     WAIT = Forms.Cursors.WaitCursor
+    HAND = Forms.Cursors.Hand
     
     
 class Keys:
@@ -370,7 +371,8 @@ class Command(Forms.ToolStripMenuItem):
         checked_changed: Optional[Callable[[], None]] = None,
         drop_opened: Optional[Callable[[], None]] = None,
         drop_closed: Optional[Callable[[], None]] = None,
-        shortcut_key: Optional[Keys] = None
+        shortcut_key: Optional[Keys] = None,
+        tooltip: Optional[str] = None
     ):
         super().__init__(title)
 
@@ -389,6 +391,7 @@ class Command(Forms.ToolStripMenuItem):
         self._drop_opened = drop_opened
         self._drop_closed = drop_closed
         self._shortcut_key = shortcut_key
+        self._tooltip = tooltip
 
         self.app_path = get_app_path()
 
@@ -419,6 +422,8 @@ class Command(Forms.ToolStripMenuItem):
             self.DropDownClosed += self._handle_drop_closed
         if self._shortcut_key:
             self.ShortcutKeys = self._shortcut_key
+        if self._tooltip:
+            self.ToolTipText = self._tooltip
         self.Checked = self._checked
 
 

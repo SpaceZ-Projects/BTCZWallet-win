@@ -45,7 +45,8 @@ class AppToolBar(Box):
             icon="images/about_i.ico",
             mouse_enter=self.about_cmd_mouse_enter,
             mouse_leave=self.about_cmd_mouse_leave,
-            action=self.display_about_dialog
+            action=self.display_about_dialog,
+            tooltip="Information about this application"
         )
         self.exit_cmd = Command(
             title="Exit               |",
@@ -53,7 +54,8 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48),
             icon="images/exit.ico",
             action=self.exit_app,
-            shortcut_key=Keys.Alt | Keys.F4
+            shortcut_key=Keys.Alt | Keys.F4,
+            tooltip="Exit the application and keep node running in background"
         )
         self.stop_exit_cmd = Command(
             title="Stop node   |",
@@ -61,7 +63,8 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48),
             icon="images/stop.ico",
             action=self.stop_node_exit,
-            shortcut_key=Keys.Control | Keys.Q
+            shortcut_key=Keys.Control | Keys.Q,
+            tooltip="Stop the node and exit the application"
         )
         self.app_menu = Command(
             title="App",
@@ -84,7 +87,8 @@ class AppToolBar(Box):
             mouse_enter=self.currency_cmd_mouse_enter,
             mouse_leave=self.currency_cmd_mouse_leave,
             icon="images/currency_i.ico",
-            shortcut_key=Keys.Control | Keys.Shift | Keys.C
+            shortcut_key=Keys.Control | Keys.Shift | Keys.C,
+            tooltip="Change your currency display"
         )
 
         self.notification_txs_cmd = Command(
@@ -92,21 +96,24 @@ class AppToolBar(Box):
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.notification_txs_cmd_mouse_enter,
-            mouse_leave=self.notification_txs_cmd_mouse_leave
+            mouse_leave=self.notification_txs_cmd_mouse_leave,
+            tooltip="Enable/Disable the transactions notifications"
         )
         self.notification_messages_cmd = Command(
             title="Notifications messages",
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.notification_messages_cmd_mouse_enter,
-            mouse_leave=self.notification_messages_cmd_mouse_leave
+            mouse_leave=self.notification_messages_cmd_mouse_leave,
+            tooltip="Enable/Disable the messages notifications"
         )
         self.startup_cmd = Command(
             title="Run on Startup",
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.startup_cmd_mouse_enter,
-            mouse_leave=self.startup_cmd_mouse_leave
+            mouse_leave=self.startup_cmd_mouse_leave,
+            tooltip="Enable/Disable app startup on boot"
         )
         self.settings_menu = Command(
             title="Settings",
@@ -125,20 +132,22 @@ class AppToolBar(Box):
         )
 
         self.generate_t_cmd = Command(
-            title="Transparent address",
+            title="Transparent address (T)",
             background_color=Color.rgb(40,43,48),
             color=Color.WHITE,
             mouse_enter=self.generate_t_cmd_mouse_enter,
             mouse_leave=self.generate_t_cmd_mouse_leave,
-            icon="images/transparent_i.ico"
+            icon="images/transparent_i.ico",
+            tooltip="Generate a new transparent (T) address"
         )
         self.generate_z_cmd = Command(
-            title="Private address",
+            title="Shielded address (Z)",
             background_color=Color.rgb(40,43,48),
             color=Color.WHITE,
             mouse_enter=self.generate_z_cmd_mouse_enter,
             mouse_leave=self.generate_z_cmd_mouse_leave,
-            icon="images/private_i.ico"
+            icon="images/private_i.ico",
+            tooltip="Generate a new shielded (Z) address"
         )
         self.generate_address_cmd = Command(
             title="Generate address",
@@ -160,7 +169,8 @@ class AppToolBar(Box):
             color=Color.WHITE,
             mouse_enter=self.import_key_cmd_mouse_enter,
             mouse_leave=self.import_key_cmd_mouse_leave,
-            icon = "images/importkey_i.ico"
+            icon = "images/importkey_i.ico",
+            tooltip="Import a private key into your wallet"
         )
         self.export_wallet_cmd = Command(
             title="Export wallet",
@@ -168,7 +178,8 @@ class AppToolBar(Box):
             color=Color.WHITE,
             mouse_enter=self.export_wallet_cmd_mouse_enter,
             mouse_leave=self.export_wallet_cmd_mouse_leave,
-            icon="images/export_i.ico"
+            icon="images/export_i.ico",
+            tooltip="Export your wallet data to a file"
         )
         self.import_wallet_cmd = Command(
             title="Import wallet",
@@ -176,7 +187,8 @@ class AppToolBar(Box):
             color=Color.WHITE,
             mouse_enter=self.import_wallet_cmd_mouse_enter,
             mouse_leave=self.import_wallet_cmd_mouse_leave,
-            icon="images/import_i.ico"
+            icon="images/import_i.ico",
+            tooltip="Import a wallet from a file"
         )
         self.wallet_menu = Command(
             title="Wallet",
@@ -199,6 +211,7 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.edit_username_cmd_mouse_enter,
             mouse_leave=self.edit_username_cmd_mouse_leave,
+            tooltip="Change your messaging username"
         )
         self.backup_messages_cmd = Command(
             title="Backup messages",
@@ -206,7 +219,8 @@ class AppToolBar(Box):
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.backup_messages_cmd_mouse_enter,
-            mouse_leave=self.backup_messages_cmd_mouse_leave
+            mouse_leave=self.backup_messages_cmd_mouse_leave,
+            tooltip="Backup your messages to a file"
         )
         self.messages_menu = Command(
             title="Messages",
@@ -226,7 +240,8 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.check_update_cmd_mouse_enter,
             mouse_leave=self.check_update_cmd_mouse_leave,
-            icon="images/update_i.ico"
+            icon="images/update_i.ico",
+            tooltip="Check for application updates"
         )
         self.join_us_cmd = Command(
             title="Join us",
@@ -234,7 +249,8 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.join_us_cmd_mouse_enter,
             mouse_leave=self.join_us_cmd_mouse_leave,
-            icon="images/discord_i.ico"
+            icon="images/discord_i.ico",
+            tooltip="Join our community on Discord"
         )
         self.help_menu = Command(
             title="Help",

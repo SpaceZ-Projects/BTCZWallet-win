@@ -421,7 +421,8 @@ class Send(Box):
                 text_align= LEFT,
                 background_color = rgb(30,33,36),
                 font_weight = BOLD,
-                font_size = 11
+                font_size = 11,
+                padding_top = 5
             )
         )
 
@@ -432,13 +433,15 @@ class Send(Box):
                 text_align= LEFT,
                 background_color = rgb(30,33,36),
                 font_weight = BOLD,
-                font_size = 11
+                font_size = 11,
+                padding_top = 5
             )
         )
 
         self.operation_box = Box(
             style=Pack(
                 direction = ROW,
+                background_color = rgb(30,33,36),
                 padding_left = 10
             )
         )

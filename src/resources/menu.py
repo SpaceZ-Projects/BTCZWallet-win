@@ -102,7 +102,7 @@ class Menu(Window):
         )
         self.content = self.main_box
 
-        self.statusbar.update_statusbar()
+        self.statusbar.run_statusbar_tasks()
         self.insert_menu_buttons()
 
     def insert_menu_buttons(self):

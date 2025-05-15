@@ -501,9 +501,9 @@ class Transactions(Box):
         transactions, _ = await self.commands.listTransactions(
             count, tx_from
         )
-        if isinstance(transactions, str):
-            transactions_data = json.loads(transactions)
-        if transactions_data:
+        if transactions is not None:
+            if isinstance(transactions, str):
+                transactions_data = json.loads(transactions)
             sorted_transactions = sorted(
                 transactions_data,
                 key=operator.itemgetter('timereceived'),
