@@ -89,7 +89,13 @@ class BitcoinZWallet(App):
     def startup(self):
         
         self.main_window = BitcoinZGUI()
+        self.main_window._impl.native.TopMost = True
         self.main_window.show()
+        self.main_window._impl.native.Shown += self.on_show
+
+    def on_show(self, sender, event):
+        self.main_window._impl.native.TopMost = False
+        self.main_window._impl.native.Activate()
 
 
 def main():

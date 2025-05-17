@@ -324,7 +324,10 @@ class Menu(Window):
         if not self.peer_toggle:
             peer_window = Peer(self)
             peer_window.show()
+            self.peer_window = peer_window
             self.peer_toggle = True
+        else:
+            self.peer_window._impl.native.Activate()
 
     def new_transparent_address(self, sender, event):
         self.app.add_background_task(self.generate_transparent_address)

@@ -390,7 +390,14 @@ class BTCZSetup(Box):
 
     async def open_main_menu(self):
         self.main_menu = Menu()
+        self.main_menu._impl.native.TopMost = True
+        self.main_menu._impl.native.Shown += self.on_show
         self.main.hide()
         await asyncio.sleep(1)
         self.main_menu.show()
         self.main_menu.notify.show()
+
+    
+    def on_show(self, sender, event):
+        self.main_menu._impl.native.TopMost = False
+        self.main_menu._impl.native.Activate()
