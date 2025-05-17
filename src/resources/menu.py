@@ -31,6 +31,7 @@ from .messages import Messages, EditUser
 from .mining import Mining
 from .storage import Storage
 from .settings import Settings
+from .network import Peer
 
 
 class Menu(Window):
@@ -50,6 +51,7 @@ class Menu(Window):
         
         self._is_minimized = None
         self.import_key_toggle = None
+        self.peer_toggle = None
         
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
@@ -265,6 +267,7 @@ class Menu(Window):
         self.toolbar.notification_messages_cmd.action = self.update_notifications_messages
         self.toolbar.minimize_cmd.action = self.update_minimize_to_tray
         self.toolbar.startup_cmd.action = self.update_app_startup
+        self.toolbar.peer_info_cmd.action = self.show_peer_info
         self.toolbar.currency_cmd.action = self.show_currencies_list
         self.toolbar.generate_t_cmd.action = self.new_transparent_address
         self.toolbar.generate_z_cmd.action = self.new_private_address
@@ -316,6 +319,12 @@ class Menu(Window):
     def show_currencies_list(self, sender, event):
         self.currencies_window = Currency()
         self.currencies_window._impl.native.ShowDialog()
+
+    def show_peer_info(self, sender, event):
+        if not self.peer_toggle:
+            peer_window = Peer(self)
+            peer_window.show()
+            self.peer_toggle = True
 
     def new_transparent_address(self, sender, event):
         self.app.add_background_task(self.generate_transparent_address)

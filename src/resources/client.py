@@ -87,6 +87,13 @@ class Client():
         command = f'{self.bitcoinz_cli_file} getdeprecationinfo'
         return await self._run_command(command)
     
+    async def getPeerinfo(self):
+        """
+        Returns data about each connected network node as a json array of objects.
+        """
+        command = f'{self.bitcoinz_cli_file} getpeerinfo'
+        return await self._run_command(command)
+    
     async def z_getTotalBalance(self):
         """
         Return the total value of funds stored in the node's wallet.

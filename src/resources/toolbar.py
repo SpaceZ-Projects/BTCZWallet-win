@@ -28,6 +28,7 @@ class AppToolBar(Box):
 
         self.app_menu_active = None
         self.settings_menu_active = None
+        self.network_menu_active = None
         self.wallet_menu_active = None
         self.messages_menu_active = None
         self.help_menu_active = None
@@ -138,6 +139,28 @@ class AppToolBar(Box):
             mouse_enter=self.settings_menu_mouse_enter,
             mouse_leave=self.settings_menu_mouse_leave,
             icon="images/settings_i.ico"
+        )
+
+        self.peer_info_cmd = Command(
+            title="Peer info",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.peer_info_cmd_mouse_enter,
+            mouse_leave=self.peer_info_cmd_mouse_leave,
+            icon="images/peer_i.ico",
+            tooltip="Display data about each node connected"
+        )
+        self.network_menu = Command(
+            title="Network",
+            sub_commands=[
+                self.peer_info_cmd
+            ],
+            background_color=Color.rgb(40,43,48),
+            drop_opened=self.network_menu_opened,
+            drop_closed=self.network_menu_closed,
+            mouse_enter=self.network_menu_mouse_enter,
+            mouse_leave=self.network_menu_mouse_leave,
+            icon="images/network_i.ico"
         )
 
         self.generate_t_cmd = Command(
@@ -277,6 +300,7 @@ class AppToolBar(Box):
             [
                 self.app_menu,
                 self.settings_menu,
+                self.network_menu,
                 self.wallet_menu,
                 self.messages_menu,
                 self.help_menu
@@ -314,6 +338,16 @@ class AppToolBar(Box):
         self.settings_menu.icon = "images/settings_i.ico"
         self.settings_menu.color = Color.WHITE
 
+    def network_menu_mouse_enter(self):
+        self.network_menu.icon = "images/network_a.ico"
+        self.network_menu.color = Color.BLACK
+
+    def network_menu_mouse_leave(self):
+        if self.network_menu_active:
+            return
+        self.network_menu.icon = "images/network_i.ico"
+        self.network_menu.color = Color.WHITE
+
     def settings_menu_opened(self):
         self.settings_menu_active = True
         self.settings_menu.icon = "images/settings_a.ico"
@@ -323,6 +357,24 @@ class AppToolBar(Box):
         self.settings_menu_active = False
         self.settings_menu.icon = "images/settings_i.ico"
         self.settings_menu.color = Color.WHITE
+
+    def network_menu_opened(self):
+        self.network_menu_active = True
+        self.network_menu.icon = "images/network_a.ico"
+        self.network_menu.color = Color.BLACK
+
+    def network_menu_closed(self):
+        self.network_menu_active = False
+        self.network_menu.icon = "images/network_i.ico"
+        self.network_menu.color = Color.WHITE
+
+    def peer_info_cmd_mouse_enter(self):
+        self.peer_info_cmd.icon = "images/peer_a.ico"
+        self.peer_info_cmd.color = Color.BLACK
+
+    def peer_info_cmd_mouse_leave(self):
+        self.peer_info_cmd.icon = "images/peer_i.ico"
+        self.peer_info_cmd.color = Color.WHITE
 
     def currency_cmd_mouse_enter(self):
         self.currency_cmd.icon = "images/currency_a.ico"
