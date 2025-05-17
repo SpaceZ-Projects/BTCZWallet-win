@@ -133,3 +133,15 @@ class Units():
     def solution_to_hash(self, solutions):
         mh_s = solutions * 500_000
         return mh_s
+    
+    def format_bytes(self, bytes_size):
+        if bytes_size == 0:
+            return "0 Bytes"
+        units = ["Bit", "KB", "MB", "GB"]
+        i = 0
+        size = bytes_size
+        while size >= 1024 and i < len(units) - 1:
+            size /= 1024
+            i += 1
+
+        return f"{size:.2f} {units[i]}"

@@ -8,7 +8,7 @@ from toga import (
     App, Box, Label, ProgressBar, Window
 )
 from ..framework import (
-    ProgressStyle, Os, Forms, run_async
+    ProgressStyle, Os, Forms, run_async, ToolTip
 )
 from toga.colors import rgb, WHITE, GRAY
 from toga.style.pack import Pack
@@ -17,6 +17,7 @@ from toga.constants import CENTER, BOLD, COLUMN, ROW, BOTTOM, LEFT, RIGHT
 from .utils import Utils
 from .client import Client
 from .menu import Menu
+from .units import Units
 
 
 class BTCZSetup(Box):
@@ -33,7 +34,9 @@ class BTCZSetup(Box):
         self.app = app
         self.main = main
         self.utils = Utils(self.app)
+        self.units = Units(self.app)
         self.commands = Client(self.app)
+        self.tooltip = ToolTip()
         self.app_data = self.app.paths.data
 
         self.node_status = None
@@ -327,6 +330,7 @@ class BTCZSetup(Box):
 
 
     async def verify_sync_progress(self):
+        tooltip_text = f"Seeds :"
         await asyncio.sleep(1)
         blockchaininfo, _ = await self.commands.getBlockchainInfo()
         if isinstance(blockchaininfo, str):
@@ -342,13 +346,13 @@ class BTCZSetup(Box):
                 )
                 while True:
                     blockchaininfo, _ = await self.commands.getBlockchainInfo()
-                    if isinstance(blockchaininfo, str):
+                    if blockchaininfo:
                         info = json.loads(blockchaininfo)
                     else:
                         self.node_status = False
                         self.app.exit()
                         return
-                    if info is not None:
+                    if info:
                         blocks = info.get('blocks')
                         sync = info.get('verificationprogress')
                         mediantime = info.get('mediantime')
@@ -358,6 +362,15 @@ class BTCZSetup(Box):
                         mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
                     else:
                         mediantime_date = "N/A"
+
+                    peerinfo, _ = await self.commands.getPeerinfo()
+                    if peerinfo:
+                        peerinfo = json.loads(peerinfo)
+                        for node in peerinfo:
+                            address = node.get('addr')
+                            bytesrecv = node.get('bytesrecv')
+                            tooltip_text += f"\n{address} - {self.units.format_bytes(bytesrecv)}"
+                            
                     bitcoinz_size = self.utils.get_bitcoinz_size()
                     sync_percentage = sync * 100
                     self.blocks_value.text = f"{blocks}"
@@ -365,6 +378,8 @@ class BTCZSetup(Box):
                     self.index_size_value.text = f"{int(bitcoinz_size)} MB"
                     self.sync_value.text = f"%{float(sync_percentage):.2f}"
                     self.progress_bar.value = int(sync_percentage)
+                    self.tooltip.insert(self.progress_bar._impl.native, tooltip_text)
+                    tooltip_text = f"Seeds :"
                     if sync_percentage > 99.95:
                         await self.open_main_menu()
                         return
