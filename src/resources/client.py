@@ -94,6 +94,21 @@ class Client():
         command = f'{self.bitcoinz_cli_file} getpeerinfo'
         return await self._run_command(command)
     
+    async def addNode(self, address:str):
+        command = f'{self.bitcoinz_cli_file} addnode "{address}" "onetry"'
+        return await self._run_command(command)
+    
+    async def removeNode(self, address:str):
+        command = f'{self.bitcoinz_cli_file} addnode "{address}" "remove"'
+        return await self._run_command(command)
+    
+    async def disconnectNode(self, address:str):
+        """
+        Immediately disconnects from the specified node.
+        """
+        command = f'{self.bitcoinz_cli_file} disconnectnode "{address}"'
+        return await self._run_command(command)
+    
     async def z_getTotalBalance(self):
         """
         Return the total value of funds stored in the node's wallet.

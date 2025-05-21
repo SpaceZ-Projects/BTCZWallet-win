@@ -1,4 +1,6 @@
 
+import psutil
+
 from toga import App, Box, Window
 from ..framework import (
     Toolbar, Command, Color, run_async, Keys
@@ -142,18 +144,29 @@ class AppToolBar(Box):
         )
 
         self.peer_info_cmd = Command(
-            title="Peer info",
+            title="Peer info        |",
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.peer_info_cmd_mouse_enter,
             mouse_leave=self.peer_info_cmd_mouse_leave,
+            shortcut_key=Keys.Control | Keys.Shift | Keys.N,
             icon="images/peer_i.ico",
             tooltip="Display data about each node connected"
+        )
+        self.add_node_cmd = Command(
+            title="Add node",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.add_node_cmd_mouse_enter,
+            mouse_leave=self.add_node_cmd_mouse_leave,
+            icon="images/add_node_i.ico",
+            tooltip="add a node to the addnode list"
         )
         self.network_menu = Command(
             title="Network",
             sub_commands=[
-                self.peer_info_cmd
+                self.peer_info_cmd,
+                self.add_node_cmd
             ],
             background_color=Color.rgb(40,43,48),
             drop_opened=self.network_menu_opened,
@@ -376,6 +389,14 @@ class AppToolBar(Box):
         self.peer_info_cmd.icon = "images/peer_i.ico"
         self.peer_info_cmd.color = Color.WHITE
 
+    def add_node_cmd_mouse_enter(self):
+        self.add_node_cmd.icon = "images/add_node_a.ico"
+        self.add_node_cmd.color = Color.BLACK
+
+    def add_node_cmd_mouse_leave(self):
+        self.add_node_cmd.icon = "images/add_node_i.ico"
+        self.add_node_cmd.color = Color.WHITE
+
     def currency_cmd_mouse_enter(self):
         self.currency_cmd.icon = "images/currency_a.ico"
         self.currency_cmd.color = Color.BLACK
@@ -586,9 +607,19 @@ class AppToolBar(Box):
             on_result=on_result
         )
 
+    def stop_tor(self):
+        try:
+            for proc in psutil.process_iter(['pid', 'name']):
+                if proc.info['name'] == "tor.exe":
+                    proc.kill()
+        except Exception as e:
+            pass
+        
+
     def stop_node_exit(self):
         def on_result(widget, result):
             if result is True:
+                self.stop_tor()
                 run_async(self.commands.stopNode())
                 self.home_page.bitcoinz_curve.image = None
                 self.home_page.clear_cache()
