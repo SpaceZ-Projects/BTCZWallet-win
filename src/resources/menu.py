@@ -8,7 +8,7 @@ from toga import (
 )
 from ..framework import (
     Drawing, Color, Sys, FormState, Os, FlatStyle,
-    Relation, AlignContent, run_async
+    Relation, AlignContent
 )
 
 from toga.style.pack import Pack
@@ -31,7 +31,7 @@ from .messages import Messages, EditUser
 from .mining import Mining
 from .storage import Storage
 from .settings import Settings
-from .network import Peer
+from .network import Peer, AddNode
 
 
 class Menu(Window):
@@ -268,6 +268,7 @@ class Menu(Window):
         self.toolbar.minimize_cmd.action = self.update_minimize_to_tray
         self.toolbar.startup_cmd.action = self.update_app_startup
         self.toolbar.peer_info_cmd.action = self.show_peer_info
+        self.toolbar.add_node_cmd.action = self.show_add_node
         self.toolbar.currency_cmd.action = self.show_currencies_list
         self.toolbar.generate_t_cmd.action = self.new_transparent_address
         self.toolbar.generate_z_cmd.action = self.new_private_address
@@ -328,6 +329,10 @@ class Menu(Window):
             self.peer_toggle = True
         else:
             self.peer_window._impl.native.Activate()
+
+    def show_add_node(self, sender, event):
+        self.add_node_window = AddNode()
+        self.add_node_window._impl.native.ShowDialog()
 
     def new_transparent_address(self, sender, event):
         self.app.add_background_task(self.generate_transparent_address)
@@ -458,11 +463,11 @@ class Menu(Window):
         )
         
 
-    def restart_node(self, widget, result):
+    async def restart_node(self, widget, result):
         if result is True:
             restart = self.utils.restart_app()
             if restart:
-                run_async(self.commands.stopNode())
+                await self.commands.stopNode()
                 self.notify.hide()
                 self.app.exit()
 

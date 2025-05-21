@@ -3,6 +3,7 @@ import asyncio
 import aiohttp
 from datetime import datetime
 import json
+from aiohttp_socks import ProxyConnector, ProxyConnectionError
 
 from toga import (
     App, Box, Label, ImageView, Window, Button,
@@ -453,13 +454,20 @@ class Home(Box):
 
     async def fetch_marketcap(self):
         api = "https://api.coingecko.com/api/v3/coins/bitcoinz"
+        tor_enabled = self.settings.tor_network()
+        if tor_enabled:
+            connector = ProxyConnector.from_url('socks5://127.0.0.1:9050')
+        else:
+            connector = None
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(connector=connector) as session:
                 headers={'User-Agent': 'Mozilla/5.0'}
                 async with session.get(api, headers=headers) as response:
                     response.raise_for_status()
                     data = await response.json()
                     return data
+        except ProxyConnectionError:
+            return None
         except Exception as e:
             print(f"Error occurred during fetch: {e}")
             return None

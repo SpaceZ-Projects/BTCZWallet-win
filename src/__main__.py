@@ -4,7 +4,7 @@ from toga import (
 )
 from toga.colors import rgb, WHITE, YELLOW
 from toga.style.pack import Pack
-from toga.constants import RIGHT, BOLD, COLUMN, ROW
+from toga.constants import RIGHT, BOLD, COLUMN, ROW, LEFT
 
 from .resources import BTCZSetup, Utils
 
@@ -43,12 +43,6 @@ class BitcoinZGUI(Window):
                 background_color= rgb(30,33,36),
             )
         )
-        self.empty_box = Box(
-            style=Pack(
-                flex = 9,
-                background_color = rgb(30,33,36)
-            )
-        )
         self.app_version = Label(
             text=f"v{self.app.version}",
             style=Pack(
@@ -57,6 +51,17 @@ class BitcoinZGUI(Window):
                 text_align = RIGHT,
                 font_weight = BOLD,
                 padding_right = 10,
+                font_size = 10,
+                flex = 1
+            )
+        )
+        self.network_status = Label(
+            text="",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                text_align = LEFT,
+                font_weight = BOLD,
+                padding_left = 10,
                 font_size = 10,
                 flex = 1
             )
@@ -71,7 +76,7 @@ class BitcoinZGUI(Window):
             self.startup
         )
         self.version_box.add(
-            self.empty_box,
+            self.network_status,
             self.app_version
         )
         self.content = self.startup_panel
@@ -85,13 +90,14 @@ class BitcoinZGUI(Window):
     def app_version_mouse_leave(self, mouse, event):
         self.app_version.style.color = WHITE
 
+
 class BitcoinZWallet(App):
     def startup(self):
         
         self.main_window = BitcoinZGUI()
         self.main_window._impl.native.TopMost = True
-        self.main_window.show()
         self.main_window._impl.native.Shown += self.on_show
+        self.main_window.show()
 
     def on_show(self, sender, event):
         self.main_window._impl.native.TopMost = False

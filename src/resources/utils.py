@@ -2,9 +2,11 @@
 import asyncio
 import aiohttp
 import zipfile
+import tarfile
 import py7zr
 import qrcode
 import winreg as reg
+from aiohttp_socks import ProxyConnector, ProxyConnectionError
 
 from toga import App
 from ..framework import (
@@ -152,6 +154,20 @@ class Utils():
                 missing_files.append(file)
         return missing_files
     
+    def get_tor_files(self):
+        required_files = [
+            'tor.exe',
+            'geoip',
+            'geoip6'
+        ]
+        missing_files = []
+        for file in required_files:
+            file_path = Os.Path.Combine(str(self.app_data), file)
+            if not Os.File.Exists(file_path):
+                missing_files.append(file)
+        return missing_files
+
+    
     def get_zk_params(self):
         zk_params_path = self.get_zk_path()
         if not Os.Directory.Exists(zk_params_path):
@@ -191,13 +207,83 @@ class Utils():
         return None, url, zip_file
     
 
-    async def fetch_binary_files(self, label, progress_bar):
+    async def fetch_tor_files(self, label, progress_bar):
+        file_name = "tor-expert-bundle-windows-x86_64-14.5.2.tar.gz"
+        url = "https://archive.torproject.org/tor-package-archive/torbrowser/14.5.2/"
+        text = "Downloading Tor bundle...%"
+        destination = Os.Path.Combine(str(self.app_data), file_name)
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url + file_name, timeout=None) as response:
+                    if response.status == 200:
+                        total_size = int(response.headers.get('content-length', 0))
+                        chunk_size = 512
+                        downloaded_size = 0
+                        self.file_handle = open(destination, 'wb')
+                        async for chunk in response.content.iter_chunked(chunk_size):
+                            if not chunk:
+                                break
+                            self.file_handle.write(chunk)
+                            downloaded_size += len(chunk)
+                            progress = int(downloaded_size / total_size * 100)
+                            label._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_status_label(label, text, progress)))
+                            progress_bar.value = progress
+                        self.file_handle.close()
+                        self.file_handle = None
+                        await session.close()
+                        with tarfile.open(destination, "r:gz") as tar:
+                            tar.extractall(path=self.app_data)
+
+                        tor_dir = Os.Path.Combine(str(self.app_data), "tor")
+                        tor_exe = Os.Path.Combine(tor_dir, "tor.exe")
+                        dest_tor_exe = Os.Path.Combine(str(self.app_data), "tor.exe")
+                        if Os.File.Exists(dest_tor_exe):
+                            Os.File.Delete(dest_tor_exe)
+                        Os.File.Move(tor_exe, dest_tor_exe)
+
+                        data_dir = Os.Path.Combine(str(self.app_data), "data")
+
+                        geoip_file = Os.Path.Combine(data_dir, "geoip")
+                        dest_geoip = Os.Path.Combine(str(self.app_data), "geoip")
+                        if Os.File.Exists(dest_geoip):
+                            Os.File.Delete(dest_geoip)
+                        Os.File.Move(geoip_file, dest_geoip)
+
+                        geoip6_file = Os.Path.Combine(data_dir, "geoip6")
+                        dest_geoip6 = Os.Path.Combine(str(self.app_data), "geoip6")
+                        if Os.File.Exists(dest_geoip6):
+                            Os.File.Delete(dest_geoip6)
+                        Os.File.Move(geoip6_file, dest_geoip6)
+
+                        docs_dir = Os.Path.Combine(str(self.app_data), "docs")
+                        if Os.Directory.Exists(tor_dir):
+                            Os.Directory.Delete(tor_dir, True)
+                        if Os.Directory.Exists(data_dir):
+                            Os.Directory.Delete(data_dir, True)
+                        if Os.Directory.Exists(docs_dir):
+                            Os.Directory.Delete(docs_dir, True)
+                        if Os.File.Exists(destination):
+                            Os.File.Delete(destination)
+        except RuntimeError as e:
+            print(f"RuntimeError caught: {e}")
+        except aiohttp.ClientError as e:
+            print(f"HTTP Error: {e}")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+    
+
+    async def fetch_binary_files(self, label, progress_bar, tor_enabled):
         file_name = "bitcoinz-c73d5cdb2b70-win64.zip"
         url = "https://github.com/btcz/bitcoinz/releases/download/2.1.0/"
         text = "Downloading binary...%"
         destination = Os.Path.Combine(str(self.app_data), file_name)
+        if tor_enabled:
+            connector = ProxyConnector.from_url('socks5://127.0.0.1:9050')
+        else:
+            connector = None
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.get(url + file_name, timeout=None) as response:
                     if response.status == 200:
                         total_size = int(response.headers.get('content-length', 0))
@@ -226,6 +312,8 @@ class Utils():
                                 Os.File.Move(src, dest)
                         Os.Directory.Delete(extracted_folder, True)
                         Os.File.Delete(destination)
+        except ProxyConnectionError:
+            print("Proxy connection failed. Is the Tor service running ?")
         except RuntimeError as e:
             print(f"RuntimeError caught: {e}")
         except aiohttp.ClientError as e:
@@ -234,12 +322,16 @@ class Utils():
             print(f"An error occurred: {e}")
 
 
-    async def fetch_params_files(self, missing_files, zk_params_path, label, progress_bar):
+    async def fetch_params_files(self, missing_files, zk_params_path, label, progress_bar, tor_enabled):
         base_url = "https://d.btcz.rocks/"
         total_files = len(missing_files)
         text = "Downloading params...%"
+        if tor_enabled:
+            connector = ProxyConnector.from_url('socks5://127.0.0.1:9050')
+        else:
+            connector = None
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(connector=connector) as session:
                 for idx, file_name in enumerate(missing_files):
                     url = base_url + file_name
                     file_path = Os.Path.Combine(zk_params_path, file_name)
@@ -262,6 +354,8 @@ class Utils():
                             self.file_handle = None
                     self.current_download_file = None
                 await session.close()
+        except ProxyConnectionError:
+            print("Proxy connection failed. Is the Tor service running ?")
         except RuntimeError as e:
             print(f"RuntimeError caught: {e}")
         except aiohttp.ClientError as e:
@@ -270,7 +364,7 @@ class Utils():
             print(f"An error occurred: {e}")
 
 
-    async def fetch_bootstrap_files(self, label, progress_bar):
+    async def fetch_bootstrap_files(self, label, progress_bar, tor_enabled):
         base_url = "https://github.com/btcz/bootstrap/releases/download/2024-09-04/"
         bootstrap_files = [
             'bootstrap.dat.7z.001',
@@ -281,8 +375,12 @@ class Utils():
         total_files = len(bootstrap_files)
         bitcoinz_path = self.get_bitcoinz_path()
         text = "Downloading bootstrap...%"
+        if tor_enabled:
+            connector = ProxyConnector.from_url('socks5://127.0.0.1:9050')
+        else:
+            connector = None
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(connector=connector) as session:
                 for idx, file_name in enumerate(bootstrap_files):
                     file_path = Os.Path.Combine(bitcoinz_path, file_name)
                     if Os.File.Exists(file_path):
@@ -307,6 +405,8 @@ class Utils():
                             self.file_handle = None
                     self.current_download_file = None
                 await session.close()
+        except ProxyConnectionError:
+            print("Proxy connection failed. Is the Tor service running ?")
         except RuntimeError as e:
             print(f"RuntimeError caught: {e}")
         except aiohttp.ClientError as e:
@@ -315,11 +415,15 @@ class Utils():
             print(f"An error occurred: {e}")
 
 
-    async def fetch_miner(self, miner_selection, setup_miner_box, progress_bar, miner_folder, file_name, url):
+    async def fetch_miner(self, miner_selection, setup_miner_box, progress_bar, miner_folder, file_name, url, tor_enabled):
         destination = Os.Path.Combine(str(self.app_data), file_name)
         miner_dir = Os.Path.Combine(str(self.app_data), miner_folder)
+        if tor_enabled:
+            connector = ProxyConnector.from_url('socks5://127.0.0.1:9050')
+        else:
+            connector = None
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.get(url + file_name, timeout=None) as response:
                     if response.status == 200:
                         total_size = int(response.headers.get('content-length', 0))
@@ -336,32 +440,32 @@ class Utils():
                         self.file_handle.close()
                         self.file_handle = None
                         await session.close()
-                        run_async(self.extract_miner(miner_selection, setup_miner_box, progress_bar, destination, miner_folder, miner_dir))
+                        if miner_folder == "MiniZ":
+                            miner_name = "miniZ.exe"
+                        elif miner_folder =="Gminer":
+                            miner_name = "miner.exe"
+                        with zipfile.ZipFile(destination, 'r') as zip_ref:
+                            zip_ref.extractall(miner_dir)
+                        for file in Os.Directory.GetFiles(miner_dir):
+                            file_name = Os.Path.GetFileName(file)
+                            if file_name != miner_name:
+                                if Os.File.Exists(file):
+                                    Os.File.Delete(file)
+                        if Os.File.Exists(destination):
+                            Os.File.Delete(destination)
+                            miner_selection.enabled = True
+                            setup_miner_box.remove(
+                                progress_bar
+                            )
+        except ProxyConnectionError:
+            print("Proxy connection failed. Is the Tor service running ?")
         except RuntimeError as e:
             print(f"RuntimeError caught: {e}")
         except aiohttp.ClientError as e:
             print(f"HTTP Error: {e}")
         except Exception as e:
             print(f"An error occurred: {e}")
-
-
-    async def extract_miner(self, miner_selection, setup_miner_box, progress_bar, destination, miner_folder, miner_dir):
-        if miner_folder == "MiniZ":
-            miner_name = "miniZ.exe"
-        elif miner_folder =="Gminer":
-            miner_name = "miner.exe"
-        with zipfile.ZipFile(destination, 'r') as zip_ref:
-            zip_ref.extractall(miner_dir)
-        for file in Os.Directory.GetFiles(miner_dir):
-            file_name = Os.Path.GetFileName(file)
-            if file_name != miner_name:
-                Os.File.Delete(file)
         
-        Os.File.Delete(destination)
-        miner_selection.enabled = True
-        setup_miner_box.remove(
-            progress_bar
-        )
 
 
     async def extract_7z_files(self, label, progress_bar):

@@ -1,4 +1,6 @@
 
+import psutil
+
 from toga import App, Window
 from ..framework import NotifyIcon, Command, run_async
 
@@ -54,9 +56,18 @@ class Notify(NotifyIcon):
             on_result=on_result
         )
 
+    def stop_tor(self):
+        try:
+            for proc in psutil.process_iter(['pid', 'name']):
+                if proc.info['name'] == "tor.exe":
+                    proc.kill()
+        except Exception as e:
+            pass
+
     def stop_node_exit(self):
         def on_result(widget, result):
             if result is True:
+                self.stop_tor()
                 run_async(self.commands.stopNode())
                 self.home_page.bitcoinz_curve.image = None
                 self.home_page.clear_cache()

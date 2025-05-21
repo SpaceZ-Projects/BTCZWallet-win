@@ -2,6 +2,7 @@
 import aiohttp
 import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
+from aiohttp_socks import ProxyConnector, ProxyConnectionError
 
 from toga import App
 from ..framework import Os
@@ -27,14 +28,21 @@ class Curve():
             'vs_currency': self.settings.currency(),
             'days': '1',
         }
+        tor_enabled = self.settings.tor_network()
+        if tor_enabled:
+            connector = ProxyConnector.from_url('socks5://127.0.0.1:9050')
+        else:
+            connector = None
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(connector=connector) as session:
                 headers={'User-Agent': 'Mozilla/5.0'}
                 async with session.get(COINGECKO_API, params=params, headers=headers) as response:
                     response.raise_for_status()
                     data = await response.json()
                     prices = data.get('prices', [])
                     return prices
+        except ProxyConnectionError:
+            return None
         except Exception as e:
             print(f"Error occurred during fetch: {e}")
             return None

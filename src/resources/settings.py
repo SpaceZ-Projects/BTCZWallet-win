@@ -79,3 +79,12 @@ class Settings():
                 return False
             else:
                 return settings['minimize']
+            
+
+    def tor_network(self):
+        with open(self.settings_path, 'r') as f:
+            settings = json.load(f)
+            if 'tor_network' not in settings:
+                return None
+            else:
+                return settings['tor_network']
