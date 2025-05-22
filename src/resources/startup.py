@@ -251,41 +251,63 @@ class BTCZSetup(Box):
                 self.status_label,
                 self.progress_bar
             )
-        await self.run_tor()
+        self.app.add_background_task(self.run_tor)
 
 
-    async def run_tor(self):
-        self.status_label.text = "Launching Tor..."
+    async def run_tor(self, widget):
         self.progress_bar._impl.native.Style = ProgressStyle.MARQUEE
-        await asyncio.sleep(1)
+
+        tor_data = Os.Path.Combine(str(self.app_data), "tor_data")
         tor_exe = Os.Path.Combine(str(self.app_data), "tor.exe")
         geoip = Os.Path.Combine(str(self.app_data), "geoip")
         geoip6 = Os.Path.Combine(str(self.app_data), "geoip6")
         try:
             tor_running = await self.is_tor_alive()
             if not tor_running:
-                self.tor_process = await asyncio.create_subprocess_exec(
-                    tor_exe,
-                    "--SocksPort", "9050",
-                    "--ControlPort", "9051",
-                    "--CookieAuthentication", "1",
-                    "--GeoIPFile", geoip,
-                    "--GeoIPv6File", geoip6,
-                    creationflags=subprocess.CREATE_NO_WINDOW
+                self.status_label.text = "Launching Tor..."
+                await asyncio.sleep(1)
+                command = (
+                    f'"{tor_exe}" '
+                    f'--SocksPort 9050 '
+                    f'--ControlPort 9051 '
+                    f'--CookieAuthentication 1 '
+                    f'--GeoIPFile "{geoip}" '
+                    f'--GeoIPv6File "{geoip6}" '
+                    f'--DataDirectory "{tor_data}"'
+                )
+                self.tor_process = await asyncio.create_subprocess_shell(
+                    command,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT
                 )
                 self.status_label.text = "Waiting for Tor to initialize..."
-                tor_running = await self.is_tor_alive()
-                if tor_running:
-                    self.status_label.text = "Tor started successfully."
-                    await asyncio.sleep(2)
-                    await self.verify_binary_files()
-                else:
-                    self.status_label.text = "Tor failed to start properly."
+                try:
+                    result = await self.wait_tor_bootstrap()
+                    if result:
+                        tor_running = await self.is_tor_alive()
+                        if tor_running:
+                            self.status_label.text = "Tor started successfully."
+                            await asyncio.sleep(1)
+                            await self.verify_binary_files()
+                        else:
+                            self.status_label.text = "Failed to communicate with Tor."
+                except asyncio.TimeoutError:
+                    self.status_label.text = "Tor startup timed out."
             else:
                 await self.verify_binary_files()
 
         except Exception as e:
             self.status_label.text = "Tor failed to start properly."
+
+
+    async def wait_tor_bootstrap(self):
+        while True:
+            line = await self.tor_process.stdout.readline()
+            if not line:
+                break
+            decoded = line.decode().strip()
+            if "Bootstrapped 100% (done): Done" in decoded:
+                return True
 
 
     async def is_tor_alive(self):
@@ -399,8 +421,6 @@ class BTCZSetup(Box):
         try:
             self.process = await asyncio.create_subprocess_exec(
                     *command,
-                    stderr=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
                     creationflags=subprocess.CREATE_NO_WINDOW
             )
             await self.waiting_node_status()

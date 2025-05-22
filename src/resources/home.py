@@ -516,7 +516,12 @@ class Home(Box):
     async def update_marketchart(self, widget):
         while True:
             data = await self.curve.fetch_marketchart()
-            if data:
+            if not data:
+                self.main.error_dialog(
+                    title="Request Error",
+                    message="Too many requests. The market cap will be updated in the next 10 minutes."
+                )
+            else:
                 curve_image = self.curve.create_curve(data)
                 if curve_image:
                     self.bitcoinz_curve.image = curve_image

@@ -358,7 +358,8 @@ class Node(Box):
             background_color=Color.rgb(30,33,36),
             mouse_enter=self.copy_node_cmd_mouse_enter,
             mouse_leave=self.copy_node_cmd_mouse_leave,
-            action=self.copy_node_address
+            action=self.copy_node_address,
+            icon="images/copy_i.ico"
         )
         self.remove_node_cmd = Command(
             title="Remove node",
@@ -366,7 +367,8 @@ class Node(Box):
             background_color=Color.rgb(30,33,36),
             mouse_enter=self.remove_node_cmd_mouse_enter,
             mouse_leave=self.remove_node_cmd_mouse_leave,
-            action=self.remove_node_from_config
+            action=self.remove_node_from_config,
+            icon="images/remove_node_i.ico"
         )
         commands = [
             self.copy_node_cmd,
@@ -384,6 +386,10 @@ class Node(Box):
 
     def copy_node_address(self):
         self.clipboard.copy(self.address)
+        self.peer_window.info_dialog(
+            title="Copied",
+            message="The node address has copied to clipboard.",
+        )
 
 
     def remove_node_from_config(self):
@@ -437,15 +443,19 @@ class Node(Box):
 
     
     def copy_node_cmd_mouse_enter(self):
+        self.copy_node_cmd.icon = "images/copy_a.ico"
         self.copy_node_cmd.color = Color.BLACK
 
     def copy_node_cmd_mouse_leave(self):
+        self.copy_node_cmd.icon = "images/copy_i.ico"
         self.copy_node_cmd.color = Color.WHITE    
     
     def remove_node_cmd_mouse_enter(self):
+        self.remove_node_cmd.icon = "images/remove_node_a.ico"
         self.remove_node_cmd.color = Color.BLACK
 
     def remove_node_cmd_mouse_leave(self):
+        self.remove_node_cmd.icon = "images/remove_node_i.ico"
         self.remove_node_cmd.color = Color.WHITE
 
 
@@ -459,7 +469,7 @@ class Peer(Window):
         self.units = Units(self.app)
         self.tooltip = ToolTip()
 
-        self.title = "Peers Info"
+        self.title = "Peer Info"
         self.size = (900,607)
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center

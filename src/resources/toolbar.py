@@ -617,10 +617,10 @@ class AppToolBar(Box):
         
 
     def stop_node_exit(self):
-        def on_result(widget, result):
+        async def on_result(widget, result):
             if result is True:
                 self.stop_tor()
-                run_async(self.commands.stopNode())
+                await self.commands.stopNode()
                 self.home_page.bitcoinz_curve.image = None
                 self.home_page.clear_cache()
                 self.notify.hide()

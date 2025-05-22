@@ -2,7 +2,7 @@
 import psutil
 
 from toga import App, Window
-from ..framework import NotifyIcon, Command, run_async
+from ..framework import NotifyIcon, Command
 
 from .client import Client
 
@@ -65,10 +65,10 @@ class Notify(NotifyIcon):
             pass
 
     def stop_node_exit(self):
-        def on_result(widget, result):
+        async def on_result(widget, result):
             if result is True:
                 self.stop_tor()
-                run_async(self.commands.stopNode())
+                await self.commands.stopNode()
                 self.home_page.bitcoinz_curve.image = None
                 self.home_page.clear_cache()
                 self.hide()
