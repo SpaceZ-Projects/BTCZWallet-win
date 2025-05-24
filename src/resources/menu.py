@@ -50,6 +50,7 @@ class Menu(Window):
         self.settings = Settings(self.app)
         
         self._is_minimized = None
+        self._is_hidden = None
         self.import_key_toggle = None
         self.peer_toggle = None
         
@@ -710,6 +711,9 @@ class Menu(Window):
 
     def on_close_menu(self, widget):
         if self.settings.minimize_to_tray():
+            if self.mining_page.mining_status:
+                self.mining_page.notify.show()
             self.hide()
+            self._is_hidden = True
             return
         self.toolbar.exit_app()

@@ -1805,6 +1805,7 @@ class Chat(Box):
                 )
                 await asyncio.sleep(5)
                 notify.hide()
+                notify.dispose()
 
 
     async def get_message(self, form, amount):
@@ -1837,6 +1838,7 @@ class Chat(Box):
             )
             await asyncio.sleep(5)
             notify.hide()
+            notify.dispose()
 
 
     async def get_request(self, form):
@@ -1861,6 +1863,7 @@ class Chat(Box):
             )
             await asyncio.sleep(5)
             notify.hide()
+            notify.dispose()
 
 
     async def update_contacts_list(self, widget):
@@ -2483,6 +2486,7 @@ class Messages(Box):
                             )
                             await asyncio.sleep(5)
                             notify.hide()
+                            notify.dispose()
                     if self.message_count > 0:
                         if self.settings.notification_messages():
                             notify = NotifyMessage()
@@ -2493,6 +2497,7 @@ class Messages(Box):
                             )
                             await asyncio.sleep(5)
                             notify.hide()
+                            notify.dispose()
                         
                     self.chat.run_tasks()
 

@@ -125,7 +125,7 @@ class Currency(Window):
             with open(currencies_json, 'r') as f:
                 currencies_data = json.load(f)
                 return currencies_data
-        except (FileNotFoundError, json.JSONDecodeError):
+        except (FileNotFoundError, json.JSONDecodeError) as e:
             return None
         
     def get_currencies_list(self):
@@ -175,15 +175,40 @@ class Home(Box):
         self.curve_image = None
         self.circulating = None
 
-        self.market_label = Label(
-            text="MarketCap :",
+        self.coingecko_icon = ImageView(
+            image="images/coingecko.png",
+            style=Pack(
+                background_color = rgb(40,43,48),
+                padding = (5,0,0,10),
+            )
+        )
+        self.coingecko_label = Label(
+            text="coingecko",
             style=Pack(
                 font_size = 12,
                 text_align = LEFT,
                 background_color = rgb(40,43,48),
+                color = WHITE,
+                font_weight = BOLD,
+                padding = (5,0,0,5)
+            )
+        )
+        self.last_updated_label = Label(
+            "",
+            style=Pack(
+                font_size = 9,
+                text_align = LEFT,
+                background_color = rgb(40,43,48),
                 color = GRAY,
                 font_weight = BOLD,
-                padding = (10,0,0,10)
+                padding = (10,0,0,5),
+                flex = 1
+            )
+        )
+        self.coingecko_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(40,43,48)
             )
         )
         self.market_box = Box(
@@ -337,7 +362,7 @@ class Home(Box):
             "",
             style=Pack(
                 font_size = 10,
-                text_align = CENTER,
+                text_align = LEFT,
                 background_color = rgb(30,33,36),
                 color = WHITE,
                 font_weight = BOLD,
@@ -351,7 +376,7 @@ class Home(Box):
             "21000000000",
             style=Pack(
                 font_size = 10,
-                text_align = CENTER,
+                text_align = LEFT,
                 background_color = rgb(30,33,36),
                 color = YELLOW,
                 font_weight = BOLD
@@ -371,19 +396,7 @@ class Home(Box):
             style=Pack(
                 direction = COLUMN,
                 alignment = LEFT,
-                background_color = rgb(30,33,36)
-            )
-        )
-
-        self.last_updated_label = Label(
-            "",
-            style=Pack(
-                font_size = 9,
-                text_align = RIGHT,
-                background_color = rgb(40,43,48),
-                color = GRAY,
-                font_weight = BOLD,
-                padding = (5,10,0,0),
+                background_color = rgb(30,33,36),
                 flex = 1
             )
         )
@@ -424,12 +437,16 @@ class Home(Box):
     async def insert_widgets(self, widget):
         if not self.home_toggle:
             self.add(
-                self.market_label, 
+                self.coingecko_box, 
                 self.market_box,
-                self.last_updated_label,
                 self.bitcoinz_curve,
                 self.halving_label,
                 self.remaining_label
+            )
+            self.coingecko_box.add(
+                self.coingecko_icon,
+                self.coingecko_label,
+                self.last_updated_label
             )
             self.market_box.add(
                 self.price_label,
@@ -468,8 +485,7 @@ class Home(Box):
                     return data
         except ProxyConnectionError:
             return None
-        except Exception as e:
-            print(f"Error occurred during fetch: {e}")
+        except Exception:
             return None
 
     async def update_circulating_supply(self, widget):
@@ -502,8 +518,9 @@ class Home(Box):
                 last_updated = data["market_data"]["last_updated"]
 
                 last_updated_datetime = datetime.fromisoformat(last_updated.replace("Z", ""))
-                formatted_last_updated = last_updated_datetime.strftime("%Y-%m-%d %H:%M:%S UTC")
+                formatted_last_updated = last_updated_datetime.strftime("%Y-%m-%d %H:%M:%S")
                 btcz_price = self.units.format_price(market_price)
+                self.settings.update_settings("btcz_price", btcz_price)
                 self.price_value.text = f"{btcz_price} {self.settings.symbol()}"
                 self.percentage_24_value.text = f"{price_percentage_24} %"
                 self.percentage_7_value.text = f"{price_percentage_7d} %"
@@ -512,6 +529,7 @@ class Home(Box):
                 self.last_updated_label.text = formatted_last_updated
 
             await asyncio.sleep(601)
+
 
     async def update_marketchart(self, widget):
         while True:

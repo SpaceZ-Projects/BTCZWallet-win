@@ -635,6 +635,25 @@ class Command(Forms.ToolStripMenuItem):
 
 
 
+class TextBox(Forms.ToolStripTextBox):
+    def __init__(self):
+        super().__init__()
+
+        self.ReadOnly = True
+        self.AutoSize = False
+        self.BorderStyle = BorderStyle.NONE
+        self.Width = 150
+
+    @property
+    def text(self) -> str:
+        return self.Text
+
+    @text.setter
+    def text(self, value: str):
+        self.Text = value
+
+
+
 class NotifyIcon(Forms.NotifyIcon):
     def __init__(
         self,
@@ -713,7 +732,9 @@ class NotifyIcon(Forms.NotifyIcon):
     def hide(self):
         if self.Visible:
             self.Visible = False
-            self.Dispose()
+    
+    def dispose(self):
+        self.Dispose()
 
 
 

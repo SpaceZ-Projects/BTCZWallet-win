@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 import aiohttp
 from aiohttp_socks import ProxyConnector, ProxyConnectionError
+import re
 
 from toga import (
     App, Box, Label, ProgressBar, Window
@@ -213,8 +214,9 @@ class BTCZSetup(Box):
         async def on_result(widget, result):
             if result is True:
                 self.settings.update_settings("tor_network", True)
+                self.main.tor_icon.image = "images/tor_on.png"
                 self.main.network_status.style.color = rgb(114,137,218)
-                self.main.network_status.text = "Tor : Enabled"
+                self.main.network_status.text = "Enabled"
                 await self.verify_tor_files()
             if result is False:
                 self.settings.update_settings("tor_network", False)
@@ -223,7 +225,7 @@ class BTCZSetup(Box):
         self.tor_enabled = self.settings.tor_network()
         if self.tor_enabled is None:
             self.main.network_status.style.color = GRAY
-            self.main.network_status.text = "Tor : Disabled"
+            self.main.network_status.text = "Disabled"
             self.main.question_dialog(
                 title="Tor Network",
                 message="This is your first time running the app.\nWould you like to enable the Tor network ?",
@@ -231,12 +233,13 @@ class BTCZSetup(Box):
             )
         else:
             if self.tor_enabled is True:
+                self.main.tor_icon.image = "images/tor_on.png"
                 self.main.network_status.style.color = rgb(114,137,218)
-                self.main.network_status.text = "Tor : Enabled"
+                self.main.network_status.text = "Enabled"
                 await self.verify_tor_files()
             elif self.tor_enabled is False:
                 self.main.network_status.style.color = GRAY
-                self.main.network_status.text = "Tor : Disabled"
+                self.main.network_status.text = "Disabled"
                 await self.verify_binary_files()
             
 
@@ -281,6 +284,7 @@ class BTCZSetup(Box):
                     stderr=asyncio.subprocess.STDOUT
                 )
                 self.status_label.text = "Waiting for Tor to initialize..."
+                await asyncio.sleep(1)
                 try:
                     result = await self.wait_tor_bootstrap()
                     if result:
@@ -301,13 +305,21 @@ class BTCZSetup(Box):
 
 
     async def wait_tor_bootstrap(self):
+        self.progress_bar._impl.native.Style = ProgressStyle.BLOCKS
+        self.progress_bar.value = 0
+        percentage_pattern = re.compile(r'Bootstrapped (\d+)%')
         while True:
             line = await self.tor_process.stdout.readline()
             if not line:
                 break
             decoded = line.decode().strip()
-            if "Bootstrapped 100% (done): Done" in decoded:
-                return True
+            match = percentage_pattern.search(decoded)
+            if match:
+                percent = int(match.group(1))
+                self.status_label.text = f"Tor Bootstrap Progress: {percent}%"
+                self.progress_bar.value = percent
+                if percent == 100:
+                    return True
 
 
     async def is_tor_alive(self):
@@ -329,6 +341,7 @@ class BTCZSetup(Box):
         if missing_files:
             self.status_label.text = "Downloading binary..."
             self.progress_bar._impl.native.Style = ProgressStyle.BLOCKS
+            self.progress_bar.value = 0
             await self.utils.fetch_binary_files(
                 self.status_label,
                 self.progress_bar,
@@ -345,6 +358,7 @@ class BTCZSetup(Box):
         if missing_files:
             self.status_label.text = "Downloading params..."
             self.progress_bar._impl.native.Style = ProgressStyle.BLOCKS
+            self.progress_bar.value = 0
             await self.utils.fetch_params_files(
                 missing_files, zk_params_path,
                 self.status_label, self.progress_bar,
@@ -391,6 +405,7 @@ class BTCZSetup(Box):
     async def download_bitcoinz_bootstrap(self, widget):
         self.status_label.text = "Downloading bootstrap..."
         self.progress_bar._impl.native.Style = ProgressStyle.BLOCKS
+        self.progress_bar.value = 0
         await self.utils.fetch_bootstrap_files(
             self.status_label,
             self.progress_bar,

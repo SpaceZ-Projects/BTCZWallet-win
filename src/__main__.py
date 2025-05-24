@@ -55,13 +55,20 @@ class BitcoinZGUI(Window):
                 flex = 1
             )
         )
+        self.tor_icon = ImageView(
+            image="images/tor_off.png",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                padding_left = 10,
+            )
+        )
         self.network_status = Label(
             text="",
             style=Pack(
                 background_color = rgb(30,33,36),
                 text_align = LEFT,
                 font_weight = BOLD,
-                padding_left = 10,
+                padding_left = 3,
                 font_size = 10,
                 flex = 1
             )
@@ -76,6 +83,7 @@ class BitcoinZGUI(Window):
             self.startup
         )
         self.version_box.add(
+            self.tor_icon,
             self.network_status,
             self.app_version
         )

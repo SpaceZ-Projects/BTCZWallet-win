@@ -598,6 +598,7 @@ class AppToolBar(Box):
                 self.home_page.bitcoinz_curve.image = None
                 self.home_page.clear_cache()
                 self.notify.hide()
+                self.notify.dispose()
                 self.app.exit()
         if self.mining_page.mining_status:
             return
@@ -624,6 +625,7 @@ class AppToolBar(Box):
                 self.home_page.bitcoinz_curve.image = None
                 self.home_page.clear_cache()
                 self.notify.hide()
+                self.notify.dispose()
                 self.app.exit()
 
         if self.mining_page.mining_status:

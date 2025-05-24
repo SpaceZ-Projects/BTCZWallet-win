@@ -21,6 +21,7 @@ from .utils import Utils
 from .units import Units
 from .client import Client
 from .settings import Settings
+from .notify import NotifyMining
 
 
 class Mining(Box):
@@ -40,6 +41,7 @@ class Mining(Box):
         self.units = Units(self.app)
         self.commands = Client(self.app)
         self.settings = Settings(self.app)
+        self.notify = NotifyMining()
         self.tooltip = ToolTip()
 
         self.mining_toggle = None
@@ -386,6 +388,23 @@ class Mining(Box):
             )
         )
 
+        self.estimated_earn_value = Label(
+            text=f"0.00 {self.settings.symbol()}",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                font_weight = BOLD,
+                padding_left = 6
+            )
+        )
+
+        self.estimated_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(30,33,36)
+            )
+        )
+
         self.mining_box = Box(
             style=Pack(
                 direction = ROW,
@@ -470,7 +489,11 @@ class Mining(Box):
                 self.solutions_icon,
                 self.solutions_value,
                 self.estimated_icon,
-                self.estimated_value
+                self.estimated_box
+            )
+            self.estimated_box.add(
+                self.estimated_value,
+                self.estimated_earn_value
             )
             self.mining_toggle = True
             self.app.add_background_task(self.update_mining_options)
@@ -667,6 +690,12 @@ class Mining(Box):
 
 
     async def fetch_miner_stats(self, widget):
+
+        self.notify.solutions.text = f"⛏️ Solutions : 0.0 Sol/s"
+        self.notify.balance.text = f"💰 Balance : 0.0000000"
+        self.notify.immature.text = f"🔃 Immature : 0.0000000"
+        self.notify.paid.text = f"💸 Paid : 0.0000000"
+
         api = self.pool_api + self.selected_address
         if self.tor_enabled:
             connector = ProxyConnector.from_url('socks5://127.0.0.1:9050')
@@ -678,6 +707,8 @@ class Mining(Box):
                     return
                 try:
                     headers = {'User-Agent': 'Mozilla/5.0'}
+                    estimated_24h = 0
+                    converted_rate = 0.0
                     async with session.get(api, headers=headers) as response:
                         response.raise_for_status()
                         mining_data = await response.json()
@@ -696,8 +727,8 @@ class Mining(Box):
                                 if name == self.worker_name:
                                     hashrate = worker_info.get("hashrate", None)
                                     if hashrate:
-                                        rate = self.units.hash_to_solutions(hashrate)
-                                        self.solutions_value.text = f"{rate:.2f} Sol/s"
+                                        converted_rate = self.units.hash_to_solutions(hashrate)
+                                        self.solutions_value.text = f"{converted_rate:.2f} Sol/s"
                                         estimated_24h = await self.units.estimated_earn(24, hashrate)
                                         self.estimated_value.text = f"{int(estimated_24h)} /Day"
                         else:
@@ -706,20 +737,35 @@ class Mining(Box):
                                 for hashrate in total_hashrates:
                                     for algo, rate in hashrate.items():
                                         self.solutions_value.text = f"{rate:.2f} Sol/s"
+                                        converted_rate = self.units.solution_to_hash(rate)
+                                        estimated_24h = await self.units.estimated_earn(24, converted_rate)
+                                        self.estimated_value.text = f"{int(estimated_24h)} /Day"
+                                        converted_rate = rate
+
+                        btcz_price = self.settings.price()
+                        if btcz_price:
+                            estimated_earn = float(btcz_price) * float(estimated_24h)
+                            self.estimated_earn_value.text = f"{self.units.format_price(estimated_earn)} {self.settings.symbol()}"
 
                         self.totalshares_value.text = f"{total_share:.2f}"
                         self.balance_value.text = self.units.format_balance(balance)
                         self.immature_value.text = self.units.format_balance(immature_bal)
                         self.paid_value.text = self.units.format_balance(paid)
+                        if self.main._is_hidden:
+                            self.notify.text = f"Solutions : {converted_rate:.2f} Sol/s"
+                            self.notify.solutions.text = f"⛏️ Solutions : {converted_rate:.2f} Sol/s"
+                            self.notify.balance.text = f"💰 Balance : {self.units.format_balance(balance)}"
+                            self.notify.immature.text = f"🔃 Immature : {self.units.format_balance(immature_bal)}"
+                            self.notify.paid.text = f"💸 Paid : {self.units.format_balance(paid)}"
 
                 except ProxyConnectionError:
-                    print("Proxy connection failed. Is the Tor service running ?")
+                    print("Proxy connection failed.")
                 except aiohttp.ClientError as e:
                     print(f"Error while fetching data: {e}")
                 except Exception as e:
                     print(f"An unexpected error occurred: {e}")
 
-                await asyncio.sleep(150)
+                await asyncio.sleep(60)
 
 
     def ouputs_box_on_resize(self, sender, event):
@@ -763,6 +809,7 @@ class Mining(Box):
             self.paid_value.text = "0.00"
             self.solutions_value.text = "0.00 Sol/s"
             self.estimated_value.text = "0.00 /Day"
+            self.estimated_earn_value.text = f"0.00 {self.settings.symbol()}"
         except Exception as e:
             print(f"Exception occurred while killing process: {e}")
 
@@ -770,7 +817,6 @@ class Mining(Box):
     def update_mining_button(self, option):
         if option == "stop":
             self.start_mining_button.text = "Stop"
-            self.start_mining_button.style.background_color = RED
             self.start_mining_button._impl.native.MouseEnter -= self.start_mining_button_mouse_enter
             self.start_mining_button._impl.native.MouseLeave -= self.start_mining_button_mouse_leave
             self.start_mining_button.on_press = None
@@ -781,7 +827,6 @@ class Mining(Box):
 
         elif option == "start":
             self.start_mining_button.text = "Start Mining"
-            self.start_mining_button.style.background_color = GREENYELLOW
             self.start_mining_button._impl.native.MouseEnter -= self.stop_mining_button_mouse_enter
             self.start_mining_button._impl.native.MouseLeave -= self.stop_mining_button_mouse_leave
             self.start_mining_button.on_press = None
@@ -790,10 +835,11 @@ class Mining(Box):
             self.start_mining_button._impl.native.MouseLeave += self.start_mining_button_mouse_leave
             self.start_mining_button.on_press = self.start_mining_button_click
 
+        self.start_mining_button.style.color = GRAY
+        self.start_mining_button.style.background_color = rgb(30,33,36)
+
 
     def disable_mining_inputs(self):
-        self.start_mining_button.style.color = BLACK
-        self.start_mining_button.style.background_color = RED
         self.miner_selection.enabled = False
         self.address_selection.enabled = False
         self.pool_selection.enabled = False
@@ -801,8 +847,6 @@ class Mining(Box):
         self.worker_input.readonly = True
 
     def enable_mining_inputs(self):
-        self.start_mining_button.style.color = BLACK
-        self.start_mining_button.style.background_color = GREENYELLOW
         self.miner_selection.enabled = True
         self.address_selection.enabled = True
         self.pool_selection.enabled = True

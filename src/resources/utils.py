@@ -256,12 +256,9 @@ class Utils():
                         Os.File.Move(geoip6_file, dest_geoip6)
 
                         docs_dir = Os.Path.Combine(str(self.app_data), "docs")
-                        if Os.Directory.Exists(tor_dir):
-                            Os.Directory.Delete(tor_dir, True)
-                        if Os.Directory.Exists(data_dir):
-                            Os.Directory.Delete(data_dir, True)
-                        if Os.Directory.Exists(docs_dir):
-                            Os.Directory.Delete(docs_dir, True)
+                        for path in [tor_dir, data_dir, docs_dir]:
+                            if Os.Directory.Exists(path):
+                                Os.Directory.Delete(path, True)
                         if Os.File.Exists(destination):
                             Os.File.Delete(destination)
         except RuntimeError as e:
@@ -313,7 +310,7 @@ class Utils():
                         Os.Directory.Delete(extracted_folder, True)
                         Os.File.Delete(destination)
         except ProxyConnectionError:
-            print("Proxy connection failed. Is the Tor service running ?")
+            print("Proxy connection failed.")
         except RuntimeError as e:
             print(f"RuntimeError caught: {e}")
         except aiohttp.ClientError as e:
@@ -355,7 +352,7 @@ class Utils():
                     self.current_download_file = None
                 await session.close()
         except ProxyConnectionError:
-            print("Proxy connection failed. Is the Tor service running ?")
+            print("Proxy connection failed.")
         except RuntimeError as e:
             print(f"RuntimeError caught: {e}")
         except aiohttp.ClientError as e:
@@ -406,7 +403,7 @@ class Utils():
                     self.current_download_file = None
                 await session.close()
         except ProxyConnectionError:
-            print("Proxy connection failed. Is the Tor service running ?")
+            print("Proxy connection failed.")
         except RuntimeError as e:
             print(f"RuntimeError caught: {e}")
         except aiohttp.ClientError as e:
@@ -458,7 +455,7 @@ class Utils():
                                 progress_bar
                             )
         except ProxyConnectionError:
-            print("Proxy connection failed. Is the Tor service running ?")
+            print("Proxy connection failed.")
         except RuntimeError as e:
             print(f"RuntimeError caught: {e}")
         except aiohttp.ClientError as e:
@@ -527,6 +524,7 @@ class Utils():
 
     def update_progress_style(self, progress_bar, style):
         progress_bar._impl.native.Style = style
+        progress_bar.value = 0
 
 
     def create_config_file(self, config_file_path):

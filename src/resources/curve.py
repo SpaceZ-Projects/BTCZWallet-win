@@ -43,8 +43,7 @@ class Curve():
                     return prices
         except ProxyConnectionError:
             return None
-        except Exception as e:
-            print(f"Error occurred during fetch: {e}")
+        except Exception:
             return None
 
     def create_curve(self, data):

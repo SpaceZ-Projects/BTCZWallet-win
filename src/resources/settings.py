@@ -55,6 +55,15 @@ class Settings():
                 return settings['startup']
             
 
+    def price(self):
+        with open(self.settings_path, 'r') as f:
+            settings = json.load(f)
+            if 'btcz_price' not in settings:
+                return None
+            else:
+                return settings['btcz_price']
+            
+
     def currency(self):
         with open(self.settings_path, 'r') as f:
             settings = json.load(f)
