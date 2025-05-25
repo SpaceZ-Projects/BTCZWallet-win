@@ -30,6 +30,7 @@ class AppToolBar(Box):
 
         self.app_menu_active = None
         self.settings_menu_active = None
+        self.opacity_cmd_active = None
         self.network_menu_active = None
         self.wallet_menu_active = None
         self.messages_menu_active = None
@@ -110,14 +111,6 @@ class AppToolBar(Box):
             mouse_leave=self.notification_messages_cmd_mouse_leave,
             tooltip="Enable/Disable the messages notifications"
         )
-        self.startup_cmd = Command(
-            title="Run on Startup",
-            color=Color.WHITE,
-            background_color=Color.rgb(40,43,48),
-            mouse_enter=self.startup_cmd_mouse_enter,
-            mouse_leave=self.startup_cmd_mouse_leave,
-            tooltip="Enable/Disable app startup on boot"
-        )
         self.minimize_cmd = Command(
             title="Minimize to tray",
             color=Color.WHITE,
@@ -126,10 +119,58 @@ class AppToolBar(Box):
             mouse_leave=self.minimize_cmd_mouse_leave,
             tooltip="Enable/Disable minimizing the application to the system tray on close"
         )
+        self.startup_cmd = Command(
+            title="Run on Startup",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.startup_cmd_mouse_enter,
+            mouse_leave=self.startup_cmd_mouse_leave,
+            tooltip="Enable/Disable app startup on boot"
+        )
+        self.opacity_50_cmd = Command(
+            title="50% Opacity",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.opacity_50_cmd_mouse_enter,
+            mouse_leave=self.opacity_50_cmd_mouse_leave,
+            action=self.change_window_opacity_50
+        )
+        self.opacity_75_cmd = Command(
+            title="75% Opacity",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.opacity_75_cmd_mouse_enter,
+            mouse_leave=self.opacity_75_cmd_mouse_leave,
+            action=self.change_window_opacity_75
+        )
+        self.opacity_100_cmd = Command(
+            title="100% Opacity",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.opacity_100_cmd_mouse_enter,
+            mouse_leave=self.opacity_100_cmd_mouse_leave,
+            action=self.change_window_opacity_100
+        )
+        self.opacity_cmd = Command(
+            title="Window opacity",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            sub_commands=[
+                self.opacity_50_cmd,
+                self.opacity_75_cmd,
+                self.opacity_100_cmd
+            ],
+            icon="images/opacity_i.ico",
+            drop_opened=self.opacity_cmd_opened,
+            drop_closed=self.opacity_cmd_closed,
+            mouse_enter=self.opacity_cmd_mouse_enter,
+            mouse_leave=self.opacity_cmd_mouse_leave
+        )
         self.settings_menu = Command(
             title="Settings",
             sub_commands=[
                 self.currency_cmd,
+                self.opacity_cmd,
                 self.notification_txs_cmd,
                 self.notification_messages_cmd,
                 self.minimize_cmd,
@@ -429,6 +470,44 @@ class AppToolBar(Box):
     def startup_cmd_mouse_leave(self):
         self.startup_cmd.color = Color.WHITE
 
+    def opacity_cmd_opened(self):
+        self.opacity_cmd_active = True
+        self.opacity_cmd.icon = "images/opacity_a.ico"
+        self.opacity_cmd.color = Color.BLACK
+
+    def opacity_cmd_closed(self):
+        self.opacity_cmd_active = False
+        self.opacity_cmd.icon = "images/opacity_i.ico"
+        self.opacity_cmd.color = Color.WHITE
+
+    def opacity_cmd_mouse_enter(self):
+        self.opacity_cmd.icon = "images/opacity_a.ico"
+        self.opacity_cmd.color = Color.BLACK
+
+    def opacity_cmd_mouse_leave(self):
+        if self.opacity_cmd_active:
+            return
+        self.opacity_cmd.icon = "images/opacity_i.ico"
+        self.opacity_cmd.color = Color.WHITE
+
+    def opacity_50_cmd_mouse_enter(self):
+        self.opacity_50_cmd.color = Color.BLACK
+
+    def opacity_50_cmd_mouse_leave(self):
+        self.opacity_50_cmd.color = Color.WHITE
+
+    def opacity_75_cmd_mouse_enter(self):
+        self.opacity_75_cmd.color = Color.BLACK
+
+    def opacity_75_cmd_mouse_leave(self):
+        self.opacity_75_cmd.color = Color.WHITE
+
+    def opacity_100_cmd_mouse_enter(self):
+        self.opacity_100_cmd.color = Color.BLACK
+
+    def opacity_100_cmd_mouse_leave(self):
+        self.opacity_100_cmd.color = Color.WHITE
+
     def wallet_menu_opened(self):
         self.wallet_menu_active = True
         self.wallet_menu.icon = "images/wallet_a.ico"
@@ -588,6 +667,24 @@ class AppToolBar(Box):
     def import_wallet_cmd_mouse_leave(self):
         self.import_wallet_cmd.icon = "images/import_i.ico"
         self.import_wallet_cmd.color = Color.WHITE
+
+    def change_window_opacity_50(self):
+        self.main._impl.native.Opacity = 0.5
+        if self.main.peer_toggle:
+            self.main.peer_window._impl.native.Opacity = 0.5
+        self.settings.update_settings("opacity", 0.5)
+
+    def change_window_opacity_75(self):
+        self.main._impl.native.Opacity = 0.75
+        if self.main.peer_toggle:
+            self.main.peer_window._impl.native.Opacity = 0.75
+        self.settings.update_settings("opacity", 0.75)
+
+    def change_window_opacity_100(self):
+        self.main._impl.native.Opacity = 1
+        if self.main.peer_toggle:
+            self.main.peer_window._impl.native.Opacity = 1
+        self.settings.update_settings("opacity", 1)
 
     def display_about_dialog(self):
         self.app.about()

@@ -72,6 +72,15 @@ class Settings():
             else:
                 return settings['currency']
             
+    def opacity(self):
+        with open(self.settings_path, 'r') as f:
+            settings = json.load(f)
+            if 'opacity' not in settings:
+                return None
+            else:
+                return settings['opacity']
+            
+            
     def symbol(self):
         with open(self.settings_path, 'r') as f:
             settings = json.load(f)

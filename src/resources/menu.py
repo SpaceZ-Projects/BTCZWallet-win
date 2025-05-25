@@ -54,6 +54,9 @@ class Menu(Window):
         self.import_key_toggle = None
         self.peer_toggle = None
         
+        opacity = self.settings.opacity()
+        if opacity:
+            self._impl.native.Opacity = opacity
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
         self.on_close = self.on_close_menu

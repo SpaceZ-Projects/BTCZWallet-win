@@ -518,7 +518,7 @@ class Home(Box):
                 last_updated = data["market_data"]["last_updated"]
 
                 last_updated_datetime = datetime.fromisoformat(last_updated.replace("Z", ""))
-                formatted_last_updated = last_updated_datetime.strftime("%Y-%m-%d %H:%M:%S")
+                formatted_last_updated = last_updated_datetime.strftime("%Y-%m-%d %H:%M:%S UTC")
                 btcz_price = self.units.format_price(market_price)
                 self.settings.update_settings("btcz_price", btcz_price)
                 self.price_value.text = f"{btcz_price} {self.settings.symbol()}"

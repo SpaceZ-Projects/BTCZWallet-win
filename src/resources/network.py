@@ -29,16 +29,16 @@ from .utils import Utils
 class AddNode(Window):
     def __init__(self):
         super().__init__(
-            size = (550, 120),
             resizable=False,
             minimizable=False,
             closable=False
         )
-
+        
         self.utils = Utils(self.app)
         self.commands = Client(self.app)
 
         self.title = "Add Node"
+        self.size = (550, 120)
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
 
@@ -471,6 +471,7 @@ class Peer(Window):
 
         self.title = "Peer Info"
         self.size = (900,607)
+        self._impl.native.Opacity = self.main._impl.native.Opacity
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
         self.on_close = self.close_peers_window
