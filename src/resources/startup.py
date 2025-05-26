@@ -217,11 +217,19 @@ class BTCZSetup(Box):
                 self.main.tor_icon.image = "images/tor_on.png"
                 self.main.network_status.style.color = rgb(114,137,218)
                 self.main.network_status.text = "Enabled"
+                if self.node_status:
+                    await self.commands.stopNode()
+                    await asyncio.sleep(1)
                 await self.verify_tor_files()
             if result is False:
                 self.settings.update_settings("tor_network", False)
-                await self.verify_binary_files()
+                if self.node_status:
+                    await self.open_main_menu()
+                else:
+                    await self.verify_binary_files()
+            
         await asyncio.sleep(1)
+        self.node_status = await self.is_bitcoinz_running()
         self.tor_enabled = self.settings.tor_network()
         if self.tor_enabled is None:
             self.main.network_status.style.color = GRAY
@@ -236,11 +244,26 @@ class BTCZSetup(Box):
                 self.main.tor_icon.image = "images/tor_on.png"
                 self.main.network_status.style.color = rgb(114,137,218)
                 self.main.network_status.text = "Enabled"
-                await self.verify_tor_files()
+                await asyncio.sleep(1)
+                if self.node_status:
+                    await self.open_main_menu()
+                else:
+                    await self.verify_tor_files()
             elif self.tor_enabled is False:
                 self.main.network_status.style.color = GRAY
                 self.main.network_status.text = "Disabled"
-                await self.verify_binary_files()
+                await asyncio.sleep(1)
+                if self.node_status:
+                    await self.open_main_menu()
+                else:
+                    await self.verify_binary_files()
+
+
+    async def is_bitcoinz_running(self):
+        result,_ = await self.commands.getInfo()
+        if result:
+            return True
+        return None
             
 
     async def verify_tor_files(self):
@@ -480,10 +503,6 @@ class BTCZSetup(Box):
             sync_percentage = sync * 100
             if sync_percentage <= 99.95:
                 self.update_info_box()
-                self.main.info_dialog(
-                    title="Disabled Wallet",
-                    message="The wallet is currently disabled as it is synchronizing. It will be accessible once the sync process is complete.",
-                )
                 while True:
                     blockchaininfo, _ = await self.commands.getBlockchainInfo()
                     if blockchaininfo:
