@@ -479,13 +479,15 @@ class Home(Box):
         try:
             async with aiohttp.ClientSession(connector=connector) as session:
                 headers={'User-Agent': 'Mozilla/5.0'}
-                async with session.get(api, headers=headers) as response:
+                async with session.get(api, headers=headers, timeout=10) as response:
                     response.raise_for_status()
                     data = await response.json()
                     return data
-        except ProxyConnectionError:
+        except ProxyConnectionError as e:
             return None
-        except Exception:
+        except asyncio.TimeoutError:
+            return None
+        except Exception as e:
             return None
 
     async def update_circulating_supply(self, widget):

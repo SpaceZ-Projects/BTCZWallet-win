@@ -1,4 +1,5 @@
 
+import asyncio
 import aiohttp
 import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
@@ -36,12 +37,14 @@ class Curve():
         try:
             async with aiohttp.ClientSession(connector=connector) as session:
                 headers={'User-Agent': 'Mozilla/5.0'}
-                async with session.get(COINGECKO_API, params=params, headers=headers) as response:
+                async with session.get(COINGECKO_API, params=params, headers=headers, timeout=10) as response:
                     response.raise_for_status()
                     data = await response.json()
                     prices = data.get('prices', [])
                     return prices
         except ProxyConnectionError:
+            return None
+        except asyncio.TimeoutError:
             return None
         except Exception:
             return None
