@@ -197,6 +197,10 @@ class Utils():
             miner_file = "miner.exe"
             url = "https://github.com/develsoftware/GMinerRelease/releases/download/3.44/"
             zip_file = "gminer_3_44_windows64.zip"
+        elif miner == "lolMiner":
+            miner_file = "lolMiner.exe"
+            url = "https://github.com/Lolliedieb/lolMiner-releases/releases/download/1.95/"
+            zip_file = "lolMiner_v1.95_Win64.zip"
 
         miner_dir = Os.Path.Combine(str(self.app_data), miner_folder)
         if not Os.Directory.Exists(miner_dir):
@@ -441,13 +445,27 @@ class Utils():
                             miner_name = "miniZ.exe"
                         elif miner_folder =="Gminer":
                             miner_name = "miner.exe"
+                        elif miner_folder == "lolMiner":
+                            miner_name = "lolMiner.exe"
+
                         with zipfile.ZipFile(destination, 'r') as zip_ref:
                             zip_ref.extractall(miner_dir)
+
+                        if miner_folder == "lolMiner":
+                            subdirs = [d for d in Os.Directory.GetDirectories(miner_dir)]
+                            if len(subdirs) == 1:
+                                subdir = subdirs[0]
+                                for file in Os.Directory.GetFiles(subdir):
+                                    dest_path = Os.Path.Combine(miner_dir, Os.Path.GetFileName(file))
+                                    Os.File.Move(file, dest_path)
+                                Os.Directory.Delete(subdir, True)
+
                         for file in Os.Directory.GetFiles(miner_dir):
                             file_name = Os.Path.GetFileName(file)
                             if file_name != miner_name:
                                 if Os.File.Exists(file):
                                     Os.File.Delete(file)
+
                         if Os.File.Exists(destination):
                             Os.File.Delete(destination)
                             miner_selection.enabled = True

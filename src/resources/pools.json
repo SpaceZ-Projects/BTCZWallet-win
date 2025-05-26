@@ -2,52 +2,66 @@
 {
     "2Mars": {
       "api": "",
+      "port": "1234",
+      "ssl": "",
       "regions": [
-        {"region": "Canada", "server": "btcz.ca.2mars.biz:1234"},
-        {"region": "USA", "server": "btcz.us.2mars.biz:1234"},
-        {"region": "Netherlands", "server": "btcz.eu.2mars.biz:1234"},
-        {"region": "Singapore", "server": "btcz.sg.2mars.biz:1234"}
+        {"region": "Canada", "server": "btcz.ca.2mars.biz"},
+        {"region": "USA", "server": "btcz.us.2mars.biz"},
+        {"region": "Netherlands", "server": "btcz.eu.2mars.biz"},
+        {"region": "Singapore", "server": "btcz.sg.2mars.biz"}
       ]
     },
     "Swgroupe": {
       "api": "https://swgroupe.fr/api/worker_stats?",
+      "port": "2001",
+      "ssl": "",
       "regions": [
-        {"region": "France", "server": "swgroupe.fr:2001"}
+        {"region": "France", "server": "swgroupe.fr"}
       ]
     },
     "Zeropool": {
       "api": "https://zeropool.io/api/worker_stats?",
+      "port": "1235",
+      "ssl": "",
       "regions": [
         {"region": "USA", "server": "zeropool.io:1235"}
       ]
     },
     "PCmining": {
       "api": "https://btcz.pcmining.xyz/api/worker_stats?",
+      "port": "3333",
+      "ssl": "",
       "regions": [
-        {"region": "Germany", "server": "btcz.pcmining.xyz:3333"}
+        {"region": "Germany", "server": "btcz.pcmining.xyz"}
       ]
     },
     "Darkfibersmines": {
       "api": "https://btcz.darkfibermines.com/api/worker_stats?",
+      "port": "4000",
+      "ssl": "",
       "regions": [
-        {"region": "USA", "server": "142.4.211.28:4000"}
+        {"region": "USA", "server": "142.4.211.28"}
       ]
     },
     "Zergpool": {
-      "api": "https://zergpool.com/api/walletEX?address=",
+      "api": "https://zergpool.com/api/walletEx?address=",
+      "port": "2146",
+      "ssl": "12146",
       "regions": [
-        {"region": "North America", "server": "equihash144.na.mine.zergpool.com:2146"},
-        {"region": "Europe", "server": "equihash144.eu.mine.zergpool.com:2146"},
-        {"region": "Asia", "server": "equihash144.asia.mine.zergpool.com:2146"}
+        {"region": "North America", "server": "equihash144.na.mine.zergpool.com"},
+        {"region": "Europe", "server": "equihash144.eu.mine.zergpool.com"},
+        {"region": "Asia", "server": "equihash144.asia.mine.zergpool.com"}
       ]
     },
     "Zpool": {
       "api": "https://www.zpool.ca/api/walletEX?address=",
+      "port": "2144",
+      "ssl": "",
       "regions": [
-        {"region": "Europe", "server": "equihash144.eu.mine.zpool.ca:2144"},
-        {"region": "North America", "server": "equihash144.na.mine.zpool.ca:2144"},
-        {"region": "Asia", "server": "equihash144.sea.mine.zpool.ca:2144"},
-        {"region": "Japan", "server": "equihash144.jp.mine.zpool.ca:2144"}
+        {"region": "Europe", "server": "equihash144.eu.mine.zpool.ca"},
+        {"region": "North America", "server": "equihash144.na.mine.zpool.ca"},
+        {"region": "Asia", "server": "equihash144.sea.mine.zpool.ca"},
+        {"region": "Japan", "server": "equihash144.jp.mine.zpool.ca"}
       ]
     }
   }

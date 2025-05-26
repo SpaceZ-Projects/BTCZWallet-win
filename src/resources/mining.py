@@ -10,7 +10,7 @@ from aiohttp_socks import ProxyConnector, ProxyConnectionError
 from toga import (
     App, Box, Label, Selection, TextInput,
     ProgressBar, Window, ScrollContainer,
-    Button, ImageView
+    Button, ImageView, Switch
 )
 from ..framework import FlatStyle, Os, ToolTip
 from toga.style.pack import Pack
@@ -21,8 +21,8 @@ from .utils import Utils
 from .units import Units
 from .client import Client
 from .settings import Settings
-from .notify import NotifyMining
 from .storage import Storage
+from .notify import NotifyMining
 
 
 class Mining(Box):
@@ -54,6 +54,8 @@ class Mining(Box):
         self.worker_name = None
         self.mining_status = None
         self.pool_api = None
+        self.pool_port = None
+        self.pool_ssl = None
         self.miner_command = None
         self.tor_enabled = self.settings.tor_network()
 
@@ -73,7 +75,8 @@ class Mining(Box):
             items=[
                 {"miner": "Select Miner"},
                 {"miner": "MiniZ"},
-                {"miner": "Gminer"}
+                {"miner": "Gminer"},
+                {"miner": "lolMiner"}
             ],
             style=Pack(
                 color = WHITE,
@@ -182,7 +185,7 @@ class Mining(Box):
                 background_color = rgb(30,33,36),
                 font_weight = BOLD,
                 font_size = 12,
-                flex = 2,
+                flex = 1.5,
                 padding_top = 10
             ),
             items=[
@@ -207,6 +210,20 @@ class Mining(Box):
             on_change=self.update_region_server
         )
         self.pool_region_selection._impl.native.FlatStyle = FlatStyle.FLAT
+
+        self.ssl_switch = Switch(
+            text=" SSL",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                font_weight = BOLD,
+                font_size = 12,
+                flex = 0.5,
+                padding = (13,10,0,15)
+            ),
+            enabled=False
+        )
+        self.tooltip.insert(self.ssl_switch._impl.native, "Enable/Disable SSL")
 
         self.selection_pool_box = Box(
             style=Pack(
@@ -257,7 +274,7 @@ class Mining(Box):
             ) 
         )
 
-        self.ouputs_box = Box(
+        self.output_box = Box(
            style=Pack(
                 direction = COLUMN,
                 background_color = rgb(40,43,48),
@@ -265,10 +282,10 @@ class Mining(Box):
                 padding = (5,10,0,10)
             ) 
         )
-        self.ouputs_box._impl.native.Resize += self.ouputs_box_on_resize
+        self.output_box._impl.native.Resize += self.output_box_on_resize
 
-        self.ouputs_scroll = ScrollContainer(
-            content=self.ouputs_box,
+        self.output_scroll = ScrollContainer(
+            content=self.output_box,
             style=Pack(
                 background_color = rgb(40,43,48),
                 flex = 1,
@@ -452,7 +469,7 @@ class Mining(Box):
                 self.selection_address_box,
                 self.selection_pool_box,
                 self.worker_box,
-                self.ouputs_scroll,
+                self.output_scroll,
                 self.start_mining_box
             )
             self.selection_miner_box.add(
@@ -468,7 +485,8 @@ class Mining(Box):
             self.selection_pool_box.add(
                 self.pool_label,
                 self.pool_selection,
-                self.pool_region_selection
+                self.pool_region_selection,
+                self.ssl_switch
             )
             self.worker_box.add(
                 self.worker_label,
@@ -542,7 +560,7 @@ class Mining(Box):
             address_items = [(address_info, address_info) for address_info in addresses_data]
 
         return address_items
-
+    
 
     async def get_private_addresses(self):
         addresses_data, _ = await self.commands.z_listAddresses()
@@ -563,9 +581,17 @@ class Mining(Box):
         if not self.selected_pool:
             return
         
+        if self.selected_pool == "Zergpool":
+            self.ssl_switch.enabled = True
+        else:
+            self.ssl_switch.value = False
+            self.ssl_switch.enabled = False
+        
         pools_data = self.get_pools_data()
         if self.selected_pool in pools_data:
             self.pool_api = pools_data[self.selected_pool]["api"]
+            self.pool_port = pools_data[self.selected_pool]["port"]
+            self.pool_ssl = pools_data[self.selected_pool]["ssl"]
             pool_rergion_items = pools_data[self.selected_pool]["regions"]
             self.pool_region_selection.items = pool_rergion_items
             self.pool_region_selection.enabled = True
@@ -630,20 +656,55 @@ class Mining(Box):
     def prepare_mining(self):
         miner_path,_,_ = self.utils.get_miner_path(self.selected_miner)
         if miner_path:
+
             if self.selected_miner == "MiniZ":
+                log_file = Os.Path.Combine(str(self.app.paths.logs), 'miniZ.log')
+                self.miner_command = f'{miner_path} --url '
+                if self.ssl_switch.value is True:
+                    self.miner_command += 'ssl://'
+                    self.pool_port = self.pool_ssl
+                self.miner_command += f'{self.selected_address}.{self.worker_name}@{self.selected_server}:{self.pool_port}  --logfile {log_file}'
                 if self.selected_pool == "Zpool":
-                    self.miner_command = f'{miner_path} --url {self.selected_address}.{self.worker_name}@{self.selected_server} --pass c=BTCZ,zap=BTCZ --pers auto'
+                    self.miner_command += ' --pass c=BTCZ,zap=BTCZ --pers auto'
+                elif self.selected_pool == "Zergpool":
+                    self.miner_command += ' --pass c=BTCZ,mc=BTCZ --pers BitcoinZ'
                 else:
-                    self.miner_command = f'{miner_path} --url {self.selected_address}.{self.worker_name}@{self.selected_server} --pass x --par 144,5 --pers BitcoinZ'
+                    self.miner_command += ' --pass x --par 144,5 --pers BitcoinZ'
                 if self.tor_enabled:
                     self.miner_command += ' --socks 127.0.0.1:9050'
+                    
             elif self.selected_miner == "Gminer":
+                log_file = Os.Path.Combine(str(self.app.paths.logs), 'Gminer.log')
+                self.miner_command = f'{miner_path} --server {self.selected_server} --logfile {log_file} --user {self.selected_address}'
+                if self.ssl_switch.value is True:
+                    self.miner_command += ' --ssl 1'
+                    self.pool_port = self.pool_ssl
                 if self.selected_pool == "Zpool":
-                    self.miner_command = f'{miner_path} --server {self.selected_server} --user {self.selected_address}.{self.worker_name} --pass c=BTCZ,zap=BTCZ --algo 144_5 --pers auto'
+                    self.miner_command += f'.{self.worker_name} --pass c=BTCZ,zap=BTCZ --algo 144_5 --pers auto'
+                elif self.selected_pool == "Zergpool":
+                    self.miner_command += f' --pass c=BTCZ,mc=BTCZ,ID={self.worker_name} --algo 144_5 --pers BitcoinZ'
                 else:
-                    self.miner_command = f'{miner_path} --server {self.selected_server} --user {self.selected_address}.{self.worker_name} --pass x --algo 144_5 --pers BitcoinZ'
+                    self.miner_command += f'.{self.worker_name} --pass x --algo 144_5 --pers BitcoinZ'
+                self.miner_command += f' --port {self.pool_port}'
                 if self.tor_enabled:
                     self.miner_command += ' --proxy 127.0.0.1:9050'
+
+            elif self.selected_miner == "lolMiner":
+                log_file = Os.Path.Combine(str(self.app.paths.logs), 'lolMiner.log')
+                self.miner_command = f'{miner_path} --pool '
+                if self.ssl_switch.value is True:
+                    self.miner_command += 'ssl://'
+                    self.pool_port = self.pool_ssl
+                self.miner_command += f'{self.selected_server}:{self.pool_port} --log "on" --logfile {log_file} --user {self.selected_address}'
+                if self.selected_pool == "Zpool":
+                    self.miner_command += f'.{self.worker_name} --pass c=BTCZ,zap=BTCZ --pers BitcoinZ --algo EQUI144_5'
+                elif self.selected_pool == "Zergpool":
+                    self.miner_command += f' --pass c=BTCZ,mc=BTCZ,ID={self.worker_name} --pers BitcoinZ --algo EQUI144_5'
+                else:
+                    self.miner_command += f'.{self.worker_name} --pass x --pers BitcoinZ --algo EQUI144_5'
+                if self.tor_enabled:
+                    self.miner_command += ' --socks5 127.0.0.1:9050'
+
             self.disable_mining_inputs()
             self.app.add_background_task(self.start_mining_command)
             self.mining_status = True
@@ -652,7 +713,7 @@ class Mining(Box):
 
     async def start_mining_command(self, widget):
         self.update_mining_button("stop")
-        self.ouputs_box.clear()
+        self.output_box.clear()
         command = [self.miner_command]
         try:
             self.process = await asyncio.create_subprocess_shell(
@@ -667,7 +728,9 @@ class Mining(Box):
                 if stdout_line:
                     decoded_line = stdout_line.decode().strip()
                     cleaned_line = clean_regex.sub('', decoded_line)
-                    self.print_outputs(cleaned_line)
+                    if cleaned_line.strip():
+                        self.print_output(cleaned_line)
+                        self.clear_output()
                 else:
                     break
             await self.process.wait()
@@ -687,45 +750,47 @@ class Mining(Box):
             self.miner_command = None
 
 
-    def print_outputs(self, line):
+    def print_output(self, line):
         output_value = Label(
             text=line,
             style=Pack(
                 color = WHITE,
-                background_color = rgb(60,62,64),
+                background_color = rgb(40,43,48),
                 font_size = 10,
-                padding = 2
+                padding = (0,2,0,2)
             )
         )
-        self.ouputs_box.add(
+        self.output_box.add(
             output_value
         )
-        if self.ouputs_scroll.vertical_position == self.ouputs_scroll.max_vertical_position:
+        if self.output_scroll.vertical_position == self.output_scroll.max_vertical_position:
             return
-        self.ouputs_scroll.vertical_position = self.ouputs_scroll.max_vertical_position
+        self.output_scroll.vertical_position = self.output_scroll.max_vertical_position
+
+
+    def clear_output(self):
+        if len(self.output_box.children) >= 80:
+            box = self.output_box.children[0]
+            self.output_box.remove(box)
+
 
 
     async def fetch_miner_stats(self, widget):
-
-        self.notify.solutions.text = f"⛏️ Solutions : 0.0 Sol/s"
-        self.notify.balance.text = f"💰 Balance : 0.0000000"
-        self.notify.immature.text = f"🔃 Immature : 0.0000000"
-        self.notify.paid.text = f"💸 Paid : 0.0000000"
-
+        self.reset_miner_notify_stats()
         api = self.pool_api + self.selected_address
         if self.tor_enabled:
             connector = ProxyConnector.from_url('socks5://127.0.0.1:9050')
         else:
             connector = None
+        headers = {'User-Agent': 'Mozilla/5.0'}
         async with aiohttp.ClientSession(connector=connector) as session:
             while True:
+                estimated_24h = 0
+                converted_rate = 0.0
                 if not self.mining_status:
                     return
                 try:
-                    headers = {'User-Agent': 'Mozilla/5.0'}
-                    estimated_24h = 0
-                    converted_rate = 0.0
-                    async with session.get(api, headers=headers) as response:
+                    async with session.get(api, headers=headers, timeout=10) as response:
                         response.raise_for_status()
                         mining_data = await response.json()
                         total_share = mining_data.get("totalShares") or sum(miner.get("accepted", 0) for miner in mining_data.get("miners", []))
@@ -757,6 +822,14 @@ class Mining(Box):
                                         estimated_24h = await self.units.estimated_earn(24, converted_rate)
                                         self.estimated_value.text = f"{int(estimated_24h)} /Day"
                                         converted_rate = rate
+                            else:
+                                rate = sum(float(miner.get("hashrate", "0").replace("h/s", "").strip()) for miner in mining_data.get("miners", []))
+                                if rate:
+                                    self.solutions_value.text = f"{rate:.2f} Sol/s"
+                                    converted_rate = self.units.solution_to_hash(rate)
+                                    estimated_24h = await self.units.estimated_earn(24, converted_rate)
+                                    self.estimated_value.text = f"{int(estimated_24h)} /Day"
+                                    converted_rate = rate
 
                         btcz_price = self.settings.price()
                         if btcz_price:
@@ -778,17 +851,26 @@ class Mining(Box):
                     print("Proxy connection failed.")
                 except aiohttp.ClientError as e:
                     print(f"Error while fetching data: {e}")
+                except asyncio.TimeoutError:
+                    print("Request timed out.")
                 except Exception as e:
                     print(f"An unexpected error occurred: {e}")
 
                 await asyncio.sleep(60)
 
 
-    def ouputs_box_on_resize(self, sender, event):
+    def reset_miner_notify_stats(self):
+        self.notify.solutions.text = f"⛏️ Solutions : 0.0 Sol/s"
+        self.notify.balance.text = f"💰 Balance : 0.0000000"
+        self.notify.immature.text = f"🔃 Immature : 0.0000000"
+        self.notify.paid.text = f"💸 Paid : 0.0000000"
+
+
+    def output_box_on_resize(self, sender, event):
         if self.mining_toggle:
-            if self.ouputs_scroll.vertical_position == self.ouputs_scroll.max_vertical_position:
+            if self.output_scroll.vertical_position == self.output_scroll.max_vertical_position:
                 return
-            self.ouputs_scroll.vertical_position = self.ouputs_scroll.max_vertical_position
+            self.output_scroll.vertical_position = self.output_scroll.max_vertical_position
 
         
     async def update_mining_options(self, widget):
@@ -818,13 +900,16 @@ class Mining(Box):
             process_name =  "miniZ.exe"
         elif self.selected_miner == "Gminer":
             process_name = "miner.exe"
+        elif self.selected_miner == "lolMiner":
+            process_name = "lolMiner.exe"
         try:
             for proc in psutil.process_iter(['pid', 'name']):
                 if proc.info['name'] == process_name:
                     proc.kill()
             self.process.terminate()
-            self.ouputs_box.clear()
-            self.print_outputs("Miner Stopped !")
+            await asyncio.sleep(0.5)
+            self.output_box.clear()
+            self.print_output("Miner Stopped !")
             self.totalshares_value.text = "0.00"
             self.balance_value.text = "0.00"
             self.immature_value.text = "0.00"
