@@ -22,6 +22,7 @@ from .units import Units
 from .client import Client
 from .settings import Settings
 from .notify import NotifyMining
+from .storage import Storage
 
 
 class Mining(Box):
@@ -41,6 +42,7 @@ class Mining(Box):
         self.units = Units(self.app)
         self.commands = Client(self.app)
         self.settings = Settings(self.app)
+        self.storage = Storage(self.app)
         self.notify = NotifyMining()
         self.tooltip = ToolTip()
 
@@ -540,6 +542,20 @@ class Mining(Box):
             address_items = [(address_info, address_info) for address_info in addresses_data]
 
         return address_items
+
+
+    async def get_private_addresses(self):
+        addresses_data, _ = await self.commands.z_listAddresses()
+        addresses_data = json.loads(addresses_data)
+        if addresses_data is not None:
+            message_address = self.storage.get_identity("address")
+            if message_address:
+                address_items = [address_info for address_info in addresses_data if address_info != message_address[0]]
+            else:
+                address_items = [(address, address) for address in addresses_data]
+        else:
+            address_items = []
+        return address_items
     
 
     def update_server_selection(self, selection):
@@ -777,8 +793,11 @@ class Mining(Box):
         
     async def update_mining_options(self, widget):
         transparent_addresses = await self.get_transparent_addresses()
+        private_addresses = await self.get_private_addresses()
         self.address_selection.items.clear()
         self.address_selection.items = transparent_addresses
+        for address in  private_addresses:
+            self.address_selection.items.append(address)
         pools_list = self.get_pools_list()
         for pool in pools_list:
             self.pool_selection.items.insert(1, pool)
@@ -787,8 +806,11 @@ class Mining(Box):
     async def reload_addresses(self):
         if self.mining_toggle:
             transparent_addresses = await self.get_transparent_addresses()
+            private_addresses = await self.get_private_addresses()
             self.address_selection.items.clear()
             self.address_selection.items = transparent_addresses
+            for address in  private_addresses:
+                self.address_selection.items.append(address)
 
 
     async def stop_mining_button_click(self, button):

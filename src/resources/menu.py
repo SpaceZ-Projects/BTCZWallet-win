@@ -352,7 +352,7 @@ class Menu(Window):
                 if self.send_page.transparent_toggle:
                     await self.send_page.update_send_options(None)
                 if self.mining_page.mining_toggle:
-                    await self.mining_page.update_mining_options(None)
+                    await self.mining_page.reload_addresses()
         new_address,_ = await self.commands.getNewAddress()
         if new_address:
             self.info_dialog(
@@ -368,6 +368,8 @@ class Menu(Window):
                     self.insert_new_address(new_address)
                 if self.send_page.private_toggle:
                     await self.send_page.update_send_options(None)
+                if self.mining_page.mining_toggle:
+                    await self.mining_page.reload_addresses()
         new_address,_ = await self.commands.z_getNewAddress()
         if new_address:
             self.info_dialog(
