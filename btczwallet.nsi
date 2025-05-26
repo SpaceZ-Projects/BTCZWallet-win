@@ -75,7 +75,7 @@
   !define MUI_ABORTWARNING
   !define MUI_ABORTWARNING_TEXT "Are you sure you wish to abort the installation of ${PRODUCT_NAME}?"
   
-  !define MUI_ICON "build\src\windows\app\icon.ico"
+  !define MUI_ICON "build\BTCZWallet\windows\app\icon.ico"
   
 ;--------------------------------
 ;Pages
@@ -124,8 +124,8 @@ Section
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\*.*"
 
   ;Files to pack into the installer
-  File /r "build\src\windows\app\src\*.*"
-  File "build\src\windows\app\icon.ico"
+  File /r "build\BTCZWallet\windows\app\src\*.*"
+  File "build\BTCZWallet\windows\app\icon.ico"
 
   ;Store installation folder
   WriteRegStr HKCU "Software\${PRODUCT_NAME}" "" $INSTDIR
