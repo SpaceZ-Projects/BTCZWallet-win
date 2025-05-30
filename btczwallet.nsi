@@ -74,15 +74,29 @@
 
   !define MUI_ABORTWARNING
   !define MUI_ABORTWARNING_TEXT "Are you sure you wish to abort the installation of ${PRODUCT_NAME}?"
-  
+
   !define MUI_ICON "build\BTCZWallet\windows\app\icon.ico"
+
+  !define MUI_WELCOMEPAGE_TITLE "Welcome to the ${PRODUCT_NAME} Installer"
+  !define MUI_WELCOMEPAGE_TEXT "This wizard will guide you through the installation of ${PRODUCT_NAME} v${PRODUCT_VERSION}."
+  !define MUI_WELCOMEPAGE_BITMAP "installer.bmp"
+
+;--------------------------------
+; Finish page with "Run App" checkbox
+!define MUI_FINISHPAGE_SHOW
+!define MUI_FINISHPAGE_RUN
+!define MUI_FINISHPAGE_RUN_TEXT "Run ${PRODUCT_NAME} now"
+!define MUI_FINISHPAGE_RUN_FUNCTION LaunchApp
+!define MUI_WELCOMEFINISHPAGE_BITMAP "installer.bmp"
   
 ;--------------------------------
 ;Pages
 
+  !insertmacro MUI_PAGE_WELCOME
   !insertmacro MUI_PAGE_LICENSE "LICENSE"
   !insertmacro MUI_PAGE_DIRECTORY
   !insertmacro MUI_PAGE_INSTFILES
+  !insertmacro MUI_PAGE_FINISH
   !insertmacro MUI_UNPAGE_CONFIRM
   !insertmacro MUI_UNPAGE_INSTFILES
 
@@ -150,7 +164,7 @@ Section
   WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
   WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
   WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
-  WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\app\src\images\BitcoinZ.ico"
+  WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\app\BTCZWallet\images\BitcoinZ.ico"
 
   ;Fixes Windows broken size estimates
   ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
@@ -177,3 +191,10 @@ Section "Uninstall"
   DeleteRegKey HKCU "Software\${PRODUCT_NAME}"
   DeleteRegKey HKCU "${PRODUCT_UNINST_KEY}"
 SectionEnd
+
+;--------------------------------
+;Run App Function
+
+Function LaunchApp
+  Exec "$INSTDIR\BTCZWallet.exe"
+FunctionEnd
