@@ -21,7 +21,7 @@ from .utils import Utils
 from .units import Units
 from .client import Client
 from .settings import Settings
-from .storage import Storage
+from .storage import StorageMessages
 from .notify import NotifyMining
 
 
@@ -42,7 +42,7 @@ class Mining(Box):
         self.units = Units(self.app)
         self.commands = Client(self.app)
         self.settings = Settings(self.app)
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
         self.notify = NotifyMining()
         self.tooltip = ToolTip()
 
@@ -520,6 +520,28 @@ class Mining(Box):
 
 
 
+    async def update_mining_options(self, widget):
+        transparent_addresses = await self.get_transparent_addresses()
+        private_addresses = await self.get_private_addresses()
+        self.address_selection.items.clear()
+        self.address_selection.items = transparent_addresses
+        for address in  private_addresses:
+            self.address_selection.items.append(address)
+        pools_list = self.get_pools_list()
+        for pool in pools_list:
+            self.pool_selection.items.insert(1, pool)
+        
+        recent_mining_options = self.settings.load_options()
+        if recent_mining_options:
+            miner, mining_address, pool_server, pool_region, ssl, worker = recent_mining_options
+            if miner:
+                self.miner_selection.value = self.miner_selection.items.find(miner)
+                self.address_selection.value = self.address_selection.items.find(mining_address)
+                self.pool_selection.value = self.pool_selection.items.find(pool_server)
+                self.pool_region_selection.value = self.pool_region_selection.items.find(pool_region)
+                self.ssl_switch.value = ssl
+                self.worker_input.value = worker
+
 
     async def verify_miners_apps(self, selection):
         self.selected_miner = self.miner_selection.value.miner
@@ -707,6 +729,14 @@ class Mining(Box):
 
             self.disable_mining_inputs()
             self.app.add_background_task(self.start_mining_command)
+            self.settings.save_options(
+                self.selected_miner,
+                self.selected_address,
+                self.selected_pool,
+                self.pool_region_selection.value.region,
+                self.ssl_switch.value,
+                self.worker_name
+            )
             self.mining_status = True
             self.app.add_background_task(self.fetch_miner_stats)
 
@@ -840,12 +870,12 @@ class Mining(Box):
                         self.balance_value.text = self.units.format_balance(balance)
                         self.immature_value.text = self.units.format_balance(immature_bal)
                         self.paid_value.text = self.units.format_balance(paid)
-                        if self.main._is_hidden:
-                            self.notify.text = f"Solutions : {converted_rate:.2f} Sol/s"
-                            self.notify.solutions.text = f"⛏️ Solutions : {converted_rate:.2f} Sol/s"
-                            self.notify.balance.text = f"💰 Balance : {self.units.format_balance(balance)}"
-                            self.notify.immature.text = f"🔃 Immature : {self.units.format_balance(immature_bal)}"
-                            self.notify.paid.text = f"💸 Paid : {self.units.format_balance(paid)}"
+                        
+                        self.notify.text = f"Solutions : {converted_rate:.2f} Sol/s"
+                        self.notify.solutions.text = f"⛏️ Solutions : {converted_rate:.2f} Sol/s"
+                        self.notify.balance.text = f"💰 Balance : {self.units.format_balance(balance)}"
+                        self.notify.immature.text = f"🔃 Immature : {self.units.format_balance(immature_bal)}"
+                        self.notify.paid.text = f"💸 Paid : {self.units.format_balance(paid)}"
 
                 except ProxyConnectionError:
                     print("Proxy connection failed.")
@@ -871,18 +901,6 @@ class Mining(Box):
             if self.output_scroll.vertical_position == self.output_scroll.max_vertical_position:
                 return
             self.output_scroll.vertical_position = self.output_scroll.max_vertical_position
-
-        
-    async def update_mining_options(self, widget):
-        transparent_addresses = await self.get_transparent_addresses()
-        private_addresses = await self.get_private_addresses()
-        self.address_selection.items.clear()
-        self.address_selection.items = transparent_addresses
-        for address in  private_addresses:
-            self.address_selection.items.append(address)
-        pools_list = self.get_pools_list()
-        for pool in pools_list:
-            self.pool_selection.items.insert(1, pool)
 
 
     async def reload_addresses(self):

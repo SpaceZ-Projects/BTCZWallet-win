@@ -20,6 +20,12 @@ class Settings():
             with open(self.settings_path, 'w') as file:
                 json.dump({}, file)
 
+        
+        self.miningoptions_path = Os.Path.Combine(str(self.app_config), 'mining.json')
+        if not Os.File.Exists(self.miningoptions_path):
+            with open(self.miningoptions_path, 'w') as file:
+                json.dump({}, file)
+
 
     def update_settings(self, setting_key, setting_value):
         with open(self.settings_path, 'r') as f:
@@ -106,3 +112,31 @@ class Settings():
                 return None
             else:
                 return settings['tor_network']
+            
+
+    def save_options(self, miner, address, pool_server, pool_region, ssl, worker):
+        options = {
+            "miner": miner,
+            "address": address,
+            "pool_server": pool_server,
+            "pool_region": pool_region,
+            "ssl": ssl,
+            "worker": worker
+        }
+        with open(self.miningoptions_path, 'w') as f:
+            json.dump(options, f, indent=4)
+
+    
+    def load_options(self):
+        with open(self.miningoptions_path, 'r') as f:
+            data = json.load(f)
+        if data:
+            return (
+                data.get("miner"),
+                data.get("address"),
+                data.get("pool_server"),
+                data.get("pool_region"),
+                data.get("ssl"),
+                data.get("worker")
+            )
+        return None, None, None, None, None, None
