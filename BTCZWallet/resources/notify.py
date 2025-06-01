@@ -40,7 +40,7 @@ class Notify(NotifyIcon):
 
     def show_menu(self):
         if self.mining_page.mining_status:
-            self.mining_page.notify.hide()
+            self.main.notifymining.hide()
         if self.main._is_hidden:
             self.main.show()
             self.main._is_hidden = None
@@ -48,6 +48,7 @@ class Notify(NotifyIcon):
             self.main._impl.native.WindowState = FormState.NORMAL
         if self.app.current_window is not self.main:
             self.main._impl.native.Activate()
+                     
 
     def exit_app(self):
         def on_result(widget, result):

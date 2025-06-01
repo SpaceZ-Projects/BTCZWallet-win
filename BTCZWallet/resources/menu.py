@@ -21,7 +21,7 @@ from .client import Client
 from .utils import Utils
 from .toolbar import AppToolBar
 from .status import AppStatusBar
-from .notify import Notify
+from .notify import Notify, NotifyMining
 from .wallet import Wallet, ImportKey, ImportWallet
 from .home import Home, Currency
 from .txs import Transactions
@@ -97,6 +97,7 @@ class Menu(Window):
         self.message_page = Messages(self.app, self)
         self.mining_page = Mining(self.app, self)
         self.notify = Notify(self.app, self, self.home_page, self.mining_page)
+        self.notifymining = NotifyMining()
         self.toolbar = AppToolBar(self.app, self, self.notify, self.home_page, self.mining_page)
 
         self.main_box.add(
@@ -719,7 +720,7 @@ class Menu(Window):
     def on_close_menu(self, widget):
         if self.settings.minimize_to_tray():
             if self.mining_page.mining_status:
-                self.mining_page.notify.show()
+                self.notifymining.show()
             self.hide()
             self._is_hidden = True
             return
