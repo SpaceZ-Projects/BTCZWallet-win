@@ -729,37 +729,16 @@ class NotifyIcon(Forms.NotifyIcon):
     def show(self):
         self.Visible = True
 
+    def show_context(self):
+        if self.ContextMenuStrip:
+            self.ContextMenuStrip.Show(Forms.Cursor.Position)
+
     def hide(self):
         if self.Visible:
             self.Visible = False
     
     def dispose(self):
         self.Dispose()
-
-
-
-class ImageColumn(Forms.DataGridViewImageColumn):
-    def __init__(
-        self,
-        image: Path = None
-    ):
-        super().__init__()
-        self._image = image
-
-        self.app_path = get_app_path()
-
-        if self._image:
-            self._set_image(self._image)
-
-    def _set_image(self, image_path: Path):
-        try:
-            full_path = str(Os.Path.Combine(self.app_path , image_path))
-            if Os.Path.Exists(full_path):
-                image = Drawing.Bitmap(full_path)
-                self.Image = image
-        except Exception as e:
-            print(f"Error loading image: {e}")
-            self.Image = None
 
 
 
@@ -824,6 +803,8 @@ class Table(Forms.DataGridView):
         self._commands = commands
         self._on_select = on_select
         self._on_double_click = on_double_click
+
+        self.app_path = get_app_path()
 
         self._font_object = Drawing.Font(self._font, self._text_size, self._text_style)
 
@@ -968,27 +949,74 @@ class Table(Forms.DataGridView):
             if 0 <= index < self.ColumnCount:
                 self.Columns[index].ColumnType = column_type
 
+    def disable_sorting(self):
+        for column in self.Columns:
+            column.SortMode = Forms.DataGridViewColumnSortMode.NotSortable
+
     def set_data_source(self, data: Optional[Union[List[dict], List[List]]]):
-        if isinstance(data, list):
-            if data:
-                if data and isinstance(data[0], list):
-                    self.Rows.Clear()
-                    for row in data:
-                        self.Rows.Add(row)
-                elif data and isinstance(data[0], dict):
-                    self.Columns.Clear()
-                    for key in data[0].keys():
-                        self.Columns.Add(key, key)
-                    self.Rows.Clear()
-                    for row in data:
-                        self.Rows.Add(*[row[key] for key in row.keys()])
-                self.update_column_widths()
-            else:
-                self.Rows.Clear()
-                self.Columns.Clear()
-        else:
-            raise ValueError("Data source must be a list of dictionaries or list of lists.")
-        self.Invoke(Forms.MethodInvoker(lambda:self._resize_columns()))
+        self.Rows.Clear()
+        self.Columns.Clear()
+        
+        if not data:
+            return
+
+        if isinstance(data[0], dict):
+            for i, (key, value) in enumerate(data[0].items()):
+                if isinstance(value, str) and value.lower().endswith((".png", ".jpg", ".jpeg", ".bmp")):
+                    column = Forms.DataGridViewImageColumn()
+                    column.Name = key
+                    column.HeaderText = key
+                else:
+                    column = Forms.DataGridViewTextBoxColumn()
+                    column.Name = key
+                    column.HeaderText = key
+                self.Columns.Add(column)
+            
+            for row in data:
+                formatted_row = []
+                for k in row:
+                    value = row[k]
+                    if isinstance(value, str) and value.lower().endswith((".png", ".jpg", ".jpeg", ".bmp")):
+                        try:
+                            full_path = str(Os.Path.Combine(self.app_path , value))
+                            if Os.File.Exists(full_path):
+                                image = Drawing.Image.FromFile(full_path)
+                                formatted_row.append(image)
+                        except Exception as e:
+                            print(f"Failed to load image '{value}': {e}")
+                            formatted_row.append(None)
+                    else:
+                        formatted_row.append(value)
+                self.Rows.Add(*formatted_row)
+        
+        elif isinstance(data[0], list):
+            for i, value in enumerate(data[0]):
+                if isinstance(value, str) and value.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".gif")):
+                    column = Forms.DataGridViewImageColumn()
+                else:
+                    column = Forms.DataGridViewTextBoxColumn()
+                self.Columns.Add(column)
+            
+            for row in data:
+                formatted_row = []
+                for value in row:
+                    if isinstance(value, str) and value.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".gif")):
+                        try:
+                            full_path = str(Os.Path.Combine(self.app_path , value))
+                            if Os.File.Exists(full_path):
+                                image = Drawing.Image.FromFile(full_path)
+                                formatted_row.append(image)
+                        except Exception as e:
+                            print(f"Failed to load image '{value}': {e}")
+                            formatted_row.append(None)
+                    else:
+                        formatted_row.append(value)
+                self.Rows.Add(formatted_row)
+
+        self.update_column_widths()
+        self.Invoke(Forms.MethodInvoker(lambda: self._resize_columns()))
+        self.disable_sorting()
+
 
     
     def add_column(self, name: str, header: str):
@@ -1009,6 +1037,15 @@ class Table(Forms.DataGridView):
                 for key, value in row_data.items():
                     col_index = self._get_column_index_by_name(key)
                     if col_index is not None:
+                        if isinstance(value, str) and value.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".gif")):
+                            try:
+                                full_path = str(Os.Path.Combine(self.app_path, value))
+                                if Os.File.Exists(full_path):
+                                    image = Drawing.Image.FromFile(full_path)
+                                    value = image
+                            except Exception as e:
+                                print(f"Failed to load image from '{value}': {e}")
+                                value = None
                         row[col_index] = value
                     else:
                         raise ValueError(f"Column '{key}' not found.")
@@ -1016,15 +1053,36 @@ class Table(Forms.DataGridView):
                 row = [None] * self.ColumnCount
                 for col_index, value in row_data.items():
                     if 0 <= col_index < self.ColumnCount:
+                        if isinstance(value, str) and value.lower().endswith((".png", ".jpg", ".jpeg", ".bmp")):
+                            try:
+                                full_path = str(Os.Path.Combine(self.app_path, value))
+                                if Os.File.Exists(full_path):
+                                    image = Drawing.Image.FromFile(full_path)
+                                    value = image
+                            except Exception as e:
+                                print(f"Failed to load image from '{value}': {e}")
+                                value = None
                         row[col_index] = value
                     else:
                         raise IndexError(f"Column index {col_index} is out of range.")
         elif isinstance(row_data, list):
             if len(row_data) != self.ColumnCount:
                 raise ValueError("Row data length does not match the number of columns.")
-            row = row_data
+            row = []
+            for value in row_data:
+                if isinstance(value, str) and value.lower().endswith((".png", ".jpg", ".jpeg", ".bmp")):
+                    try:
+                        full_path = str(Os.Path.Combine(self.app_path, value))
+                        if Os.File.Exists(full_path):
+                            image = Drawing.Image.FromFile(full_path)
+                            value = image
+                    except Exception as e:
+                        print(f"Failed to load image from '{value}': {e}")
+                        value = None
+                row.append(value)
         else:
             raise ValueError("Row data must be a list or a dictionary.")
+
         if 0 <= index <= self.Rows.Count:
             self.Rows.Insert(index, row)
         else:
