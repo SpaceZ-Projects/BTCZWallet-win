@@ -75,8 +75,9 @@ def select_python_version():
 
 def operation_choice():
     print("Select a operation:")
-    print("0. build app")
-    print("1. run app")
+    print("1. build installer")
+    print("2. build portable")
+    print("3. run app")
     choice = int(input("Enter the number corresponding to your choice: "))
     if choice == 0:
         return 0
@@ -106,7 +107,7 @@ def install_briefcase(env):
     )
 
 def build_app(env):
-    print(f"Building App...")
+    print(f"Building Installer...")
     build_dir = "build"
     if os.path.exists(build_dir):
         print("Deleting existing build directory...")
@@ -152,6 +153,12 @@ def build_installer():
     subprocess.check_call([nsis_compiler, nsis_script])
 
 
+def build_portable(env):
+    print(f"Building Portable...")
+    subprocess.check_call(
+        [os.path.join(env, 'Scripts', 'briefcase'), "package", "-p", "zip"]
+    )
+
 def main():
     check_git_installed()
     env = "env"
@@ -170,12 +177,15 @@ def main():
     except subprocess.CalledProcessError:
         install_briefcase(env)
 
-    if operation == 0:
+    if operation == 1:
         build_app(env)
         download_nsis()
         build_installer()
+
+    elif operation == 2:
+        build_portable(env)
         
-    elif operation == 1:
+    elif operation == 3:
         run_app(env)
 
 if __name__ == "__main__":
