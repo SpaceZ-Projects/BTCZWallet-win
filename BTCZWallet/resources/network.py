@@ -29,9 +29,7 @@ from .utils import Utils
 class AddNode(Window):
     def __init__(self):
         super().__init__(
-            resizable=False,
-            minimizable=False,
-            closable=False
+            resizable=False
         )
         
         self.utils = Utils(self.app)
@@ -39,8 +37,8 @@ class AddNode(Window):
 
         self.title = "Add Node"
         self.size = (550, 120)
-        position_center = self.utils.windows_screen_center(self.size)
-        self.position = position_center
+        self.position = self.utils.windows_screen_center(self.size)
+        self._impl.native.ControlBox = False
 
         self.main_box = Box(
             style=Pack(

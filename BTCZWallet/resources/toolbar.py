@@ -3,7 +3,7 @@ import psutil
 
 from toga import App, Box, Window
 from ..framework import (
-    Toolbar, Command, Color, run_async, Keys
+    Toolbar, Command, Color, Keys
 )
 from toga.style.pack import Pack
 from toga.constants import ROW, TOP

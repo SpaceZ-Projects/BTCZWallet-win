@@ -12,7 +12,7 @@ from toga import (
 from ..framework import Os, FlatStyle, ToolTip, Forms
 from toga.style.pack import Pack
 from toga.constants import (
-    COLUMN, ROW, TOP, LEFT, BOLD, RIGHT,
+    COLUMN, ROW, TOP, LEFT, BOLD,
     CENTER, Direction
 )
 from toga.colors import rgb, GRAY, WHITE, RED, BLACK, YELLOW
@@ -28,17 +28,15 @@ class Currency(Window):
     def __init__(self):
         super().__init__(
             size= (200,100),
-            resizable=False,
-            minimizable=False,
-            closable=False
+            resizable=False
         )
 
         self.utils = Utils(self.app)
         self.settings = Settings(self.app)
 
         self.title = "Change Currency"
-        position_center = self.utils.windows_screen_center(self.size)
-        self.position = position_center
+        self.position = self.utils.windows_screen_center(self.size)
+        self._impl.native.ControlBox = False
 
         self.main_box = Box(
             style=Pack(
@@ -536,12 +534,7 @@ class Home(Box):
     async def update_marketchart(self, widget):
         while True:
             data = await self.curve.fetch_marketchart()
-            if not data:
-                self.main.error_dialog(
-                    title="Request Error",
-                    message="Too many requests. The market cap will be updated in the next 10 minutes."
-                )
-            else:
+            if data:
                 curve_image = self.curve.create_curve(data)
                 if curve_image:
                     self.bitcoinz_curve.image = curve_image

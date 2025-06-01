@@ -298,9 +298,7 @@ class ImportKey(Window):
     def __init__(self, main:Window):
         super().__init__(
             size = (600, 150),
-            resizable= False,
-            minimizable = False,
-            closable=False
+            resizable= False
         )
         
         self.main = main
@@ -308,8 +306,8 @@ class ImportKey(Window):
         self.commands = Client(self.app)
 
         self.title = "Import Key"
-        position_center = self.utils.windows_screen_center(self.size)
-        self.position = position_center
+        self.position = self.utils.windows_screen_center(self.size)
+        self._impl.native.ControlBox = False
 
         self.main_box = Box(
             style=Pack(
@@ -491,9 +489,7 @@ class ImportWallet(Window):
     def __init__(self, main:Window):
         super().__init__(
             size = (600, 150),
-            resizable= False,
-            minimizable = False,
-            closable=False
+            resizable= False
         )
         
         self.main = main
@@ -501,8 +497,8 @@ class ImportWallet(Window):
         self.commands = Client(self.app)
 
         self.title = "Import Wallet"
-        position_center = self.utils.windows_screen_center(self.size)
-        self.position = position_center
+        self.position = self.utils.windows_screen_center(self.size)
+        self._impl.native.ControlBox = False
 
         self.main_box = Box(
             style=Pack(

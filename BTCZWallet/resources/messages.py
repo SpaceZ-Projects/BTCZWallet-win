@@ -26,7 +26,7 @@ from toga.colors import (
     GREENYELLOW
 )
 
-from .storage import Storage
+from .storage import StorageMessages
 from .utils import Utils
 from .units import Units
 from .client import Client
@@ -40,18 +40,16 @@ class EditUser(Window):
     def __init__(self, username):
         super().__init__(
             size = (500, 150),
-            resizable= False,
-            minimizable = False,
-            closable=False
+            resizable= False
         )
 
         self.utils = Utils(self.app)
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
         self.username = username
 
         self.title = "Edit Username"
-        position_center = self.utils.windows_screen_center(self.size)
-        self.position = position_center
+        self.position = self.utils.windows_screen_center(self.size)
+        self._impl.native.ControlBox = False
 
         self.main_box = Box(
             style=Pack(
@@ -206,9 +204,7 @@ class Indentifier(Window):
     def __init__(self, messages:Box, main:Window, chat):
         super().__init__(
             size = (600, 150),
-            resizable= False,
-            minimizable = False,
-            closable=False
+            resizable= False
         )
 
         self.main = main
@@ -216,12 +212,12 @@ class Indentifier(Window):
 
         self.utils = Utils(self.app)
         self.commands = Client(self.app)
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
         self.messages_page = messages
 
         self.title = "Setup Indentity"
-        position_center = self.utils.windows_screen_center(self.size)
-        self.position = position_center
+        self.position = self.utils.windows_screen_center(self.size)
+        self._impl.native.ControlBox = False
 
         self.main_box = Box(
             style=Pack(
@@ -472,7 +468,7 @@ class Contact(Box):
         self.app =app
         self.chat = chat
         self.main = main
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
         self.clipboard = ClipBoard()
 
         self.category = category
@@ -673,7 +669,7 @@ class Pending(Box):
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
         self.units = Units(self.app)
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
         self.pending_window = window
         self.chat = chat
 
@@ -969,21 +965,19 @@ class NewContact(Window):
     def __init__(self):
         super().__init__(
             size = (600, 150),
-            resizable= False,
-            minimizable = False,
-            closable=False
+            resizable= False
         )
 
         self.utils = Utils(self.app)
         self.units = Units(self.app)
         self.commands = Client(self.app)
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
 
         self.is_valid_toggle = None
 
         self.title = "Add Contact"
-        position_center = self.utils.windows_screen_center(self.size)
-        self.position = position_center
+        self.position = self.utils.windows_screen_center(self.size)
+        self._impl.native.ControlBox = False
 
         self.main_box = Box(
             style=Pack(
@@ -1230,19 +1224,17 @@ class PendingList(Window):
     def __init__(self, chat:Box):
         super().__init__(
             size = (500, 400),
-            resizable= False,
-            minimizable = False,
-            closable=False
+            resizable= False
         )
 
         self.utils = Utils(self.app)
         self.commands = Client(self.app)
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
         self.chat = chat
 
         self.title = "Pending List"
-        position_center = self.utils.windows_screen_center(self.size)
-        self.position = position_center
+        self.position = self.utils.windows_screen_center(self.size)
+        self._impl.native.ControlBox = False
 
         self.main_box = Box(
             style=Pack(
@@ -1381,7 +1373,7 @@ class Chat(Box):
         self.utils = Utils(self.app)
         self.units = Units(self.app)
         self.commands = Client(self.app)
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
         self.tooltip = ToolTip()
         self.clipboard = ClipBoard()
         self.settings = Settings(self.app)
@@ -2178,7 +2170,7 @@ class Chat(Box):
 
     def add_contact_click(self, sender, event):
         self.new_contact = NewContact()
-        self.new_contact._impl.native.ShowDialog()
+        self.new_contact._impl.native.ShowDialog(self.main._impl.native)
         
     
     def pending_contacts_click(self, sender, event):
@@ -2191,7 +2183,7 @@ class Chat(Box):
             self.new_pending_toggle = None
         self.pending_list = PendingList(self)
         self.pending_list.close_button.on_press = self.close_pending_list
-        self.pending_list._impl.native.ShowDialog()
+        self.pending_list._impl.native.ShowDialog(self.main._impl.native)
         self.pending_toggle = True
 
 
@@ -2432,7 +2424,7 @@ class Messages(Box):
         self.app = app
         self.main = main
         self.commands = Client(self.app)
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
         self.chat = Chat(self.app, self.main)
         self.settings = Settings(self.app)
 
