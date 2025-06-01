@@ -22,7 +22,6 @@ from .units import Units
 from .client import Client
 from .settings import Settings
 from .storage import StorageMessages
-from .notify import NotifyMining
 
 
 class Mining(Box):
@@ -43,7 +42,6 @@ class Mining(Box):
         self.commands = Client(self.app)
         self.settings = Settings(self.app)
         self.storage = StorageMessages(self.app)
-        self.notify = NotifyMining()
         self.tooltip = ToolTip()
 
         self.mining_toggle = None
@@ -738,7 +736,7 @@ class Mining(Box):
                 self.worker_name
             )
             self.mining_status = True
-            self.app.add_background_task(self.fetch_miner_stats)
+            self.fetch_stats_task = asyncio.create_task(self.fetch_miner_stats())
 
 
     async def start_mining_command(self, widget):
@@ -776,7 +774,7 @@ class Mining(Box):
         finally:
             self.update_mining_button("start")
             self.enable_mining_inputs()
-            self.mining_status = False
+            self.mining_status = None
             self.miner_command = None
 
 
@@ -805,7 +803,7 @@ class Mining(Box):
 
 
 
-    async def fetch_miner_stats(self, widget):
+    async def fetch_miner_stats(self):
         self.reset_miner_notify_stats()
         api = self.pool_api + self.selected_address
         if self.tor_enabled:
@@ -817,8 +815,6 @@ class Mining(Box):
             while True:
                 estimated_24h = 0
                 converted_rate = 0.0
-                if not self.mining_status:
-                    return
                 try:
                     async with session.get(api, headers=headers, timeout=10) as response:
                         response.raise_for_status()
@@ -871,11 +867,11 @@ class Mining(Box):
                         self.immature_value.text = self.units.format_balance(immature_bal)
                         self.paid_value.text = self.units.format_balance(paid)
                         
-                        self.notify.text = f"Solutions : {converted_rate:.2f} Sol/s"
-                        self.notify.solutions.text = f"⛏️ Solutions : {converted_rate:.2f} Sol/s"
-                        self.notify.balance.text = f"💰 Balance : {self.units.format_balance(balance)}"
-                        self.notify.immature.text = f"🔃 Immature : {self.units.format_balance(immature_bal)}"
-                        self.notify.paid.text = f"💸 Paid : {self.units.format_balance(paid)}"
+                        self.main.notifymining.text = f"Solutions : {converted_rate:.2f} Sol/s"
+                        self.main.notifymining.solutions.text = f"⛏️ Solutions : {converted_rate:.2f} Sol/s"
+                        self.main.notifymining.balance.text = f"💰 Balance : {self.units.format_balance(balance)}"
+                        self.main.notifymining.immature.text = f"🔃 Immature : {self.units.format_balance(immature_bal)}"
+                        self.main.notifymining.paid.text = f"💸 Paid : {self.units.format_balance(paid)}"
 
                 except ProxyConnectionError:
                     print("Proxy connection failed.")
@@ -890,10 +886,10 @@ class Mining(Box):
 
 
     def reset_miner_notify_stats(self):
-        self.notify.solutions.text = f"⛏️ Solutions : 0.0 Sol/s"
-        self.notify.balance.text = f"💰 Balance : 0.0000000"
-        self.notify.immature.text = f"🔃 Immature : 0.0000000"
-        self.notify.paid.text = f"💸 Paid : 0.0000000"
+        self.main.notifymining.solutions.text = f"⛏️ Solutions : 0.0 Sol/s"
+        self.main.notifymining.balance.text = f"💰 Balance : 0.0000000"
+        self.main.notifymining.immature.text = f"🔃 Immature : 0.0000000"
+        self.main.notifymining.paid.text = f"💸 Paid : 0.0000000"
 
 
     def output_box_on_resize(self, sender, event):
@@ -937,6 +933,13 @@ class Mining(Box):
             self.estimated_earn_value.text = f"0.00 {self.settings.symbol()}"
         except Exception as e:
             print(f"Exception occurred while killing process: {e}")
+
+        if self.fetch_stats_task and not self.fetch_stats_task.done():
+            self.fetch_stats_task.cancel()
+            try:
+                await self.fetch_stats_task
+            except asyncio.CancelledError:
+                print("Stats fetching cancelled.")
 
 
     def update_mining_button(self, option):

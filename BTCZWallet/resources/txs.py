@@ -435,6 +435,8 @@ class Transactions(Box):
                 icon = "images/tx_send.png"
             elif category == "receive":
                 icon = "images/tx_receive.png"
+            elif category == "mining":
+                icon = "images/tx_mining.png"
             txid = data[3]
             amount = data[4]
             timereceived = data[5]
@@ -471,6 +473,9 @@ class Transactions(Box):
             new_transactions = await self.get_transaparent_transactions(9999, 0)
             if new_transactions:
                 stored_transactions = self.storagetxs.get_transparent_transactions("txid")
+                mining_options = self.settings.load_options()
+                if mining_options:
+                    mining_address = mining_options[1]
                 for data in new_transactions:
                     txid = data["txid"]
                     if not txid in stored_transactions:
@@ -478,6 +483,9 @@ class Transactions(Box):
                         category = data["category"]
                         amount = self.units.format_balance(data["amount"])
                         timereceived = data["timereceived"]
+                        if mining_address and mining_address.startswith('t'):
+                            if address == mining_address:
+                                category = "mining"
                         self.storagetxs.transparent_transaction(tx_type, category, address, txid, amount, timereceived)
 
             await asyncio.sleep(10)
@@ -503,6 +511,9 @@ class Transactions(Box):
             new_transactions = await self.get_private_transactions()
             if new_transactions:
                 stored_transactions = self.storagetxs.get_private_transactions("txid")
+                mining_options = self.settings.load_options()
+                if mining_options:
+                    mining_address = mining_options[1]
                 for tx_list in new_transactions:
                     for data in tx_list:
                         txid = data['txid']
@@ -511,6 +522,9 @@ class Transactions(Box):
                             category = "receive"
                             amount = data["amount"]
                             timereceived = int(datetime.now().timestamp())
+                            if mining_address and mining_address.startswith('z'):
+                                if address == mining_address:
+                                    category = "mining"
                             self.storagetxs.private_transaction(tx_type, category, address, txid, amount, timereceived)
 
             await asyncio.sleep(10)
@@ -555,6 +569,9 @@ class Transactions(Box):
                         elif category == "receive":
                             icon = "images/tx_receive.png"
                             notify_icon = "images/tx_receive.ico"
+                        elif category == "mining":
+                            icon = "images/tx_mining.png"
+                            notify_icon = "images/mining_notify.ico"
                         address = data[2]
                         amount = data[4]
                         timereceived = data[5]
@@ -665,6 +682,8 @@ class Transactions(Box):
                     icon = "images/tx_send.png"
                 elif category == "receive":
                     icon = "images/tx_receive.png"
+                elif category == "mining":
+                    icon = "images/tx_mining.png"
                 address = data[2]
                 txid = data[3]
                 amount = data[4]
