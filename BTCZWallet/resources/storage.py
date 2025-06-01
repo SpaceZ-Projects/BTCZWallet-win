@@ -4,16 +4,168 @@ import sqlite3
 from toga import App
 from ..framework import Os
 
-messages_data = 'messages.dat'
 
-
-class Storage:
+class StorageTxs:
     def __init__(self, app:App):
         super().__init__()
 
         self.app = app
         self.app_data = self.app.paths.data
-        self.data = Os.Path.Combine(str(self.app_data), messages_data)
+        self.data = Os.Path.Combine(str(self.app_data), 'transactions.dat')
+
+        self.file_stream = Os.FileStream(
+            self.data,
+            Os.FileMode.OpenOrCreate,
+            Os.FileAccess.ReadWrite,
+            Os.FileShare.ReadWrite
+        )
+
+
+    def transparent_transaction(self, tx_type, category, address, txid, amount, timestamp):
+        self.create_transparent_transactions_table()
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            INSERT INTO transparent_transactions (type, category, address, txid, amount, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ''', 
+            (tx_type, category, address, txid, amount, timestamp)
+        )
+        conn.commit()
+        conn.close()
+
+
+    def private_transaction(self, tx_type, category, address, txid, amount, timestamp):
+        self.create_private_transactions_table()
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            INSERT INTO private_transactions (type, category, address, txid, amount, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ''', 
+            (tx_type, category, address, txid, amount, timestamp)
+        )
+        conn.commit()
+        conn.close()
+
+
+    def get_transparent_transaction(self, txid):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT * FROM transparent_transactions WHERE txid = ?',
+                (txid,)
+            )
+            transaction = cursor.fetchone()
+            conn.close()
+            return transaction
+        except sqlite3.OperationalError:
+            return []
+        
+
+    def get_private_transaction(self, txid):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT * FROM private_transactions WHERE txid = ?',
+                (txid,)
+            )
+            transaction = cursor.fetchone()
+            conn.close()
+            return transaction
+        except sqlite3.OperationalError:
+            return []
+
+
+    def get_transparent_transactions(self, option = None):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            if option == "txid":
+                cursor.execute('SELECT txid FROM transparent_transactions')
+                transactions = [row[0] for row in cursor.fetchall()]
+            else:
+                cursor.execute('SELECT * FROM transparent_transactions')
+                transactions = cursor.fetchall()
+            conn.close()
+            return transactions
+        except sqlite3.OperationalError:
+            return []
+        
+
+    def get_private_transactions(self, option = None):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            if option == "txid":
+                cursor.execute('SELECT txid FROM private_transactions')
+                transactions = [row[0] for row in cursor.fetchall()]
+            else:
+                cursor.execute('SELECT * FROM private_transactions')
+                transactions = cursor.fetchall()
+            conn.close()
+            return transactions
+        except sqlite3.OperationalError:
+            return []
+
+    
+    def create_transparent_transactions_table(self):
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS transparent_transactions (
+                type TEXT,
+                category TEXT,
+                address TEXT,
+                txid TEXT,
+                amount REAL,
+                timestamp INTEGER
+            )
+            '''
+        )
+        conn.commit()
+        conn.close()
+
+
+    def create_private_transactions_table(self):
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS private_transactions (
+                type TEXT,
+                category TEXT,
+                address TEXT,
+                txid TEXT,
+                amount REAL,
+                timestamp INTEGER
+            )
+            '''
+        )
+        conn.commit()
+        conn.close()
+
+
+
+class StorageMessages:
+    def __init__(self, app:App):
+        super().__init__()
+
+        self.app = app
+        self.app_data = self.app.paths.data
+        self.data = Os.Path.Combine(str(self.app_data), 'messages.dat')
+
+        self.file_stream = Os.FileStream(
+            self.data,
+            Os.FileMode.OpenOrCreate,
+            Os.FileAccess.ReadWrite,
+            Os.FileShare.ReadWrite
+        )
 
 
     def is_exists(self):

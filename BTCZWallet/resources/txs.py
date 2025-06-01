@@ -20,6 +20,7 @@ from .utils import Utils
 from .units import Units
 from .notify import NotifyTx
 from .settings import Settings
+from .storage import StorageMessages, StorageTxs
 
 
 
@@ -27,8 +28,7 @@ class Txid(Window):
     def __init__(self, txid):
         super().__init__(
             size =(600, 160),
-            resizable= False,
-            minimizable = False
+            resizable= False
         )
 
         self.utils = Utils(self.app)
@@ -39,8 +39,8 @@ class Txid(Window):
         self.updating_txid = None
 
         self.title = "Transaction Info"
-        position_center = self.utils.windows_screen_center(self.size)
-        self.position = position_center
+        self.position = self.utils.windows_screen_center(self.size)
+        self._impl.native.ControlBox = False
 
         self.main_box = Box(
             style=Pack(
@@ -300,19 +300,23 @@ class Transactions(Box):
 
         self.app = app
         self.main = main
-        self.notify = NotifyTx()
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
         self.units = Units(self.app)
         self.clipboard = ClipBoard()
         self.settings = Settings(self.app)
+        self.storagemsgs = StorageMessages(self.app)
+        self.storagetxs = StorageTxs(self.app)
 
         self.transactions_toggle = None
         self.no_transaction_toggle = None
-        self.transactions_data = []
+        self.no_more_transactions = None
+        self.scroll_toggle = None
 
-        self.transactions_count = 49
+        self.transactions_count = 50
         self.transactions_from = 0
+        self.transactions_ids = []
+        self.transactions_data = []
 
         self.copy_txid_cmd = Command(
             title="Copy txid",
@@ -360,13 +364,13 @@ class Transactions(Box):
             borderstyle=BorderStyle.NONE,
             readonly=True,
             selection_backcolors={
-                0:Color.rgb(40,43,48),
+                0:Color.rgb(15,15,15),
                 1:Color.rgb(40,43,48),
                 2:Color.rgb(66,69,73),
                 3:Color.rgb(40,43,48),
                 4:Color.rgb(40,43,48)
             },
-            column_widths={0:75,1:300,2:120,3:150,4:300},
+            column_widths={0:75,1:330,2:120,3:150,4:300},
             commands=[
                 self.copy_txid_cmd,
                 self.copy_address_cmd,
@@ -391,99 +395,197 @@ class Transactions(Box):
 
     async def insert_widgets(self, widget):
         if not self.transactions_toggle:
-            if self.transactions_data:
+            sorted_transactions = self.get_transactions(self.transactions_count, self.transactions_from)
+            if sorted_transactions:
                 self._impl.native.Controls.Add(self.transactions_table)
-                self.transactions_table.data_source = self.transactions_data
+                self.create_rows(sorted_transactions)
+                self.app.add_background_task(self.update_transactions_table)
             else:
                 self.no_transactions_found()
             self.transactions_toggle = True
 
 
+    def get_transactions(self, limit, offset):
+        transparent_transactions = self.storagetxs.get_transparent_transactions()
+        private_transactions = self.storagetxs.get_private_transactions()
+        all_transactions = transparent_transactions + private_transactions
+
+        if not all_transactions:
+            return []
+        sorted_transactions = sorted(
+            all_transactions,
+            key=operator.itemgetter(5),
+            reverse=True
+        )
+        transactions = sorted_transactions[offset:offset + limit]
+        return transactions
+
+    
+    def no_transactions_found(self):
+        self.add(self.no_transaction)
+        self.no_transaction_toggle = True
+
+
     def create_rows(self, sorted_transactions):
+        
         for data in sorted_transactions:
-            address = data.get("address", "Shielded")
-            category = data["category"]
-            amount = self.units.format_balance(data["amount"])
-            timereceived = data["timereceived"]
+            category = data[1]
+            address = data[2]
+            if category == "send":
+                icon = "images/tx_send.png"
+            elif category == "receive":
+                icon = "images/tx_receive.png"
+            txid = data[3]
+            amount = data[4]
+            timereceived = data[5]
             formatted_timereceived = datetime.fromtimestamp(timereceived).strftime("%Y-%m-%d %H:%M:%S")
-            txid = data["txid"]
             row = {
-                'Category': category.upper(),
+                'Category': icon,
                 'Address': address,
                 'Amount': amount,
                 'Time': formatted_timereceived,
                 'Txid': txid,
             }
             self.transactions_data.append(row)
-
-
-    def no_transactions_found(self):
-        self.add(self.no_transaction)
-        self.no_transaction_toggle = True
+            self.transactions_ids.append(txid)
+        
+        self.transactions_table.data_source = self.transactions_data
 
 
     async def reload_transactions(self):
-        if self.transactions_data:
-            self.transactions_data.clear()
-        sorted_transactions = await self.get_transactions(
-            self.transactions_count,0
-        )
+        sorted_transactions = self.get_transactions(self.transactions_count, self.transactions_from)
         if sorted_transactions:
-            self.create_rows(sorted_transactions)
             if self.no_transaction_toggle:
                 self.remove(self.no_transaction)
                 self._impl.native.Controls.Add(self.transactions_table)
-                self.transactions_table.data_source = self.transactions_data
-            else:
-                if self.transactions_toggle:
-                    self.transactions_table.data_source = self.transactions_data
 
-
-    async def update_transactions(self, widget):
-        sorted_transactions = await self.get_transactions(
-            self.transactions_count,0
-        )
-        if sorted_transactions:
             self.create_rows(sorted_transactions)
+
+
+    async def gather_transparent_transactions(self, widget):
+        tx_type = "transparent"
         while True:
             if self.main.import_key_toggle:
                 await asyncio.sleep(1)
                 continue
-            new_transactions = await self.get_transactions(self.transactions_count,0)
+            new_transactions = await self.get_transaparent_transactions(9999, 0)
             if new_transactions:
+                stored_transactions = self.storagetxs.get_transparent_transactions("txid")
                 for data in new_transactions:
                     txid = data["txid"]
-                    if not any(tx["Txid"] == txid for tx in self.transactions_data):
+                    if not txid in stored_transactions:
                         address = data.get("address", "Shielded")
                         category = data["category"]
                         amount = self.units.format_balance(data["amount"])
                         timereceived = data["timereceived"]
+                        self.storagetxs.transparent_transaction(tx_type, category, address, txid, amount, timereceived)
+
+            await asyncio.sleep(10)
+
+
+    async def get_transaparent_transactions(self, count, tx_from):
+        transactions, _ = await self.commands.listTransactions(
+            count, tx_from
+        )
+        if transactions is not None:
+            if isinstance(transactions, str):
+                transactions_data = json.loads(transactions)
+                return transactions_data
+        return None
+
+
+    async def gather_private_transactions(self, widget):
+        tx_type = "private"
+        while True:
+            if self.main.import_key_toggle:
+                await asyncio.sleep(1)
+                continue
+            new_transactions = await self.get_private_transactions()
+            if new_transactions:
+                stored_transactions = self.storagetxs.get_private_transactions("txid")
+                for tx_list in new_transactions:
+                    for data in tx_list:
+                        txid = data['txid']
+                        if txid not in stored_transactions:
+                            address = data["address"]
+                            category = "receive"
+                            amount = data["amount"]
+                            timereceived = int(datetime.now().timestamp())
+                            self.storagetxs.private_transaction(tx_type, category, address, txid, amount, timereceived)
+
+            await asyncio.sleep(10)
+
+
+    async def get_private_transactions(self):
+        transactions_data = []
+        addresses_data,_ = await self.commands.z_listAddresses()
+        addresses_data = json.loads(addresses_data)
+        if addresses_data:
+            message_address = self.storagemsgs.get_identity("address")
+            if message_address:
+                address_items = {address_info for address_info in addresses_data if address_info != message_address[0]}
+            else:
+                address_items = {address_info for address_info in addresses_data}
+        else:
+            address_items = []
+        for address in address_items:
+            listunspent, _= await self.commands.z_listUnspent(address, 0)
+            if listunspent:
+                listunspent = json.loads(listunspent)
+                transactions_data.append(listunspent)
+
+        return transactions_data
+    
+    
+
+    async def update_transactions_table(self, widget):
+        while True:
+            sorted_transactions = self.get_transactions(50, 0)
+            if sorted_transactions:
+                for data in sorted_transactions:
+                    txid = data[3]
+                    if txid not in self.transactions_ids:
+                        data = self.storagetxs.get_transparent_transaction(txid)
+                        if data is None:
+                            data = self.storagetxs.get_private_transaction(txid)
+                        category = data[1]
+                        if category == "send":
+                            icon = "images/tx_send.png"
+                            notify_icon = "images/tx_send.ico"
+                        elif category == "receive":
+                            icon = "images/tx_receive.png"
+                            notify_icon = "images/tx_receive.ico"
+                        address = data[2]
+                        amount = data[4]
+                        timereceived = data[5]
                         formatted_timereceived = datetime.fromtimestamp(timereceived).strftime("%Y-%m-%d %H:%M:%S")
                         row = {
-                            'Category': category.upper(),
+                            'Category': icon,
                             'Address': address,
                             'Amount': amount,
                             'Time': formatted_timereceived,
-                            'Txid': txid
+                            'Txid': txid,
                         }
-                        self.transactions_data.insert(0, row)
+                        self.transactions_ids.append(txid)
                         self.add_transaction(0, row)
                         if self.settings.notification_txs():
-                            notify = NotifyTx()
+                            notify = NotifyTx(icon=notify_icon)
                             notify.show()
                             notify.send_note(
                                 title=f"[{category}] : {amount} BTCZ",
                                 text=f"Txid : {txid}",
                                 on_click=lambda sender, event:self.on_notification_click(txid)
                             )
-                            await asyncio.sleep(5)
+                            await asyncio.sleep(4)
                             notify.hide()
+
             await asyncio.sleep(5)
 
+                
 
     def on_notification_click(self, txid):
         self.transactions_info = Txid(txid)
-        self.transactions_info._impl.native.ShowDialog()
+        self.transactions_info._impl.native.ShowDialog(self.main._impl.native)
 
 
     def add_transaction(self, index, row):
@@ -495,22 +597,6 @@ class Transactions(Box):
         else:
             if self.transactions_toggle and not self.no_transaction_toggle:
                 self.transactions_table.add_row(index=index, row_data=row)
-                
-
-    async def get_transactions(self, count, tx_from):
-        transactions, _ = await self.commands.listTransactions(
-            count, tx_from
-        )
-        if transactions is not None:
-            if isinstance(transactions, str):
-                transactions_data = json.loads(transactions)
-            sorted_transactions = sorted(
-                transactions_data,
-                key=operator.itemgetter('timereceived'),
-                reverse=True
-            )
-            return sorted_transactions
-        return None
 
 
     def copy_transaction_id(self):
@@ -548,27 +634,44 @@ class Transactions(Box):
 
 
     def on_scroll_table(self, event):
-        rows_visible = self.transactions_table.Size.Height // self.transactions_table.RowTemplate.Height
-        last_visible_row = self.transactions_table.FirstDisplayedScrollingRowIndex + rows_visible - 2
-        if last_visible_row >= self.transactions_table.RowCount - 1:
-            self.transactions_from += 50
-            self.app.add_background_task(self.get_transactions_archive)
+        try:
+            if self.no_more_transactions or self.scroll_toggle:
+                return
+            first_row = self.transactions_table.FirstDisplayedScrollingRowIndex
+            if first_row < 0:
+                return
+            rows_visible = self.transactions_table.DisplayedRowCount(True)
+            last_visible_row = first_row + rows_visible - 1
+            total_rows = self.transactions_table.RowCount
+            threshold = 5  
+            if last_visible_row >= total_rows - 1 - threshold:
+                self.scroll_toggle = True
+                self.transactions_from += 50
+                self.app.add_background_task(self.get_transactions_archive)
+        except Exception as e:
+            print(f"Error: {e}")
+
 
 
     async def get_transactions_archive(self, widget):
-        sorted_transactions = await self.get_transactions(
-            self.transactions_count, self.transactions_from
-        )
-        if sorted_transactions:
+        try:
+            sorted_transactions = self.get_transactions(self.transactions_count, self.transactions_from)
+            if not sorted_transactions:
+                self.no_more_transactions = True
+                return
             for data in sorted_transactions:
-                address = data.get("address", "Shielded")
-                category = data["category"]
-                amount = self.units.format_balance(data["amount"])
-                timereceived = data["timereceived"]
+                category = data[1]
+                if category == "send":
+                    icon = "images/tx_send.png"
+                elif category == "receive":
+                    icon = "images/tx_receive.png"
+                address = data[2]
+                txid = data[3]
+                amount = data[4]
+                timereceived = data[5]
                 formatted_timereceived = datetime.fromtimestamp(timereceived).strftime("%Y-%m-%d %H:%M:%S")
-                txid = data["txid"]
                 row = {
-                    'Category': category.upper(),
+                    'Category': icon,
                     'Address': address,
                     'Amount': amount,
                     'Time': formatted_timereceived,
@@ -576,13 +679,17 @@ class Transactions(Box):
                 }
                 last_index = self.transactions_table.RowCount
                 self.add_transaction(last_index, row)
+        except Exception as e:
+            print(f"Error: {e}")
+        finally:
+            self.scroll_toggle = None
 
 
     def transactions_table_double_click(self, sender, event):
         row_index = event.RowIndex
         txid = sender.Rows[row_index].Cells[4].Value
         self.transactions_info = Txid(txid)
-        self.transactions_info._impl.native.ShowDialog()
+        self.transactions_info._impl.native.ShowDialog(self.main._impl.native)
 
     
     def copy_txid_cmd_mouse_enter(self):

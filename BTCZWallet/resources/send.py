@@ -1,6 +1,7 @@
 
 import asyncio
 import json
+from datetime import datetime
 
 from toga import (
     App, Box, Label, TextInput, Selection, 
@@ -19,7 +20,7 @@ from toga.colors import (
     rgb, GRAY, WHITE, YELLOW, BLACK, RED
 )
 from .client import Client
-from .storage import Storage
+from .storage import StorageMessages, StorageTxs
 from .units import Units
 
 
@@ -38,7 +39,8 @@ class Send(Box):
         self.main = main
         self.commands = Client(self.app)
         self.units = Units(self.app)
-        self.storage = Storage(self.app)
+        self.storagemsgs = StorageMessages(self.app)
+        self.storagetxs = StorageTxs(self.app)
         self.tooltip = ToolTip()
 
         self.send_toggle = None
@@ -754,7 +756,7 @@ class Send(Box):
                 message="You can't send amount from Main Account to messages (z) address."
             )
             return
-        address = self.storage.get_identity("address")
+        address = self.storagemsgs.get_identity("address")
         if address:
             value = address[0]
         else:
@@ -922,7 +924,7 @@ class Send(Box):
         addresses_data, _ = await self.commands.z_listAddresses()
         addresses_data = json.loads(addresses_data)
         if addresses_data is not None:
-            message_address = self.storage.get_identity("address")
+            message_address = self.storagemsgs.get_identity("address")
             if message_address:
                 address_items = [address_info for address_info in addresses_data if address_info != message_address[0]]
             else:
@@ -1118,6 +1120,13 @@ class Send(Box):
             self.fee_input.value = ""
 
 
+    def store_private_transaction(self, address, txid, amount):
+        tx_type = "private"
+        category = "send"
+        timesent = int(datetime.now().timestamp())
+        self.storagetxs.private_transaction(tx_type, category, address, txid, amount, timesent)
+
+
     def send_button_click(self, button):
         selected_address = self.address_selection.value.select_address if self.address_selection.value else None
         if self.many_option.value is True:
@@ -1204,6 +1213,7 @@ class Send(Box):
                         message="Transaction failed."
                     )
                 self.enable_send()
+
             elif selected_address != "Main Account":
                 if (float(amount)+float(txfee)) > float(balance):
                     self.main.error_dialog(
@@ -1226,6 +1236,8 @@ class Send(Box):
                                 transaction_result = json.loads(transaction_result)
                                 if isinstance(transaction_result, list) and transaction_result:
                                     status = transaction_result[0].get('status')
+                                    result = transaction_result[0].get('result', {})
+                                    txid = result.get('txid')
                                     self.operation_status.text = status
                                     if status == "failed":
                                         self.enable_send()
@@ -1234,6 +1246,8 @@ class Send(Box):
                                             message="Transaction failed."
                                         )
                                         return
+                                    if selected_address.startswith('z'):
+                                        self.store_private_transaction(destination_address, txid, amount)
                                     self.enable_send()
                                     self.main.info_dialog(
                                         title="Success",
@@ -1242,6 +1256,12 @@ class Send(Box):
                                     await self.clear_inputs()
                                     return
                                 await asyncio.sleep(3)
+                        else:
+                            self.enable_send()
+                            self.main.error_dialog(
+                                title="Error",
+                                message="Transaction failed."
+                            )
                 else:
                     self.enable_send()
                     self.main.error_dialog(
@@ -1276,9 +1296,9 @@ class Send(Box):
 
 
     
-    async def send_many(self, selected_address, destination_address):
+    async def send_many(self, selected_address, destination_addresses):
         try:
-            operation, _= await self.commands.z_sendToManyAddresses(selected_address, destination_address)
+            operation, _= await self.commands.z_sendToManyAddresses(selected_address, destination_addresses)
             if operation:
                 transaction_status, _= await self.commands.z_getOperationStatus(operation)
                 transaction_status = json.loads(transaction_status)
@@ -1292,14 +1312,18 @@ class Send(Box):
                             transaction_result = json.loads(transaction_result)
                             if isinstance(transaction_result, list) and transaction_result:
                                 status = transaction_status[0].get('status')
-                                self.operation_status.text = status
+                                result = transaction_result[0].get('result', {})
+                                txid = result.get('txid')
                                 if status == "failed":
                                     self.enable_send()
                                     self.main.error_dialog(
                                         title="Error",
                                         message="Transaction failed."
                                     )
+                                    self.operation_status.text = status
                                     return
+                                if selected_address.startswith('z'):
+                                    self.store_private_transaction("To Many", txid, self.amount_input.value)
                                 self.enable_send()
                                 self.main.info_dialog(
                                     title="Success",
@@ -1308,6 +1332,13 @@ class Send(Box):
                                 await self.clear_inputs()
                                 return
                             await asyncio.sleep(3)
+
+                    else:
+                        self.enable_send()
+                        self.main.error_dialog(
+                            title="Error",
+                            message="Transaction failed."
+                        )
             else:
                 self.enable_send()
                 self.main.error_dialog(

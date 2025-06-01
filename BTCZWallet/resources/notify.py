@@ -113,9 +113,9 @@ class NotifyMining(NotifyIcon):
 
 
 class NotifyTx(NotifyIcon):
-    def __init__(self):
+    def __init__(self, icon):
         super().__init__(
-            icon="images/tx.ico",
+            icon=icon,
             text = "New Transaction"
         )
 

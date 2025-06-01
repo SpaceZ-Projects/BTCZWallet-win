@@ -29,7 +29,7 @@ from .receive import Receive
 from .send import Send
 from .messages import Messages, EditUser
 from .mining import Mining
-from .storage import Storage
+from .storage import StorageMessages
 from .settings import Settings
 from .network import Peer, AddNode
 
@@ -44,7 +44,7 @@ class Menu(Window):
 
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
-        self.storage = Storage(self.app)
+        self.storage = StorageMessages(self.app)
         self.statusbar = AppStatusBar(self.app, self)
         self.wallet = Wallet(self.app, self)
         self.settings = Settings(self.app)
@@ -245,7 +245,9 @@ class Menu(Window):
         await asyncio.sleep(0.5)
         self.home_button_click(None)
         self.add_actions_cmds()
-        self.app.add_background_task(self.transactions_page.update_transactions)
+        self.app.add_background_task(self.transactions_page.gather_transparent_transactions)
+        await asyncio.sleep(0.5)
+        self.app.add_background_task(self.transactions_page.gather_private_transactions)
         await asyncio.sleep(1)
         await self.message_page.gather_unread_memos()
 
@@ -323,7 +325,7 @@ class Menu(Window):
 
     def show_currencies_list(self, sender, event):
         self.currencies_window = Currency()
-        self.currencies_window._impl.native.ShowDialog()
+        self.currencies_window._impl.native.ShowDialog(self._impl.native)
 
     def show_peer_info(self, sender, event):
         if not self.peer_toggle:
@@ -336,7 +338,7 @@ class Menu(Window):
 
     def show_add_node(self, sender, event):
         self.add_node_window = AddNode()
-        self.add_node_window._impl.native.ShowDialog()
+        self.add_node_window._impl.native.ShowDialog(self._impl.native)
 
     def new_transparent_address(self, sender, event):
         self.app.add_background_task(self.generate_transparent_address)
@@ -390,7 +392,7 @@ class Menu(Window):
             username = self.storage.get_identity("username")
             if username:
                 edit_window = EditUser(username[0])
-                edit_window._impl.native.ShowDialog()
+                edit_window._impl.native.ShowDialog(self._impl.native)
 
 
     def backup_messages(self, sender, event):
@@ -436,7 +438,7 @@ class Menu(Window):
 
     def show_import_key(self, sender, event):
         self.import_window = ImportKey(self)
-        self.import_window._impl.native.ShowDialog()
+        self.import_window._impl.native.ShowDialog(self._impl.native)
 
     
     def export_wallet(self, sender, event):
@@ -489,7 +491,7 @@ class Menu(Window):
 
     def show_import_wallet(self, sender, event):
         self.import_window = ImportWallet(self)
-        self.import_window._impl.native.ShowDialog()
+        self.import_window._impl.native.ShowDialog(self._impl.native)
 
 
     def join_us(self, sender, event):
