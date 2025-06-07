@@ -8,7 +8,7 @@ from toga import (
 )
 from ..framework import (
     Drawing, Color, Sys, FormState, Os, FlatStyle,
-    Relation, AlignContent
+    Relation, AlignContent, CustomFont
 )
 
 from toga.style.pack import Pack
@@ -31,14 +31,14 @@ from .messages import Messages, EditUser
 from .mining import Mining
 from .storage import StorageMessages
 from .settings import Settings
-from .network import Peer, AddNode
+from .network import Peer, AddNode, TorConfig
 
 
 class Menu(Window):
-    def __init__(self):
+    def __init__(self, tor_enabled):
         super().__init__()
 
-        self.title = "BitcoinZ Wallet"
+        self.title = f"BitcoinZ Wallet"
         self.size = (900,607)
         self._impl.native.BackColor = Color.rgb(30,33,36)
 
@@ -48,6 +48,10 @@ class Menu(Window):
         self.statusbar = AppStatusBar(self.app, self)
         self.wallet = Wallet(self.app, self)
         self.settings = Settings(self.app)
+
+        self.monda_font = CustomFont()
+
+        self.tor_enabled = tor_enabled
         
         self._is_minimized = None
         self._is_hidden = None
@@ -118,12 +122,11 @@ class Menu(Window):
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 1
             ),
             on_press=self.home_button_click
         )
+        self.home_button._impl.native.Font = self.monda_font.get(10, True)
         self.home_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.home_button._impl.native.TextImageRelation = Relation.IMAGEBEFORETEXT
         self.home_button._impl.native.ImageAlign = AlignContent.RIGHT
@@ -135,13 +138,12 @@ class Menu(Window):
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 1
             ),
             on_press=self.transactions_button_click
         )
         transactions_i_icon = self.menu_icon("images/txs_i.png")
+        self.transactions_button._impl.native.Font = self.monda_font.get(10, True)
         self.transactions_button._impl.native.Image = Drawing.Image.FromFile(transactions_i_icon)
         self.transactions_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.transactions_button._impl.native.TextImageRelation = Relation.IMAGEBEFORETEXT
@@ -161,6 +163,7 @@ class Menu(Window):
             on_press=self.receive_button_click
         )
         receive_i_icon = self.menu_icon("images/receive_i.png")
+        self.receive_button._impl.native.Font = self.monda_font.get(10, True)
         self.receive_button._impl.native.Image = Drawing.Image.FromFile(receive_i_icon)
         self.receive_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.receive_button._impl.native.TextImageRelation = Relation.IMAGEBEFORETEXT
@@ -180,6 +183,7 @@ class Menu(Window):
             on_press=self.send_button_click
         )
         send_i_icon = self.menu_icon("images/send_i.png")
+        self.send_button._impl.native.Font = self.monda_font.get(10, True)
         self.send_button._impl.native.Image = Drawing.Image.FromFile(send_i_icon)
         self.send_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.send_button._impl.native.TextImageRelation = Relation.IMAGEBEFORETEXT
@@ -199,6 +203,7 @@ class Menu(Window):
             on_press=self.message_button_click
         )
         message_i_icon = self.menu_icon("images/messages_i.png")
+        self.message_button._impl.native.Font = self.monda_font.get(10, True)
         self.message_button._impl.native.Image = Drawing.Image.FromFile(message_i_icon)
         self.message_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.message_button._impl.native.TextImageRelation = Relation.IMAGEBEFORETEXT
@@ -218,6 +223,7 @@ class Menu(Window):
             on_press=self.mining_button_click
         )
         mining_i_icon = self.menu_icon("images/mining_i.png")
+        self.mining_button._impl.native.Font = self.monda_font.get(10, True)
         self.mining_button._impl.native.Image = Drawing.Image.FromFile(mining_i_icon)
         self.mining_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.mining_button._impl.native.TextImageRelation = Relation.IMAGEBEFORETEXT
@@ -246,9 +252,7 @@ class Menu(Window):
         await asyncio.sleep(0.5)
         self.home_button_click(None)
         self.add_actions_cmds()
-        self.app.add_background_task(self.transactions_page.gather_transparent_transactions)
-        await asyncio.sleep(0.5)
-        self.app.add_background_task(self.transactions_page.gather_private_transactions)
+        self.app.add_background_task(self.transactions_page.run_tasks)
         await asyncio.sleep(1)
         await self.message_page.gather_unread_memos()
 
@@ -276,6 +280,7 @@ class Menu(Window):
         self.toolbar.startup_cmd.action = self.update_app_startup
         self.toolbar.peer_info_cmd.action = self.show_peer_info
         self.toolbar.add_node_cmd.action = self.show_add_node
+        self.toolbar.tor_config_cmd.action = self.show_tor_config
         self.toolbar.currency_cmd.action = self.show_currencies_list
         self.toolbar.generate_t_cmd.action = self.new_transparent_address
         self.toolbar.generate_z_cmd.action = self.new_private_address
@@ -340,6 +345,10 @@ class Menu(Window):
     def show_add_node(self, sender, event):
         self.add_node_window = AddNode()
         self.add_node_window._impl.native.ShowDialog(self._impl.native)
+
+    def show_tor_config(self, sender, event):
+        self.tor_config = TorConfig(main=self)
+        self.tor_config._impl.native.ShowDialog(self._impl.native)
 
     def new_transparent_address(self, sender, event):
         self.app.add_background_task(self.generate_transparent_address)
@@ -421,7 +430,7 @@ class Menu(Window):
         def on_result(widget, result):
                 if result is True:
                     webbrowser.open(self.git_link)
-        git_version, link = await self.utils.get_repo_info()
+        git_version, link = await self.utils.get_repo_info(self.tor_enabled)
         if git_version:
             self.git_link = link
             current_version = self.app.version
@@ -476,9 +485,7 @@ class Menu(Window):
         if result is True:
             restart = self.utils.restart_app()
             if restart:
-                await self.commands.stopNode()
-                self.notify.hide()
-                self.app.exit()
+                self.toolbar.stop_node_exit()
 
 
     async def run_export_wallet(self, widget):

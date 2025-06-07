@@ -114,7 +114,16 @@ class Settings():
                 return settings['tor_network']
             
 
-    def save_options(self, miner, address, pool_server, pool_region, ssl, worker):
+    def only_onion(self):
+        with open(self.settings_path, 'r') as f:
+            settings = json.load(f)
+            if 'only_onion' not in settings:
+                return None
+            else:
+                return settings['only_onion']
+            
+
+    def save_mining_options(self, miner, address, pool_server, pool_region, ssl, worker):
         options = {
             "miner": miner,
             "address": address,
@@ -127,7 +136,7 @@ class Settings():
             json.dump(options, f, indent=4)
 
     
-    def load_options(self):
+    def load_mining_options(self):
         with open(self.miningoptions_path, 'r') as f:
             data = json.load(f)
         if data:

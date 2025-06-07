@@ -85,7 +85,7 @@ class AppToolBar(Box):
         )
 
         self.currency_cmd = Command(
-            title="Currency                            |",
+            title="Currency                             |",
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.currency_cmd_mouse_enter,
@@ -201,13 +201,23 @@ class AppToolBar(Box):
             mouse_enter=self.add_node_cmd_mouse_enter,
             mouse_leave=self.add_node_cmd_mouse_leave,
             icon="images/add_node_i.ico",
-            tooltip="add a node to the addnode list"
+            tooltip="Add a node to the addnode list"
+        )
+        self.tor_config_cmd = Command(
+            title="Tor network",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.tor_config_cmd_mouse_enter,
+            mouse_leave=self.tor_config_cmd_mouse_leave,
+            icon="images/tor_i.ico",
+            tooltip="Configure Tor network"
         )
         self.network_menu = Command(
             title="Network",
             sub_commands=[
                 self.peer_info_cmd,
-                self.add_node_cmd
+                self.add_node_cmd,
+                self.tor_config_cmd
             ],
             background_color=Color.rgb(40,43,48),
             drop_opened=self.network_menu_opened,
@@ -290,6 +300,7 @@ class AppToolBar(Box):
                 self.import_wallet_cmd
             ]
         )
+
         self.edit_username_cmd = Command(
             title="Edit username",
             icon="images/edit_username_i.ico",
@@ -320,6 +331,7 @@ class AppToolBar(Box):
                 self.backup_messages_cmd
             ]
         )
+
         self.check_update_cmd = Command(
             title="Check update",
             color=Color.WHITE,
@@ -350,6 +362,7 @@ class AppToolBar(Box):
             mouse_enter=self.help_menu_mouse_enter,
             mouse_leave=self.help_menu_mouse_leave
         )
+        
         self.toolbar.add_command(
             [
                 self.app_menu,
@@ -437,6 +450,14 @@ class AppToolBar(Box):
     def add_node_cmd_mouse_leave(self):
         self.add_node_cmd.icon = "images/add_node_i.ico"
         self.add_node_cmd.color = Color.WHITE
+
+    def tor_config_cmd_mouse_enter(self):
+        self.tor_config_cmd.icon = "images/tor_a.ico"
+        self.tor_config_cmd.color = Color.BLACK
+
+    def tor_config_cmd_mouse_leave(self):
+        self.tor_config_cmd.icon = "images/tor_i.ico"
+        self.tor_config_cmd.color = Color.WHITE
 
     def currency_cmd_mouse_enter(self):
         self.currency_cmd.icon = "images/currency_a.ico"

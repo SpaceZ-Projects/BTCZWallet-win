@@ -2,7 +2,7 @@
 import string
 import secrets
 from decimal import Decimal
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 import json
 
 from toga import App
@@ -145,3 +145,18 @@ class Units():
             i += 1
 
         return f"{size:.2f} {units[i]}"
+    
+
+    def create_timer(self, value):
+        now = datetime.now(timezone.utc)
+        duration = now - value
+        days = duration.days
+        hours, remainder = divmod(duration.seconds, 3600)
+        minutes, _ = divmod(remainder, 60)
+        if days > 0:
+            timer = f"{days}d {hours}h {minutes}m"
+        elif hours > 0:
+            timer = f"{hours}h {minutes}m"
+        else:
+            timer = f"{minutes}m"
+        return timer

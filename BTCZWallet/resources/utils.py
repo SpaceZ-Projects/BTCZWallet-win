@@ -6,6 +6,8 @@ import tarfile
 import py7zr
 import qrcode
 import winreg as reg
+import aiohttp
+from aiohttp.client_exceptions import ClientConnectionError, ServerDisconnectedError
 from aiohttp_socks import ProxyConnector, ProxyConnectionError
 
 from toga import App
@@ -14,9 +16,6 @@ from ..framework import (
 )
 
 from .units import Units
-
-GITHUB_API_URL = "https://api.github.com/repos/SpaceZ-Projects/BTCZWallet-win"
-RELEASES_URL = "https://github.com/SpaceZ-Projects/BTCZWallet-win/releases"
 
 
 class Utils():
@@ -35,18 +34,47 @@ class Utils():
         self.units = Units(self.app)
 
     
-    async def get_repo_info(self):
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f"{GITHUB_API_URL}/tags") as response:
-                if response.status == 200:
-                    tags = await response.json()
-                    latest_tag = tags[0]['name'] if tags else None
-                    if latest_tag and latest_tag.startswith("v"):
-                        latest_tag = latest_tag[1:]
-                    return latest_tag, RELEASES_URL
-                else:
-                    print(f"Failed to fetch tags: {response.status}")
-                    return None, None
+    async def get_repo_info(self, tor_enabled):
+        if tor_enabled:
+            connector = ProxyConnector.from_url('socks5://127.0.0.1:9050')
+        else:
+            connector = None
+        github_url = "https://api.github.com/repos/SpaceZ-Projects/BTCZWallet-win"
+        releases_url = "https://github.com/SpaceZ-Projects/BTCZWallet-win/releases"
+        try:
+            async with aiohttp.ClientSession(connector=connector) as session:
+                async with session.get(f"{github_url}/tags", timeout=10) as response:
+                    if response.status == 200:
+                        tags = await response.json()
+                        latest_tag = tags[0]['name'] if tags else None
+                        if latest_tag and latest_tag.startswith("v"):
+                            latest_tag = latest_tag[1:]
+                        return latest_tag, releases_url
+                    else:
+                        print(f"Failed to fetch tags: {response.status}")
+                        return None, None
+        except ProxyConnectionError:
+            print("Proxy connection failed.")
+        except RuntimeError as e:
+            print(f"RuntimeError caught: {e}")
+        except aiohttp.ClientError as e:
+            print(f"HTTP Error: {e}")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+
+    async def is_tor_alive(self):
+        try:
+            connector = ProxyConnector.from_url(f'socks5://127.0.0.1:9050')
+            async with aiohttp.ClientSession(connector=connector) as session:
+                async with session.get('http://check.torproject.org', timeout=10) as response:
+                    await response.text()
+                    return True
+        except (ProxyConnectionError, ClientConnectionError, ServerDisconnectedError) as e:
+            return None
+        except Exception as e:
+            return None
+            
 
     def qr_generate(self, address):  
         qr_filename = f"qr_{address}.png"
@@ -566,6 +594,51 @@ sendchangeback=1
                 config_file.write(config_content)
         except Exception as e:
             print(f"Error creating config file: {e}")
+
+
+    def create_torrc(self, socks_port=None, tor_service=None, service_port=None):
+        if not socks_port:
+            socks_port = "9050"
+        geoip = Os.Path.Combine(str(self.app_data), "geoip")
+        geoip6 = Os.Path.Combine(str(self.app_data), "geoip6")
+        tor_data = Os.Path.Combine(str(self.app_data), "tor_data")
+        torrc_content = f"""
+SocksPort {socks_port}
+CookieAuthentication 1
+GeoIPFile {geoip}
+GeoIPv6File {geoip6}
+DataDirectory {tor_data}
+"""
+        if tor_service:
+            torrc_content += f"HiddenServiceDir {tor_service}\n"
+            torrc_content += f"HiddenServicePort {service_port} 127.0.0.1:{service_port}\n"
+
+        torrc_path = Os.Path.Combine(str(self.app_data), "torrc")
+        with open(torrc_path, "w") as f:
+            f.write(torrc_content)
+
+
+    def read_torrc(self):
+        torrc_path = Os.Path.Combine(str(self.app_data), "torrc")
+        if not Os.File.Exists(torrc_path):
+            return None
+        config = {}
+        with open(torrc_path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                parts = line.split(maxsplit=1)
+                if len(parts) == 2:
+                    key, value = parts
+                    if key in config:
+                        if isinstance(config[key], list):
+                            config[key].append(value)
+                        else:
+                            config[key] = [config[key], value]
+                    else:
+                        config[key] = value
+        return config
 
 
     def add_to_startup(self):
