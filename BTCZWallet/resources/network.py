@@ -234,7 +234,10 @@ class TorConfig(Window):
 
         self.app_data = self.app.paths.data
 
-        self.size = (350, 275)
+        if self.main:
+            self.size = (350, 325)
+        if self.startup:
+            self.size = (350, 280)
         self.title = "Tor Network"
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
@@ -305,6 +308,17 @@ class TorConfig(Window):
         )
         self.service_port_label._impl.native.Font = self.monda_font.get(11, True)
 
+        self.hostname_label = Label(
+            text="Hostname :",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                text_align = CENTER,
+                padding_top = 19
+            )
+        )
+        self.hostname_label._impl.native.Font = self.monda_font.get(11, True)
+
         self.labels_box = Box(
             style=Pack(
                 direction = COLUMN,
@@ -367,6 +381,18 @@ class TorConfig(Window):
         self.service_input.enabled = False
         self.service_input._impl.native.Font = self.monda_font.get(11, True)
         self.tooltip.insert(self.service_input._impl.native, "The BitcoinZ daemon port (default: 1989)")
+
+        self.hostname_input = TextInput(
+            placeholder="None",
+            style=Pack(
+                color = WHITE,
+                text_align= CENTER,
+                background_color = rgb(30,33,36),
+                padding_top = 12
+            ),
+            readonly=True
+        )
+        self.hostname_input._impl.native.Font = self.monda_font.get(11)
 
         self.inputs_box = Box(
             style=Pack(
@@ -444,6 +470,10 @@ class TorConfig(Window):
             self.service_label,
             self.service_port_label
         )
+        if self.main:
+            self.labels_box.add(
+                self.hostname_label
+            )
         self.inputs_box.add(
             self.enabeld_switch,
             self.socks_input,
@@ -451,6 +481,10 @@ class TorConfig(Window):
             self.service_switch,
             self.service_input
         )
+        if self.main:
+            self.inputs_box.add(
+                self.hostname_input
+            )
         self.buttons_box.add(
             self.cancel_button,
             self.save_button
@@ -474,6 +508,11 @@ class TorConfig(Window):
                 self.service_input.value = service_port
 
             self.socks_input.value = socks_port
+
+        if self.main:
+            hostname = self.utils.get_onion_hostname()
+            if hostname:
+                self.hostname_input.value = f"{hostname}:{service_port}"
 
         if self.startup:
             self.enabeld_switch.value = True

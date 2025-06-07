@@ -803,7 +803,9 @@ class Mining(Box):
         self.reset_miner_notify_stats()
         api = self.pool_api + self.selected_address
         if self.tor_enabled:
-            connector = ProxyConnector.from_url('socks5://127.0.0.1:9050')
+            torrc = self.utils.read_torrc()
+            socks_port = torrc.get("SocksPort")
+            connector = ProxyConnector.from_url(f'socks5://127.0.0.1:{socks_port}')
         else:
             connector = None
         headers = {'User-Agent': 'Mozilla/5.0'}

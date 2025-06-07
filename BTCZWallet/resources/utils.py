@@ -36,7 +36,9 @@ class Utils():
     
     async def get_repo_info(self, tor_enabled):
         if tor_enabled:
-            connector = ProxyConnector.from_url('socks5://127.0.0.1:9050')
+            torrc = self.read_torrc()
+            socks_port = torrc.get("SocksPort")
+            connector = ProxyConnector.from_url(f'socks5://127.0.0.1:{socks_port}')
         else:
             connector = None
         github_url = "https://api.github.com/repos/SpaceZ-Projects/BTCZWallet-win"
@@ -64,8 +66,10 @@ class Utils():
 
 
     async def is_tor_alive(self):
+        torrc = self.read_torrc()
+        socks_port = torrc.get("SocksPort")
         try:
-            connector = ProxyConnector.from_url(f'socks5://127.0.0.1:9050')
+            connector = ProxyConnector.from_url(f'socks5://127.0.0.1:{socks_port}')
             async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.get('http://check.torproject.org', timeout=10) as response:
                     await response.text()
@@ -74,6 +78,16 @@ class Utils():
             return None
         except Exception as e:
             return None
+        
+
+    def get_onion_hostname(self):
+        tor_service = Os.Path.Combine(str(self.app_data), "tor_service")
+        if Os.Directory.Exists(tor_service):
+            hostname_file = Os.Path.Combine(tor_service, "hostname")
+            with open(hostname_file, 'r') as file:
+                hostname = file.read().strip()
+                return hostname
+        return None
             
 
     def qr_generate(self, address):  
@@ -308,7 +322,9 @@ class Utils():
         text = "Downloading binary...%"
         destination = Os.Path.Combine(str(self.app_data), file_name)
         if tor_enabled:
-            connector = ProxyConnector.from_url('socks5://127.0.0.1:9050')
+            torrc = self.read_torrc()
+            socks_port = torrc.get("SocksPort")
+            connector = ProxyConnector.from_url(f'socks5://127.0.0.1:{socks_port}')
         else:
             connector = None
         try:
@@ -356,7 +372,9 @@ class Utils():
         total_files = len(missing_files)
         text = "Downloading params...%"
         if tor_enabled:
-            connector = ProxyConnector.from_url('socks5://127.0.0.1:9050')
+            torrc = self.read_torrc()
+            socks_port = torrc.get("SocksPort")
+            connector = ProxyConnector.from_url(f'socks5://127.0.0.1:{socks_port}')
         else:
             connector = None
         try:
@@ -405,7 +423,9 @@ class Utils():
         bitcoinz_path = self.get_bitcoinz_path()
         text = "Downloading bootstrap...%"
         if tor_enabled:
-            connector = ProxyConnector.from_url('socks5://127.0.0.1:9050')
+            torrc = self.read_torrc()
+            socks_port = torrc.get("SocksPort")
+            connector = ProxyConnector.from_url(f'socks5://127.0.0.1:{socks_port}')
         else:
             connector = None
         try:
@@ -448,7 +468,9 @@ class Utils():
         destination = Os.Path.Combine(str(self.app_data), file_name)
         miner_dir = Os.Path.Combine(str(self.app_data), miner_folder)
         if tor_enabled:
-            connector = ProxyConnector.from_url('socks5://127.0.0.1:9050')
+            torrc = self.read_torrc()
+            socks_port = torrc.get("SocksPort")
+            connector = ProxyConnector.from_url(f'socks5://127.0.0.1:{socks_port}')
         else:
             connector = None
         try:

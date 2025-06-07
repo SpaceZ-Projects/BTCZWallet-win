@@ -10,6 +10,7 @@ from ..framework import Os
 
 from .units import Units
 from .settings import Settings
+from .utils import Utils
 
 COINGECKO_API = "https://api.coingecko.com/api/v3/coins/bitcoinz/market_chart"
 
@@ -20,6 +21,7 @@ class Curve():
         self.app = app
         self.app_cache = self.app.paths.cache
 
+        self.utils = Utils(self.app)
         self.units = Units(self.app)
         self.settings = Settings(self.app)
 
@@ -31,7 +33,9 @@ class Curve():
         }
         tor_enabled = self.settings.tor_network()
         if tor_enabled:
-            connector = ProxyConnector.from_url('socks5://127.0.0.1:9050')
+            torrc = self.utils.read_torrc()
+            socks_port = torrc.get("SocksPort")
+            connector = ProxyConnector.from_url(f'socks5://127.0.0.1:{socks_port}')
         else:
             connector = None
         try:

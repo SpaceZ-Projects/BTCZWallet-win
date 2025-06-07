@@ -160,6 +160,7 @@ class Home(Box):
         self.app = app
         self.main = main
 
+        self.utils = Utils(self.app)
         self.units = Units(self.app)
         self.commands = Client(self.app)
         self.curve = Curve(self.app)
@@ -460,7 +461,9 @@ class Home(Box):
         api = "https://api.coingecko.com/api/v3/coins/bitcoinz"
         tor_enabled = self.settings.tor_network()
         if tor_enabled:
-            connector = ProxyConnector.from_url('socks5://127.0.0.1:9050')
+            torrc = self.utils.read_torrc()
+            socks_port = torrc.get("SocksPort")
+            connector = ProxyConnector.from_url(f'socks5://127.0.0.1:{socks_port}')
         else:
             connector = None
         try:
