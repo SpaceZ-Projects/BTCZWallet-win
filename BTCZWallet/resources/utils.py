@@ -67,6 +67,8 @@ class Utils():
 
     async def is_tor_alive(self):
         torrc = self.read_torrc()
+        if not torrc:
+            return None
         socks_port = torrc.get("SocksPort")
         try:
             connector = ProxyConnector.from_url(f'socks5://127.0.0.1:{socks_port}')
