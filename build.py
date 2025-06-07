@@ -9,18 +9,13 @@ import shutil
 
 
 def check_git_installed():
+    """Check if Git is installed."""
     try:
-        subprocess.check_call(
-            ["git", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-    except subprocess.CalledProcessError:
-        print("Git is not installed. Installing Git...")
-        install_git()
-
-
-def install_git():
-    git_installer_url = "https://git-scm.com/download/win"
-    print(f"Please install Git by downloading from: {git_installer_url}")
+        subprocess.check_call(["git", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print("[ERROR] Git is not installed.")
+        print("Please install Git from: https://git-scm.com/download/win")
+        sys.exit(1)
 
 
 def compare_versions(version1, version2):
@@ -40,153 +35,177 @@ def compare_versions(version1, version2):
 
 
 def get_python_versions():
-    versions = []
+    """Get installed Python versions (>= 3.9)."""
+    versions = set()
     try:
-        output = subprocess.check_output(["py", "--list"])
+        output = subprocess.check_output(["py", "--list"], stderr=subprocess.DEVNULL)
         for line in output.decode().splitlines():
-            if line.startswith(" -V:"):
-                version_str = line.split(":")[1].split()[0]
-                if compare_versions(version_str, "3.9") >= 0:
-                    versions.append(version_str)
-            elif line.startswith(" -"):
-                version_str = line.split('-')[1].split()[0]
-                if compare_versions(version_str, "3.9") >= 0:
-                    versions.append(version_str)
+            line = line.strip()
+            if line.startswith("-V:"):
+                version_str = line.split(":")[1].strip().split()[0]
+            elif line.startswith("-"):
+                parts = line[1:].split("-")
+                version_str = parts[0].strip()
+            else:
+                continue
+
+            if compare_versions(version_str, "3.9") >= 0:
+                versions.add(version_str)
     except subprocess.CalledProcessError:
         print("Could not find Python versions.")
-    return versions
+    return sorted(versions)
+
 
 def select_python_version():
+    """Prompt the user to select an available Python version."""
     versions = get_python_versions()
     if not versions:
-        print("No Python versions found. Please install a version of Python.")
+        print("[ERROR] No suitable Python versions found. Please install Python 3.9 or newer.")
         sys.exit(1)
 
-    print("Select a Python version:")
-    for idx, version in enumerate(versions, start=1):
-        print(f"{idx}. {version}")
+    print("\nAvailable Python Versions:")
+    for i, version in enumerate(versions, start=1):
+        print(f"{i}. Python {version}")
 
-    choice = int(input("Enter the number corresponding to your choice: "))
-    if 1 <= choice <= len(versions):
-        return versions[choice - 1]
-    else:
-        print("Invalid choice. Exiting.")
-        sys.exit(1)
-
-def operation_choice():
-    print("Select a operation:")
-    print("1. build installer")
-    print("2. build portable")
-    print("3. run app")
-    choice = int(input("Enter the number corresponding to your choice: "))
-    if choice == 0:
-        return 0
-    elif choice == 1:
-        return 1
-    else:
-        print("Invalid choice! Please select 0 or 1.")
+    try:
+        choice = int(input("Select the number corresponding to your preferred Python version: "))
+        if 1 <= choice <= len(versions):
+            return versions[choice - 1]
+        else:
+            raise ValueError
+    except ValueError:
+        print("[ERROR] Invalid selection.")
         sys.exit(1)
 
 
-def create_virtualenv(env, python_version):
-    print(f"Creating virtual environment with Python {python_version}...")
-    subprocess.check_call(
-        ["py", f"-{python_version}", "-m", "venv", env]
-    )
+def prompt_operation():
+    """Prompt the user to choose an operation."""
+    options = {
+        1: "Build Installer",
+        2: "Build Portable",
+        3: "Run Application"
+    }
+    print("\nAvailable Operations:")
+    for key, desc in options.items():
+        print(f"{key}. {desc}")
 
-def upgrade_pip(env):
-    print(f"Upgrading pip...")
-    subprocess.check_call(
-        [os.path.join(env, 'Scripts', 'python.exe'), "-m", "pip", "install", "--upgrade", "pip"]
-    )
+    try:
+        choice = int(input("Enter the number corresponding to your desired operation: "))
+        if choice in options:
+            return choice
+        else:
+            raise ValueError
+    except ValueError:
+        print("[ERROR] Invalid operation choice.")
+        sys.exit(1)
 
-def install_briefcase(env):
-    print(f"Installing Briefcase...")
-    subprocess.check_call(
-        [os.path.join(env, 'Scripts', 'pip'), "install", "briefcase"]
-    )
 
-def build_app(env):
-    print(f"Building Installer...")
+def create_virtualenv(env_name, python_version):
+    """Create a virtual environment using the specified Python version."""
+    print(f"[INFO] Creating virtual environment with Python {python_version}...")
+    subprocess.check_call(["py", f"-{python_version}", "-m", "venv", env_name])
+
+
+def upgrade_pip(env_path):
+    """Upgrade pip within the virtual environment."""
+    print("[INFO] Upgrading pip...")
+    subprocess.check_call([os.path.join(env_path, 'Scripts', 'python.exe'), "-m", "pip", "install", "--upgrade", "pip"])
+
+
+def install_briefcase(env_path):
+    """Install Briefcase into the virtual environment."""
+    print("[INFO] Installing Briefcase...")
+    subprocess.check_call([os.path.join(env_path, 'Scripts', 'pip'), "install", "briefcase"])
+
+
+def ensure_briefcase_installed(env_path):
+    """Ensure Briefcase is installed in the environment."""
+    try:
+        subprocess.check_call([os.path.join(env_path, 'Scripts', 'pip'), "show", "briefcase"],
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except subprocess.CalledProcessError:
+        install_briefcase(env_path)
+
+
+def build_app(env_path):
+    """Build the application using Briefcase."""
+    print("[INFO] Building application...")
     build_dir = "build"
     if os.path.exists(build_dir):
-        print("Deleting existing build directory...")
+        print("[INFO] Cleaning existing build directory...")
         shutil.rmtree(build_dir)
-    subprocess.check_call(
-        [os.path.join(env, 'Scripts', 'briefcase'), "build"]
-    )
+    subprocess.check_call([os.path.join(env_path, 'Scripts', 'briefcase'), "build"])
 
-def run_app(env):
-    print(f"Running App...")
-    subprocess.check_call(
-        [os.path.join(env, 'Scripts', 'briefcase'), "dev"]
-    )
+
+def run_app(env_path):
+    """Run the application in development mode."""
+    print("[INFO] Launching application in development mode...")
+    subprocess.check_call([os.path.join(env_path, 'Scripts', 'briefcase'), "dev"])
+
 
 def download_nsis():
-    nsis_dir = os.path.join("nsis", "nsis-3.10", "makensis.exe")
-    if os.path.exists(nsis_dir):
-        print("NSIS is already installed. Skipping...")
+    """Download and extract NSIS (if not already installed)."""
+    nsis_exe = os.path.join("nsis", "nsis-3.10", "makensis.exe")
+    if os.path.exists(nsis_exe):
+        print("[INFO] NSIS already installed. Skipping download.")
         return
 
-    print("Downloading NSIS...")
+    print("[INFO] Downloading NSIS...")
     nsis_url = "https://sourceforge.net/projects/nsis/files/NSIS%203/3.10/nsis-3.10.zip/download"
     nsis_zip = "nsis-3.10.zip"
-    nsis_extract_dir = "nsis"
+    extract_dir = "nsis"
     context = ssl._create_unverified_context()
 
-    with urllib.request.urlopen(nsis_url, context=context) as response, open(nsis_zip, 'wb') as out_file:
-        out_file.write(response.read())
+    with urllib.request.urlopen(nsis_url, context=context) as response, open(nsis_zip, 'wb') as f:
+        f.write(response.read())
+
     with zipfile.ZipFile(nsis_zip, 'r') as zip_ref:
-        zip_ref.extractall(nsis_extract_dir)
+        zip_ref.extractall(extract_dir)
+
     os.remove(nsis_zip)
-    print(f"NSIS extracted to {nsis_extract_dir}")
+    print(f"[INFO] NSIS extracted to '{extract_dir}'")
 
 
 def build_installer():
-    print("Building the installer using NSIS...")
+    """Compile the NSIS installer."""
+    print("[INFO] Compiling NSIS installer...")
     nsis_script = "btczwallet.nsi"
     nsis_compiler = os.path.join("nsis", "nsis-3.10", "makensis.exe")
 
     if not os.path.exists(nsis_compiler):
-        print("NSIS is not installed. Please install it first.")
+        print("[ERROR] NSIS not found.")
         sys.exit(1)
+
     subprocess.check_call([nsis_compiler, nsis_script])
 
 
-def build_portable(env):
-    print(f"Building Portable...")
-    subprocess.check_call(
-        [os.path.join(env, 'Scripts', 'briefcase'), "package", "-p", "zip"]
-    )
+def build_portable(env_path):
+    """Build a portable zip version of the application."""
+    print("[INFO] Building portable application package...")
+    subprocess.check_call([os.path.join(env_path, 'Scripts', 'briefcase'), "package", "-p", "zip"])
+
 
 def main():
     check_git_installed()
-    env = "env"
 
-    if not os.path.exists(env):
+    env_dir = "env"
+    if not os.path.exists(env_dir):
         python_version = select_python_version()
-        create_virtualenv(env, python_version)
-        upgrade_pip(env)
+        create_virtualenv(env_dir, python_version)
+        upgrade_pip(env_dir)
 
-    operation = operation_choice()
-
-    try:
-        subprocess.check_call(
-            [os.path.join(env, 'Scripts', 'pip'), "show", "briefcase"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-    except subprocess.CalledProcessError:
-        install_briefcase(env)
+    operation = prompt_operation()
+    ensure_briefcase_installed(env_dir)
 
     if operation == 1:
-        build_app(env)
+        build_app(env_dir)
         download_nsis()
         build_installer()
-
     elif operation == 2:
-        build_portable(env)
-        
+        build_portable(env_dir)
     elif operation == 3:
-        run_app(env)
+        run_app(env_dir)
+
 
 if __name__ == "__main__":
     main()
