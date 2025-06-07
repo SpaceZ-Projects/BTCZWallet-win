@@ -6,7 +6,7 @@ import json
 from toga import App, Box, Window
 from ..framework import (
     StatusBar, StatusLabel, Separator,
-    DockStyle, Color, Font, FontStyle, AlignContent
+    DockStyle, Color, AlignContent
 )
 from toga.style.pack import Pack
 from toga.constants import ROW, BOTTOM
@@ -39,109 +39,79 @@ class AppStatusBar(Box):
 
         self.status_label = StatusLabel(
             text="Status :",
-            color=Color.GRAY,
-            font=Font.SERIF,
-            style=FontStyle.BOLD
+            color=Color.GRAY
         )
         self.status_icon = StatusLabel(
             image="images/off.png"
         )
         self.blocks_status = StatusLabel(
             text="Blocks :",
-            color=Color.GRAY,
-            font=Font.SERIF,
-            style=FontStyle.BOLD
+            color=Color.GRAY
         )
         self.blocks_value = StatusLabel(
             text="",
             color=Color.WHITE,
-            font=Font.SERIF,
-            style=FontStyle.BOLD,
             text_align=AlignContent.LEFT,
             autotooltip=True
         )
         self.deprecation_status = StatusLabel(
             text="Deps :",
-            color=Color.GRAY,
-            font=Font.SERIF,
-            style=FontStyle.BOLD
+            color=Color.GRAY
         )
         self.deprecation_value = StatusLabel(
             text="",
             color=Color.WHITE,
-            font=Font.SERIF,
-            style=FontStyle.BOLD,
             text_align=AlignContent.LEFT,
             autotooltip=True
         )
         self.date_status = StatusLabel(
             text="Date :",
-            color=Color.GRAY,
-            font=Font.SERIF,
-            style=FontStyle.BOLD
+            color=Color.GRAY
         )
         self.date_value = StatusLabel(
             text="",
             color=Color.WHITE,
-            font=Font.SERIF,
-            style=FontStyle.BOLD,
             spring=True,
             text_align=AlignContent.LEFT,
             autotooltip=True
         )
         self.sync_status = StatusLabel(
             text="Sync :",
-            color=Color.GRAY,
-            font=Font.SERIF,
-            style=FontStyle.BOLD
+            color=Color.GRAY
         )
         self.sync_value = StatusLabel(
             text="",
             color=Color.WHITE,
-            font=Font.SERIF,
-            style=FontStyle.BOLD,
             text_align=AlignContent.LEFT,
             autotooltip=True
         )
         self.network_status = StatusLabel(
             text="NetHash :",
-            color=Color.GRAY,
-            font=Font.SERIF,
-            style=FontStyle.BOLD
+            color=Color.GRAY
         )
         self.network_value = StatusLabel(
             text="",
             color=Color.WHITE,
-            font=Font.SERIF,
-            style=FontStyle.BOLD,
             text_align=AlignContent.LEFT,
             autotooltip=True
         )
         self.connections_status = StatusLabel(
             text="Conns :",
-            color=Color.GRAY,
-            font=Font.SERIF,
-            style=FontStyle.BOLD
+            color=Color.GRAY
         )
         self.connections_value = StatusLabel(
             text="",
             color=Color.WHITE,
-            font=Font.SERIF,
-            style=FontStyle.BOLD,
             text_align=AlignContent.LEFT,
             autotooltip=True
         )
         self.size_status = StatusLabel(
             text="Size :",
-            color=Color.GRAY,
-            font=Font.SERIF,
-            style=FontStyle.BOLD
+            color=Color.GRAY
         )
         self.size_value = StatusLabel(
             text="",
             color=Color.WHITE,
-            font=Font.SERIF,
-            style=FontStyle.BOLD,
             text_align=AlignContent.LEFT,
             autotooltip=True
         )

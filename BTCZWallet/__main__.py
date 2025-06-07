@@ -2,9 +2,10 @@
 from toga import (
     App, Window, Box, ImageView, Label
 )
+from .framework import CustomFont
 from toga.colors import rgb, WHITE, YELLOW
 from toga.style.pack import Pack
-from toga.constants import RIGHT, BOLD, COLUMN, ROW, LEFT
+from toga.constants import RIGHT, COLUMN, ROW, LEFT
 
 from .resources import BTCZSetup, Utils
 
@@ -17,6 +18,8 @@ class BitcoinZGUI(Window):
         )
 
         self.utils = Utils(self.app)
+
+        self.monda_font = CustomFont()
 
         self.title = "BitcoinZ Wallet"
         position_center = self.utils.windows_screen_center(self.size)
@@ -49,12 +52,12 @@ class BitcoinZGUI(Window):
                 color = WHITE,
                 background_color = rgb(30,33,36),
                 text_align = RIGHT,
-                font_weight = BOLD,
                 padding_right = 10,
-                font_size = 10,
                 flex = 1
             )
         )
+        self.app_version._impl.native.Font = self.monda_font.get(9, True)
+
         self.tor_icon = ImageView(
             image="images/tor_off.png",
             style=Pack(
@@ -67,12 +70,12 @@ class BitcoinZGUI(Window):
             style=Pack(
                 background_color = rgb(30,33,36),
                 text_align = LEFT,
-                font_weight = BOLD,
                 padding_left = 3,
-                font_size = 10,
                 flex = 1
             )
         )
+        self.network_status._impl.native.Font = self.monda_font.get(9, True)
+        
         self.startup = BTCZSetup(
             self.app,
             self
@@ -100,8 +103,8 @@ class BitcoinZGUI(Window):
 
 
 class BitcoinZWallet(App):
+    
     def startup(self):
-        
         self.main_window = BitcoinZGUI()
         self.main_window._impl.native.TopMost = True
         self.main_window._impl.native.Shown += self.on_show
@@ -121,8 +124,7 @@ def main():
         author = "BTCZCommunity",
         version = "1.2.9"
     )
-    return app
+    app.main_loop()
 
 if __name__ == "__main__":
-    app = main()
-    app.main_loop()
+    main()

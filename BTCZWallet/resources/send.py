@@ -9,12 +9,13 @@ from toga import (
     Button
 )
 from ..framework import (
-    Command, Color, ToolTip, FlatStyle, MenuStrip
+    Command, Color, ToolTip, FlatStyle, MenuStrip,
+    CustomFont
 )
 from toga.style.pack import Pack
 from toga.constants import (
-    COLUMN, ROW, TOP, BOLD, CENTER,
-    LEFT, VISIBLE, HIDDEN
+    COLUMN, ROW, TOP, CENTER, LEFT,
+    VISIBLE, HIDDEN
 )
 from toga.colors import (
     rgb, GRAY, WHITE, YELLOW, BLACK, RED
@@ -42,6 +43,8 @@ class Send(Box):
         self.storagemsgs = StorageMessages(self.app)
         self.storagetxs = StorageTxs(self.app)
         self.tooltip = ToolTip()
+
+        self.monda_font = CustomFont()
 
         self.send_toggle = None
         self.transparent_toggle = None
@@ -73,11 +76,10 @@ class Send(Box):
                 color = GRAY,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 1
             )
         )
+        self.transparent_label._impl.native.Font = self.monda_font.get(11, True)
         self.transparent_button._impl.native.MouseEnter += self.transparent_button_mouse_enter
         self.transparent_label._impl.native.MouseEnter += self.transparent_button_mouse_enter
         self.transparent_button._impl.native.MouseLeave += self.transparent_button_mouse_leave
@@ -98,11 +100,10 @@ class Send(Box):
                 color = GRAY,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 1
             )
         )
+        self.private_label._impl.native.Font = self.monda_font.get(11, True)
         self.private_button._impl.native.MouseEnter += self.private_button_mouse_enter
         self.private_label._impl.native.MouseEnter += self.private_button_mouse_enter
         self.private_button._impl.native.MouseLeave += self.private_button_mouse_leave
@@ -115,25 +116,24 @@ class Send(Box):
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 text_align = CENTER,
                 flex = 1,
                 padding_top = 12
             )
         )
+        self.from_address_label._impl.native.Font = self.monda_font.get(11, True)
+
         self.address_selection = Selection(
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 2,
                 padding_top = 10
             ),
             accessor="select_address",
             on_change=self.display_address_balance
         )
+        self.address_selection._impl.native.Font = self.monda_font.get(11, True)
         self.address_selection._impl.native.FlatStyle = FlatStyle.FLAT
         self.address_selection._impl.native.DropDownHeight = 150
 
@@ -142,13 +142,12 @@ class Send(Box):
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 text_align = CENTER,
                 flex = 1,
                 padding_top = 12
             )
         )
+        self.address_balance._impl.native.Font = self.monda_font.get(11, True)
 
         self.selection_address_box = Box(
             style=Pack(
@@ -163,12 +162,11 @@ class Send(Box):
             text="Single",
             style=Pack(
                 color = GRAY,
-                background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 11
+                background_color = rgb(30,33,36)
             ),
             on_change=self.single_option_on_change
         )
+        self.single_option._impl.native.Font = self.monda_font.get(11, True)
         self.tooltip.insert(self.single_option._impl.native, "Send to single address")
 
         self.many_option = Switch(
@@ -176,12 +174,11 @@ class Send(Box):
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 11,
                 padding = (0,20,0,0)
             ),
             on_change=self.many_option_on_change
         )
+        self.many_option._impl.native.Font = self.monda_font.get(11, True)
         self.tooltip.insert(self.many_option._impl.native, "Send to many addresses")
 
         self.send_options_switch = Box(
@@ -208,40 +205,37 @@ class Send(Box):
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 text_align = CENTER,
                 flex = 1,
                 padding_top = 12
             )
         )
+        self.destination_label._impl.native.Font = self.monda_font.get(11, True)
 
         self.destination_input_single = TextInput(
             placeholder=" Address",
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 2,
                 padding_top = 10
             ),
             on_change=self.is_valid_address
         )
+        self.destination_input_single._impl.native.Font = self.monda_font.get(11, True)
 
         self.destination_input_many = MultilineTextInput(
             placeholder=" Addresses list",
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 2,
                 padding_top = 10,
                 height = 75
             ),
             on_change=self.destination_input_many_on_change
         )
+        self.destination_input_many._impl.native.Font = self.monda_font.get(11, True)
 
         self.is_valid = ImageView(
             style=Pack(
@@ -273,13 +267,12 @@ class Send(Box):
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 text_align = CENTER,
                 flex = 2,
                 padding_top = 12
             )
         )
+        self.amount_label._impl.native.Font = self.monda_font.get(11, True)
 
         self.amount_input = TextInput(
             placeholder="0.00000000",
@@ -287,8 +280,6 @@ class Send(Box):
                 color = WHITE,
                 text_align= CENTER,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 1,
                 padding_top = 10
             ),
@@ -297,20 +288,20 @@ class Send(Box):
             ],
             on_change=self.verify_balance
         )
+        self.amount_input._impl.native.Font = self.monda_font.get(11, True)
 
         self.check_amount_label = Label(
             text="",
             style=Pack(
                 color = RED,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 11,
                 text_align = LEFT,
                 flex = 5,
                 padding_top = 12,
                 padding_left = 10
             )
         )
+        self.check_amount_label._impl.native.Font = self.monda_font.get(10, True)
 
         self.split_option = Switch(
             text="Split",
@@ -318,11 +309,10 @@ class Send(Box):
             style=Pack(
                 color = YELLOW,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 11
             ),
             on_change=self.split_option_on_change
         )
+        self.split_option._impl.native.Font = self.monda_font.get(11, True)
         self.tooltip.insert(self.split_option._impl.native, "Split the total amount equally across all addresses.")
 
         self.each_option = Switch(
@@ -330,12 +320,11 @@ class Send(Box):
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 11,
                 padding_left = 20
             ),
             on_change=self.each_option_on_change
         )
+        self.each_option._impl.native.Font = self.monda_font.get(11, True)
         self.tooltip.insert(self.each_option._impl.native, "Set a specific amount for each address.")
 
 
@@ -371,21 +360,19 @@ class Send(Box):
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 text_align = CENTER,
                 flex = 2,
                 padding_top = 12
             )
         )
+        self.fees_label._impl.native.Font = self.monda_font.get(11, True)
+
         self.fee_input = TextInput(
             placeholder="0.00000000",
             style=Pack(
                 color = WHITE,
                 text_align= CENTER,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 1,
                 padding_top = 10
             ),
@@ -393,6 +380,8 @@ class Send(Box):
                 self.is_digit
             ]
         )
+        self.fee_input._impl.native.Font = self.monda_font.get(11, True)
+
         self.empty_box = Box(
             style=Pack(
                 background_color = rgb(30,33,36),
@@ -422,11 +411,10 @@ class Send(Box):
                 color = GRAY,
                 text_align= LEFT,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 11,
                 padding_top = 5
             )
         )
+        self.operation_label._impl.native.Font = self.monda_font.get(10, True)
 
         self.operation_status = Label(
             text="",
@@ -434,11 +422,10 @@ class Send(Box):
                 color = WHITE,
                 text_align= LEFT,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 11,
                 padding_top = 5
             )
         )
+        self.operation_status._impl.native.Font = self.monda_font.get(10, True)
 
         self.operation_box = Box(
             style=Pack(
@@ -461,13 +448,12 @@ class Send(Box):
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 width = 150,
                 padding = (10,10,0,0)
             ),
             on_press=self.send_button_click
         )
+        self.send_button._impl.native.Font = self.monda_font.get(11, True)
         self.send_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.send_button._impl.native.MouseEnter += self.send_button_mouse_enter
         self.send_button._impl.native.MouseLeave += self.send_button_mouse_leave

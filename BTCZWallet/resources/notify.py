@@ -48,7 +48,7 @@ class Notify(NotifyIcon):
             self.main._impl.native.WindowState = FormState.NORMAL
         if self.app.current_window is not self.main:
             self.main._impl.native.Activate()
-                     
+            
 
     def exit_app(self):
         def on_result(widget, result):
@@ -114,7 +114,7 @@ class NotifyMining(NotifyIcon):
 
 
 class NotifyTx(NotifyIcon):
-    def __init__(self, icon):
+    def __init__(self, icon = None):
         super().__init__(
             icon=icon,
             text = "New Transaction"

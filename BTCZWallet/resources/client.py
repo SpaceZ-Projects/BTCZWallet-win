@@ -7,6 +7,7 @@ import binascii
 from toga import App
 from ..framework import Os
 
+
 class Client():
     def __init__(self, app:App):
         super().__init__()
@@ -14,6 +15,14 @@ class Client():
         self.app = app
         self.app_data = self.app.paths.data
         self.bitcoinz_cli_file = Os.Path.Combine(str(self.app_data), "bitcoinz-cli.exe")
+
+        self.file_stream = Os.FileStream(
+            self.bitcoinz_cli_file,
+            Os.FileMode.Open,
+            Os.FileAccess.Read,
+            Os.FileShare.Read
+        )
+
 
     async def _run_command(self, command):
         try:
@@ -42,7 +51,6 @@ class Client():
                 else:
                     return None, None
         except Exception as e:
-            print(f"An error occurred while running command {command}: {e}")
             return None, None
 
     async def stopNode(self):
@@ -118,7 +126,7 @@ class Client():
     
     async def listTransactions(self, count:int, tx_from:int):
         """
-        Returns up to 'count' most recent transactions skipping the first 'from' transactions for account 'account'.
+        Returns up to 'count' most recent transactions skipping the first 'from' transactions for account '*'.
         """
         command = f'{self.bitcoinz_cli_file} listtransactions "*" {count} {tx_from}'
         return await self._run_command(command)

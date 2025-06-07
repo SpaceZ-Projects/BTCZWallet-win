@@ -7,15 +7,16 @@ from toga import (
     Button, ProgressBar
 )
 from ..framework import (
-    Cursors, FlatStyle, Forms, ProgressStyle, Os
+    Cursors, FlatStyle, Forms, ProgressStyle, Os,
+    CustomFont
 )
 from toga.style.pack import Pack
 from toga.colors import (
     rgb, WHITE, GRAY, YELLOW, RED, GREENYELLOW, BLACK
 )
 from toga.constants import (
-    TOP, ROW, LEFT, BOLD, COLUMN,
-    RIGHT, CENTER, BOTTOM, HIDDEN, VISIBLE
+    TOP, ROW, LEFT, COLUMN, RIGHT, CENTER,
+    BOTTOM, HIDDEN, VISIBLE
 )
 
 from .client import Client
@@ -39,8 +40,10 @@ class Wallet(Box):
         self.commands = Client(self.app)
         self.units = Units(self.app)
 
+        self.monda_font = CustomFont()
+
         self.bitcoinz_logo = ImageView(
-            image="images/BTCZ.png",
+            image="images/BitcoinZ.png",
             style=Pack(
                 width=100,
                 height=100,
@@ -54,25 +57,23 @@ class Wallet(Box):
             style=Pack(
                 color = WHITE,
                 background_color = rgb(40,43,48),
-                font_size = 20,
-                font_weight = BOLD,
                 text_align = LEFT,
-                flex = 1,
-                padding_top = 35
+                padding_top = 25
             )
         )
+        self.bitcoinz_title._impl.native.Font = self.monda_font.get(22, True)
+
         self.bitcoinz_version = Label(
             text="",
             style=Pack(
                 color = GRAY,
                 background_color = rgb(40,43,48),
-                font_size = 8,
-                font_weight = BOLD,
                 text_align = LEFT,
-                flex = 1,
-                padding_left = 5
+                padding_left = 13
             )
         )
+        self.bitcoinz_version._impl.native.Font = self.monda_font.get(8, True)
+        
         self.bitcoinz_title_box = Box(
             style=Pack(
                 direction = COLUMN,
@@ -93,8 +94,6 @@ class Wallet(Box):
         self.total_balances_label = Label(
             text="Total Balances",
             style=Pack(
-                font_size = 13,
-                font_weight = BOLD,
                 text_align = CENTER,
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -102,17 +101,18 @@ class Wallet(Box):
                 flex =1
             )
         )
+        self.total_balances_label._impl.native.Font = self.monda_font.get(14, True)
+
         self.total_value = Label(
             text="",
             style=Pack(
-                font_size = 13,
-                font_weight = BOLD,
                 text_align = CENTER,
                 color = WHITE,
-                background_color = rgb(30,33,36),
-                padding_top = 5
+                background_color = rgb(30,33,36)
             )
         )
+        self.total_value._impl.native.Font = self.monda_font.get(14, True)
+
         self.balances_type_box = Box(
             style=Pack(
                 direction = ROW,
@@ -144,68 +144,69 @@ class Wallet(Box):
             style=Pack(
                 background_color = rgb(40,43,48),
                 text_align = CENTER,
-                color = GRAY,
-                font_weight = BOLD
+                color = GRAY
             )
         )
+        self.transparent_label._impl.native.Font = self.monda_font.get(8, True)
 
         self.transparent_value = Label(
             text="",
             style=Pack(
                 background_color = rgb(40,43,48),
                 text_align = CENTER,
-                color = YELLOW,
-                font_weight = BOLD
+                color = YELLOW
             )
         )
+        self.transparent_value._impl.native.Font = self.monda_font.get(9, True)
 
         self.private_label = Label(
             text="Private",
             style=Pack(
                 background_color = rgb(40,43,48),
                 text_align = CENTER,
-                color = GRAY,
-                font_weight = BOLD
+                color = GRAY
             )
         )
+        self.private_label._impl.native.Font = self.monda_font.get(8, True)
 
         self.private_value = Label(
             text="",
             style=Pack(
                 background_color = rgb(40,43,48),
                 text_align = CENTER,
-                color = rgb(114,137,218),
-                font_weight = BOLD
+                color = rgb(114,137,218)
             )
         )
+        self.private_value._impl.native.Font = self.monda_font.get(9, True)
+
         self.unconfirmed_label = Label(
             text="Unconfirmed Balance",
             style=Pack(
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
                 color = GRAY,
-                font_weight = BOLD,
-                padding_top = 5,
                 visibility = HIDDEN
             )
         )
+        self.unconfirmed_label._impl.native.Font = self.monda_font.get(8, True)
+
         self.unconfirmed_value = Label(
             text="",
             style=Pack(
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
                 color = RED,
-                font_weight = BOLD,
-                padding_bottom = 5,
                 visibility = HIDDEN
             )
         )
+        self.unconfirmed_value._impl.native.Font = self.monda_font.get(9, True)
+        
         self.unconfirmed_box = Box(
             style=Pack(
                 direction = COLUMN,
                 alignment = CENTER,
                 background_color = rgb(30,33,36),
-                padding_top = 70,
+                padding_top = 82,
                 visibility = HIDDEN
             )
         )
@@ -309,6 +310,8 @@ class ImportKey(Window):
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
 
+        self.monda_font = CustomFont()
+
         self.main_box = Box(
             style=Pack(
                 direction = COLUMN,
@@ -324,34 +327,33 @@ class ImportKey(Window):
                 color = WHITE,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                font_size = 11,
                 padding_top = 5
             )
         )
+        self.info_label._impl.native.Font = self.monda_font.get(11)
+
         self.key_input = TextInput(
             style=Pack(
                 color = WHITE,
                 text_align= CENTER,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 3,
                 padding_left = 10
             )
         )
+        self.key_input._impl.native.Font = self.monda_font.get(11, True)
         
         self.import_button = Button(
             text="Import",
             style=Pack(
                 color= GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size=10,
                 flex = 1,
                 padding = (0,10,0,10)
             ),
             on_press=self.import_button_click
         )
+        self.import_button._impl.native.Font = self.monda_font.get(9, True)
         self.import_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.import_button._impl.native.MouseEnter += self.import_button_mouse_enter
         self.import_button._impl.native.MouseLeave += self.import_button_mouse_leave
@@ -371,7 +373,7 @@ class ImportKey(Window):
                 background_color = rgb(30,33,36),
                 flex = 1,
                 alignment = CENTER,
-                padding = (10,0,10,0)
+                padding = (5,0,10,0)
             )
         )
 
@@ -379,8 +381,6 @@ class ImportKey(Window):
             text="Cancel",
             style=Pack(
                 color = RED,
-                font_size=10,
-                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
                 padding_bottom = 10,
@@ -388,6 +388,7 @@ class ImportKey(Window):
             ),
             on_press=self.close_import_key
         )
+        self.cancel_button._impl.native.Font = self.monda_font.get(9, True)
         self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
         self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
@@ -500,6 +501,8 @@ class ImportWallet(Window):
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
 
+        self.monda_font = CustomFont()
+
         self.main_box = Box(
             style=Pack(
                 direction = COLUMN,
@@ -515,23 +518,23 @@ class ImportWallet(Window):
                 color = WHITE,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                font_size = 11,
                 padding_top = 5
             )
         )
+        self.info_label._impl.native.Font = self.monda_font.get(11)
+
         self.file_input = TextInput(
             value="+ Select / Drag and Drop File",
             style=Pack(
                 color = GRAY,
                 text_align= CENTER,
                 background_color = rgb(40,43,48),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 3,
                 padding_left = 10
             ),
             readonly=True
         )
+        self.file_input._impl.native.Font = self.monda_font.get(11, True)
         self.file_input._impl.native.AllowDrop = True
         self.file_input._impl.native.Click += self.select_wallet_file
         self.file_input._impl.native.DragEnter += Forms.DragEventHandler(self.on_drag_enter)
@@ -543,13 +546,12 @@ class ImportWallet(Window):
             style=Pack(
                 color= GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size=10,
                 flex = 1,
                 padding = (0,10,0,10)
             ),
             on_press = self.import_button_click
         )
+        self.import_button._impl.native.Font = self.monda_font.get(9, True)
         self.import_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.import_button._impl.native.MouseEnter += self.import_button_mouse_enter
         self.import_button._impl.native.MouseLeave += self.import_button_mouse_leave
@@ -577,8 +579,6 @@ class ImportWallet(Window):
             text="Cancel",
             style=Pack(
                 color = RED,
-                font_size=10,
-                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
                 padding_bottom = 10,
@@ -586,6 +586,7 @@ class ImportWallet(Window):
             ),
             on_press=self.close_import_file
         )
+        self.cancel_button._impl.native.Font = self.monda_font.get(9, True)
         self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
         self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave

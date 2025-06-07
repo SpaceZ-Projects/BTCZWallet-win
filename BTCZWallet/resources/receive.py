@@ -7,8 +7,8 @@ from toga import (
 )
 from ..framework import (
     Table, DockStyle, BorderStyle, AlignTable,
-    FontStyle, Font, Color, Command, ClipBoard,
-    RichLabel, ScrollBars, AlignRichLabel
+    FontStyle, Color, Command, ClipBoard,
+    RichLabel, ScrollBars, AlignRichLabel, CustomFont
 )
 from toga.style.pack import Pack
 from toga.constants import COLUMN, ROW, CENTER, BOLD, TOP
@@ -41,6 +41,8 @@ class Receive(Box):
         self.storage = StorageMessages(self.app)
         self.clipboard = ClipBoard()
 
+        self.monda_font = CustomFont()
+
         self.receive_toggle = None
         self.transparent_toggle = None
         self.private_toggle = None
@@ -56,7 +58,7 @@ class Receive(Box):
         self.addresses_list_box = Box(
             style=Pack(
                 direction=COLUMN,
-                flex = 1,
+                flex = 1.5,
                 background_color = rgb(30,33,36)
             )
         )
@@ -84,11 +86,10 @@ class Receive(Box):
                 color = GRAY,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 1
             )
         )
+        self.transparent_label._impl.native.Font = self.monda_font.get(11, True)
         self.transparent_button._impl.native.MouseEnter += self.transparent_button_mouse_enter
         self.transparent_label._impl.native.MouseEnter += self.transparent_button_mouse_enter
         self.transparent_button._impl.native.MouseLeave += self.transparent_button_mouse_leave
@@ -109,11 +110,10 @@ class Receive(Box):
                 color = GRAY,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 1
             )
         )
+        self.private_label._impl.native.Font = self.monda_font.get(11, True)
         self.private_button._impl.native.MouseEnter += self.private_button_mouse_enter
         self.private_label._impl.native.MouseEnter += self.private_button_mouse_enter
         self.private_button._impl.native.MouseLeave += self.private_button_mouse_leave
@@ -161,9 +161,7 @@ class Receive(Box):
             column_count=1,
             row_visible=False,
             borderstyle=BorderStyle.NONE,
-            text_style=FontStyle.BOLD,
             align=AlignTable.MIDCENTER,
-            font=Font.SANSSERIF,
             readonly=True,
             column_widths={0:442},
             background_color=Color.rgb(30,33,36),
@@ -205,21 +203,20 @@ class Receive(Box):
             borderstyle=BorderStyle.NONE,
             background_color=Color.rgb(40,43,48),
             color=Color.WHITE,
-            style=FontStyle.BOLD,
             wrap=True,
             readonly=True,
             urls=False,
             dockstyle=DockStyle.TOP,
             text_align=AlignRichLabel.CENTER,
             scrollbars=ScrollBars.NONE,
-            maxsize=(0, 35),
-            minsize=(0, 35)
+            maxsize=(0, 65),
+            minsize=(0, 65)
         )
         self.address_value_box = Box(
             style=Pack(
                 direction = COLUMN,
-                height=35,
-                padding = (10,50,0,50),
+                height = 65,
+                padding = (5,50,0,50),
                 background_color=rgb(40,43,48)
             )
         )

@@ -9,7 +9,7 @@ from toga import (
     App, Box, Label, ImageView, Window, Button,
     Selection, Divider
 )
-from ..framework import Os, FlatStyle, ToolTip, Forms
+from ..framework import Os, FlatStyle, ToolTip, Forms, CustomFont
 from toga.style.pack import Pack
 from toga.constants import (
     COLUMN, ROW, TOP, LEFT, BOLD,
@@ -166,6 +166,8 @@ class Home(Box):
         self.settings = Settings(self.app)
         self.tooltip = ToolTip()
 
+        self.monda_font = CustomFont()
+
         self.home_toggle = None
         self.cap_toggle = None
         self.volume_toggle = None
@@ -183,26 +185,26 @@ class Home(Box):
         self.coingecko_label = Label(
             text="coingecko",
             style=Pack(
-                font_size = 12,
                 text_align = LEFT,
                 background_color = rgb(40,43,48),
                 color = WHITE,
-                font_weight = BOLD,
                 padding = (5,0,0,5)
             )
         )
+        self.coingecko_label._impl.native.Font = self.monda_font.get(12, True)
+
         self.last_updated_label = Label(
             "",
             style=Pack(
-                font_size = 9,
                 text_align = LEFT,
                 background_color = rgb(40,43,48),
                 color = GRAY,
-                font_weight = BOLD,
-                padding = (10,0,0,5),
+                padding = (9,0,0,5),
                 flex = 1
             )
         )
+        self.last_updated_label._impl.native.Font = self.monda_font.get(9)
+
         self.coingecko_box = Box(
             style=Pack(
                 direction = ROW,
@@ -224,162 +226,151 @@ class Home(Box):
         self.price_label = Label(
             text="Price :",
             style=Pack(
-                font_size = 11,
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
                 color = GRAY,
-                font_weight = BOLD,
                 padding = 10
             )
         )
+        self.price_label._impl.native.Font = self.monda_font.get(11)
 
         self.price_value = Label(
             text="",
             style=Pack(
-                font_size = 10,
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
                 color = WHITE,
-                font_weight = BOLD,
-                padding = (11,0,10,0),
+                padding_top = 13,
                 flex = 1
             )
         )
+        self.price_value._impl.native.Font = self.monda_font.get(9, True)
+
         self.percentage_24_label = Label(
             "Change 24h :",
             style=Pack(
-                font_size = 11,
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
                 color = GRAY,
-                font_weight = BOLD,
                 padding = 10
             )
         )
+        self.percentage_24_label._impl.native.Font = self.monda_font.get(11)
 
         self.percentage_24_value = Label(
             "",
             style=Pack(
-                font_size = 10,
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
                 color = WHITE,
-                font_weight = BOLD,
-                padding = (11,0,10,0),
+                padding_top = 13,
                 flex = 1
             )
         )
+        self.percentage_24_value._impl.native.Font = self.monda_font.get(9, True)
+
         self.percentage_7_label = Label(
             "Change 7d :",
             style=Pack(
-                font_size = 11,
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
                 color = GRAY,
-                font_weight = BOLD,
                 padding = 10
             )
         )
+        self.percentage_7_label._impl.native.Font = self.monda_font.get(11)
 
         self.percentage_7_value = Label(
             "",
             style=Pack(
-                font_size = 10,
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
                 color = WHITE,
-                font_weight = BOLD,
-                padding = (11,0,10,0),
+                padding_top = 13,
                 flex = 1
             )
         )
+        self.percentage_7_value._impl.native.Font = self.monda_font.get(9, True)
 
         self.cap_label = Label(
             "Cap :",
             style=Pack(
-                font_size = 11,
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
                 color = GRAY,
-                font_weight = BOLD,
                 padding = 10
             )
         )
+        self.cap_label._impl.native.Font = self.monda_font.get(11)
 
         self.cap_value = Label(
             "",
             style=Pack(
-                font_size = 10,
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
                 color = WHITE,
-                font_weight = BOLD,
-                padding = (11,0,10,0),
+                padding_top = 13,
                 flex = 1
             )
         )
+        self.cap_value._impl.native.Font = self.monda_font.get(9, True)
 
         self.volume_label = Label(
             "Volume :",
             style=Pack(
-                font_size = 11,
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
                 color = GRAY,
-                font_weight = BOLD,
                 padding = 10
             )
         )
+        self.volume_label._impl.native.Font = self.monda_font.get(11)
 
         self.volume_value = Label(
             "",
             style=Pack(
-                font_size = 10,
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
                 color = WHITE,
-                font_weight = BOLD,
-                padding = (11,0,10,0),
+                padding_top = 13,
                 flex = 1
             )
         )
+        self.volume_value._impl.native.Font = self.monda_font.get(9, True)
 
         self.circulating_label = Label(
             "Circulating :",
             style=Pack(
-                font_size = 11,
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
                 color = GRAY,
-                font_weight = BOLD,
                 padding = 10
             )
         )
+        self.circulating_label._impl.native.Font = self.monda_font.get(11)
 
         self.circulating_value = Label(
             "",
             style=Pack(
-                font_size = 10,
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
                 color = WHITE,
-                font_weight = BOLD,
-                padding = (11,0,10,0),
+                padding_top = 13,
                 flex = 1
             )
         )
+        self.circulating_value._impl.native.Font = self.monda_font.get(9, True)
         self.circulating_value._impl.native.Click += self.circulating_value_click
 
         self.max_emissions_value = Label(
             "21000000000",
             style=Pack(
-                font_size = 10,
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
                 color = YELLOW,
-                font_weight = BOLD
             )
         )
+        self.max_emissions_value._impl.native.Font = self.monda_font.get(9, True)
 
         self.circulating_divider = Divider(
             direction=Direction.HORIZONTAL,
@@ -410,26 +401,24 @@ class Home(Box):
         self.halving_label = Label(
             text="",
             style=Pack(
-                font_size = 14,
                 text_align = CENTER,
                 background_color = rgb(40,43,48),
                 color = WHITE,
-                font_weight = BOLD,
                 padding_top = 10
             )
         )
+        self.halving_label._impl.native.Font = self.monda_font.get(13, True)
 
         self.remaining_label = Label(
             text="",
             style=Pack(
-                font_size = 14,
                 text_align = CENTER,
                 background_color = rgb(40,43,48),
                 color = WHITE,
-                font_weight = BOLD,
                 padding_bottom = 10
             )
         )
+        self.remaining_label._impl.native.Font = self.monda_font.get(13, True)
 
 
     async def insert_widgets(self, widget):
@@ -596,7 +585,7 @@ class Home(Box):
             self.circulating_divider,
             self.max_emissions_value
         )
-        self.circulating_value.style.padding = (2,0,2,0)
+        self.circulating_value.style.padding_top = 2
         circulating_percentage = f"{(self.circulating / 21_000_000_000) * 100:.1f}%"
         self.tooltip.insert(self.circulating_value._impl.native, circulating_percentage)
         self.tooltip.insert(self.max_emissions_value._impl.native, circulating_percentage)
@@ -605,6 +594,6 @@ class Home(Box):
             self.circulating_divider,
             self.max_emissions_value
         )
-        self.circulating_value.style.padding = (11,0,10,0)
+        self.circulating_value.style.padding_top = 13
         self.tooltip.insert(self.circulating_value._impl.native, "")
         self.circulating_toggle = None

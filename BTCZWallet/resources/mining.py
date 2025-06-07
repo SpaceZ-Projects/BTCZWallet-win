@@ -12,7 +12,7 @@ from toga import (
     ProgressBar, Window, ScrollContainer,
     Button, ImageView, Switch
 )
-from ..framework import FlatStyle, Os, ToolTip
+from ..framework import FlatStyle, Os, ToolTip, CustomFont
 from toga.style.pack import Pack
 from toga.constants import COLUMN, CENTER, BOLD, ROW
 from toga.colors import rgb, GRAY, WHITE, GREENYELLOW, BLACK, RED
@@ -44,6 +44,8 @@ class Mining(Box):
         self.storage = StorageMessages(self.app)
         self.tooltip = ToolTip()
 
+        self.monda_font = CustomFont()
+
         self.mining_toggle = None
         self.selected_miner = None
         self.selected_address = None
@@ -62,13 +64,13 @@ class Mining(Box):
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 text_align = CENTER,
                 flex = 1,
                 padding_top = 12
             )
         )
+        self.miner_label._impl.native.Font = self.monda_font.get(11, True)
+
         self.miner_selection = Selection(
             items=[
                 {"miner": "Select Miner"},
@@ -79,14 +81,13 @@ class Mining(Box):
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 2,
                 padding_top = 10
             ),
             accessor="miner",
             on_change=self.verify_miners_apps
         )
+        self.miner_selection._impl.native.Font = self.monda_font.get(11, True)
         self.miner_selection._impl.native.FlatStyle = FlatStyle.FLAT
 
         self.progress_bar = ProgressBar(
@@ -121,25 +122,24 @@ class Mining(Box):
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 text_align = CENTER,
                 flex = 1,
                 padding_top = 12
             )
         )
+        self.address_label._impl.native.Font = self.monda_font.get(11, True)
+        
         self.address_selection = Selection(
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 2,
                 padding_top = 10
             ),
             accessor="select_address",
             on_change=self.display_address_balance
         )
+        self.address_selection._impl.native.Font = self.monda_font.get(11, True)
         self.address_selection._impl.native.FlatStyle = FlatStyle.FLAT
         self.address_selection._impl.native.DropDownHeight = 150
 
@@ -148,13 +148,12 @@ class Mining(Box):
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 text_align = CENTER,
                 flex = 1,
                 padding_top = 12
             )
         )
+        self.address_balance._impl.native.Font = self.monda_font.get(11, True)
 
         self.selection_address_box = Box(
             style=Pack(
@@ -170,19 +169,17 @@ class Mining(Box):
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 text_align = CENTER,
                 flex = 1,
                 padding_top = 12
             )
         )
+        self.pool_label._impl.native.Font = self.monda_font.get(11, True)
+
         self.pool_selection = Selection(
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 1.5,
                 padding_top = 10
             ),
@@ -192,6 +189,7 @@ class Mining(Box):
             accessor="pool",
             on_change=self.update_server_selection
         )
+        self.pool_selection._impl.native.Font = self.monda_font.get(11, True)
         self.pool_selection._impl.native.FlatStyle = FlatStyle.FLAT
 
         self.pool_region_selection = Selection(
@@ -199,14 +197,13 @@ class Mining(Box):
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 1,
                 padding = (10,10,0,15)
             ),
             accessor="region",
             on_change=self.update_region_server
         )
+        self.pool_region_selection._impl.native.Font = self.monda_font.get(11, True)
         self.pool_region_selection._impl.native.FlatStyle = FlatStyle.FLAT
 
         self.ssl_switch = Switch(
@@ -214,13 +211,12 @@ class Mining(Box):
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 0.5,
                 padding = (13,10,0,15)
             ),
             enabled=False
         )
+        self.ssl_switch._impl.native.Font = self.monda_font.get(11, True)
         self.tooltip.insert(self.ssl_switch._impl.native, "Enable/Disable SSL")
 
         self.selection_pool_box = Box(
@@ -237,26 +233,26 @@ class Mining(Box):
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 text_align = CENTER,
                 flex = 2,
                 padding_top = 12
             )
         )
+        self.worker_label._impl.native.Font = self.monda_font.get(11, True)
+
         self.worker_input = TextInput(
             placeholder="Worker Name",
             style=Pack(
                 color = WHITE,
                 text_align= CENTER,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 2,
                 padding_top = 10
             ),
             on_change=self.update_worker_name
         )
+        self.worker_input._impl.native.Font = self.monda_font.get(11, True)
+
         self.empty_box = Box(
             style=Pack(
                 background_color = rgb(30,33,36),
@@ -295,7 +291,7 @@ class Mining(Box):
             image="images/shares.png",
             style=Pack(
                 background_color = rgb(30,33,36),
-                padding_left = 20
+                padding_left = 10
             )
         )
         self.tooltip.insert(self.totalshares_icon._impl.native, "Total shares")
@@ -309,6 +305,7 @@ class Mining(Box):
                 padding_left = 5
             )
         )
+        self.totalshares_value._impl.native.Font = self.monda_font.get(7, True)
 
         self.balance_icon = ImageView(
             image="images/balance.png",
@@ -324,10 +321,10 @@ class Mining(Box):
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
                 padding_left = 5
             )
         )
+        self.balance_value._impl.native.Font = self.monda_font.get(7, True)
 
         self.immature_icon = ImageView(
             image="images/immature.png",
@@ -343,10 +340,10 @@ class Mining(Box):
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
                 padding_left = 2
             )
         )
+        self.immature_value._impl.native.Font = self.monda_font.get(7, True)
 
         self.paid_icon = ImageView(
             image="images/paid.png",
@@ -362,10 +359,10 @@ class Mining(Box):
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
                 padding_left = 6
             )
         )
+        self.paid_value._impl.native.Font = self.monda_font.get(7, True)
 
         self.solutions_icon = ImageView(
             image="images/hash_speed.png",
@@ -381,10 +378,10 @@ class Mining(Box):
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
                 padding_left = 6
             )
         )
+        self.solutions_value._impl.native.Font = self.monda_font.get(7, True)
 
         self.estimated_icon = ImageView(
             image="images/estimated.png",
@@ -400,20 +397,20 @@ class Mining(Box):
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
                 padding_left = 6
             )
         )
+        self.estimated_value._impl.native.Font = self.monda_font.get(7, True)
 
         self.estimated_earn_value = Label(
             text=f"0.00 {self.settings.symbol()}",
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
                 padding_left = 6
             )
         )
+        self.estimated_earn_value._impl.native.Font = self.monda_font.get(7, True)
 
         self.estimated_box = Box(
             style=Pack(
@@ -436,14 +433,13 @@ class Mining(Box):
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 width = 150,
                 alignment= CENTER,
                 padding_right = 10
             ),
             on_press=self.start_mining_button_click
         )
+        self.start_mining_button._impl.native.Font = self.monda_font.get(11, True)
         self.start_mining_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.start_mining_button._impl.native.MouseEnter += self.start_mining_button_mouse_enter
         self.start_mining_button._impl.native.MouseLeave += self.start_mining_button_mouse_leave
@@ -529,7 +525,7 @@ class Mining(Box):
         for pool in pools_list:
             self.pool_selection.items.insert(1, pool)
         
-        recent_mining_options = self.settings.load_options()
+        recent_mining_options = self.settings.load_mining_options()
         if recent_mining_options:
             miner, mining_address, pool_server, pool_region, ssl, worker = recent_mining_options
             if miner:
@@ -727,7 +723,7 @@ class Mining(Box):
 
             self.disable_mining_inputs()
             self.app.add_background_task(self.start_mining_command)
-            self.settings.save_options(
+            self.settings.save_mining_options(
                 self.selected_miner,
                 self.selected_address,
                 self.selected_pool,
@@ -784,10 +780,10 @@ class Mining(Box):
             style=Pack(
                 color = WHITE,
                 background_color = rgb(40,43,48),
-                font_size = 10,
                 padding = (0,2,0,2)
             )
         )
+        output_value._impl.native.Font = self.monda_font.get(9.5)
         self.output_box.add(
             output_value
         )
@@ -939,7 +935,7 @@ class Mining(Box):
             try:
                 await self.fetch_stats_task
             except asyncio.CancelledError:
-                print("Stats fetching cancelled.")
+                pass
 
 
     def update_mining_button(self, option):

@@ -8,8 +8,8 @@ import webbrowser
 from toga import App, Box, Label, Window, Button
 from ..framework import (
     Table, Command, Color, DockStyle,
-    Font, FontStyle, AlignTable, SelectMode,
-    BorderStyle, ClipBoard, FlatStyle
+    AlignTable, SelectMode, BorderStyle,
+    ClipBoard, FlatStyle
 )
 from toga.style.pack import Pack
 from toga.colors import rgb, GRAY, WHITE, GREEN, RED, ORANGE, BLACK
@@ -307,11 +307,13 @@ class Transactions(Box):
         self.settings = Settings(self.app)
         self.storagemsgs = StorageMessages(self.app)
         self.storagetxs = StorageTxs(self.app)
+        self.notify = NotifyTx()
 
         self.transactions_toggle = None
         self.no_transaction_toggle = None
         self.no_more_transactions = None
         self.scroll_toggle = None
+        self.txid_toggle = None
 
         self.transactions_count = 50
         self.transactions_from = 0
@@ -352,8 +354,6 @@ class Transactions(Box):
             background_color=Color.rgb(30,33,36),
             text_color=Color.GRAY,
             cell_color=Color.rgb(30,33,36),
-            font=Font.SANSSERIF,
-            text_style=FontStyle.BOLD,
             align=AlignTable.MIDCENTER,
             column_count=5,
             row_visible=False,
@@ -393,13 +393,20 @@ class Transactions(Box):
         )
 
 
+    async def run_tasks(self, wigdet):
+        self.app.add_background_task(self.gather_transparent_transactions)
+        await asyncio.sleep(0.5)
+        self.app.add_background_task(self.gather_private_transactions)
+        await asyncio.sleep(1)
+        self.app.add_background_task(self.update_transactions_table)
+
+
     async def insert_widgets(self, widget):
         if not self.transactions_toggle:
             sorted_transactions = self.get_transactions(self.transactions_count, self.transactions_from)
             if sorted_transactions:
                 self._impl.native.Controls.Add(self.transactions_table)
                 self.create_rows(sorted_transactions)
-                self.app.add_background_task(self.update_transactions_table)
             else:
                 self.no_transactions_found()
             self.transactions_toggle = True
@@ -429,12 +436,19 @@ class Transactions(Box):
     def create_rows(self, sorted_transactions):
         
         for data in sorted_transactions:
+            tx_type = data[0]
             category = data[1]
             address = data[2]
             if category == "send":
-                icon = "images/tx_send.png"
+                if tx_type == "private":
+                    icon = "images/tx_send_private.png"
+                else:
+                    icon = "images/tx_send_transparent.png"
             elif category == "receive":
-                icon = "images/tx_receive.png"
+                if tx_type == "private":
+                    icon = "images/tx_receive_private.png"
+                else:
+                    icon = "images/tx_receive_transparent.png"
             elif category == "mining":
                 icon = "images/tx_mining.png"
             txid = data[3]
@@ -449,7 +463,6 @@ class Transactions(Box):
                 'Txid': txid,
             }
             self.transactions_data.append(row)
-            self.transactions_ids.append(txid)
         
         self.transactions_table.data_source = self.transactions_data
 
@@ -473,12 +486,12 @@ class Transactions(Box):
             new_transactions = await self.get_transaparent_transactions(9999, 0)
             if new_transactions:
                 stored_transactions = self.storagetxs.get_transparent_transactions("txid")
-                mining_options = self.settings.load_options()
+                mining_options = self.settings.load_mining_options()
                 if mining_options:
                     mining_address = mining_options[1]
                 for data in new_transactions:
                     txid = data["txid"]
-                    if not txid in stored_transactions:
+                    if txid not in stored_transactions:
                         address = data.get("address", "Shielded")
                         category = data["category"]
                         amount = self.units.format_balance(data["amount"])
@@ -511,7 +524,7 @@ class Transactions(Box):
             new_transactions = await self.get_private_transactions()
             if new_transactions:
                 stored_transactions = self.storagetxs.get_private_transactions("txid")
-                mining_options = self.settings.load_options()
+                mining_options = self.settings.load_mining_options()
                 if mining_options:
                     mining_address = mining_options[1]
                 for tx_list in new_transactions:
@@ -553,6 +566,10 @@ class Transactions(Box):
     
 
     async def update_transactions_table(self, widget):
+        sorted_transactions = self.get_transactions(self.transactions_count, self.transactions_from)
+        for data in sorted_transactions:
+            txid = data[3]
+            self.transactions_ids.append(txid)
         while True:
             sorted_transactions = self.get_transactions(50, 0)
             if sorted_transactions:
@@ -562,12 +579,19 @@ class Transactions(Box):
                         data = self.storagetxs.get_transparent_transaction(txid)
                         if data is None:
                             data = self.storagetxs.get_private_transaction(txid)
+                        tx_type = data[0]
                         category = data[1]
                         if category == "send":
-                            icon = "images/tx_send.png"
+                            if tx_type == "private":
+                                icon = "images/tx_send_private.png"
+                            else:
+                                icon = "images/tx_send_transparent.png"
                             notify_icon = "images/tx_send.ico"
                         elif category == "receive":
-                            icon = "images/tx_receive.png"
+                            if tx_type == "private":
+                                icon = "images/tx_receive_private.png"
+                            else:
+                                icon = "images/tx_receive_transparent.png"
                             notify_icon = "images/tx_receive.ico"
                         elif category == "mining":
                             icon = "images/tx_mining.png"
@@ -586,20 +610,20 @@ class Transactions(Box):
                         self.transactions_ids.append(txid)
                         self.add_transaction(0, row)
                         if self.settings.notification_txs():
-                            notify = NotifyTx(icon=notify_icon)
-                            notify.show()
-                            notify.send_note(
-                                title=f"[{category}] : {amount} BTCZ",
-                                text=f"Txid : {txid}",
-                                on_click=lambda sender, event:self.on_notification_click(txid)
-                            )
-                            await asyncio.sleep(4)
-                            notify.hide()
+                            if self.notify.Visible is False:
+                                self.notify.icon = notify_icon
+                                self.notify.show()
+                                self.notify.send_note(
+                                    title=f"[{category}] : {amount} BTCZ",
+                                    text=f"Txid : {txid}",
+                                    on_click=lambda sender, event:self.on_notification_click(txid)
+                                )
+                                await asyncio.sleep(5)
+                                self.notify.hide()
 
-            await asyncio.sleep(5)
+            await asyncio.sleep(6)
 
                 
-
     def on_notification_click(self, txid):
         self.transactions_info = Txid(txid)
         self.transactions_info._impl.native.ShowDialog(self.main._impl.native)
@@ -677,11 +701,18 @@ class Transactions(Box):
                 self.no_more_transactions = True
                 return
             for data in sorted_transactions:
+                tx_type = data[0]
                 category = data[1]
                 if category == "send":
-                    icon = "images/tx_send.png"
+                    if tx_type == "private":
+                        icon = "images/tx_send_private.png"
+                    else:
+                        icon = "images/tx_send_transparent.png"
                 elif category == "receive":
-                    icon = "images/tx_receive.png"
+                    if tx_type == "private":
+                        icon = "images/tx_receive_private.png"
+                    else:
+                        icon = "images/tx_receive_transparent.png"
                 elif category == "mining":
                     icon = "images/tx_mining.png"
                 address = data[2]

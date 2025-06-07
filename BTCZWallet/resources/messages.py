@@ -12,9 +12,9 @@ from toga import (
 )
 from ..framework import (
     BorderStyle, ToolTip, ClipBoard, RichLabel,
-    FontStyle, Color, DockStyle, ScrollBars,
-    Forms, Command, FlatStyle, Drawing, Relation,
-    Os, AlignContent
+    Color, DockStyle, ScrollBars, Forms, Command,
+    FlatStyle, Drawing, Relation, Os, AlignContent,
+    CustomFont
 )
 from toga.style.pack import Pack
 from toga.constants import (
@@ -39,12 +39,15 @@ from .settings import Settings
 class EditUser(Window):
     def __init__(self, username):
         super().__init__(
-            size = (500, 150),
+            size = (450, 150),
             resizable= False
         )
 
         self.utils = Utils(self.app)
         self.storage = StorageMessages(self.app)
+
+        self.monda_font = CustomFont()
+
         self.username = username
 
         self.title = "Edit Username"
@@ -60,24 +63,25 @@ class EditUser(Window):
             )
         )
         self.info_label = Label(
-            text="Edit your messages username",
+            text="Edit your messenger username",
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                font_size = 11,
                 padding_top = 5
             )
         )
+        self.info_label._impl.native.Font = self.monda_font.get(11)
+
         self.username_label = Label(
             text="Username :",
             style=Pack(
                 color = GRAY,
-                background_color = rgb(30,33,36),
-                font_size = 12,
-                font_weight = BOLD
+                background_color = rgb(30,33,36)
             )
         )
+        self.username_label._impl.native.Font = self.monda_font.get(11, True)
+
         self.username_input = TextInput(
             value=self.username,
             placeholder="required",
@@ -85,17 +89,17 @@ class EditUser(Window):
                 color = WHITE,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                font_size = 12,
-                font_weight = BOLD,
                 width = 250
             )
         )
+        self.username_input._impl.native.Font = self.monda_font.get(11, True)
+
         self.username_box = Box(
             style=Pack(
                 direction = ROW,
                 background_color = rgb(30,33,36),
                 flex = 1,
-                padding_top = 25
+                padding_top = 15
             )
         )
 
@@ -103,8 +107,6 @@ class EditUser(Window):
             text="Cancel",
             style=Pack(
                 color = RED,
-                font_size=10,
-                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
                 padding_bottom = 10,
@@ -112,6 +114,7 @@ class EditUser(Window):
             ),
             on_press=self.close_edit_window
         )
+        self.cancel_button._impl.native.Font = self.monda_font.get(9, True)
         self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
         self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
@@ -129,6 +132,7 @@ class EditUser(Window):
             ),
             on_press=self.verify_username
         )
+        self.confirm_button._impl.native.Font = self.monda_font.get(9, True)
         self.confirm_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.confirm_button._impl.native.MouseEnter += self.confirm_button_mouse_enter
         self.confirm_button._impl.native.MouseLeave += self.confirm_button_mouse_leave
@@ -215,6 +219,8 @@ class Indentifier(Window):
         self.storage = StorageMessages(self.app)
         self.messages_page = messages
 
+        self.monda_font = CustomFont()
+
         self.title = "Setup Indentity"
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
@@ -233,10 +239,11 @@ class Indentifier(Window):
                 color = WHITE,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                font_size = 11,
                 padding_top = 5
             )
         )
+        self.info_label._impl.native.Font = self.monda_font.get(11)
+
         self.username_label = Label(
             text="Username :",
             style=Pack(
@@ -246,23 +253,25 @@ class Indentifier(Window):
                 font_weight = BOLD
             )
         )
+        self.username_label._impl.native.Font = self.monda_font.get(11, True)
+
         self.username_input = TextInput(
             placeholder="required",
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                font_size = 12,
-                font_weight = BOLD,
                 width = 250
             )
         )
+        self.username_input._impl.native.Font = self.monda_font.get(11, True)
+
         self.username_box = Box(
             style=Pack(
                 direction = ROW,
                 background_color = rgb(30,33,36),
                 flex = 1,
-                padding_top = 25
+                padding_top = 20
             )
         )
 
@@ -270,8 +279,6 @@ class Indentifier(Window):
             text="Cancel",
             style=Pack(
                 color = RED,
-                font_size=10,
-                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
                 padding_bottom = 10,
@@ -279,6 +286,7 @@ class Indentifier(Window):
             ),
             on_press=self.close_indentity_setup
         )
+        self.cancel_button._impl.native.Font = self.monda_font.get(9, True)
         self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
         self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
@@ -287,8 +295,6 @@ class Indentifier(Window):
             text="Confirm",
             style=Pack(
                 color = GRAY,
-                font_size=10,
-                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
                 padding = (0,0,10,20),
@@ -296,6 +302,7 @@ class Indentifier(Window):
             ),
             on_press=self.verify_identity
         )
+        self.confirm_button._impl.native.Font = self.monda_font.get(9, True)
         self.confirm_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.confirm_button._impl.native.MouseEnter += self.confirm_button_mouse_enter
         self.confirm_button._impl.native.MouseLeave += self.confirm_button_mouse_leave
@@ -395,28 +402,29 @@ class NewMessenger(Box):
         self.main = main
         self.chat = chat
 
+        self.monda_font = CustomFont()
+
         self.new_label = Label(
             text="There no messages address for this wallet, click the button to create new messages address",
             style=Pack(
                 text_align = CENTER,
                 color = GRAY,
-                background_color = rgb(40,43,48),
-                font_weight = BOLD,
-                font_size = 12
+                background_color = rgb(40,43,48)
             )
         )
+        self.new_label._impl.native.Font = self.monda_font.get(11, True)
+
         self.create_button = Button(
             text="New Messenger",
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 width = 200,
-                padding_top = 7
+                padding_top = 8
             ),
             on_press=self.create_button_click
         )
+        self.create_button._impl.native.Font = self.monda_font.get(11, True)
         new_i_id = self.messages_icon("images/new_id_i.png")
         self.create_button._impl.native.Image = Drawing.Image.FromFile(new_i_id)
         self.create_button._impl.native.FlatStyle = FlatStyle.FLAT
@@ -433,7 +441,7 @@ class NewMessenger(Box):
     
     def create_button_click(self, button):
         self.indentity = Indentifier(self.messages_page, self.main, self.chat)
-        self.indentity._impl.native.ShowDialog()
+        self.indentity._impl.native.ShowDialog(self.main._impl.native)
 
     
     def create_button_mouse_enter(self, sender, event):
@@ -471,6 +479,8 @@ class Contact(Box):
         self.storage = StorageMessages(self.app)
         self.clipboard = ClipBoard()
 
+        self.monda_font = CustomFont()
+
         self.category = category
         self.contact_id = contact_id
         self.username = username
@@ -499,11 +509,10 @@ class Contact(Box):
                 background_color = rgb(40,43,48),
                 flex = 1,
                 text_align = CENTER,
-                font_size = 12,
-                font_weight = BOLD,
                 padding_top = 11
             )
         )
+        self.username_label._impl.native.Font = self.monda_font.get(11, True)
         self.username_label._impl.native.MouseEnter += self.contact_mouse_enter
         self.username_label._impl.native.MouseLeave += self.contact_mouse_leave
 
@@ -513,11 +522,10 @@ class Contact(Box):
                 color = WHITE,
                 background_color = RED,
                 text_align = CENTER,
-                font_size = 9,
-                font_weight = BOLD,
                 padding =(15,20,0,0)
             )
         )
+        self.unread_messages._impl.native.Font = self.monda_font.get(9)
         self.unread_messages._impl.native.MouseEnter += self.contact_mouse_enter
         self.unread_messages._impl.native.MouseLeave += self.contact_mouse_leave
 
@@ -673,6 +681,8 @@ class Pending(Box):
         self.pending_window = window
         self.chat = chat
 
+        self.monda_font = CustomFont()
+
         self.category = category
         self.contact_id = contact_id
         self.username = username
@@ -699,19 +709,16 @@ class Pending(Box):
                 background_color = rgb(40,43,48),
                 flex = 1,
                 text_align = CENTER,
-                font_size = 12,
-                font_weight = BOLD,
                 padding_top = 11
             )
         )
+        self.username_label._impl.native.Font = self.monda_font.get(11, True)
         self.username_label._impl.native.DoubleClick += self.show_pending_info
 
         self.confirm_button = Button(
             text="Confirm",
             style=Pack(
                 color = GRAY,
-                font_size=10,
-                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
                 padding_top = 10,
@@ -719,6 +726,7 @@ class Pending(Box):
             ),
             on_press=self.send_identity
         )
+        self.confirm_button._impl.native.Font = self.monda_font.get(9, True)
         self.confirm_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.confirm_button._impl.native.MouseEnter += self.confirm_button_mouse_enter
         self.confirm_button._impl.native.MouseLeave += self.confirm_button_mouse_leave
@@ -727,8 +735,6 @@ class Pending(Box):
             text="Reject",
             style=Pack(
                 color = GRAY,
-                font_size=10,
-                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
                 padding = (10,10,0,10),
@@ -736,6 +742,7 @@ class Pending(Box):
             ),
             on_press=self.reject_button_click
         )
+        self.reject_button._impl.native.Font = self.monda_font.get(9, True)
         self.reject_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.reject_button._impl.native.MouseEnter += self.reject_button_mouse_enter
         self.reject_button._impl.native.MouseLeave += self.reject_button_mouse_leave
@@ -843,6 +850,8 @@ class Message(Box):
         self.utils = Utils(self.app)
         self.units = Units(self.app)
         self.output_box = output
+
+        self.monda_font = CustomFont()
         
         self.author = author
         self.message = message
@@ -862,49 +871,46 @@ class Message(Box):
             text=f"{self.author} :",
             style=Pack(
                 color = color,
-                font_size = 12,
                 background_color = rgb(30,30,30),
-                font_weight = BOLD,
                 padding = (0,0,8,5),
                 flex = 1
             )
         )
+        self.author_value._impl.native.Font = self.monda_font.get(11, True)
 
         self.gift_value = Label(
             text="",
             style=Pack(
                 color = YELLOW,
                 background_color = rgb(30,30,30),
-                font_weight = BOLD,
-                padding = (8,5,0,0)
+                font_weight = BOLD
             )
         )
+        self.gift_value._impl.native.Font = self.monda_font.get(9)
 
         self.message_time = Label(
             text=message_time,
             style=Pack(
                 color = GRAY,
-                background_color = rgb(30,30,30),
-                font_weight = BOLD,
-                padding = (8,5,0,0)
+                background_color = rgb(30,30,30)
             )
         )
+        self.message_time._impl.native.Font = self.monda_font.get(9)
 
         self.sender_box = Box(
             style=Pack(
                 direction = ROW,
                 background_color = rgb(30,30,30),
-                padding_bottom = 5
+                height = 27
             )
         )
 
         self.message_value = RichLabel(
             text=f"{self.message}",
-            text_size=10,
             borderstyle=BorderStyle.NONE,
             background_color=Color.rgb(30,33,36),
             color=Color.WHITE,
-            style=FontStyle.BOLD,
+            text_size=10,
             wrap=True,
             readonly=True,
             urls=True,
@@ -918,7 +924,7 @@ class Message(Box):
             style=Pack(
                 direction = ROW,
                 background_color=rgb(40,43,48),
-                height = 80,
+                height = 90,
                 padding_left = 10 
             )
         )
@@ -973,6 +979,8 @@ class NewContact(Window):
         self.commands = Client(self.app)
         self.storage = StorageMessages(self.app)
 
+        self.monda_font = CustomFont()
+
         self.is_valid_toggle = None
 
         self.title = "Add Contact"
@@ -994,10 +1002,10 @@ class NewContact(Window):
                 color = WHITE,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                font_size = 11,
                 padding_top = 5
             )
         )
+        self.info_label._impl.native.Font = self.monda_font.get(11)
 
         self.address_input = TextInput(
             placeholder="Z Address",
@@ -1005,12 +1013,11 @@ class NewContact(Window):
                 color = WHITE,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                font_size = 12,
-                font_weight = BOLD,
                 width = 450
             ),
             on_change=self.is_valid_address
         )
+        self.address_input._impl.native.Font = self.monda_font.get(11, True)
 
         self.is_valid = ImageView(
             style=Pack(
@@ -1027,7 +1034,7 @@ class NewContact(Window):
                 background_color = rgb(30,33,36),
                 flex = 1,
                 alignment = CENTER,
-                padding = (10,0,10,0)
+                padding = (0,0,10,0)
             )
         )
 
@@ -1035,8 +1042,6 @@ class NewContact(Window):
             text="Cancel",
             style=Pack(
                 color = RED,
-                font_size=10,
-                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
                 padding_bottom = 10,
@@ -1044,6 +1049,7 @@ class NewContact(Window):
             ),
             on_press=self.close_indentity_setup
         )
+        self.cancel_button._impl.native.Font = self.monda_font.get(9, True)
         self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
         self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
@@ -1052,8 +1058,6 @@ class NewContact(Window):
             text="Confirm",
             style=Pack(
                 color = GRAY,
-                font_size=10,
-                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
                 padding = (0,0,10,20),
@@ -1061,6 +1065,7 @@ class NewContact(Window):
             ),
             on_press=self.verify_address
         )
+        self.confirm_button._impl.native.Font = self.monda_font.get(9, True)
         self.confirm_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.confirm_button._impl.native.MouseEnter += self.confirm_button_mouse_enter
         self.confirm_button._impl.native.MouseLeave += self.confirm_button_mouse_leave
@@ -1232,6 +1237,8 @@ class PendingList(Window):
         self.storage = StorageMessages(self.app)
         self.chat = chat
 
+        self.monda_font = CustomFont()
+
         self.title = "Pending List"
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
@@ -1249,13 +1256,12 @@ class PendingList(Window):
             text="Empty list",
             style=Pack(
                 color = GRAY,
-                font_weight = BOLD,
-                font_size = 10,
                 background_color = rgb(30,33,36),
                 flex = 1,
                 text_align = CENTER
             )
         )
+        self.no_pending_label._impl.native.Font = self.monda_font.get(10, True)
 
         self.no_pending_box = Box(
             style=Pack(
@@ -1287,14 +1293,13 @@ class PendingList(Window):
             text="Close",
             style=Pack(
                 color = RED,
-                font_size=10,
-                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
                 padding_bottom = 10,
                 width = 100
             )
         )
+        self.close_button._impl.native.Font = self.monda_font.get(9, True)
         self.close_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
         self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
@@ -1378,6 +1383,8 @@ class Chat(Box):
         self.clipboard = ClipBoard()
         self.settings = Settings(self.app)
 
+        self.monda_font = CustomFont()
+
         self.send_toggle = None
         self.contact_id = None
         self.user_address = None
@@ -1441,11 +1448,10 @@ class Chat(Box):
                 color = rgb(114,137,218),
                 background_color = rgb(66,69,73),
                 text_align = RIGHT,
-                font_weight = BOLD,
-                font_size = 10,
                 flex = 1
             )
         )
+        self.address_balance._impl.native.Font = self.monda_font.get(9, True)
 
         self.list_unspent_utxos = Label(
             "",
@@ -1453,11 +1459,10 @@ class Chat(Box):
                 color = WHITE,
                 background_color = rgb(40,43,48),
                 text_align = CENTER,
-                font_weight = BOLD,
-                font_size = 10,
                 padding_left = 5
             )
         )
+        self.list_unspent_utxos._impl.native.Font = self.monda_font.get(9, True)
         self.tooltip.insert(self.list_unspent_utxos._impl.native, "Number of unspent shielded notes")
 
         self.info_box = Box(
@@ -1534,8 +1539,6 @@ class Chat(Box):
             placeholder="Write message",
             style=Pack(
                 color = WHITE,
-                font_size = 12,
-                font_weight = BOLD,
                 background_color = rgb(30,30,30),
                 flex = 1,
                 padding =(3,0,5,8)
@@ -1543,6 +1546,7 @@ class Chat(Box):
             on_change=self.update_character_count,
             on_confirm=self.verify_message
         )
+        self.message_input._impl.native.Font = self.monda_font.get(11, True)
 
         self.character_count = Label(
             text="Limit : 0 / 325",
@@ -1550,23 +1554,21 @@ class Chat(Box):
                 background_color = rgb(40,43,48),
                 text_align = CENTER,
                 color = GRAY,
-                font_size = 10,
-                font_weight = BOLD,
                 flex = 1
             )
         )
+        self.character_count._impl.native.Font = self.monda_font.get(10)
 
         self.fee_input = TextInput(
             value="0.00020000",
             style=Pack(
-                font_size = 11,
-                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 color = rgb(114,137,218),
                 padding_bottom = 5,
                 text_align = CENTER
             )
         )
+        self.fee_input._impl.native.Font = self.monda_font.get(10, True)
 
         self.options_box = Box(
             style=Pack(
@@ -1581,12 +1583,11 @@ class Chat(Box):
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_size = 11,
-                font_weight = BOLD,
                 flex = 1
             ),
             on_press=self.verify_message
         )
+        self.send_button._impl.native.Font = self.monda_font.get(10, True)
         send_i_icon = self.messages_icon("images/send_message_i.png")
         self.send_button._impl.native.Image = Drawing.Image.FromFile(send_i_icon)
         self.send_button._impl.native.FlatStyle = FlatStyle.FLAT
