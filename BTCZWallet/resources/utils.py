@@ -9,6 +9,7 @@ import winreg as reg
 import aiohttp
 from aiohttp.client_exceptions import ClientConnectionError, ServerDisconnectedError
 from aiohttp_socks import ProxyConnector, ProxyConnectionError
+import ipaddress
 
 from toga import App
 from ..framework import (
@@ -90,6 +91,26 @@ class Utils():
                 hostname = file.read().strip()
                 return hostname
         return None
+    
+    def is_ipv6_address(self, address: str):
+        try:
+            if address.startswith("[") and "]" in address:
+                address = address[1:].split("]")[0]
+            ipaddress.IPv6Address(address)
+            return True
+        except ValueError:
+            return False
+    
+
+    def shorten_address(self, address: str) -> str:
+        if not address:
+            return "N/A"
+        if '.onion' in address:
+            return address[:12] + "...onion"
+        elif self.is_ipv6_address(address):
+            return address[:8] + "...IPv6"
+        else:
+            return address
             
 
     def qr_generate(self, address):  

@@ -824,73 +824,6 @@ class Send(Box):
 
     def set_fast_fee(self):
         self.fee_input.value = "0.00010000"
-    
-
-    def messages_address_cmd_mouse_enter(self):
-        self.messages_address_cmd.icon = "images/deposit_messages_a.ico"
-        self.messages_address_cmd.color = Color.BLACK
-
-    def messages_address_cmd_mouse_leave(self):
-        self.messages_address_cmd.icon = "images/deposit_messages_i.ico"
-        self.messages_address_cmd.color = Color.WHITE
-
-
-    def percentage_25_cmd_mouse_enter(self):
-        self.percentage_25_cmd.icon = "images/percentage_a.ico"
-        self.percentage_25_cmd.color = Color.BLACK
-
-    def percentage_25_cmd_mouse_leave(self):
-        self.percentage_25_cmd.icon = "images/percentage_i.ico"
-        self.percentage_25_cmd.color = Color.WHITE
-
-    def percentage_50_cmd_mouse_enter(self):
-        self.percentage_50_cmd.icon = "images/percentage_a.ico"
-        self.percentage_50_cmd.color = Color.BLACK
-
-    def percentage_50_cmd_mouse_leave(self):
-        self.percentage_50_cmd.icon = "images/percentage_i.ico"
-        self.percentage_50_cmd.color = Color.WHITE
-
-    def percentage_75_cmd_mouse_enter(self):
-        self.percentage_75_cmd.icon = "images/percentage_a.ico"
-        self.percentage_75_cmd.color = Color.BLACK
-
-    def percentage_75_cmd_mouse_leave(self):
-        self.percentage_75_cmd.icon = "images/percentage_i.ico"
-        self.percentage_75_cmd.color = Color.WHITE
-    
-    def max_amount_cmd_mouse_enter(self):
-        self.max_amount_cmd.icon = "images/max_a.ico"
-        self.max_amount_cmd.color = Color.BLACK
-
-    def max_amount_cmd_mouse_leave(self):
-        self.max_amount_cmd.icon = "images/max_i.ico"
-        self.max_amount_cmd.color = Color.WHITE
-
-    def slow_fee_cmd_mouse_enter(self):
-        self.slow_fee_cmd.icon = "images/slow_a.ico"
-        self.slow_fee_cmd.color = Color.BLACK
-
-    def slow_fee_cmd_mouse_leave(self):
-        self.slow_fee_cmd.icon = "images/slow_i.ico"
-        self.slow_fee_cmd.color = Color.WHITE
-
-    
-    def normal_fee_cmd_mouse_enter(self):
-        self.normal_fee_cmd.icon = "images/normal_a.ico"
-        self.normal_fee_cmd.color = Color.BLACK
-
-    def normal_fee_cmd_mouse_leave(self):
-        self.normal_fee_cmd.icon = "images/normal_i.ico"
-        self.normal_fee_cmd.color = Color.WHITE
-
-    def fast_fee_cmd_mouse_enter(self):
-        self.fast_fee_cmd.icon = "images/fast_a.ico"
-        self.fast_fee_cmd.color = Color.BLACK
-
-    def fast_fee_cmd_mouse_leave(self):
-        self.fast_fee_cmd.icon = "images/fast_i.ico"
-        self.fast_fee_cmd.color = Color.WHITE
 
 
     async def get_transparent_addresses(self):
@@ -1355,3 +1288,69 @@ class Send(Box):
         self.amount_input.readonly = False
         self.fee_input.readonly = False
         self.operation_status.text = ""
+
+    
+    def messages_address_cmd_mouse_enter(self):
+        self.messages_address_cmd.icon = "images/deposit_messages_a.ico"
+        self.messages_address_cmd.color = Color.BLACK
+
+    def messages_address_cmd_mouse_leave(self):
+        self.messages_address_cmd.icon = "images/deposit_messages_i.ico"
+        self.messages_address_cmd.color = Color.WHITE
+
+
+    def percentage_25_cmd_mouse_enter(self):
+        self.percentage_25_cmd.icon = "images/percentage_a.ico"
+        self.percentage_25_cmd.color = Color.BLACK
+
+    def percentage_25_cmd_mouse_leave(self):
+        self.percentage_25_cmd.icon = "images/percentage_i.ico"
+        self.percentage_25_cmd.color = Color.WHITE
+
+    def percentage_50_cmd_mouse_enter(self):
+        self.percentage_50_cmd.icon = "images/percentage_a.ico"
+        self.percentage_50_cmd.color = Color.BLACK
+
+    def percentage_50_cmd_mouse_leave(self):
+        self.percentage_50_cmd.icon = "images/percentage_i.ico"
+        self.percentage_50_cmd.color = Color.WHITE
+
+    def percentage_75_cmd_mouse_enter(self):
+        self.percentage_75_cmd.icon = "images/percentage_a.ico"
+        self.percentage_75_cmd.color = Color.BLACK
+
+    def percentage_75_cmd_mouse_leave(self):
+        self.percentage_75_cmd.icon = "images/percentage_i.ico"
+        self.percentage_75_cmd.color = Color.WHITE
+    
+    def max_amount_cmd_mouse_enter(self):
+        self.max_amount_cmd.icon = "images/max_a.ico"
+        self.max_amount_cmd.color = Color.BLACK
+
+    def max_amount_cmd_mouse_leave(self):
+        self.max_amount_cmd.icon = "images/max_i.ico"
+        self.max_amount_cmd.color = Color.WHITE
+
+    def slow_fee_cmd_mouse_enter(self):
+        self.slow_fee_cmd.icon = "images/slow_a.ico"
+        self.slow_fee_cmd.color = Color.BLACK
+
+    def slow_fee_cmd_mouse_leave(self):
+        self.slow_fee_cmd.icon = "images/slow_i.ico"
+        self.slow_fee_cmd.color = Color.WHITE
+
+    def normal_fee_cmd_mouse_enter(self):
+        self.normal_fee_cmd.icon = "images/normal_a.ico"
+        self.normal_fee_cmd.color = Color.BLACK
+
+    def normal_fee_cmd_mouse_leave(self):
+        self.normal_fee_cmd.icon = "images/normal_i.ico"
+        self.normal_fee_cmd.color = Color.WHITE
+
+    def fast_fee_cmd_mouse_enter(self):
+        self.fast_fee_cmd.icon = "images/fast_a.ico"
+        self.fast_fee_cmd.color = Color.BLACK
+
+    def fast_fee_cmd_mouse_leave(self):
+        self.fast_fee_cmd.icon = "images/fast_i.ico"
+        self.fast_fee_cmd.color = Color.WHITE

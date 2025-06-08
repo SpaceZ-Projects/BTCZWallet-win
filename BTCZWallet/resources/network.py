@@ -388,7 +388,7 @@ class TorConfig(Window):
                 color = WHITE,
                 text_align= CENTER,
                 background_color = rgb(30,33,36),
-                padding_top = 12
+                padding_top = 10
             ),
             readonly=True
         )
@@ -625,8 +625,8 @@ class NodeInfo(Window):
 
         self.address = self.node.get('addr')
         self.address_local = self.node.get('addrlocal')
-        address = self.shorten_address(self.address)
-        address_local = self.shorten_address(self.address_local)
+        address = self.utils.shorten_address(self.address)
+        address_local = self.utils.shorten_address(self.address_local)
         subver = self.node.get('subver')
         clean_subversion = subver.strip('/')
         conntime = self.node.get('conntime')
@@ -644,7 +644,7 @@ class NodeInfo(Window):
             "Bytes Received": self.units.format_bytes(self.node.get('bytesrecv')),
             "Connection Time": conn_duration,
             "Time Offset": self.node.get('timeoffset'),
-            "Ping Time": f"{self.node.get('pingtime') * 1000} ms",
+            "Ping Time": f"{int(self.node.get('pingtime') * 1000)} ms",
             "Version": self.node.get('version'),
             "Subversion": clean_subversion,
             "Inbound": self.node.get('inbound'),
@@ -706,28 +706,6 @@ class NodeInfo(Window):
         )
 
 
-    @staticmethod
-    def is_ipv6_address(address: str) -> bool:
-        try:
-            if address.startswith("[") and "]" in address:
-                address = address[1:].split("]")[0]
-            ipaddress.IPv6Address(address)
-            return True
-        except ValueError:
-            return False
-    
-
-    def shorten_address(self, address: str) -> str:
-        if not address:
-            return "N/A"
-        if '.onion' in address:
-            return address[:12] + "...onion"
-        elif self.is_ipv6_address(address):
-            return address[:8] + "...IPv6"
-        else:
-            return address
-
-
     def close_button_mouse_enter(self, sender, event):
         self.close_button.style.color = BLACK
         self.close_button.style.background_color = RED
@@ -766,8 +744,8 @@ class Node(Box):
 
         self.address = self.node.get('addr')
         self.address_local = self.node.get('addrlocal')
-        address = self.shorten_address(self.address)
-        address_local = self.shorten_address(self.address_local)
+        address = self.utils.shorten_address(self.address)
+        address_local = self.utils.shorten_address(self.address_local)
         bytessent = self.node.get('bytessent')
         bytesrecv = self.node.get('bytesrecv')
         subver = self.node.get('subver')
@@ -944,28 +922,6 @@ class Node(Box):
             title="Node Removed",
             message=f"Node address : {self.address} has been removed form addnode list"
         )
-
-
-    @staticmethod
-    def is_ipv6_address(address: str) -> bool:
-        try:
-            if address.startswith("[") and "]" in address:
-                address = address[1:].split("]")[0]
-            ipaddress.IPv6Address(address)
-            return True
-        except ValueError:
-            return False
-    
-
-    def shorten_address(self, address: str) -> str:
-        if not address:
-            return "N/A"
-        if '.onion' in address:
-            return address[:12] + "...onion"
-        elif self.is_ipv6_address(address):
-            return address[:8] + "...IPv6"
-        else:
-            return address
         
     
     def node_info_cmd_mouse_enter(self):

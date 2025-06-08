@@ -304,11 +304,12 @@ class BTCZSetup(Box):
             if not tor_running:
                 self.status_label.text = "Launching Tor..."
                 await asyncio.sleep(1)
-                command = f'"{tor_exe}" -f "{torrc_path}"'
-                self.tor_process = await asyncio.create_subprocess_shell(
-                    command,
+                command = [tor_exe, '-f', torrc_path]
+                self.tor_process = await asyncio.create_subprocess_exec(
+                    *command,
                     stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.STDOUT
+                    stderr=asyncio.subprocess.STDOUT,
+                    creationflags=subprocess.CREATE_NO_WINDOW
                 )
                 self.status_label.text = "Waiting for Tor to initialize..."
                 await asyncio.sleep(1)
@@ -456,7 +457,6 @@ class BTCZSetup(Box):
                 command += ['-onlynet=onion']
             if tor_service and service_port:
                 command += ['-listen=1', '-discover=1']
-        print(command)
         try:
             self.process = await asyncio.create_subprocess_exec(
                 *command,
