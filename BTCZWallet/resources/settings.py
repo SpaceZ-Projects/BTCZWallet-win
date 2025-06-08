@@ -35,6 +35,15 @@ class Settings():
             json.dump(settings, f, indent=4)
 
 
+    def hidden_balances(self):
+         with open(self.settings_path, 'r') as f:
+            settings = json.load(f)
+            if 'hidden_balances' not in settings:
+                return False
+            else:
+                return settings['hidden_balances']
+
+
     def notification_txs(self):
          with open(self.settings_path, 'r') as f:
             settings = json.load(f)

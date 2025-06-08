@@ -22,6 +22,9 @@ from toga.constants import (
 from .client import Client
 from .utils import Utils
 from .units import Units
+from.settings import Settings
+
+
 
 class Wallet(Box):
     def __init__(self, app:App, main:Window):
@@ -39,6 +42,7 @@ class Wallet(Box):
         self.main = main
         self.commands = Client(self.app)
         self.units = Units(self.app)
+        self.settings = Settings(self.app)
 
         self.monda_font = CustomFont()
 
@@ -276,6 +280,10 @@ class Wallet(Box):
                 totalbalance = self.units.format_balance(float(balances.get('total')))
                 transparentbalance = self.units.format_balance(float(balances.get('transparent')))
                 privatebalance = self.units.format_balance(float(balances.get('private')))
+                if self.settings.hidden_balances():
+                    totalbalance = "*.********"
+                    transparentbalance = "*.********"
+                    privatebalance = "*.********"
                 self.total_value.text = totalbalance
                 self.transparent_value.text = transparentbalance
                 self.private_value.text = privatebalance
@@ -286,6 +294,8 @@ class Wallet(Box):
                     self.unconfirmed_box.style.visibility = VISIBLE
                     self.unconfirmed_label.style.visibility = VISIBLE
                     self.unconfirmed_value.style.visibility = VISIBLE
+                    if self.settings.hidden_balances():
+                        unconfirmed = "*.********"
                     self.unconfirmed_value.text = unconfirmed
                 else:
                     self.unconfirmed_box.style.visibility = HIDDEN
@@ -455,7 +465,7 @@ class ImportKey(Window):
         while True:
             result,_ = await self.commands.getInfo()
             if result:
-                await self.main.transactions_page.reload_transactions()
+                self.main.transactions_page.reload_transactions()
                 await self.main.mining_page.reload_addresses()
                 self.main.import_key_toggle = None
                 self.close()
@@ -667,7 +677,7 @@ class ImportWallet(Window):
         while True:
             result,_ = await self.commands.getInfo()
             if result:
-                await self.main.transactions_page.reload_transactions()
+                self.main.transactions_page.reload_transactions()
                 await self.main.mining_page.reload_addresses()
                 self.main.import_key_toggle = None
                 self.close()

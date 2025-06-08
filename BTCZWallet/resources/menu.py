@@ -257,6 +257,10 @@ class Menu(Window):
         await self.message_page.gather_unread_memos()
 
     def add_actions_cmds(self):
+        if self.settings.hidden_balances():
+            self.toolbar.hide_balances_cmd.checked = True
+        else:
+            self.toolbar.hide_balances_cmd.checked = self.settings.hidden_balances()
         if self.settings.notification_txs():
             self.toolbar.notification_txs_cmd.checked = True
         else:
@@ -274,6 +278,7 @@ class Menu(Window):
         else:
             self.toolbar.startup_cmd.checked = self.settings.startup()
 
+        self.toolbar.hide_balances_cmd.action = self.update_balances_visibility
         self.toolbar.notification_txs_cmd.action = self.update_notifications_txs
         self.toolbar.notification_messages_cmd.action = self.update_notifications_messages
         self.toolbar.minimize_cmd.action = self.update_minimize_to_tray
@@ -291,6 +296,17 @@ class Menu(Window):
         self.toolbar.import_wallet_cmd.action = self.show_import_wallet
         self.toolbar.edit_username_cmd.action = self.edit_messages_username
         self.toolbar.backup_messages_cmd.action = self.backup_messages
+
+
+
+    def update_balances_visibility(self, sender, event):
+        if self.toolbar.hide_balances_cmd.checked:
+            self.toolbar.hide_balances_cmd.checked = False
+            self.settings.update_settings("hidden_balances", False)
+        else:
+            self.toolbar.hide_balances_cmd.checked = True
+            self.settings.update_settings("hidden_balances", True)
+        self.transactions_page.reload_transactions()
 
 
     def update_notifications_txs(self, sender, event):

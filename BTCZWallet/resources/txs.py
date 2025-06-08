@@ -34,6 +34,7 @@ class Txid(Window):
         self.utils = Utils(self.app)
         self.units = Units(self.app)
         self.commands = Client(self.app)
+        self.setting = Settings(self.app)
         self.txid = txid
 
         self.updating_txid = None
@@ -255,6 +256,8 @@ class Txid(Window):
                     else:
                         fee = "NaN"
                     amount = self.units.format_balance(float(transaction_info['amount']))
+                    if self.setting.hidden_balances():
+                        amount = "*.********"
                     confirmations = transaction_info['confirmations']
                     timereceived = transaction_info['timereceived']
                     formatted_timereceived = datetime.fromtimestamp(timereceived).strftime("%Y-%m-%d %H:%M:%S")
@@ -453,6 +456,8 @@ class Transactions(Box):
                 icon = "images/tx_mining.png"
             txid = data[3]
             amount = data[4]
+            if self.settings.hidden_balances():
+                amount = "*.********"
             timereceived = data[5]
             formatted_timereceived = datetime.fromtimestamp(timereceived).strftime("%Y-%m-%d %H:%M:%S")
             row = {
@@ -467,14 +472,18 @@ class Transactions(Box):
         self.transactions_table.data_source = self.transactions_data
 
 
-    async def reload_transactions(self):
-        sorted_transactions = self.get_transactions(self.transactions_count, self.transactions_from)
-        if sorted_transactions:
-            if self.no_transaction_toggle:
-                self.remove(self.no_transaction)
-                self._impl.native.Controls.Add(self.transactions_table)
+    def reload_transactions(self):
+        if self.transactions_toggle:
+            self.transactions_from = 0
+            self.no_more_transactions = None
+            sorted_transactions = self.get_transactions(self.transactions_count, self.transactions_from)
+            if sorted_transactions:
+                if self.no_transaction_toggle:
+                    self.remove(self.no_transaction)
+                    self._impl.native.Controls.Add(self.transactions_table)
 
-            self.create_rows(sorted_transactions)
+                self.transactions_table.data_source.clear()
+                self.create_rows(sorted_transactions)
 
 
     async def gather_transparent_transactions(self, widget):
@@ -598,6 +607,8 @@ class Transactions(Box):
                             notify_icon = "images/mining_notify.ico"
                         address = data[2]
                         amount = data[4]
+                        if self.settings.hidden_balances():
+                            amount = "*.********"
                         timereceived = data[5]
                         formatted_timereceived = datetime.fromtimestamp(timereceived).strftime("%Y-%m-%d %H:%M:%S")
                         row = {
@@ -718,6 +729,8 @@ class Transactions(Box):
                 address = data[2]
                 txid = data[3]
                 amount = data[4]
+                if self.settings.hidden_balances():
+                    amount = "*.********"
                 timereceived = data[5]
                 formatted_timereceived = datetime.fromtimestamp(timereceived).strftime("%Y-%m-%d %H:%M:%S")
                 row = {

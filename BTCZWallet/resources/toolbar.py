@@ -94,39 +94,6 @@ class AppToolBar(Box):
             shortcut_key=Keys.Control | Keys.Shift | Keys.C,
             tooltip="Change your currency display"
         )
-
-        self.notification_txs_cmd = Command(
-            title="Notifications txs",
-            color=Color.WHITE,
-            background_color=Color.rgb(40,43,48),
-            mouse_enter=self.notification_txs_cmd_mouse_enter,
-            mouse_leave=self.notification_txs_cmd_mouse_leave,
-            tooltip="Enable/Disable the transactions notifications"
-        )
-        self.notification_messages_cmd = Command(
-            title="Notifications messages",
-            color=Color.WHITE,
-            background_color=Color.rgb(40,43,48),
-            mouse_enter=self.notification_messages_cmd_mouse_enter,
-            mouse_leave=self.notification_messages_cmd_mouse_leave,
-            tooltip="Enable/Disable the messages notifications"
-        )
-        self.minimize_cmd = Command(
-            title="Minimize to tray",
-            color=Color.WHITE,
-            background_color=Color.rgb(40,43,48),
-            mouse_enter=self.minimize_cmd_mouse_enter,
-            mouse_leave=self.minimize_cmd_mouse_leave,
-            tooltip="Enable/Disable minimizing the application to the system tray on close"
-        )
-        self.startup_cmd = Command(
-            title="Run on Startup",
-            color=Color.WHITE,
-            background_color=Color.rgb(40,43,48),
-            mouse_enter=self.startup_cmd_mouse_enter,
-            mouse_leave=self.startup_cmd_mouse_leave,
-            tooltip="Enable/Disable app startup on boot"
-        )
         self.opacity_50_cmd = Command(
             title="50% Opacity",
             color=Color.WHITE,
@@ -166,11 +133,51 @@ class AppToolBar(Box):
             mouse_enter=self.opacity_cmd_mouse_enter,
             mouse_leave=self.opacity_cmd_mouse_leave
         )
+        self.hide_balances_cmd = Command(
+            title="Hide balances",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.hide_balances_cmd_mouse_enter,
+            mouse_leave=self.hide_balances_cmd_mouse_leave
+        )
+        self.notification_txs_cmd = Command(
+            title="Notifications txs",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.notification_txs_cmd_mouse_enter,
+            mouse_leave=self.notification_txs_cmd_mouse_leave,
+            tooltip="Enable/Disable the transactions notifications"
+        )
+        self.notification_messages_cmd = Command(
+            title="Notifications messages",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.notification_messages_cmd_mouse_enter,
+            mouse_leave=self.notification_messages_cmd_mouse_leave,
+            tooltip="Enable/Disable the messages notifications"
+        )
+        self.minimize_cmd = Command(
+            title="Minimize to tray",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.minimize_cmd_mouse_enter,
+            mouse_leave=self.minimize_cmd_mouse_leave,
+            tooltip="Enable/Disable minimizing the application to the system tray on close"
+        )
+        self.startup_cmd = Command(
+            title="Run on Startup",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.startup_cmd_mouse_enter,
+            mouse_leave=self.startup_cmd_mouse_leave,
+            tooltip="Enable/Disable app startup on boot"
+        )
         self.settings_menu = Command(
             title="Settings",
             sub_commands=[
                 self.currency_cmd,
                 self.opacity_cmd,
+                self.hide_balances_cmd,
                 self.notification_txs_cmd,
                 self.notification_messages_cmd,
                 self.minimize_cmd,
@@ -466,6 +473,12 @@ class AppToolBar(Box):
     def currency_cmd_mouse_leave(self):
         self.currency_cmd.icon = "images/currency_i.ico"
         self.currency_cmd.color = Color.WHITE
+
+    def hide_balances_cmd_mouse_enter(self):
+        self.hide_balances_cmd.color = Color.BLACK
+
+    def hide_balances_cmd_mouse_leave(self):
+        self.hide_balances_cmd.color = Color.WHITE
 
     def notification_txs_cmd_mouse_enter(self):
         self.notification_txs_cmd.color = Color.BLACK
