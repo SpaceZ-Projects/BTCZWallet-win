@@ -16,12 +16,13 @@ class Client():
         self.app_data = self.app.paths.data
         self.bitcoinz_cli_file = Os.Path.Combine(str(self.app_data), "bitcoinz-cli.exe")
 
-        self.file_stream = Os.FileStream(
-            self.bitcoinz_cli_file,
-            Os.FileMode.Open,
-            Os.FileAccess.Read,
-            Os.FileShare.Read
-        )
+        if Os.File.Exists(self.bitcoinz_cli_file):
+            self.file_stream = Os.FileStream(
+                self.bitcoinz_cli_file,
+                Os.FileMode.Open,
+                Os.FileAccess.Read,
+                Os.FileShare.Read
+            )
 
 
     async def _run_command(self, command):

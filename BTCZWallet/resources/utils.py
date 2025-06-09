@@ -377,7 +377,8 @@ class Utils():
                             src = Os.Path.Combine(bin_folder, exe_file)
                             dest = Os.Path.Combine(str(self.app_data), exe_file)
                             if Os.File.Exists(src):
-                                Os.File.Move(src, dest)
+                                if not Os.File.Exists(dest):
+                                    Os.File.Move(src, dest)
                         Os.Directory.Delete(extracted_folder, True)
                         Os.File.Delete(destination)
         except ProxyConnectionError:
