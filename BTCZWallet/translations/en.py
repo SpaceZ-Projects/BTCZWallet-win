@@ -38,6 +38,8 @@ translations = {
     "about_cmd" : {"text": "About", "tooltip": "Information about this application"},
     "exit_cmd" : {"text": "Exit               |", "tooltip": "Exit the application and keep node running in background"},
     "stop_exit_cmd": {"text": "Stop node   |", "tooltip": "Stop the node and exit the application"},
+    "exit_dialog": {"title": "Exit App", "message": "Are you sure you want to exit the application ?"},
+    "stopexit_dialog": {"title": "Exit App", "message": "Are you sure you want to stop the node and exit the application ?"},
     "settings_menu": {"text": "Settings"},
     "currency_cmd": {"text": "Currency                             |", "tooltip": "Change your currency display"},
     "languages_cmd": {"text": "Languages", "tooltip": "Change the application language"},
@@ -207,7 +209,25 @@ translations = {
     "worker_label": {"text": "Worker :"},
     "start_mining_button": {"text": "Start Mining"},
     "stop_mining_button": {"text": "Stop Mining"},
-    
+    "worker_input": {"text": "Worker Name"},
+    "totalshares_icon": {"tooltip": "Total shares"},
+    "balance_icon": {"tooltip": "Balance"},
+    "immature_icon": {"tooltip": "Immature balance"},
+    "paid_icon": {"tooltip": "Total paid"},
+    "solutions_icon": {"tooltip": "Solutions speed"},
+    "estimated_icon": {"tooltip": "Estimated reward"},
+    "estimated_value": {"text": "/Day"},
+    "notifymining_solutions": {"text": "Solutions :"},
+    "notifymining_balance": {"text": "Balance :"},
+    "notifymining_immature": {"text": "Immature :"},
+    "notifymining_paid": {"text": "Paid :"},
+    "miner_stopped": {"text": "Miner Stopped !"},
+
+    #notify :
+    "notifyexit_cmd": {"text": "Exit"},
+    "notifystopexit_cmd": {"text": "Stop node"},
+
+    #other :
     "confirm_button": {"text": "Confirm"},
     "cancel_button": {"text":  "Cancel"},
     "close_button": {"text": "Close"},

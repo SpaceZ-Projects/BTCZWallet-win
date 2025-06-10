@@ -5,6 +5,8 @@ from toga import App, Window
 from ..framework import NotifyIcon, Command, FormState, TextBox
 
 from .client import Client
+from .settings import Settings
+from ..translations import Translations
 
 
 class Notify(NotifyIcon):
@@ -16,15 +18,17 @@ class Notify(NotifyIcon):
         self.mining_page = mining_page
 
         self.commands = Client(self.app)
+        self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
 
         self.stop_exit_cmd = Command(
-            title="Stop node",
+            title=self.tr.text("notifystopexit_cmd"),
             action=self.stop_node_exit,
             icon="images/stop.ico"
         )
 
         self.exit_cmd = Command(
-            title="Exit",
+            title=self.tr.text("notifyexit_cmd"),
             action=self.exit_app,
             icon="images/exit.ico"
         )
@@ -60,8 +64,8 @@ class Notify(NotifyIcon):
         if self.mining_page.mining_status:
             return
         self.main.question_dialog(
-            title="Exit app",
-            message="Are you sure you want to exit the application ?",
+            title=self.tr.title("exit_dialog"),
+            message=self.tr.message("exit_dialog"),
             on_result=on_result
         )
 
@@ -86,8 +90,8 @@ class Notify(NotifyIcon):
         if self.mining_page.mining_status:
             return
         self.main.question_dialog(
-            title="Exit app",
-            message="Are you sure you want to stop the node and exit the application ?",
+            title=self.tr.title("stopexit_dialog"),
+            message=self.tr.message("stopexit_dialog"),
             on_result=on_result
         )
 

@@ -755,8 +755,8 @@ class AppToolBar(Box):
         if self.mining_page.mining_status:
             return
         self.main.question_dialog(
-            title="Exit app",
-            message="Are you sure you want to exit the application ?",
+            title=self.tr.title("exit_dialog"),
+            message=self.tr.message("exit_dialog"),
             on_result=on_result
         )
 
@@ -783,7 +783,7 @@ class AppToolBar(Box):
         if self.mining_page.mining_status:
             return
         self.main.question_dialog(
-            title="Exit app",
-            message="Are you sure you want to stop the node and exit the application ?",
+            title=self.tr.title("stopexit_dialog"),
+            message=self.tr.message("stopexit_dialog"),
             on_result=on_result
         )

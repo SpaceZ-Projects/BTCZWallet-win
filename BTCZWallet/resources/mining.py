@@ -243,7 +243,7 @@ class Mining(Box):
         self.worker_label._impl.native.Font = self.monda_font.get(11, True)
 
         self.worker_input = TextInput(
-            placeholder="Worker Name",
+            placeholder=self.tr.text("worker_input"),
             style=Pack(
                 color = WHITE,
                 text_align= CENTER,
@@ -296,7 +296,7 @@ class Mining(Box):
                 padding_left = 10
             )
         )
-        self.tooltip.insert(self.totalshares_icon._impl.native, "Total shares")
+        self.tooltip.insert(self.totalshares_icon._impl.native, self.tr.tooltip("totalshares_icon"))
 
         self.totalshares_value = Label(
             text="0.00",
@@ -316,7 +316,7 @@ class Mining(Box):
                 padding_left = 20
             )
         )
-        self.tooltip.insert(self.balance_icon._impl.native, "Balance")
+        self.tooltip.insert(self.balance_icon._impl.native, self.tr.tooltip("balance_icon"))
 
         self.balance_value = Label(
             text="0.00",
@@ -335,7 +335,7 @@ class Mining(Box):
                 padding_left = 20
             )
         )
-        self.tooltip.insert(self.immature_icon._impl.native, "Immature balance")
+        self.tooltip.insert(self.immature_icon._impl.native, self.tr.tooltip("immature_icon"))
 
         self.immature_value = Label(
             text="0.00",
@@ -354,7 +354,7 @@ class Mining(Box):
                 padding = (2,0,0,20)
             )
         )
-        self.tooltip.insert(self.paid_icon._impl.native, "Total paid")
+        self.tooltip.insert(self.paid_icon._impl.native, self.tr.tooltip("paid_icon"))
 
         self.paid_value = Label(
             text="0.00",
@@ -373,7 +373,7 @@ class Mining(Box):
                 padding_left = 20
             )
         )
-        self.tooltip.insert(self.solutions_icon._impl.native, "Solutions speed")
+        self.tooltip.insert(self.solutions_icon._impl.native, self.tr.tooltip("solutions_icon"))
 
         self.solutions_value = Label(
             text="0.00 Sol/s",
@@ -392,10 +392,11 @@ class Mining(Box):
                 padding_left = 20
             )
         )
-        self.tooltip.insert(self.estimated_icon._impl.native, "Estimated reward")
-
+        self.tooltip.insert(self.estimated_icon._impl.native, self.tr.tooltip("estimated_icon"))
+        
+        text = self.tr.text("estimated_value")
         self.estimated_value = Label(
-            text="0.00 /Day",
+            text=f"0.00 {text}",
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -824,6 +825,7 @@ class Mining(Box):
                         immature_bal = mining_data.get("immature", mining_data.get("unpaid", 0))
                         paid = mining_data.get("paid", mining_data.get("paidtotal", 0))
                         workers_data = mining_data.get("workers", {})
+                        text = self.tr.text("estimated_value")
                         if workers_data:
                             for worker_name, worker_info in workers_data.items():
                                 worker_name_parts = worker_name.split(".")
@@ -837,7 +839,7 @@ class Mining(Box):
                                         converted_rate = self.units.hash_to_solutions(hashrate)
                                         self.solutions_value.text = f"{converted_rate:.2f} Sol/s"
                                         estimated_24h = await self.units.estimated_earn(24, hashrate)
-                                        self.estimated_value.text = f"{int(estimated_24h)} /Day"
+                                        self.estimated_value.text = f"{int(estimated_24h)} {text}"
                         else:
                             total_hashrates = mining_data.get("total_hashrates", [])
                             if total_hashrates:
@@ -846,7 +848,7 @@ class Mining(Box):
                                         self.solutions_value.text = f"{rate:.2f} Sol/s"
                                         converted_rate = self.units.solution_to_hash(rate)
                                         estimated_24h = await self.units.estimated_earn(24, converted_rate)
-                                        self.estimated_value.text = f"{int(estimated_24h)} /Day"
+                                        self.estimated_value.text = f"{int(estimated_24h)} {text}"
                                         converted_rate = rate
                             else:
                                 rate = sum(float(miner.get("hashrate", "0").replace("h/s", "").strip()) for miner in mining_data.get("miners", []))
@@ -854,7 +856,7 @@ class Mining(Box):
                                     self.solutions_value.text = f"{rate:.2f} Sol/s"
                                     converted_rate = self.units.solution_to_hash(rate)
                                     estimated_24h = await self.units.estimated_earn(24, converted_rate)
-                                    self.estimated_value.text = f"{int(estimated_24h)} /Day"
+                                    self.estimated_value.text = f"{int(estimated_24h)} {text}"
                                     converted_rate = rate
 
                         btcz_price = self.settings.price()
@@ -867,11 +869,15 @@ class Mining(Box):
                         self.immature_value.text = self.units.format_balance(immature_bal)
                         self.paid_value.text = self.units.format_balance(paid)
                         
-                        self.main.notifymining.text = f"Solutions : {converted_rate:.2f} Sol/s"
-                        self.main.notifymining.solutions.text = f"⛏️ Solutions : {converted_rate:.2f} Sol/s"
-                        self.main.notifymining.balance.text = f"💰 Balance : {self.units.format_balance(balance)}"
-                        self.main.notifymining.immature.text = f"🔃 Immature : {self.units.format_balance(immature_bal)}"
-                        self.main.notifymining.paid.text = f"💸 Paid : {self.units.format_balance(paid)}"
+                        solutions_text = self.tr.text("notifymining_solutions")
+                        balance_text = self.tr.text("notifymining_balance")
+                        immature_text = self.tr.text("notifymining_immature")
+                        paid_text = self.tr.text("notifymining_paid")
+                        self.main.notifymining.text = f"{solutions_text} {converted_rate:.2f} Sol/s"
+                        self.main.notifymining.solutions.text = f"⛏️ {solutions_text} {converted_rate:.2f} Sol/s"
+                        self.main.notifymining.balance.text = f"💰 {balance_text} {self.units.format_balance(balance)}"
+                        self.main.notifymining.immature.text = f"🔃 {immature_text} {self.units.format_balance(immature_bal)}"
+                        self.main.notifymining.paid.text = f"💸 {paid_text} {self.units.format_balance(paid)}"
 
                 except ProxyConnectionError:
                     print("Proxy connection failed.")
@@ -923,13 +929,14 @@ class Mining(Box):
             self.process.terminate()
             await asyncio.sleep(0.5)
             self.output_box.clear()
-            self.print_output("Miner Stopped !")
+            self.print_output(self.tr.text("miner_stopped"))
             self.totalshares_value.text = "0.00"
             self.balance_value.text = "0.00"
             self.immature_value.text = "0.00"
             self.paid_value.text = "0.00"
             self.solutions_value.text = "0.00 Sol/s"
-            self.estimated_value.text = "0.00 /Day"
+            text = self.tr.text("estimated_value")
+            self.estimated_value.text = f"0.00 {text}"
             self.estimated_earn_value.text = f"0.00 {self.settings.symbol()}"
         except Exception as e:
             print(f"Exception occurred while killing process: {e}")
