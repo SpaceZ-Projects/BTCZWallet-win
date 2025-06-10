@@ -22,6 +22,7 @@ from .units import Units
 from .client import Client
 from .settings import Settings
 from .storage import StorageMessages
+from ..translations import Translations
 
 
 class Mining(Box):
@@ -42,6 +43,7 @@ class Mining(Box):
         self.commands = Client(self.app)
         self.settings = Settings(self.app)
         self.storage = StorageMessages(self.app)
+        self.tr = Translations(self.settings)
         self.tooltip = ToolTip()
 
         self.monda_font = CustomFont()
@@ -60,7 +62,7 @@ class Mining(Box):
         self.tor_enabled = self.settings.tor_network()
 
         self.miner_label = Label(
-            text="Miner :",
+            text=self.tr.text("miner_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -73,7 +75,7 @@ class Mining(Box):
 
         self.miner_selection = Selection(
             items=[
-                {"miner": "Select Miner"},
+                {"miner": self.tr.text("miner_selection")},
                 {"miner": "MiniZ"},
                 {"miner": "Gminer"},
                 {"miner": "lolMiner"}
@@ -118,7 +120,7 @@ class Mining(Box):
         )
 
         self.address_label = Label(
-            text="Address :",
+            text=self.tr.text("address_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -165,7 +167,7 @@ class Mining(Box):
         )
 
         self.pool_label = Label(
-            text="Pool :",
+            text=self.tr.text("pool_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -184,7 +186,7 @@ class Mining(Box):
                 padding_top = 10
             ),
             items=[
-                {"pool": "Select Pool"}
+                {"pool": self.tr.text("pool_selection")}
             ],
             accessor="pool",
             on_change=self.update_server_selection
@@ -217,7 +219,7 @@ class Mining(Box):
             enabled=False
         )
         self.ssl_switch._impl.native.Font = self.monda_font.get(11, True)
-        self.tooltip.insert(self.ssl_switch._impl.native, "Enable/Disable SSL")
+        self.tooltip.insert(self.ssl_switch._impl.native, self.tr.tooltip("ssl_switch"))
 
         self.selection_pool_box = Box(
             style=Pack(
@@ -229,7 +231,7 @@ class Mining(Box):
         )
 
         self.worker_label = Label(
-            text="Worker :",
+            text=self.tr.text("worker_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -429,7 +431,7 @@ class Mining(Box):
         )
 
         self.start_mining_button = Button(
-            text="Start Mining",
+            text=self.tr.text("start_mining_button"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -541,7 +543,7 @@ class Mining(Box):
         self.selected_miner = self.miner_selection.value.miner
         if not self.selected_miner:
             return
-        if self.selected_miner == "Select Miner":
+        if self.selected_miner == self.tr.text("miner_selection"):
             return
         miner_path, url, zip_file = self.utils.get_miner_path(self.selected_miner)
         if not miner_path:
@@ -942,7 +944,7 @@ class Mining(Box):
 
     def update_mining_button(self, option):
         if option == "stop":
-            self.start_mining_button.text = "Stop"
+            self.start_mining_button.text = self.tr.text("stop_mining_button")
             self.start_mining_button._impl.native.MouseEnter -= self.start_mining_button_mouse_enter
             self.start_mining_button._impl.native.MouseLeave -= self.start_mining_button_mouse_leave
             self.start_mining_button.on_press = None
@@ -952,7 +954,7 @@ class Mining(Box):
             self.start_mining_button.on_press = self.stop_mining_button_click
 
         elif option == "start":
-            self.start_mining_button.text = "Start Mining"
+            self.start_mining_button.text = self.tr.text("start_mining_button")
             self.start_mining_button._impl.native.MouseEnter -= self.stop_mining_button_mouse_enter
             self.start_mining_button._impl.native.MouseLeave -= self.stop_mining_button_mouse_leave
             self.start_mining_button.on_press = None

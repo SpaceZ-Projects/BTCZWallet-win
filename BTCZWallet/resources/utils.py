@@ -17,6 +17,8 @@ from ..framework import (
 )
 
 from .units import Units
+from .settings import Settings
+from ..translations import Translations
 
 
 class Utils():
@@ -33,6 +35,8 @@ class Utils():
             Os.Directory.CreateDirectory(str(self.app_cache))
 
         self.units = Units(self.app)
+        self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
 
     
     async def get_repo_info(self, tor_enabled):
@@ -279,8 +283,8 @@ class Utils():
     async def fetch_tor_files(self, label, progress_bar):
         file_name = "tor-expert-bundle-windows-x86_64-14.5.2.tar.gz"
         url = "https://archive.torproject.org/tor-package-archive/torbrowser/14.5.2/"
-        text = "Downloading Tor bundle...%"
         destination = Os.Path.Combine(str(self.app_data), file_name)
+        text = self.tr.text("download_tor")
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url + file_name, timeout=None) as response:
@@ -342,7 +346,7 @@ class Utils():
     async def fetch_binary_files(self, label, progress_bar, tor_enabled):
         file_name = "bitcoinz-c73d5cdb2b70-win64.zip"
         url = "https://github.com/btcz/bitcoinz/releases/download/2.1.0/"
-        text = "Downloading binary...%"
+        text = self.tr.text("download_binary")
         destination = Os.Path.Combine(str(self.app_data), file_name)
         if tor_enabled:
             torrc = self.read_torrc()
@@ -394,7 +398,7 @@ class Utils():
     async def fetch_params_files(self, missing_files, zk_params_path, label, progress_bar, tor_enabled):
         base_url = "https://d.btcz.rocks/"
         total_files = len(missing_files)
-        text = "Downloading params...%"
+        text = self.tr.text("download_params")
         if tor_enabled:
             torrc = self.read_torrc()
             socks_port = torrc.get("SocksPort")
@@ -445,7 +449,7 @@ class Utils():
         ]
         total_files = len(bootstrap_files)
         bitcoinz_path = self.get_bitcoinz_path()
-        text = "Downloading bootstrap...%"
+        text = self.tr.text("download_bootstrap")
         if tor_enabled:
             torrc = self.read_torrc()
             socks_port = torrc.get("SocksPort")
@@ -600,16 +604,17 @@ class Utils():
             current_size = Os.FileInfo(dat_file).Length
             current_size_gb = current_size / (1024 ** 3)
             progress = int((current_size / total_size) * 100)
-            text = f"Extracting... {current_size_gb:.2f} / {total_size_gb:.2f} GB"
-            label._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_status_label(label, text, None)))
+            text = self.tr.text("extract_bootstarp")
+            progress_text = f"{text}{current_size_gb:.2f} / {total_size_gb:.2f} GB"
+            label._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_status_label(label, progress_text, None)))
             progress_bar._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_progress_bar(progress_bar, progress)))
             await asyncio.sleep(3)
 
-    def update_status_label(self, label, text, progress):
+    def update_status_label(self, label, text, progress= None):
         if progress is None:
             label._impl.native.Text = text
         else:
-            label._impl.native.Text = f"{text}{progress}"
+            label._impl.native.Text = f"{text}{progress}%"
 
     def update_progress_bar(self, progress_bar, progress):
         progress_bar.value = progress

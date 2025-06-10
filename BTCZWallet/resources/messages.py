@@ -32,6 +32,7 @@ from .units import Units
 from .client import Client
 from .notify import NotifyRequest, NotifyMessage
 from .settings import Settings
+from ..translations import Translations
             
 
 
@@ -1382,6 +1383,7 @@ class Chat(Box):
         self.tooltip = ToolTip()
         self.clipboard = ClipBoard()
         self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
 
         self.monda_font = CustomFont()
 
@@ -1579,7 +1581,7 @@ class Chat(Box):
         )
 
         self.send_button = Button(
-            text="  Send",
+            text=self.tr.text("send_button"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),

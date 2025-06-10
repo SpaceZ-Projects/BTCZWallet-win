@@ -23,6 +23,8 @@ from toga.colors import (
 from .client import Client
 from .storage import StorageMessages, StorageTxs
 from .units import Units
+from .settings import Settings
+from ..translations import Translations
 
 
 class Send(Box):
@@ -42,6 +44,8 @@ class Send(Box):
         self.units = Units(self.app)
         self.storagemsgs = StorageMessages(self.app)
         self.storagetxs = StorageTxs(self.app)
+        self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
         self.tooltip = ToolTip()
 
         self.monda_font = CustomFont()
@@ -71,7 +75,7 @@ class Send(Box):
             )
         )
         self.transparent_label = Label(
-            text="Transparent",
+            text=self.tr.text("transparent_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -95,7 +99,7 @@ class Send(Box):
             )
         )
         self.private_label = Label(
-            text="Private",
+            text=self.tr.text("private_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -112,7 +116,7 @@ class Send(Box):
         self.private_label._impl.native.Click += self.private_button_click
 
         self.from_address_label = Label(
-            text="From :",
+            text=self.tr.text("from_address_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -159,7 +163,7 @@ class Send(Box):
         )
 
         self.single_option = Switch(
-            text="Single",
+            text=self.tr.text("single_option"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36)
@@ -167,10 +171,10 @@ class Send(Box):
             on_change=self.single_option_on_change
         )
         self.single_option._impl.native.Font = self.monda_font.get(11, True)
-        self.tooltip.insert(self.single_option._impl.native, "Send to single address")
+        self.tooltip.insert(self.single_option._impl.native, self.tr.tooltip("single_option"))
 
         self.many_option = Switch(
-            text="Many",
+            text=self.tr.text("many_option"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -179,7 +183,7 @@ class Send(Box):
             on_change=self.many_option_on_change
         )
         self.many_option._impl.native.Font = self.monda_font.get(11, True)
-        self.tooltip.insert(self.many_option._impl.native, "Send to many addresses")
+        self.tooltip.insert(self.many_option._impl.native, self.tr.tooltip("many_option"))
 
         self.send_options_switch = Box(
             style=Pack(
@@ -201,7 +205,7 @@ class Send(Box):
         )
 
         self.destination_label = Label(
-            text="To :",
+            text=self.tr.text("destination_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -263,7 +267,7 @@ class Send(Box):
         )
 
         self.amount_label = Label(
-            text="Amount :",
+            text=self.tr.text("amount_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -304,7 +308,7 @@ class Send(Box):
         self.check_amount_label._impl.native.Font = self.monda_font.get(10, True)
 
         self.split_option = Switch(
-            text="Split",
+            text=self.tr.text("split_option"),
             value=True,
             style=Pack(
                 color = YELLOW,
@@ -313,10 +317,10 @@ class Send(Box):
             on_change=self.split_option_on_change
         )
         self.split_option._impl.native.Font = self.monda_font.get(11, True)
-        self.tooltip.insert(self.split_option._impl.native, "Split the total amount equally across all addresses.")
+        self.tooltip.insert(self.split_option._impl.native, self.tr.tooltip("split_option"))
 
         self.each_option = Switch(
-            text="Each",
+            text=self.tr.text("each_option"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -325,7 +329,7 @@ class Send(Box):
             on_change=self.each_option_on_change
         )
         self.each_option._impl.native.Font = self.monda_font.get(11, True)
-        self.tooltip.insert(self.each_option._impl.native, "Set a specific amount for each address.")
+        self.tooltip.insert(self.each_option._impl.native, self.tr.tooltip("each_option"))
 
 
         self.amount_options_switch = Box(
@@ -355,8 +359,8 @@ class Send(Box):
             )
         )
 
-        self.fees_label = Label(
-            text="Fee :",
+        self.fee_label = Label(
+            text=self.tr.text("fee_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -365,7 +369,7 @@ class Send(Box):
                 padding_top = 12
             )
         )
-        self.fees_label._impl.native.Font = self.monda_font.get(11, True)
+        self.fee_label._impl.native.Font = self.monda_font.get(11, True)
 
         self.fee_input = TextInput(
             placeholder="0.00000000",
@@ -406,7 +410,7 @@ class Send(Box):
         )
 
         self.operation_label = Label(
-            text="Operation Status :",
+            text=self.tr.text("operation_label"),
             style=Pack(
                 color = GRAY,
                 text_align= LEFT,
@@ -444,7 +448,7 @@ class Send(Box):
         )
 
         self.send_button = Button(
-            text="Cash Out",
+            text=self.tr.text("cashout_button"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -524,7 +528,7 @@ class Send(Box):
                 self.amount_options_switch
             )
             self.fees_box.add(
-                self.fees_label,
+                self.fee_label,
                 self.fee_input,
                 self.empty_box
             )
@@ -547,7 +551,7 @@ class Send(Box):
     def insert_menustrip(self):
         destination_context_menu = MenuStrip()
         self.messages_address_cmd = Command(
-            title="Send to messages address",
+            title=self.tr.text("messages_address_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
             action=self.set_destination_messages_address,
@@ -562,7 +566,7 @@ class Send(Box):
 
         amount_context_menu = MenuStrip()
         self.percentage_25_cmd = Command(
-            title="25 amount",
+            title=self.tr.text("percentage_25_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
             action=self.set_25_amount,
@@ -571,7 +575,7 @@ class Send(Box):
             mouse_leave=self.percentage_25_cmd_mouse_leave
         )
         self.percentage_50_cmd = Command(
-            title="50 amount",
+            title=self.tr.text("percentage_50_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
             action=self.set_50_amount,
@@ -580,7 +584,7 @@ class Send(Box):
             mouse_leave=self.percentage_50_cmd_mouse_leave
         )
         self.percentage_75_cmd = Command(
-            title="75 amount",
+            title=self.tr.text("percentage_75_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
             action=self.set_75_amount,
@@ -589,7 +593,7 @@ class Send(Box):
             mouse_leave=self.percentage_75_cmd_mouse_leave
         )
         self.max_amount_cmd = Command(
-            title="Max amount",
+            title=self.tr.text("max_amount_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
             action=self.set_max_amount,
@@ -609,7 +613,7 @@ class Send(Box):
 
         fee_context_menu = MenuStrip()
         self.slow_fee_cmd = Command(
-            title="Slow",
+            title=self.tr.text("slow_fee_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
             action=self.set_slow_fee,
@@ -618,7 +622,7 @@ class Send(Box):
             mouse_leave=self.slow_fee_cmd_mouse_leave
         )
         self.normal_fee_cmd = Command(
-            title="Normal",
+            title=self.tr.text("normal_fee_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
             action=self.set_normal_fee,
@@ -627,7 +631,7 @@ class Send(Box):
             mouse_leave=self.normal_fee_cmd_mouse_leave
         )
         self.fast_fee_cmd = Command(
-            title="Fast",
+            title=self.tr.text("fast_fee_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
             action=self.set_fast_fee,
@@ -736,7 +740,7 @@ class Send(Box):
 
     def set_destination_messages_address(self):
         selected_address = self.address_selection.value.select_address
-        if selected_address == "Main Account":
+        if selected_address == self.tr.text("main_account"):
             self.main.error_dialog(
                 title="Error",
                 message="You can't send amount from Main Account to messages (z) address."
@@ -754,7 +758,7 @@ class Send(Box):
         if self.address_selection.value.select_address:
             selected_address = self.address_selection.value.select_address
             balance = self.address_balance.text
-            if selected_address == "Main Account":
+            if selected_address == self.tr.text("main_account"):
                 if float(balance) > 0.0002:
                     balance_after_fee = float(balance) - 0.0001
                     amount = balance_after_fee * 0.25
@@ -771,7 +775,7 @@ class Send(Box):
         if self.address_selection.value.select_address:
             selected_address = self.address_selection.value.select_address
             balance = self.address_balance.text
-            if selected_address == "Main Account":
+            if selected_address == self.tr.text("main_account"):
                 if float(balance) > 0.0002:
                     balance_after_fee = float(balance) - 0.0001
                     amount = balance_after_fee * 0.50
@@ -788,7 +792,7 @@ class Send(Box):
         if self.address_selection.value.select_address:
             selected_address = self.address_selection.value.select_address
             balance = self.address_balance.text
-            if selected_address == "Main Account":
+            if selected_address == self.tr.text("main_account"):
                 if float(balance) > 0.0002:
                     balance_after_fee = float(balance) - 0.0001
                     amount = balance_after_fee * 0.75
@@ -805,7 +809,7 @@ class Send(Box):
         if self.address_selection.value.select_address:
             selected_address = self.address_selection.value.select_address
             balance = self.address_balance.text
-            if selected_address == "Main Account":
+            if selected_address == self.tr.text("main_account"):
                 if float(balance) > 0.0002:
                     amount = float(balance) - 0.0001
                     self.amount_input.value = f"{amount:.8f}"
@@ -833,9 +837,9 @@ class Send(Box):
         else:
             addresses_data = []
         if addresses_data is not None:
-            address_items = [("Main Account")] + [(address_info, address_info) for address_info in addresses_data]
+            address_items = [(self.tr.text("main_account"))] + [(address_info, address_info) for address_info in addresses_data]
         else:
-            address_items = [("Main Account")]
+            address_items = [(self.tr.text("main_account"))]
         return address_items
     
     
@@ -860,7 +864,7 @@ class Send(Box):
         self.amount_input.value = ""
         selected_address = selection.value.select_address
         self.tooltip.insert(self.address_selection._impl.native, selected_address)
-        if selected_address != "Main Account":
+        if selected_address != self.tr.text("main_account"):
             self.single_option.enabled = True
             self.many_option.enabled =True
             if self.many_option.value is False:
@@ -873,7 +877,7 @@ class Send(Box):
                     self.address_balance.style.color = WHITE
                 format_balance = self.units.format_balance(float(balance))
                 self.address_balance.text = format_balance
-        elif selected_address == "Main Account":
+        elif selected_address == self.tr.text("main_account"):
             self.single_option.value = True
             self.single_option.enabled = False
             self.many_option.enabled =False
@@ -897,7 +901,7 @@ class Send(Box):
             self.many_option.value = False
             self.single_option.style.color = YELLOW
             selected_address = self.address_selection.value.select_address
-            if selected_address != "Main Account":
+            if selected_address != self.tr.text("main_account"):
                 self.update_fees_option(True)
             self.destination_box.insert(1, self.destination_input_single)
             self.destination_input_single.readonly = False
@@ -1027,7 +1031,7 @@ class Send(Box):
             return
         balance = self.address_balance.text
         if float(balance) < float(amount):
-            self.check_amount_label.text = "Insufficient"
+            self.check_amount_label.text = self.tr.text("check_amount_label")
         else:
             self.check_amount_label.text = ""
 
@@ -1056,15 +1060,15 @@ class Send(Box):
         balance = self.address_balance.text
         if selected_address is None:
             self.main.error_dialog(
-                "Oops! No address selected",
-                "Please select the address you want to send from."
+                title=self.tr.title("selectaddress_dialog"),
+                message=self.tr.message("selectaddress_dialog")
             )
             self.address_selection.focus()
             return
         elif destination_address == "":
             self.main.error_dialog(
-                "Destination address is missing",
-                "Please enter a destination address where you want to send the funds."
+                title=self.tr.title("missingdestination_dialog"),
+                message=self.tr.message("missingdestination_dialog")
             )
             if self.many_option.value is True:
                 self.destination_input_many.focus()
@@ -1073,28 +1077,28 @@ class Send(Box):
             return
         elif self.z_addresses_limit_toggle:
             self.main.error_dialog(
-                title="Error",
-                message="The maximum number of zaddr outputs is 54 due to transaction size limits."
+                title=self.tr.title("zaddresseslimit_dialog"),
+                message=self.tr.message("zaddresseslimit_dialog")
             )
             return
         elif not self.is_valid_toggle:
             self.main.error_dialog(
-                "Error",
-                "The destination address is not valid"
+                title=self.tr.title("invalidaddress_dialog"),
+                message=self.tr.message("invalidaddress_dialog")
             )
             self.destination_input_single.focus()
             return
         elif amount == "":
             self.main.error_dialog(
-                "Amount not entered",
-                "Please specify the amount you wish to send."
+                title=self.tr.title("missingamount_dialog"),
+                message=self.tr.message("missingamount_dialog")
             )
             self.amount_input.focus()
             return
         elif float(balance) < float(amount):
             self.main.error_dialog(
-                "Insufficient balance",
-                "You don't have enough balance to complete this transaction. Please adjust the amount."
+                title=self.tr.title("insufficientbalance_dialog"),
+                message=self.tr.message("insufficientbalance_dialog")
             )
             self.amount_input.focus()
             return
@@ -1118,26 +1122,26 @@ class Send(Box):
 
     async def send_single(self, selected_address, destination_address, amount, txfee, balance):
         try:
-            if selected_address == "Main Account" and destination_address.startswith("t"):
+            if selected_address == self.tr.text("main_account") and destination_address.startswith("t"):
                 operation, _= await self.commands.sendToAddress(destination_address, amount)
                 if operation is not None:
                     self.main.info_dialog(
-                        title="Success",
-                        message="Transaction success"
+                        title=self.tr.title("sendsuccess_dialog"),
+                        message=self.tr.message("sendsuccess_dialog")
                     )
                     await self.clear_inputs()
                 else:
                     self.main.error_dialog(
-                        title="Error",
-                        message="Transaction failed."
+                        title=self.tr.title("sendfailed_dialog"),
+                        message=self.tr.message("sendfailed_dialog")
                     )
                 self.enable_send()
 
-            elif selected_address != "Main Account":
+            elif selected_address != self.tr.text("main_account"):
                 if (float(amount)+float(txfee)) > float(balance):
                     self.main.error_dialog(
-                        "Insufficient balance",
-                        "You don't have enough balance to complete this transaction. Please adjust the amount."
+                        title=self.tr.title("insufficientbalance_dialog"),
+                        message=self.tr.message("insufficientbalance_dialog")
                     )
                     self.enable_send()
                     return
@@ -1161,16 +1165,16 @@ class Send(Box):
                                     if status == "failed":
                                         self.enable_send()
                                         self.main.error_dialog(
-                                            title="Error",
-                                            message="Transaction failed."
+                                            title=self.tr.title("sendfailed_dialog"),
+                                            message=self.tr.message("sendfailed_dialog")
                                         )
                                         return
                                     if selected_address.startswith('z'):
                                         self.store_private_transaction(destination_address, txid, amount)
                                     self.enable_send()
                                     self.main.info_dialog(
-                                        title="Success",
-                                        message="Transaction success"
+                                        title=self.tr.title("sendsuccess_dialog"),
+                                        message=self.tr.message("sendsuccess_dialog")
                                     )
                                     await self.clear_inputs()
                                     return
@@ -1178,14 +1182,14 @@ class Send(Box):
                         else:
                             self.enable_send()
                             self.main.error_dialog(
-                                title="Error",
-                                message="Transaction failed."
+                                title=self.tr.title("sendfailed_dialog"),
+                                message=self.tr.message("sendfailed_dialog")
                             )
                 else:
                     self.enable_send()
                     self.main.error_dialog(
-                        title="Error",
-                        message="Transaction failed."
+                        title=self.tr.title("sendfailed_dialog"),
+                        message=self.tr.message("sendfailed_dialog")
                     )
         except Exception as e:
             self.enable_send()
@@ -1203,9 +1207,10 @@ class Send(Box):
             total_amount = float(amount_value) * len(addresses)
             address_balance = self.address_balance.text
             if float(total_amount) > float(address_balance):
+                message = self.tr.message("insufficientmany_dialog")
                 self.main.error_dialog(
-                    "Error...",
-                    f"Insufficient balance for this transaction.\nTotal amount = {total_amount:.8f}"
+                    title=self.tr.title("insufficientmany_dialog"),
+                    message=f"{message} {total_amount:.8f}"
                 )
                 return
             else:
@@ -1236,8 +1241,8 @@ class Send(Box):
                                 if status == "failed":
                                     self.enable_send()
                                     self.main.error_dialog(
-                                        title="Error",
-                                        message="Transaction failed."
+                                        title=self.tr.title("sendfailed_dialog"),
+                                        message=self.tr.message("sendfailed_dialog")
                                     )
                                     self.operation_status.text = status
                                     return
@@ -1245,8 +1250,8 @@ class Send(Box):
                                     self.store_private_transaction("To Many", txid, self.amount_input.value)
                                 self.enable_send()
                                 self.main.info_dialog(
-                                    title="Success",
-                                    message="Transaction success"
+                                    title=self.tr.title("sendsuccess_dialog"),
+                                    message=self.tr.message("sendsuccess_dialog")
                                 )
                                 await self.clear_inputs()
                                 return
@@ -1255,14 +1260,14 @@ class Send(Box):
                     else:
                         self.enable_send()
                         self.main.error_dialog(
-                            title="Error",
-                            message="Transaction failed."
+                            title=self.tr.title("sendfailed_dialog"),
+                            message=self.tr.message("sendfailed_dialog")
                         )
             else:
                 self.enable_send()
                 self.main.error_dialog(
-                    title="Error",
-                    message="Transaction failed."
+                    title=self.tr.title("sendfailed_dialog"),
+                    message=self.tr.message("sendfailed_dialog")
                 )
         except Exception as e:
             self.enable_send()

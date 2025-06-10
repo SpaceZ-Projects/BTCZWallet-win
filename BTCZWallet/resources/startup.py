@@ -21,6 +21,7 @@ from .menu import Menu
 from .network import TorConfig
 from .units import Units
 from .settings import Settings
+from ..translations import Translations
 
 
 class BTCZSetup(Box):
@@ -40,6 +41,7 @@ class BTCZSetup(Box):
         self.units = Units(self.app)
         self.commands = Client(self.app)
         self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
         self.tooltip = ToolTip()
         self.app_data = self.app.paths.data
 
@@ -51,7 +53,7 @@ class BTCZSetup(Box):
         self.tor_config = None
 
         self.status_label = Label(
-            text="Verify network...",
+            text=self.tr.text("check_network"),
             style=Pack(
                 color = WHITE,
                 background_color = rgb(40,43,48),
@@ -86,7 +88,7 @@ class BTCZSetup(Box):
         self.progress_box.add(self.progress_bar)
         self.add(self.status_box, self.progress_box)
         self.progress_bar._impl.native.Style = ProgressStyle.MARQUEE
-        self.app.add_background_task(self.verify_network)
+        self.app.add_background_task(self.check_network)
 
 
     def update_info_box(self):
@@ -108,7 +110,7 @@ class BTCZSetup(Box):
             )
         )
         self.blocks_txt = Label(
-            text="Blocks :",
+            text=self.tr.text("blocks_txt"),
             style=Pack(
                 text_align = LEFT,
                 background_color = rgb(40,43,48),
@@ -128,7 +130,7 @@ class BTCZSetup(Box):
             )
         )
         self.mediantime_text = Label(
-            text="Date :",
+            text=self.tr.text("mediantime_text"),
             style=Pack(
                 text_align = LEFT,
                 background_color = rgb(40,43,48),
@@ -146,7 +148,7 @@ class BTCZSetup(Box):
             )
         )
         self.sync_txt = Label(
-            text="Sync :",
+            text=self.tr.text("sync_txt"),
             style=Pack(
                 text_align = RIGHT,
                 flex = 1,
@@ -165,7 +167,7 @@ class BTCZSetup(Box):
             )
         )
         self.index_size_txt = Label(
-            text="Size :",
+            text=self.tr.text("index_size_txt"),
             style=Pack(
                 text_align = RIGHT,
                 flex = 1,
@@ -212,7 +214,7 @@ class BTCZSetup(Box):
         )
 
     
-    async def verify_network(self, widget):
+    async def check_network(self, widget):
         async def on_result(widget, result):
             if result is True:
                 self.tor_config = TorConfig(startup=self.main)
@@ -222,38 +224,38 @@ class BTCZSetup(Box):
                 if self.node_status:
                     await self.open_main_menu()
                 else:
-                    await self.verify_binary_files()
+                    await self.check_binary_files()
             
         await asyncio.sleep(1)
         self.node_status = await self.is_bitcoinz_running()
         self.tor_enabled = self.settings.tor_network()
         if self.tor_enabled is None:
             self.main.network_status.style.color = GRAY
-            self.main.network_status.text = "Disabled"
+            self.main.network_status.text = self.tr.text("tor_disabled")
             self.main.question_dialog(
-                title="Tor Network",
-                message="This is your first time running the app.\nWould you like to enable the Tor network ?",
+                title=self.tr.title("checknetwork_dialog"),
+                message=self.tr.message("checknetwork_dialog"),
                 on_result=on_result
             )
         else:
             if self.tor_enabled is True:
                 self.main.tor_icon.image = "images/tor_on.png"
                 self.main.network_status.style.color = rgb(114,137,218)
-                self.main.network_status.text = "Enabled"
+                self.main.network_status.text = self.tr.text("tor_enbaled")
                 tor_running = await self.utils.is_tor_alive()
                 await asyncio.sleep(1)
                 if self.node_status and tor_running:
                     await self.open_main_menu()
                 else:
-                    await self.verify_tor_files()
+                    await self.check_tor_files()
             elif self.tor_enabled is False:
                 self.main.network_status.style.color = GRAY
-                self.main.network_status.text = "Disabled"
+                self.main.network_status.text = self.tr.text("tor_disabled")
                 await asyncio.sleep(1)
                 if self.node_status:
                     await self.open_main_menu()
                 else:
-                    await self.verify_binary_files()
+                    await self.check_binary_files()
 
 
     async def is_bitcoinz_running(self):
@@ -263,21 +265,21 @@ class BTCZSetup(Box):
         return None
             
 
-    async def verify_tor_files(self):
-        self.status_label.text = "Verify Tor files..."
+    async def check_tor_files(self):
+        self.status_label.text = self.tr.text("checktor_files")
         await asyncio.sleep(1)
         missing_files = self.utils.get_tor_files()
         if missing_files:
-            self.status_label.text = "Downloading Tor bundle..."
+            self.status_label.text = self.tr.text("download_tor")
             self.progress_bar._impl.native.Style = ProgressStyle.BLOCKS
             await self.utils.fetch_tor_files(
                 self.status_label,
                 self.progress_bar
             )
-        self.app.add_background_task(self.run_tor)
+        self.app.add_background_task(self.execute_tor)
 
 
-    async def run_tor(self, widget):
+    async def execute_tor(self, widget):
         async def on_result(widget, result):
             if result is True:
                 self.tor_config = TorConfig(startup=self.main)
@@ -287,22 +289,22 @@ class BTCZSetup(Box):
                 if self.node_status:
                     await self.open_main_menu()
                 else:
-                    await self.verify_binary_files()
+                    await self.check_binary_files()
 
         self.progress_bar._impl.native.Style = ProgressStyle.MARQUEE
         tor_exe = Os.Path.Combine(str(self.app_data), "tor.exe")
         torrc_path = Os.Path.Combine(str(self.app_data), "torrc")
         if not Os.File.Exists(torrc_path):
             self.main.question_dialog(
-                title="Missing Tor Config",
-                message="The Tor configuration file (torrc) was not found.\nWould you like to create a torrc file ?",
+                title=self.tr.title("missingtorrc_dialog"),
+                message=self.tr.message("missingtorrc_dialog"),
                 on_result=on_result
             )
             return
         try:
             tor_running = await self.utils.is_tor_alive()
             if not tor_running:
-                self.status_label.text = "Launching Tor..."
+                self.status_label.text = self.tr.text("execute_tor")
                 await asyncio.sleep(1)
                 command = [tor_exe, '-f', torrc_path]
                 self.tor_process = await asyncio.create_subprocess_exec(
@@ -311,25 +313,25 @@ class BTCZSetup(Box):
                     stderr=asyncio.subprocess.STDOUT,
                     creationflags=subprocess.CREATE_NO_WINDOW
                 )
-                self.status_label.text = "Waiting for Tor to initialize..."
+                self.status_label.text = self.tr.text("initialize_tor")
                 await asyncio.sleep(1)
                 try:
                     result = await self.wait_tor_bootstrap()
                     if result:
                         tor_running = await self.utils.is_tor_alive()
                         if tor_running:
-                            self.status_label.text = "Tor started successfully."
+                            self.status_label.text = self.tr.text("tor_success")
                             await asyncio.sleep(1)
-                            await self.verify_binary_files()
+                            await self.check_binary_files()
                         else:
-                            self.status_label.text = "Failed to communicate with Tor."
+                            self.status_label.text = self.tr.text("tor_failed")
                 except asyncio.TimeoutError:
-                    self.status_label.text = "Tor startup timed out."
+                    self.status_label.text = self.tr.text("tor_timeout")
             else:
-                await self.verify_binary_files()
+                await self.check_binary_files()
 
         except Exception as e:
-            self.status_label.text = "Tor failed to start properly."
+            self.status_label.text = self.tr.text("tor_failed")
 
 
     async def wait_tor_bootstrap(self):
@@ -344,19 +346,20 @@ class BTCZSetup(Box):
             match = percentage_pattern.search(decoded)
             if match:
                 percent = int(match.group(1))
-                self.status_label.text = f"Tor Bootstrap Progress: {percent}%"
+                text = self.tr.text("tor_bootstrap")
+                self.status_label.text = f"{text}{percent}%"
                 self.progress_bar.value = percent
                 if percent == 100:
                     return True
 
 
-    async def verify_binary_files(self):
-        self.status_label.text = "Verify binary files..."
+    async def check_binary_files(self):
+        self.status_label.text = self.tr.text("checkbinary_files")
         self.progress_bar._impl.native.Style = ProgressStyle.MARQUEE
         await asyncio.sleep(1)
         missing_files = self.utils.get_binary_files()
         if missing_files:
-            self.status_label.text = "Downloading binary..."
+            self.status_label.text = self.tr.text("download_binary")
             self.progress_bar._impl.native.Style = ProgressStyle.BLOCKS
             self.progress_bar.value = 0
             await self.utils.fetch_binary_files(
@@ -364,16 +367,16 @@ class BTCZSetup(Box):
                 self.progress_bar,
                 self.tor_enabled
             )
-        await self.verify_params_files()
+        await self.check_params_files()
 
 
-    async def verify_params_files(self):
-        self.status_label.text = "Verify params..."
+    async def check_params_files(self):
+        self.status_label.text = self.tr.text("checkparams_files")
         self.progress_bar._impl.native.Style = ProgressStyle.MARQUEE
         await asyncio.sleep(1)
         missing_files, zk_params_path = self.utils.get_zk_params()
         if missing_files:
-            self.status_label.text = "Downloading params..."
+            self.status_label.text = self.tr.text("download_params")
             self.progress_bar._impl.native.Style = ProgressStyle.BLOCKS
             self.progress_bar.value = 0
             await self.utils.fetch_params_files(
@@ -381,11 +384,11 @@ class BTCZSetup(Box):
                 self.status_label, self.progress_bar,
                 self.tor_enabled
             )
-        await self.verify_config_file()
+        await self.check_config_file()
 
 
-    async def verify_config_file(self):
-        self.status_label.text = "Verify bitcoinz.conf..."
+    async def check_config_file(self):
+        self.status_label.text = self.tr.text("checkconf_file")
         self.progress_bar._impl.native.Style = ProgressStyle.MARQUEE
         await asyncio.sleep(1)
         bitcoinz_path = self.utils.get_bitcoinz_path()
@@ -396,19 +399,19 @@ class BTCZSetup(Box):
         else:
             self.blockchaine_index = True
         if not Os.File.Exists(config_file_path):
-            self.status_label.text = "Creating bitcoinz.conf..."
+            self.status_label.text = self.tr.text("createconf_file")
             self.utils.create_config_file(config_file_path)
             await asyncio.sleep(1)
-        await self.verify_bockchaine_index()
+        await self.check_bockchaine_index()
         
     
-    async def verify_bockchaine_index(self):
+    async def check_bockchaine_index(self):
         if self.blockchaine_index:
             self.app.add_background_task(self.execute_bitcoinz_node)
         else:
             self.main.question_dialog(
-                title="Download Bootstarp",
-                message="Would you like to download the BitcoinZ bootstrap? This will help you sync faster. If you prefer to sync from block 0, Click NO.",
+                title=self.tr.title("bootstarp_dialog"),
+                message=self.tr.message("bootstarp_dialog"),
                 on_result=self.download_bootstrap_dialog
             )
 
@@ -420,7 +423,7 @@ class BTCZSetup(Box):
 
 
     async def download_bitcoinz_bootstrap(self, widget):
-        self.status_label.text = "Downloading bootstrap..."
+        self.status_label.text = self.tr.text("download_bootstrap")
         self.progress_bar._impl.native.Style = ProgressStyle.BLOCKS
         self.progress_bar.value = 0
         await self.utils.fetch_bootstrap_files(
@@ -432,7 +435,7 @@ class BTCZSetup(Box):
 
 
     async def extract_bootstrap_file(self):
-        self.status_label.text = "Extracting bootstrap..."
+        self.status_label.text = self.tr.text("extract_bootstarp")
         style = ProgressStyle.MARQUEE
         self.progress_bar._impl.native.Invoke(Forms.MethodInvoker(lambda:self.utils.update_progress_style(self.progress_bar, style)))
         await self.utils.extract_7z_files(
@@ -443,7 +446,7 @@ class BTCZSetup(Box):
 
 
     async def execute_bitcoinz_node(self, widget):
-        self.status_label.text = "Starting node..."
+        self.status_label.text = self.tr.text("start_node")
         bitcoinzd = "bitcoinzd.exe"
         node_file = Os.Path.Combine(str(self.app_data), bitcoinzd)
         command = [node_file]
@@ -476,24 +479,36 @@ class BTCZSetup(Box):
         result, error_message = await self.commands.getInfo()
         if result:
             self.node_status = True
-            await self.verify_sync_progress()
+            await self.check_sync_progress()
             return
         else:
             while True:
                 result, error_message = await self.commands.getInfo()
                 if result and error_message is None:
                     self.node_status = True
-                    await self.verify_sync_progress()
+                    await self.check_sync_progress()
                     return
                 elif error_message and result is None:
-                    self.status_label.text = error_message
+                    if error_message == "Loading block index...":
+                        message = self.tr.text("loading_blocks")
+                    elif error_message == "Activating best chain...":
+                        message = self.tr.text("activebest_chain")
+                    elif error_message == "Rewinding blocks if needed...":
+                        message = self.tr.text("rewind_blocks")
+                    elif error_message == "Loading wallet...":
+                        self.tr.text("loading_wallet")
+                    elif error_message == "Rescanning...":
+                        self.tr.text("rescan_wallet")
+                    else:
+                        message = error_message
+                    self.status_label.text = message
                 elif error_message is None and result is None:
                     self.app.add_background_task(self.execute_bitcoinz_node)
                     return
                 await asyncio.sleep(3)
 
 
-    async def verify_sync_progress(self):
+    async def check_sync_progress(self):
         tooltip_text = f"Seeds :"
         await asyncio.sleep(1)
         blockchaininfo, _ = await self.commands.getBlockchainInfo()

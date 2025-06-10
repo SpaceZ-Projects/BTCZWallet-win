@@ -22,7 +22,8 @@ from toga.constants import (
 from .client import Client
 from .utils import Utils
 from .units import Units
-from.settings import Settings
+from .settings import Settings
+from ..translations import Translations
 
 
 
@@ -43,6 +44,7 @@ class Wallet(Box):
         self.commands = Client(self.app)
         self.units = Units(self.app)
         self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
 
         self.monda_font = CustomFont()
 
@@ -96,7 +98,7 @@ class Wallet(Box):
             )
         )
         self.total_balances_label = Label(
-            text="Total Balances",
+            text=self.tr.text("total_balances_label"),
             style=Pack(
                 text_align = CENTER,
                 color = GRAY,
@@ -144,7 +146,7 @@ class Wallet(Box):
         )
 
         self.transparent_label = Label(
-            text="Transparent",
+            text=self.tr.text("transparent_label"),
             style=Pack(
                 background_color = rgb(40,43,48),
                 text_align = CENTER,
@@ -164,7 +166,7 @@ class Wallet(Box):
         self.transparent_value._impl.native.Font = self.monda_font.get(9, True)
 
         self.private_label = Label(
-            text="Private",
+            text=self.tr.text("private_label"),
             style=Pack(
                 background_color = rgb(40,43,48),
                 text_align = CENTER,
@@ -184,7 +186,7 @@ class Wallet(Box):
         self.private_value._impl.native.Font = self.monda_font.get(9, True)
 
         self.unconfirmed_label = Label(
-            text="Unconfirmed Balance",
+            text=self.tr.text("unconfirmed_label"),
             style=Pack(
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
@@ -315,8 +317,10 @@ class ImportKey(Window):
         self.main = main
         self.utils = Utils(self.app)
         self.commands = Client(self.app)
+        self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
 
-        self.title = "Import Key"
+        self.title = self.tr.title("importkey_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
 
@@ -332,7 +336,7 @@ class ImportKey(Window):
         )
 
         self.info_label = Label(
-            text="(This operation may take up to 10 minutes to complete.)",
+            text=self.tr.text("info_label"),
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -354,7 +358,7 @@ class ImportKey(Window):
         self.key_input._impl.native.Font = self.monda_font.get(11, True)
         
         self.import_button = Button(
-            text="Import",
+            text=self.tr.text("import_button"),
             style=Pack(
                 color= GRAY,
                 background_color = rgb(30,33,36),
@@ -388,7 +392,7 @@ class ImportKey(Window):
         )
 
         self.cancel_button = Button(
-            text="Cancel",
+            text=self.tr.text("cancel_button"),
             style=Pack(
                 color = RED,
                 background_color = rgb(30,33,36),
@@ -418,8 +422,8 @@ class ImportKey(Window):
     def import_button_click(self, button):
         if not self.key_input.value:
             self.error_dialog(
-                "Missing Private Key",
-                "Please enter a private key to proceed."
+                title=self.tr.title("missingkey_dialog"),
+                message=self.tr.message("missingkey_dialog")
             )
             self.key_input.focus()
             return
@@ -453,8 +457,8 @@ class ImportKey(Window):
             result, error_message = await self.commands.z_ImportKey(key)
             if error_message:
                 self.error_dialog(
-                    "Invalid Private Key",
-                    "The private key you entered is not valid. Please check the format and try again.",
+                    title=self.tr.title("invalidkey_dialog"),
+                    message=self.tr.message("invalidkey_dialog"),
                     on_result=on_result
                 )
                 return     
@@ -492,6 +496,7 @@ class ImportKey(Window):
 
     def close_import_key(self, button):
         self.close()
+        self.app.current_window = self.main
 
 
 
@@ -506,8 +511,10 @@ class ImportWallet(Window):
         self.main = main
         self.utils = Utils(self.app)
         self.commands = Client(self.app)
+        self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
 
-        self.title = "Import Wallet"
+        self.title = self.tr.title("importwallet_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
 
@@ -523,7 +530,7 @@ class ImportWallet(Window):
         )
 
         self.info_label = Label(
-            text="(This operation may take up to 10 minutes to complete.)",
+            text=self.tr.text("info_label"),
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -534,7 +541,7 @@ class ImportWallet(Window):
         self.info_label._impl.native.Font = self.monda_font.get(11)
 
         self.file_input = TextInput(
-            value="+ Select / Drag and Drop File",
+            value=self.tr.text("file_input"),
             style=Pack(
                 color = GRAY,
                 text_align= CENTER,
@@ -552,7 +559,7 @@ class ImportWallet(Window):
         self.file_input._impl.native.Cursor = Cursors.HAND
         
         self.import_button = Button(
-            text="Import",
+            text=self.tr.text("import_button"),
             style=Pack(
                 color= GRAY,
                 background_color = rgb(30,33,36),
@@ -586,7 +593,7 @@ class ImportWallet(Window):
         )
 
         self.cancel_button = Button(
-            text="Cancel",
+            text=self.tr.text("cancel_button"),
             style=Pack(
                 color = RED,
                 background_color = rgb(30,33,36),
@@ -619,7 +626,7 @@ class ImportWallet(Window):
                 self.file_input.value = result
                 self.file_input.style.color = WHITE
         self.open_file_dialog(
-            title="Select file",
+            title=self.tr.title("selectfile_dialog"),
             on_result=on_result
         )
         
@@ -639,18 +646,18 @@ class ImportWallet(Window):
 
 
     def import_button_click(self, button):
-        if self.file_input.value == "+ Select / Drag and Drop File":
+        if self.file_input.value == self.tr.text("file_input"):
             self.error_dialog(
-                "Missing File",
-                "Please select a wallet file to proceed."
+                title=self.tr.title("missingfile_dialog"),
+                message=self.tr.message("missingfile_dialog")
             )
             return
 
         extension = Os.Path.GetExtension(self.file_input.value)
         if extension:
             self.error_dialog(
-                "Invalid File Format",
-                "Unsupported file type. Please select a valid wallet file."
+                title=self.tr.title("invalidfile_dialog"),
+                message=self.tr.message("invalidfile_dialog")
             )
             return
         
@@ -704,3 +711,4 @@ class ImportWallet(Window):
 
     def close_import_file(self, button):
         self.close()
+        self.app.current_window = self.main

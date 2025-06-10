@@ -2,7 +2,6 @@
 import asyncio
 import json
 from datetime import datetime, timezone
-import ipaddress
 import aiohttp
 from aiohttp_socks import ProxyConnector, ProxyConnectionError, ProxyError
 
@@ -25,22 +24,29 @@ from .client import Client
 from .units import Units
 from .utils import Utils
 from .settings import Settings
+from ..translations import Translations
 
 
 
 class AddNode(Window):
-    def __init__(self):
+    def __init__(self, main:Window):
         super().__init__(
             resizable=False
         )
+
+        self.main = main
         
         self.utils = Utils(self.app)
         self.commands = Client(self.app)
+        self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
 
-        self.title = "Add Node"
+        self.title = self.tr.title("addnode_window")
         self.size = (550, 120)
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+
+        self.monda_font = CustomFont()
 
         self.main_box = Box(
             style=Pack(
@@ -64,17 +70,16 @@ class AddNode(Window):
         )
 
         self.add_button = Button(
-            text="Add node",
+            text=self.tr.text("add_button"),
             style=Pack(
                 color= GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size=10,
                 flex = 1,
                 padding = (0,10,0,10)
             ),
             on_press=self.add_button_click
         )
+        self.add_button._impl.native.Font = self.monda_font.get(9, True)
         self.add_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.add_button._impl.native.MouseEnter += self.add_button_mouse_enter
         self.add_button._impl.native.MouseLeave += self.add_button_mouse_leave
@@ -90,11 +95,9 @@ class AddNode(Window):
         )
 
         self.cancel_button = Button(
-            text="Cancel",
+            text=self.tr.text("cancel_button"),
             style=Pack(
                 color = RED,
-                font_size=10,
-                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
                 padding_bottom = 10,
@@ -102,6 +105,7 @@ class AddNode(Window):
             ),
             on_press=self.close_import_key
         )
+        self.cancel_button._impl.native.Font = self.monda_font.get(9, True)
         self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
         self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
@@ -122,25 +126,28 @@ class AddNode(Window):
         def on_result(widget, result):
             if result is None:
                 self.close()
+                self.app.current_window = self.main
         node_address = self.address_input.value.strip()
         if not node_address:
             self.error_dialog(
-                title="Missing Address",
-                message="Please enter a node address."
+                title=self.tr.title("missingnode_dialog"),
+                message=self.tr.message("missingnode_dialog")
             )
             return
         self.cancel_button.enabled = False
         self.add_button.enabled = False
         if 'onion' in node_address:
-            connector = ProxyConnector.from_url(f'socks5://127.0.0.1:9050')
+            torrc = self.utils.read_torrc()
+            socks_port = torrc.get("SocksPort")
+            connector = ProxyConnector.from_url(f'socks5://127.0.0.1:{socks_port}')
             try:
                 async with aiohttp.ClientSession(connector=connector) as session:
                     async with session.get(f"http://{node_address}", timeout=10) as response:
                         await response.text()
             except (ProxyConnectionError, ProxyError) as e:
                 self.error_dialog(
-                    title="Tor Proxy Error",
-                    message=f"Could not connect to the .onion address : {e}"
+                    title=self.tr.title("proxyerror_dialog"),
+                    message=self.tr.message("proxyerror_dialog")
                 )
                 self.cancel_button.enabled = True
                 self.add_button.enabled = True
@@ -153,8 +160,8 @@ class AddNode(Window):
                 port = int(port)
             except ValueError:
                 self.error_dialog(
-                    title="Invalid Address",
-                    message="Please enter a valid node address in the format IP:PORT"
+                    title=self.tr.title("invalidnode_dialog"),
+                    message=self.tr.message("invalidnode_dialog")
                 )
                 self.cancel_button.enabled = True
                 self.add_button.enabled = True
@@ -164,9 +171,10 @@ class AddNode(Window):
                 writer.close()
                 await writer.wait_closed()
             except Exception as e:
+                message = self.tr.message("connectionfailed_dilag")
                 self.error_dialog(
-                    title="Connection Failed",
-                    message=f"Could not connect to the node at {node_address}."
+                    title=self.tr.title("connectionfailed_dilag"),
+                    message=f"{message} {node_address}."
                 )
                 self.cancel_button.enabled = True
                 self.add_button.enabled = True
@@ -181,18 +189,18 @@ class AddNode(Window):
                     addnodes.append(line.split("=", 1)[1].strip())
         if node_address in addnodes:
             self.error_dialog(
-                title="Duplicate address",
-                message="The node address is already exists in config file"
+                title=self.tr.title("duplicatenode_dialog"),
+                message=self.tr.message("duplicatenode_dialog")
             )
             return
         with open(config_file_path, 'a') as file:
             file.write(f"\naddnode={node_address}")
 
         await self.commands.addNode(node_address)
-        
+        message = self.tr.message("addednode_dialog")
         self.info_dialog(
-            title="Node Added",
-            message=f"Node address : {node_address} has been added to addnode list.",
+            title=self.tr.title("addednode_dialog"),
+            message=f"{node_address} {message}",
             on_result=on_result
         )
 
@@ -216,6 +224,7 @@ class AddNode(Window):
 
     def close_import_key(self, button):
         self.close()
+        self.app.current_window = self.main
 
 
 
@@ -230,6 +239,7 @@ class TorConfig(Window):
         self.utils = Utils(self.app)
         self.commands = Client(self.app)
         self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
         self.tooltip = ToolTip()
 
         self.app_data = self.app.paths.data
@@ -238,7 +248,7 @@ class TorConfig(Window):
             self.size = (350, 325)
         if self.startup:
             self.size = (350, 280)
-        self.title = "Tor Network"
+        self.title = self.tr.title("torconfig_window")
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
         self._impl.native.ControlBox = False
@@ -254,18 +264,18 @@ class TorConfig(Window):
             )
         )
 
-        self.enbale_label = Label(
-            text="Enabled :",
+        self.enabled_label = Label(
+            text=self.tr.text("enabled_label"),
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
                 text_align = CENTER
             )
         )
-        self.enbale_label._impl.native.Font = self.monda_font.get(11, True)
+        self.enabled_label._impl.native.Font = self.monda_font.get(11, True)
 
         self.socks_label = Label(
-            text="Socks Port :",
+            text=self.tr.text("socks_label"),
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -276,7 +286,7 @@ class TorConfig(Window):
         self.socks_label._impl.native.Font = self.monda_font.get(11, True)
 
         self.onlyonion_label = Label(
-            text="Only onion :",
+            text=self.tr.text("onlyonion_label"),
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -287,7 +297,7 @@ class TorConfig(Window):
         self.onlyonion_label._impl.native.Font = self.monda_font.get(11, True)
 
         self.service_label = Label(
-            text="Tor Service :",
+            text=self.tr.text("service_label"),
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -298,7 +308,7 @@ class TorConfig(Window):
         self.service_label._impl.native.Font = self.monda_font.get(11, True)
 
         self.service_port_label = Label(
-            text="Service Port :",
+            text=self.tr.text("service_port_label"),
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -309,7 +319,7 @@ class TorConfig(Window):
         self.service_port_label._impl.native.Font = self.monda_font.get(11, True)
 
         self.hostname_label = Label(
-            text="Hostname :",
+            text=self.tr.text("hostname_label"),
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -329,14 +339,14 @@ class TorConfig(Window):
             )
         )
 
-        self.enabeld_switch = Switch(
+        self.enabled_switch = Switch(
             text="",
             style=Pack(
                 background_color = rgb(30,33,36),
                 padding = (5,0,0,65)
             )
         )
-        self.tooltip.insert(self.enabeld_switch._impl.native, "Enable or disable the Tor network")
+        self.tooltip.insert(self.enabled_switch._impl.native, self.tr.tooltip("enabled_label"))
 
         self.socks_input = TextInput(
             placeholder="Default 9050",
@@ -348,7 +358,7 @@ class TorConfig(Window):
             )
         )
         self.socks_input._impl.native.Font = self.monda_font.get(11, True)
-        self.tooltip.insert(self.socks_input._impl.native, "SOCKS5 proxy port used by Tor (default: 9050)")
+        self.tooltip.insert(self.socks_input._impl.native, self.tr.tooltip("socks_label"))
 
         self.onlyonion_switch = Switch(
             text="",
@@ -357,7 +367,7 @@ class TorConfig(Window):
                 padding = (15,0,0,65)
             )
         )
-        self.tooltip.insert(self.onlyonion_switch._impl.native, "Only connect to nodes in network onion")
+        self.tooltip.insert(self.onlyonion_switch._impl.native, self.tr.tooltip("onlyonion_label"))
 
         self.service_switch = Switch(
             text="",
@@ -367,7 +377,7 @@ class TorConfig(Window):
             ),
             on_change=self.update_service_input
         )
-        self.tooltip.insert(self.service_switch._impl.native, "Enable or disable Tor hidden service for BitcoinZ daemon")
+        self.tooltip.insert(self.service_switch._impl.native, self.tr.tooltip("service_label"))
 
         self.service_input = TextInput(
             placeholder="Default 1989",
@@ -380,7 +390,7 @@ class TorConfig(Window):
         )
         self.service_input.enabled = False
         self.service_input._impl.native.Font = self.monda_font.get(11, True)
-        self.tooltip.insert(self.service_input._impl.native, "The BitcoinZ daemon port (default: 1989)")
+        self.tooltip.insert(self.service_input._impl.native, self.tr.tooltip("service_port_label"))
 
         self.hostname_input = TextInput(
             placeholder="None",
@@ -414,7 +424,7 @@ class TorConfig(Window):
         )
 
         self.cancel_button = Button(
-            text="Cancel",
+            text=self.tr.text("cancel_button"),
             style=Pack(
                 color = RED,
                 background_color = rgb(30,33,36),
@@ -430,7 +440,7 @@ class TorConfig(Window):
         self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
 
         self.save_button = Button(
-            text="Save",
+            text=self.tr.text("save_button"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -464,7 +474,7 @@ class TorConfig(Window):
             self.inputs_box
         )
         self.labels_box.add(
-            self.enbale_label,
+            self.enabled_label,
             self.socks_label,
             self.onlyonion_label,
             self.service_label,
@@ -475,7 +485,7 @@ class TorConfig(Window):
                 self.hostname_label
             )
         self.inputs_box.add(
-            self.enabeld_switch,
+            self.enabled_switch,
             self.socks_input,
             self.onlyonion_switch,
             self.service_switch,
@@ -515,16 +525,16 @@ class TorConfig(Window):
                 self.hostname_input.value = f"{hostname}:{service_port}"
 
         if self.startup:
-            self.enabeld_switch.value = True
+            self.enabled_switch.value = True
             self.onlyonion_switch.value = False
         else:
-            self.enabeld_switch.value = self.settings.tor_network()
+            self.enabled_switch.value = self.settings.tor_network()
             self.onlyonion_switch.value = self.settings.only_onion()
 
 
 
     async def save_options(self, button):
-        if self.enabeld_switch.value is False:
+        if self.enabled_switch.value is False:
             self.settings.update_settings("tor_network", False)
             self.close()
             if self.startup:
@@ -555,13 +565,16 @@ class TorConfig(Window):
         self.close()
 
         if self.startup:
+            self.app.current_window = self.startup
             self.startup.tor_icon.image = "images/tor_on.png"
             self.startup.network_status.style.color = rgb(114,137,218)
-            self.startup.network_status.text = "Enabled"
+            self.startup.network_status.text = self.tr.text("tor_enabled")
             if self.startup.startup.node_status:
                 await self.commands.stopNode()
                 await asyncio.sleep(1)
             await self.startup.startup.verify_tor_files()
+        else:
+            self.app.current_window = self.main
         
 
 
@@ -611,12 +624,14 @@ class NodeInfo(Window):
 
         self.utils = Utils(self.app)
         self.units = Units(self.app)
+        self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
         self.tooltip = ToolTip()
 
         self.node = node
 
         self.size = (350, 510)
-        self.title = "Node Info"
+        self.title = self.tr.title("nodeinfo_window")
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
         self._impl.native.ControlBox = False
@@ -737,6 +752,8 @@ class Node(Box):
         self.utils = Utils(self.app)
         self.units = Units(self.app)
         self.commands = Client(self.app)
+        self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
         self.tooltip = ToolTip()
         self.clipboard = ClipBoard()
 
@@ -843,7 +860,7 @@ class Node(Box):
     def insert_node_menustrip(self):
         context_menu = Forms.ContextMenuStrip()
         self.node_info_cmd = Command(
-            title="More info",
+            title=self.tr.text("node_info_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
             mouse_enter=self.node_info_cmd_mouse_enter,
@@ -852,7 +869,7 @@ class Node(Box):
             icon="images/about_i.ico"
         )
         self.copy_node_cmd = Command(
-            title="Copy node address",
+            title=self.tr.text("copy_node_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
             mouse_enter=self.copy_node_cmd_mouse_enter,
@@ -861,7 +878,7 @@ class Node(Box):
             icon="images/copy_i.ico"
         )
         self.remove_node_cmd = Command(
-            title="Remove node",
+            title=self.tr.text("remove_node_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
             mouse_enter=self.remove_node_cmd_mouse_enter,
@@ -892,8 +909,8 @@ class Node(Box):
     def copy_node_address(self):
         self.clipboard.copy(self.address)
         self.peer_window.info_dialog(
-            title="Copied",
-            message="The node address has copied to clipboard.",
+            title=self.tr.title("copynode_dilog"),
+            message=self.tr.message("copynode_dilog")
         )
 
 
@@ -918,9 +935,10 @@ class Node(Box):
     async def remove_node(self, widget):
         await self.commands.disconnectNode(self.address)
         await self.commands.removeNode(self.address)
+        message = self.tr.message("removenode_dialog")
         self.peer_window.info_dialog(
-            title="Node Removed",
-            message=f"Node address : {self.address} has been removed form addnode list"
+            title=self.tr.title("removenode_dialog"),
+            message=f"{self.address} {message}"
         )
         
     
@@ -959,9 +977,11 @@ class Peer(Window):
         self.commands = Client(self.app)
         self.utils = Utils(self.app)
         self.units = Units(self.app)
+        self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
         self.tooltip = ToolTip()
 
-        self.title = "Peer Info"
+        self.title = self.tr.title("peer_window")
         self.size = (900,607)
         self._impl.native.Opacity = self.main._impl.native.Opacity
         position_center = self.utils.windows_screen_center(self.size)
@@ -997,7 +1017,7 @@ class Peer(Window):
             )
         )
         self.address_title = Label(
-            text="Address",
+            text=self.tr.text("address_title"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -1009,7 +1029,7 @@ class Peer(Window):
         self.address_title._impl.native.Font = self.monda_font.get(10, True)
 
         self.address_local_title = Label(
-            text="Address local",
+            text=self.tr.text("address_local_title"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -1021,7 +1041,7 @@ class Peer(Window):
         self.address_local_title._impl.native.Font = self.monda_font.get(10, True)
 
         self.sent_title = Label(
-            text="Sent",
+            text=self.tr.text("sent_title"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -1032,8 +1052,8 @@ class Peer(Window):
         )
         self.sent_title._impl.native.Font = self.monda_font.get(10, True)
 
-        self.receive_title = Label(
-            text="Received",
+        self.received_title = Label(
+            text=self.tr.text("received_title"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -1042,10 +1062,10 @@ class Peer(Window):
                 padding_top = 10
             )
         )
-        self.receive_title._impl.native.Font = self.monda_font.get(10, True)
+        self.received_title._impl.native.Font = self.monda_font.get(10, True)
 
         self.subversion_title = Label(
-            text="Subversion",
+            text=self.tr.text("subversion_title"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -1057,7 +1077,7 @@ class Peer(Window):
         self.subversion_title._impl.native.Font = self.monda_font.get(10, True)
 
         self.conntime_title = Label(
-            text="Conn. Time",
+            text=self.tr.text("conntime_title"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -1079,7 +1099,7 @@ class Peer(Window):
             self.address_title,
             self.address_local_title,
             self.sent_title,
-            self.receive_title,
+            self.received_title,
             self.subversion_title,
             self.conntime_title
         )

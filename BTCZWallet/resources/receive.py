@@ -7,8 +7,8 @@ from toga import (
 )
 from ..framework import (
     Table, DockStyle, BorderStyle, AlignTable,
-    FontStyle, Color, Command, ClipBoard,
-    RichLabel, ScrollBars, AlignRichLabel, CustomFont
+    Color, Command, ClipBoard, RichLabel,
+    ScrollBars, AlignRichLabel, CustomFont
 )
 from toga.style.pack import Pack
 from toga.constants import COLUMN, ROW, CENTER, BOLD, TOP
@@ -20,6 +20,8 @@ from .utils import Utils
 from .units import Units
 from .client import Client
 from .storage import StorageMessages
+from .settings import Settings
+from ..translations import Translations
 
 
 class Receive(Box):
@@ -39,6 +41,8 @@ class Receive(Box):
         self.utils = Utils(self.app)
         self.units = Units(self.app)
         self.storage = StorageMessages(self.app)
+        self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
         self.clipboard = ClipBoard()
 
         self.monda_font = CustomFont()
@@ -81,7 +85,7 @@ class Receive(Box):
             )
         )
         self.transparent_label = Label(
-            text="Transparent",
+            text=self.tr.text("transparent_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -105,7 +109,7 @@ class Receive(Box):
             )
         )
         self.private_label = Label(
-            text="Private",
+            text=self.tr.text("private_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -129,7 +133,7 @@ class Receive(Box):
         )
 
         self.copy_address_cmd = Command(
-            title="Copy address",
+            title=self.tr.text("copy_address_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
             action=self.copy_address,
@@ -138,7 +142,7 @@ class Receive(Box):
             mouse_leave=self.copy_address_cmd_mouse_leave
         )
         self.copy_key_cmd = Command(
-            title="Copy private key",
+            title=self.tr.text("copy_key_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
             action=self.copy_key,
@@ -147,7 +151,7 @@ class Receive(Box):
             mouse_leave=self.copy_key_cmd_mouse_leave
         )
         self.explorer_cmd = Command(
-            title="View address in explorer",
+            title=self.tr.text("exploreraddress_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
             action=self.open_address_in_explorer,
@@ -294,7 +298,7 @@ class Receive(Box):
         transparent_addresses = await self.get_transparent_addresses()
         for address in transparent_addresses:
             row = {
-                'Transparent Addresses': address
+                self.tr.text("columnt_addresses"): address
             }
             addresses.append(row)
         self.addresses_table.data_source = addresses
@@ -329,12 +333,12 @@ class Receive(Box):
         if private_addresses:
             for address in private_addresses:
                 row = {
-                    'Private Addresses': address
+                    self.tr.text("columnz_addresses"): address
                 }
                 addresses.append(row)
         else:
             addresses = [{
-                'Private Addresses': ''
+                self.tr.text("columnz_addresses"): ''
             }]
         self.addresses_table.data_source = addresses
 
@@ -385,7 +389,8 @@ class Receive(Box):
         balance = self.units.format_balance(balance)
         self.address_qr.image = qr_image
         self.address_value.text = self.selected_address
-        self.address_balance.text = f"Balance : {balance}"
+        text = self.tr.text("address_balance")
+        self.address_balance.text = f"{text} {balance}"
 
     
     def copy_address(self):
@@ -395,8 +400,8 @@ class Receive(Box):
                 address = cell.Value
                 self.clipboard.copy(address)
                 self.main.info_dialog(
-                    title="Copied",
-                    message="The address has been copied to clipboard.",
+                    title=self.tr.title("copyaddress_dialog"),
+                    message=self.tr.message("copyaddress_dialog"),
                 )
 
     def open_address_in_explorer(self):
@@ -427,8 +432,8 @@ class Receive(Box):
         if result is not None:
             self.clipboard.copy(result)
             self.main.info_dialog(
-                title="Copied",
-                message="The private key has been copied to the clipboard.",
+                title=self.tr.title("copykey_dialog"),
+                message=self.tr.message("copykey_dialog"),
             )
 
 
