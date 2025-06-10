@@ -14,7 +14,7 @@ from ..framework import (
 from toga.style.pack import Pack
 from toga.colors import rgb, WHITE, YELLOW, GRAY, BLACK
 from toga.constants import (
-    COLUMN, ROW, TOP, CENTER, BOLD
+    COLUMN, ROW, TOP, CENTER
 )
 
 from .client import Client
@@ -23,7 +23,7 @@ from .toolbar import AppToolBar
 from .status import AppStatusBar
 from .notify import Notify, NotifyMining
 from .wallet import Wallet, ImportKey, ImportWallet
-from .home import Home, Currency
+from .home import Home, Currency, Languages
 from .txs import Transactions
 from .receive import Receive
 from .send import Send
@@ -32,6 +32,7 @@ from .mining import Mining
 from .storage import StorageMessages
 from .settings import Settings
 from .network import Peer, AddNode, TorConfig
+from ..translations import Translations
 
 
 class Menu(Window):
@@ -48,6 +49,7 @@ class Menu(Window):
         self.statusbar = AppStatusBar(self.app, self)
         self.wallet = Wallet(self.app, self)
         self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
 
         self.monda_font = CustomFont()
 
@@ -118,7 +120,7 @@ class Menu(Window):
 
     def insert_menu_buttons(self):
         self.home_button = Button(
-            text="  Home",
+            text=self.tr.text("home_button"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -134,7 +136,7 @@ class Menu(Window):
         self.home_button._impl.native.MouseLeave += self.home_button_mouse_leave
 
         self.transactions_button = Button(
-            text="  Transactions",
+            text=self.tr.text("transactions_button"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -152,12 +154,10 @@ class Menu(Window):
         self.transactions_button._impl.native.MouseLeave += self.transactions_button_mouse_leave
 
         self.receive_button = Button(
-            text="  Receive",
+            text=self.tr.text("receive_button"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 1
             ),
             on_press=self.receive_button_click
@@ -172,12 +172,10 @@ class Menu(Window):
         self.receive_button._impl.native.MouseLeave += self.receive_button_mouse_leave
 
         self.send_button = Button(
-            text="  Send",
+            text=self.tr.text("send_button"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 1
             ),
             on_press=self.send_button_click
@@ -192,12 +190,10 @@ class Menu(Window):
         self.send_button._impl.native.MouseLeave += self.send_button_mouse_leave
 
         self.message_button = Button(
-            text="  Messages",
+            text=self.tr.text("messages_button"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 1
             ),
             on_press=self.message_button_click
@@ -212,12 +208,10 @@ class Menu(Window):
         self.message_button._impl.native.MouseLeave += self.message_button_mouse_leave
         
         self.mining_button = Button(
-            text="  Mining",
+            text=self.tr.text("mining_button"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 flex = 1
             ),
             on_press=self.mining_button_click
@@ -287,6 +281,7 @@ class Menu(Window):
         self.toolbar.add_node_cmd.action = self.show_add_node
         self.toolbar.tor_config_cmd.action = self.show_tor_config
         self.toolbar.currency_cmd.action = self.show_currencies_list
+        self.toolbar.languages_cmd.action = self.show_languages
         self.toolbar.generate_t_cmd.action = self.new_transparent_address
         self.toolbar.generate_z_cmd.action = self.new_private_address
         self.toolbar.check_update_cmd.action = self.check_app_version
@@ -346,8 +341,12 @@ class Menu(Window):
                 self.settings.update_settings("startup", True)
 
     def show_currencies_list(self, sender, event):
-        self.currencies_window = Currency()
+        self.currencies_window = Currency(self)
         self.currencies_window._impl.native.ShowDialog(self._impl.native)
+
+    def show_languages(self, sender, event):
+        self.languages_window = Languages(self)
+        self.languages_window._impl.native.ShowDialog(self._impl.native)
 
     def show_peer_info(self, sender, event):
         if not self.peer_toggle:
@@ -359,7 +358,7 @@ class Menu(Window):
             self.peer_window._impl.native.Activate()
 
     def show_add_node(self, sender, event):
-        self.add_node_window = AddNode()
+        self.add_node_window = AddNode(self)
         self.add_node_window._impl.native.ShowDialog(self._impl.native)
 
     def show_tor_config(self, sender, event):

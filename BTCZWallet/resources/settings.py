@@ -158,3 +158,12 @@ class Settings():
                 data.get("worker")
             )
         return None, None, None, None, None, None
+    
+
+    def language(self):
+        with open(self.settings_path, 'r') as f:
+            settings = json.load(f)
+            if 'lang' not in settings:
+                return None
+            else:
+                return settings['lang']

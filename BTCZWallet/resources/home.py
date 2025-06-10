@@ -22,21 +22,137 @@ from .client import Client
 from .curve import Curve
 from .settings import Settings
 from .utils import Utils
+from ..translations import Translations
 
 
-class Currency(Window):
-    def __init__(self):
+class Languages(Window):
+    def __init__(self, main:Window):
         super().__init__(
             size= (200,100),
             resizable=False
         )
 
+        self.main = main
+
         self.utils = Utils(self.app)
         self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
 
-        self.title = "Change Currency"
+        self.title = self.tr.title("language_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+
+        self.monda_font = CustomFont()
+
+        self.main_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                alignment = CENTER
+            )
+        )
+
+        self.languages_selection = Selection(
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                padding = (20,10,10,10)
+            ),
+            items=[
+                {"language": "English"},
+                {"language": "Français"}
+            ],
+            accessor="language"
+        )
+        self.languages_selection._impl.native.Font = self.monda_font.get(11, True)
+        self.languages_selection._impl.native.FlatStyle = FlatStyle.STANDARD
+        self.languages_selection._impl.native.DropDownHeight = 150
+
+        self.close_button = Button(
+            text=self.tr.text("close_button"),
+            style=Pack(
+                color = RED,
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                padding_bottom = 10,
+                width = 100
+            ),
+            on_press=self.close_languages_window
+        )
+        self.close_button._impl.native.Font = self.monda_font.get(9, True)
+        self.close_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
+        self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
+
+        self.content = self.main_box
+
+        self.main_box.add(
+            self.languages_selection,
+            self.close_button
+        )
+
+        self.load_languages()
+
+
+    def load_languages(self):
+        language = self.settings.language()
+        if language:
+            if language == "French":
+                language = "Français"
+        else:
+            language = "English"
+        self.languages_selection.value = self.languages_selection.items.find(language)
+        self.languages_selection.on_change = self.update_language
+
+
+    def update_language(self, selection):
+        def on_result(widget, result):
+            if result is None:
+                self.close()
+                self.app.current_window = self.main
+        value = self.languages_selection.value.language
+        if value == "Français":
+            value = "French"
+        self.settings.update_settings("lang", value)
+        self.info_dialog(
+            title=self.tr.title("language_dialog"),
+            message=self.tr.message("language_dialog"),
+            on_result=on_result
+        )
+
+
+    def close_button_mouse_enter(self, sender, event):
+        self.close_button.style.color = BLACK
+        self.close_button.style.background_color = RED
+
+    def close_button_mouse_leave(self, sender, event):
+        self.close_button.style.color = RED
+        self.close_button.style.background_color = rgb(30,33,36)
+
+
+    def close_languages_window(self, button):
+        self.close()
+
+
+class Currency(Window):
+    def __init__(self, main:Window):
+        super().__init__(
+            size= (200,100),
+            resizable=False
+        )
+
+        self.main = main
+
+        self.utils = Utils(self.app)
+        self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
+
+        self.title = self.tr.title("currency_window")
+        self.position = self.utils.windows_screen_center(self.size)
+        self._impl.native.ControlBox = False
+
+        self.monda_font = CustomFont()
 
         self.main_box = Box(
             style=Pack(
@@ -51,8 +167,6 @@ class Currency(Window):
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                font_size = 12,
                 padding = (20,10,10,10)
             ),
             items=[
@@ -60,11 +174,12 @@ class Currency(Window):
             ],
             accessor="currency"
         )
+        self.currencies_selection._impl.native.Font = self.monda_font.get(11, True)
         self.currencies_selection._impl.native.FlatStyle = FlatStyle.STANDARD
         self.currencies_selection._impl.native.DropDownHeight = 150
 
         self.close_button = Button(
-            text="Close",
+            text=self.tr.text("close_button"),
             style=Pack(
                 color = RED,
                 font_size=10,
@@ -76,6 +191,7 @@ class Currency(Window):
             ),
             on_press=self.close_currency_window
         )
+        self.close_button._impl.native.Font = self.monda_font.get(9, True)
         self.close_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
         self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
@@ -103,6 +219,7 @@ class Currency(Window):
         def on_result(widget, result):
             if result is None:
                 self.close()
+                self.app.current_window = self.main
         selected_currency = self.currencies_selection.value.currency
         if not selected_currency:
             return
@@ -112,8 +229,8 @@ class Currency(Window):
             symbol = currencies_data[selected_currency]["symbol"]
             self.settings.update_settings("symbol", symbol)
         self.info_dialog(
-            title="Currency Changed",
-            message="currency setting has been updated, change will take effect in a few minutes.",
+            title=self.tr.title("currency_dialog"),
+            message=self.tr.message("currency_dialog"),
             on_result=on_result
         )
 
@@ -165,6 +282,7 @@ class Home(Box):
         self.commands = Client(self.app)
         self.curve = Curve(self.app)
         self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
         self.tooltip = ToolTip()
 
         self.monda_font = CustomFont()
@@ -225,7 +343,7 @@ class Home(Box):
         self.market_box._impl.native.Resize += self._add_volume_on_resize
 
         self.price_label = Label(
-            text="Price :",
+            text=self.tr.text("price_label"),
             style=Pack(
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
@@ -248,7 +366,7 @@ class Home(Box):
         self.price_value._impl.native.Font = self.monda_font.get(9, True)
 
         self.percentage_24_label = Label(
-            "Change 24h :",
+            text=self.tr.text("percentage_24_label"),
             style=Pack(
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
@@ -271,7 +389,7 @@ class Home(Box):
         self.percentage_24_value._impl.native.Font = self.monda_font.get(9, True)
 
         self.percentage_7_label = Label(
-            "Change 7d :",
+            text=self.tr.text("percentage_7_label"),
             style=Pack(
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
@@ -294,7 +412,7 @@ class Home(Box):
         self.percentage_7_value._impl.native.Font = self.monda_font.get(9, True)
 
         self.cap_label = Label(
-            "Cap :",
+            text=self.tr.text("cap_label"),
             style=Pack(
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
@@ -317,7 +435,7 @@ class Home(Box):
         self.cap_value._impl.native.Font = self.monda_font.get(9, True)
 
         self.volume_label = Label(
-            "Volume :",
+            text=self.tr.text("volume_label"),
             style=Pack(
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
@@ -340,7 +458,7 @@ class Home(Box):
         self.volume_value._impl.native.Font = self.monda_font.get(9, True)
 
         self.circulating_label = Label(
-            "Circulating :",
+            text=self.tr.text("circulating_label"),
             style=Pack(
                 text_align = LEFT,
                 background_color = rgb(30,33,36),
@@ -489,12 +607,16 @@ class Home(Box):
             if not current_block:
                 return
             self.circulating = self.units.calculate_circulating(int(current_block))
-            remaiming_blocks = self.units.remaining_blocks_until_halving(int(current_block))
+            remaining_blocks = self.units.remaining_blocks_until_halving(int(current_block))
             remaining_days = self.units.remaining_days_until_halving(int(current_block))
             if not self.circulating_toggle:
                 self.circulating_value.text = int(self.circulating)
-            self.halving_label.text = f"Next Halving in {remaiming_blocks} Blocks"
-            self.remaining_label.text = f"Remaining {remaining_days} Days"
+            halving_text = self.tr.text("halving_label")
+            remaining_text = self.tr.text("remaining_label")
+            blocks_text = self.tr.text("blocks_label")
+            days_text = self.tr.text("days_label")
+            self.halving_label.text = f"{halving_text} {remaining_blocks} {blocks_text}"
+            self.remaining_label.text = f"{remaining_text} {remaining_days} {days_text}"
             await asyncio.sleep(10)
 
 

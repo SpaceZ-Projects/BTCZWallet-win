@@ -10,6 +10,7 @@ from toga.constants import ROW, TOP
 
 from .client import Client
 from .settings import Settings
+from ..translations import Translations
 
 class AppToolBar(Box):
     def __init__(self, app:App, main:Window, notify, home_page ,mining_page):
@@ -27,6 +28,7 @@ class AppToolBar(Box):
         self.mining_page = mining_page
         self.commands = Client(self.app)
         self.settings = Settings(self.app)
+        self.tr = Translations(self.settings)
 
         self.app_menu_active = None
         self.settings_menu_active = None
@@ -43,35 +45,35 @@ class AppToolBar(Box):
         )
 
         self.about_cmd = Command(
-            title="About",
+            title=self.tr.text("about_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             icon="images/about_i.ico",
             mouse_enter=self.about_cmd_mouse_enter,
             mouse_leave=self.about_cmd_mouse_leave,
             action=self.display_about_dialog,
-            tooltip="Information about this application"
+            tooltip=self.tr.tooltip("about_cmd")
         )
         self.exit_cmd = Command(
-            title="Exit               |",
+            title=self.tr.text("exit_cmd"),
             color=Color.RED,
             background_color=Color.rgb(40,43,48),
             icon="images/exit.ico",
             action=self.exit_app,
             shortcut_key=Keys.Alt | Keys.F4,
-            tooltip="Exit the application and keep node running in background"
+            tooltip=self.tr.tooltip("exit_cmd")
         )
         self.stop_exit_cmd = Command(
-            title="Stop node   |",
+            title=self.tr.text("stop_exit_cmd"),
             color=Color.RED,
             background_color=Color.rgb(40,43,48),
             icon="images/stop.ico",
             action=self.stop_node_exit,
             shortcut_key=Keys.Control | Keys.Q,
-            tooltip="Stop the node and exit the application"
+            tooltip=self.tr.tooltip("stop_exit_cmd")
         )
         self.app_menu = Command(
-            title="App",
+            title=self.tr.text("app_menu"),
             sub_commands=[
                 self.about_cmd,
                 self.exit_cmd,
@@ -85,17 +87,26 @@ class AppToolBar(Box):
         )
 
         self.currency_cmd = Command(
-            title="Currency                             |",
+            title=self.tr.text("currency_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.currency_cmd_mouse_enter,
             mouse_leave=self.currency_cmd_mouse_leave,
             icon="images/currency_i.ico",
             shortcut_key=Keys.Control | Keys.Shift | Keys.C,
-            tooltip="Change your currency display"
+            tooltip=self.tr.tooltip("currency_cmd")
+        )
+        self.languages_cmd = Command(
+            title=self.tr.text("languages_cmd"),
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.languages_cmd_mouse_enter,
+            mouse_leave=self.languages_cmd_mouse_leave,
+            icon="images/languages_i.ico",
+            tooltip=self.tr.tooltip("languages_cmd")
         )
         self.opacity_50_cmd = Command(
-            title="50% Opacity",
+            title=self.tr.text("opacity_50_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.opacity_50_cmd_mouse_enter,
@@ -103,7 +114,7 @@ class AppToolBar(Box):
             action=self.change_window_opacity_50
         )
         self.opacity_75_cmd = Command(
-            title="75% Opacity",
+            title=self.tr.text("opacity_75_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.opacity_75_cmd_mouse_enter,
@@ -111,7 +122,7 @@ class AppToolBar(Box):
             action=self.change_window_opacity_75
         )
         self.opacity_100_cmd = Command(
-            title="100% Opacity",
+            title=self.tr.text("opacity_100_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.opacity_100_cmd_mouse_enter,
@@ -119,7 +130,7 @@ class AppToolBar(Box):
             action=self.change_window_opacity_100
         )
         self.opacity_cmd = Command(
-            title="Window opacity",
+            title=self.tr.text("opacity_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             sub_commands=[
@@ -134,48 +145,50 @@ class AppToolBar(Box):
             mouse_leave=self.opacity_cmd_mouse_leave
         )
         self.hide_balances_cmd = Command(
-            title="Hide balances",
+            title=self.tr.text("hide_balances_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.hide_balances_cmd_mouse_enter,
-            mouse_leave=self.hide_balances_cmd_mouse_leave
+            mouse_leave=self.hide_balances_cmd_mouse_leave,
+            tooltip=self.tr.tooltip("hide_balances_cmd")
         )
         self.notification_txs_cmd = Command(
-            title="Notifications txs",
+            title=self.tr.text("notification_txs_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.notification_txs_cmd_mouse_enter,
             mouse_leave=self.notification_txs_cmd_mouse_leave,
-            tooltip="Enable/Disable the transactions notifications"
+            tooltip=self.tr.tooltip("notification_txs_cmd")
         )
         self.notification_messages_cmd = Command(
-            title="Notifications messages",
+            title=self.tr.text("notification_messages_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.notification_messages_cmd_mouse_enter,
             mouse_leave=self.notification_messages_cmd_mouse_leave,
-            tooltip="Enable/Disable the messages notifications"
+            tooltip=self.tr.tooltip("notification_messages_cmd")
         )
         self.minimize_cmd = Command(
-            title="Minimize to tray",
+            title=self.tr.text("minimize_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.minimize_cmd_mouse_enter,
             mouse_leave=self.minimize_cmd_mouse_leave,
-            tooltip="Enable/Disable minimizing the application to the system tray on close"
+            tooltip=self.tr.tooltip("minimize_cmd")
         )
         self.startup_cmd = Command(
-            title="Run on Startup",
+            title=self.tr.text("startup_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.startup_cmd_mouse_enter,
             mouse_leave=self.startup_cmd_mouse_leave,
-            tooltip="Enable/Disable app startup on boot"
+            tooltip=self.tr.tooltip("startup_cmd")
         )
         self.settings_menu = Command(
-            title="Settings",
+            title=self.tr.text("settings_menu"),
             sub_commands=[
                 self.currency_cmd,
+                self.languages_cmd,
                 self.opacity_cmd,
                 self.hide_balances_cmd,
                 self.notification_txs_cmd,
@@ -192,35 +205,35 @@ class AppToolBar(Box):
         )
 
         self.peer_info_cmd = Command(
-            title="Peer info        |",
+            title=self.tr.text("peer_info_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.peer_info_cmd_mouse_enter,
             mouse_leave=self.peer_info_cmd_mouse_leave,
             shortcut_key=Keys.Control | Keys.Shift | Keys.N,
             icon="images/peer_i.ico",
-            tooltip="Display data about each node connected"
+            tooltip=self.tr.tooltip("peer_info_cmd")
         )
         self.add_node_cmd = Command(
-            title="Add node",
+            title=self.tr.text("add_node_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.add_node_cmd_mouse_enter,
             mouse_leave=self.add_node_cmd_mouse_leave,
             icon="images/add_node_i.ico",
-            tooltip="Add a node to the addnode list"
+            tooltip=self.tr.tooltip("add_node_cmd")
         )
         self.tor_config_cmd = Command(
-            title="Tor network",
+            title=self.tr.text("tor_config_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.tor_config_cmd_mouse_enter,
             mouse_leave=self.tor_config_cmd_mouse_leave,
             icon="images/tor_i.ico",
-            tooltip="Configure Tor network"
+            tooltip=self.tr.tooltip("tor_config_cmd")
         )
         self.network_menu = Command(
-            title="Network",
+            title=self.tr.text("network_menu"),
             sub_commands=[
                 self.peer_info_cmd,
                 self.add_node_cmd,
@@ -235,25 +248,25 @@ class AppToolBar(Box):
         )
 
         self.generate_t_cmd = Command(
-            title="Transparent address (T)",
+            title=self.tr.text("generate_t_cmd"),
             background_color=Color.rgb(40,43,48),
             color=Color.WHITE,
             mouse_enter=self.generate_t_cmd_mouse_enter,
             mouse_leave=self.generate_t_cmd_mouse_leave,
             icon="images/transparent_i.ico",
-            tooltip="Generate a new transparent (T) address"
+            tooltip=self.tr.tooltip("generate_t_cmd")
         )
         self.generate_z_cmd = Command(
-            title="Shielded address (Z)",
+            title=self.tr.text("generate_z_cmd"),
             background_color=Color.rgb(40,43,48),
             color=Color.WHITE,
             mouse_enter=self.generate_z_cmd_mouse_enter,
             mouse_leave=self.generate_z_cmd_mouse_leave,
             icon="images/private_i.ico",
-            tooltip="Generate a new shielded (Z) address"
+            tooltip=self.tr.tooltip("generate_z_cmd")
         )
         self.generate_address_cmd = Command(
-            title="Generate address",
+            title=self.tr.text("generate_address_cmd"),
             sub_commands=[
                 self.generate_t_cmd,
                 self.generate_z_cmd
@@ -267,34 +280,34 @@ class AppToolBar(Box):
             icon="images/new_addr_i.ico"
         )
         self.import_key_cmd = Command(
-            title="Import private key",
+            title=self.tr.text("importkey_cmd"),
             background_color=Color.rgb(40,43,48),
             color=Color.WHITE,
             mouse_enter=self.import_key_cmd_mouse_enter,
             mouse_leave=self.import_key_cmd_mouse_leave,
             icon = "images/importkey_i.ico",
-            tooltip="Import a private key into your wallet"
+            tooltip=self.tr.tooltip("importkey_cmd")
         )
         self.export_wallet_cmd = Command(
-            title="Export wallet",
+            title=self.tr.text("export_wallet_cmd"),
             background_color=Color.rgb(40,43,48),
             color=Color.WHITE,
             mouse_enter=self.export_wallet_cmd_mouse_enter,
             mouse_leave=self.export_wallet_cmd_mouse_leave,
             icon="images/export_i.ico",
-            tooltip="Export your wallet data to a file"
+            tooltip=self.tr.tooltip("export_wallet_cmd")
         )
         self.import_wallet_cmd = Command(
-            title="Import wallet",
+            title=self.tr.text("import_wallet_cmd"),
             background_color=Color.rgb(40,43,48),
             color=Color.WHITE,
             mouse_enter=self.import_wallet_cmd_mouse_enter,
             mouse_leave=self.import_wallet_cmd_mouse_leave,
             icon="images/import_i.ico",
-            tooltip="Import a wallet from a file"
+            tooltip=self.tr.tooltip("import_wallet_cmd")
         )
         self.wallet_menu = Command(
-            title="Wallet",
+            title=self.tr.text("wallet_menu"),
             icon="images/wallet_i.ico",
             drop_opened=self.wallet_menu_opened,
             drop_closed=self.wallet_menu_closed,
@@ -309,25 +322,25 @@ class AppToolBar(Box):
         )
 
         self.edit_username_cmd = Command(
-            title="Edit username",
+            title=self.tr.text("edit_username_cmd"),
             icon="images/edit_username_i.ico",
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.edit_username_cmd_mouse_enter,
             mouse_leave=self.edit_username_cmd_mouse_leave,
-            tooltip="Change your messaging username"
+            tooltip=self.tr.tooltip("edit_username_cmd")
         )
         self.backup_messages_cmd = Command(
-            title="Backup messages",
+            title=self.tr.text("backup_messages_cmd"),
             icon="images/backup_i.ico",
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.backup_messages_cmd_mouse_enter,
             mouse_leave=self.backup_messages_cmd_mouse_leave,
-            tooltip="Backup your messages to a file"
+            tooltip=self.tr.tooltip("backup_messages_cmd")
         )
         self.messages_menu = Command(
-            title="Messages",
+            title=self.tr.text("messages_menu"),
             icon="images/messages_conf_i.ico",
             drop_opened=self.messages_menu_opened,
             drop_closed=self.messages_menu_closed,
@@ -340,25 +353,25 @@ class AppToolBar(Box):
         )
 
         self.check_update_cmd = Command(
-            title="Check update",
+            title=self.tr.text("check_update_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.check_update_cmd_mouse_enter,
             mouse_leave=self.check_update_cmd_mouse_leave,
             icon="images/update_i.ico",
-            tooltip="Check for application updates"
+            tooltip=self.tr.tooltip("check_update_cmd")
         )
         self.join_us_cmd = Command(
-            title="Join us",
+            title=self.tr.text("join_us_cmd"),
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.join_us_cmd_mouse_enter,
             mouse_leave=self.join_us_cmd_mouse_leave,
             icon="images/discord_i.ico",
-            tooltip="Join our community on Discord"
+            tooltip=self.tr.tooltip("join_us_cmd")
         )
         self.help_menu = Command(
-            title="Help",
+            title=self.tr.text("help_menu"),
             sub_commands=[
                 self.check_update_cmd,
                 self.join_us_cmd
@@ -473,6 +486,14 @@ class AppToolBar(Box):
     def currency_cmd_mouse_leave(self):
         self.currency_cmd.icon = "images/currency_i.ico"
         self.currency_cmd.color = Color.WHITE
+
+    def languages_cmd_mouse_enter(self):
+        self.languages_cmd.icon = "images/languages_a.ico"
+        self.languages_cmd.color = Color.BLACK
+
+    def languages_cmd_mouse_leave(self):
+        self.languages_cmd.icon = "images/languages_i.ico"
+        self.languages_cmd.color = Color.WHITE
 
     def hide_balances_cmd_mouse_enter(self):
         self.hide_balances_cmd.color = Color.BLACK
