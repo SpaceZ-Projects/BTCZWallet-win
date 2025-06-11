@@ -4,22 +4,17 @@ import psutil
 from toga import App, Window
 from ..framework import NotifyIcon, Command, FormState, TextBox
 
-from .client import Client
-from .settings import Settings
-from ..translations import Translations
-
 
 class Notify(NotifyIcon):
-    def __init__(self, app:App, main:Window, home_page, mining_page):
+    def __init__(self, app:App, main:Window, home_page, mining_page, commands, tr):
 
         self.app = app
         self.main = main
         self.home_page = home_page
         self.mining_page = mining_page
-
-        self.commands = Client(self.app)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
+        
+        self.commands = commands
+        self.tr = tr
 
         self.stop_exit_cmd = Command(
             title=self.tr.text("notifystopexit_cmd"),

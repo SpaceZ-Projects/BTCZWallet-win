@@ -8,12 +8,9 @@ from ..framework import (
 from toga.style.pack import Pack
 from toga.constants import ROW, TOP
 
-from .client import Client
-from .settings import Settings
-from ..translations import Translations
 
 class AppToolBar(Box):
-    def __init__(self, app:App, main:Window, notify, home_page ,mining_page):
+    def __init__(self, app:App, main:Window, notify, home_page ,mining_page, settings, commands, tr):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -26,9 +23,10 @@ class AppToolBar(Box):
         self.notify = notify
         self.home_page = home_page
         self.mining_page = mining_page
-        self.commands = Client(self.app)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
+
+        self.commands = commands
+        self.settings = settings
+        self.tr = tr
 
         self.app_menu_active = None
         self.settings_menu_active = None
@@ -103,6 +101,7 @@ class AppToolBar(Box):
             mouse_enter=self.languages_cmd_mouse_enter,
             mouse_leave=self.languages_cmd_mouse_leave,
             icon="images/languages_i.ico",
+            shortcut_key=Keys.Control | Keys.Shift | Keys.L,
             tooltip=self.tr.tooltip("languages_cmd")
         )
         self.opacity_50_cmd = Command(

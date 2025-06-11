@@ -13,8 +13,7 @@ from toga import (
 from ..framework import (
     BorderStyle, ToolTip, ClipBoard, RichLabel,
     Color, DockStyle, ScrollBars, Forms, Command,
-    FlatStyle, Drawing, Relation, Os, AlignContent,
-    CustomFont
+    FlatStyle, Drawing, Relation, Os, AlignContent
 )
 from toga.style.pack import Pack
 from toga.constants import (
@@ -27,29 +26,24 @@ from toga.colors import (
 )
 
 from .storage import StorageMessages
-from .utils import Utils
-from .units import Units
-from .client import Client
 from .notify import NotifyRequest, NotifyMessage
-from .settings import Settings
-from ..translations import Translations
             
 
 
 
 class EditUser(Window):
-    def __init__(self, username):
+    def __init__(self, username, utils, monda_font):
         super().__init__(
             size = (450, 150),
             resizable= False
         )
 
-        self.utils = Utils(self.app)
-        self.storage = StorageMessages(self.app)
-
-        self.monda_font = CustomFont()
-
         self.username = username
+
+        self.utils = utils
+        self.monda_font = monda_font
+
+        self.storage = StorageMessages(self.app)
 
         self.title = "Edit Username"
         self.position = self.utils.windows_screen_center(self.size)
@@ -206,7 +200,7 @@ class EditUser(Window):
 
 
 class Indentifier(Window):
-    def __init__(self, messages:Box, main:Window, chat):
+    def __init__(self, messages:Box, main:Window, chat, utils, commands, monda_font):
         super().__init__(
             size = (600, 150),
             resizable= False
@@ -214,13 +208,13 @@ class Indentifier(Window):
 
         self.main = main
         self.chat = chat
-
-        self.utils = Utils(self.app)
-        self.commands = Client(self.app)
-        self.storage = StorageMessages(self.app)
         self.messages_page = messages
 
-        self.monda_font = CustomFont()
+        self.utils = utils
+        self.commands = commands
+        self.monda_font = monda_font
+
+        self.storage = StorageMessages(self.app)
 
         self.title = "Setup Indentity"
         self.position = self.utils.windows_screen_center(self.size)
@@ -387,7 +381,7 @@ class Indentifier(Window):
 
 
 class NewMessenger(Box):
-    def __init__(self, app:App, messages, main:Window, chat):
+    def __init__(self, app:App, messages, main:Window, chat, utils, commands, monda_font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -403,7 +397,9 @@ class NewMessenger(Box):
         self.main = main
         self.chat = chat
 
-        self.monda_font = CustomFont()
+        self.utils = utils
+        self.commands = commands
+        self.monda_font = monda_font
 
         self.new_label = Label(
             text="There no messages address for this wallet, click the button to create new messages address",
@@ -441,7 +437,9 @@ class NewMessenger(Box):
 
     
     def create_button_click(self, button):
-        self.indentity = Indentifier(self.messages_page, self.main, self.chat)
+        self.indentity = Indentifier(
+            self.messages_page, self.main, self.chat, self.utils, self.commands, self.monda_font
+        )
         self.indentity._impl.native.ShowDialog(self.main._impl.native)
 
     
@@ -462,7 +460,7 @@ class NewMessenger(Box):
 
 
 class Contact(Box):
-    def __init__(self, category, contact_id, username, address, app:App, chat, main:Window):
+    def __init__(self, category, contact_id, username, address, app:App, chat, main:Window, monda_font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -480,7 +478,7 @@ class Contact(Box):
         self.storage = StorageMessages(self.app)
         self.clipboard = ClipBoard()
 
-        self.monda_font = CustomFont()
+        self.monda_font = monda_font
 
         self.category = category
         self.contact_id = contact_id
@@ -663,7 +661,7 @@ class Contact(Box):
 
 
 class Pending(Box):
-    def __init__(self, category, contact_id, username, address, app:App, window:Window, chat:Box):
+    def __init__(self, category, contact_id, username, address, app:App, window:Window, chat:Box, utils, units, commands, monda_font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -674,20 +672,20 @@ class Pending(Box):
         )
         self._impl.native.DoubleClick += self.show_pending_info
 
-        self.app = app
-        self.commands = Client(self.app)
-        self.utils = Utils(self.app)
-        self.units = Units(self.app)
-        self.storage = StorageMessages(self.app)
         self.pending_window = window
         self.chat = chat
-
-        self.monda_font = CustomFont()
-
         self.category = category
         self.contact_id = contact_id
         self.username = username
         self.address = address
+
+        self.app = app
+        self.commands = commands
+        self.utils = utils
+        self.units = units
+        self.monda_font = monda_font
+
+        self.storage = StorageMessages(self.app)
 
         if self.category == "individual":
             image_path = "images/individual.png"
@@ -838,7 +836,7 @@ class Pending(Box):
 
 
 class Message(Box):
-    def __init__(self, author, message, amount, timestamp, app:App, output:ScrollContainer):
+    def __init__(self, author, message, amount, timestamp, app:App, output:ScrollContainer, utils, units, monda_font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -847,19 +845,18 @@ class Message(Box):
             )
         )
 
-        self.app = app
-        self.utils = Utils(self.app)
-        self.units = Units(self.app)
-        self.output_box = output
+        self.wheel = 0
 
-        self.monda_font = CustomFont()
-        
+        self.app = app
+        self.output_box = output
         self.author = author
         self.message = message
         self.amount = amount
         self.timestamp = timestamp
 
-        self.wheel = 0
+        self.utils = utils
+        self.units = units
+        self.monda_font = monda_font
 
         if self.author == "you":
             color = GRAY
@@ -969,20 +966,20 @@ class Message(Box):
 
 
 class NewContact(Window):
-    def __init__(self):
+    def __init__(self, utils, units, commands, monda_font):
         super().__init__(
             size = (600, 150),
             resizable= False
         )
 
-        self.utils = Utils(self.app)
-        self.units = Units(self.app)
-        self.commands = Client(self.app)
-        self.storage = StorageMessages(self.app)
-
-        self.monda_font = CustomFont()
-
         self.is_valid_toggle = None
+
+        self.utils = utils
+        self.units = units
+        self.commands = commands
+        self.monda_font = monda_font
+
+        self.storage = StorageMessages(self.app)
 
         self.title = "Add Contact"
         self.position = self.utils.windows_screen_center(self.size)
@@ -1227,18 +1224,20 @@ class NewContact(Window):
 
 
 class PendingList(Window):
-    def __init__(self, chat:Box):
+    def __init__(self, chat:Box, utils, units, commands, monda_font):
         super().__init__(
             size = (500, 400),
             resizable= False
         )
 
-        self.utils = Utils(self.app)
-        self.commands = Client(self.app)
-        self.storage = StorageMessages(self.app)
         self.chat = chat
 
-        self.monda_font = CustomFont()
+        self.utils = utils
+        self.units = units
+        self.commands = commands
+        self.monda_font = monda_font
+
+        self.storage = StorageMessages(self.app)
 
         self.title = "Pending List"
         self.position = self.utils.windows_screen_center(self.size)
@@ -1324,7 +1323,8 @@ class PendingList(Window):
                     address=address,
                     app = self.app,
                     window = self,
-                    chat = self.chat
+                    chat = self.chat,
+                    utils=self.utils, units=self.units, commands=self.commands, monda_font=self.monda_font
                 )
                 self.pending_list_box.add(
                     pending_contact
@@ -1349,7 +1349,9 @@ class PendingList(Window):
             contact_id=id,
             username=username,
             address=address,
-            window = self
+            window = self,
+            chat=self.chat,
+            utils=self.utils, units=self.units, commands=self.commands, monda_font=self.monda_font
         )
         self.pending_list_box.add(pending_contact)
 
@@ -1363,7 +1365,7 @@ class PendingList(Window):
 
 
 class Chat(Box):
-    def __init__(self, app:App, main:Window):
+    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, monda_font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -1372,20 +1374,6 @@ class Chat(Box):
                 flex = 1
             )
         )
-
-        self.app = app
-        self.main = main
-
-        self.utils = Utils(self.app)
-        self.units = Units(self.app)
-        self.commands = Client(self.app)
-        self.storage = StorageMessages(self.app)
-        self.tooltip = ToolTip()
-        self.clipboard = ClipBoard()
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
-
-        self.monda_font = CustomFont()
 
         self.send_toggle = None
         self.contact_id = None
@@ -1400,6 +1388,21 @@ class Chat(Box):
         self.messages = []
         self.unread_messages = []
         self.processed_timestamps = set()
+
+        self.app = app
+        self.main = main
+
+        self.utils = utils
+        self.units = units
+        self.commands = commands
+        self.settings = settings
+        self.tr = tr
+        self.monda_font = monda_font
+
+        self.storage = StorageMessages(self.app)
+        self.tooltip = ToolTip()
+        self.clipboard = ClipBoard()
+
 
         self.add_contact = ImageView(
             image="images/add_contact_i.png",
@@ -1883,7 +1886,8 @@ class Chat(Box):
                                 address=address,
                                 app = self.app,
                                 chat = self,
-                                main = self.main
+                                main = self.main,
+                                monda_font=self.monda_font
                             )
                             contact._impl.native.Click += lambda sender, event, contact_id=contact_id, address=address:self.contact_click(
                                 sender, event, contact_id, address)
@@ -2010,7 +2014,8 @@ class Chat(Box):
                     amount=message_amount,
                     timestamp=message_timestamp,
                     app= self.app,
-                    output = self.output_box
+                    output = self.output_box,
+                    utils=self.utils, units=self.units, monda_font=self.monda_font
                 )
                 self.messages_box.insert(
                     0, message
@@ -2034,7 +2039,8 @@ class Chat(Box):
                     amount=message_amount,
                     timestamp=message_timestamp,
                     app= self.app,
-                    output = self.output_box
+                    output = self.output_box,
+                    utils=self.utils, units=self.units, monda_font=self.monda_font
                 )
                 self.messages_box.insert(
                     6, message
@@ -2122,7 +2128,8 @@ class Chat(Box):
                     amount=data[2],
                     timestamp=data[3],
                     app=self.app,
-                    output=self.output_box
+                    output=self.output_box,
+                    utils=self.utils, units=self.units, monda_font=self.monda_font
                 )
                 self.messages_box.insert(0, message)
             await asyncio.sleep(1)
@@ -2148,7 +2155,8 @@ class Chat(Box):
                     amount=message_amount,
                     timestamp=message_timestamp,
                     app=self.app,
-                    output=self.output_box
+                    output=self.output_box,
+                    utils=self.utils, units=self.units, monda_font=self.monda_font
                 )
                 self.messages_box.add(message)
 
@@ -2172,7 +2180,7 @@ class Chat(Box):
 
 
     def add_contact_click(self, sender, event):
-        self.new_contact = NewContact()
+        self.new_contact = NewContact(self.utils, self.units, self.commands, self.monda_font)
         self.new_contact._impl.native.ShowDialog(self.main._impl.native)
         
     
@@ -2184,7 +2192,7 @@ class Chat(Box):
             self.pending_contacts._impl.native.MouseLeave += self.pending_contacts_mouse_leave
             self.pending_contacts.image = "images/pending_i.png"
             self.new_pending_toggle = None
-        self.pending_list = PendingList(self)
+        self.pending_list = PendingList(self, self.utils, self.units, self.commands, self.monda_font)
         self.pending_list.close_button.on_press = self.close_pending_list
         self.pending_list._impl.native.ShowDialog(self.main._impl.native)
         self.pending_toggle = True
@@ -2313,7 +2321,8 @@ class Chat(Box):
             amount=amount,
             timestamp=timestamp,
             app=self.app,
-            output=self.output_box
+            output=self.output_box,
+            utils=self.utils, units=self.units, monda_font=self.monda_font
         )
         self.messages_box.add(
             message
@@ -2330,7 +2339,8 @@ class Chat(Box):
             amount=amount,
             timestamp=timestamp,
             app=self.app,
-            output=self.output_box
+            output=self.output_box,
+            utils=self.utils, units=self.units, monda_font=self.monda_font
         )
         self.messages_box.add(
             message
@@ -2413,7 +2423,7 @@ class Chat(Box):
 
 
 class Messages(Box):
-    def __init__(self, app:App, main:Window):
+    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, monda_font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -2424,16 +2434,21 @@ class Messages(Box):
             )
         )
 
-        self.app = app
-        self.main = main
-        self.commands = Client(self.app)
-        self.storage = StorageMessages(self.app)
-        self.chat = Chat(self.app, self.main)
-        self.settings = Settings(self.app)
-
         self.messages_toggle = None
         self.request_count = 0
         self.message_count = 0
+
+        self.app = app
+        self.main = main
+        self.commands = commands
+        self.settings = settings
+        self.utils = utils
+        self.units = units
+        self.tr = tr
+        self.monda_font = monda_font
+
+        self.storage = StorageMessages(self.app)
+        self.chat = Chat(self.app, self.main, settings, utils, units, commands, tr, monda_font)
 
         
     async def insert_widgets(self, widget):
@@ -2453,7 +2468,9 @@ class Messages(Box):
 
 
     def create_new_messenger(self):
-        self.new_messenger = NewMessenger(self.app, self, self.main, self.chat)
+        self.new_messenger = NewMessenger(
+            self.app, self, self.main, self.chat, self.utils, self.commands, self.monda_font
+        )
         self.add(self.new_messenger)
 
 

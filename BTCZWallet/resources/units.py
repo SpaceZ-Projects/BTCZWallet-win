@@ -7,18 +7,16 @@ import json
 
 from toga import App
 
-from .client import Client
-
 INITIAL_REWARD = 12500
 HALVING_INTERVAL = 840000
 
 
 class Units():
-    def __init__(self, app:App):
+    def __init__(self, app:App, commands):
         super().__init__()
 
         self.app = app
-        self.commands = Client(self.app)
+        self.commands = commands
 
     def generate_id(self, length=32):
         alphabet = string.ascii_uppercase + string.ascii_lowercase + string.digits

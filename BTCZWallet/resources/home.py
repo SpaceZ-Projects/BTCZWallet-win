@@ -9,7 +9,7 @@ from toga import (
     App, Box, Label, ImageView, Window, Button,
     Selection, Divider
 )
-from ..framework import Os, FlatStyle, ToolTip, Forms, CustomFont
+from ..framework import Os, FlatStyle, ToolTip, Forms
 from toga.style.pack import Pack
 from toga.constants import (
     COLUMN, ROW, TOP, LEFT, BOLD,
@@ -17,16 +17,11 @@ from toga.constants import (
 )
 from toga.colors import rgb, GRAY, WHITE, RED, BLACK, YELLOW
 
-from .units import Units
-from .client import Client
 from .curve import Curve
-from .settings import Settings
-from .utils import Utils
-from ..translations import Translations
 
 
 class Languages(Window):
-    def __init__(self, main:Window):
+    def __init__(self, main:Window, settings, utils, tr, monda_font):
         super().__init__(
             size= (200,100),
             resizable=False
@@ -34,15 +29,14 @@ class Languages(Window):
 
         self.main = main
 
-        self.utils = Utils(self.app)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
+        self.utils = utils
+        self.settings = settings
+        self.tr = tr
+        self.monda_font = monda_font
 
         self.title = self.tr.title("language_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
-
-        self.monda_font = CustomFont()
 
         self.main_box = Box(
             style=Pack(
@@ -136,7 +130,7 @@ class Languages(Window):
 
 
 class Currency(Window):
-    def __init__(self, main:Window):
+    def __init__(self, main:Window, settings, utils, tr, monda_font):
         super().__init__(
             size= (200,100),
             resizable=False
@@ -144,15 +138,14 @@ class Currency(Window):
 
         self.main = main
 
-        self.utils = Utils(self.app)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
+        self.utils = utils
+        self.settings = settings
+        self.tr = tr
+        self.monda_font = monda_font
 
         self.title = self.tr.title("currency_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
-
-        self.monda_font = CustomFont()
 
         self.main_box = Box(
             style=Pack(
@@ -263,7 +256,7 @@ class Currency(Window):
 
 
 class Home(Box):
-    def __init__(self, app:App, main:Window):
+    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, monda_font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -277,15 +270,15 @@ class Home(Box):
         self.app = app
         self.main = main
 
-        self.utils = Utils(self.app)
-        self.units = Units(self.app)
-        self.commands = Client(self.app)
-        self.curve = Curve(self.app)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
+        self.utils = utils
+        self.units = units
+        self.commands = commands
+        self.settings = settings
+        self.tr = tr
+        self.monda_font = monda_font
+        
+        self.curve = Curve(self.app, settings, utils, units)
         self.tooltip = ToolTip()
-
-        self.monda_font = CustomFont()
 
         self.home_toggle = None
         self.cap_toggle = None

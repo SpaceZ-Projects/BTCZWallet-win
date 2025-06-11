@@ -7,7 +7,8 @@ from toga.colors import rgb, WHITE, YELLOW
 from toga.style.pack import Pack
 from toga.constants import RIGHT, COLUMN, ROW, LEFT
 
-from .resources import BTCZSetup, Utils
+from .resources import *
+from .translations import *
 
 class BitcoinZGUI(Window):
     def __init__(self):
@@ -16,9 +17,12 @@ class BitcoinZGUI(Window):
             resizable= False,
             minimizable = False
         )
-
-        self.utils = Utils(self.app)
-
+        
+        self.settings = Settings(self.app)
+        self.commands = Client(self.app)
+        self.units = Units(self.app, self.commands)
+        self.tr = Translations(self.settings)
+        self.utils = Utils(self.app, self.units, self.tr)
         self.monda_font = CustomFont()
 
         self.title = "BitcoinZ Wallet"
@@ -77,8 +81,7 @@ class BitcoinZGUI(Window):
         self.network_status._impl.native.Font = self.monda_font.get(9, True)
         
         self.startup = BTCZSetup(
-            self.app,
-            self
+            self.app, self, self.settings, self.utils, self.units, self.commands, self.tr, self.monda_font
         )
         self.startup_panel.add(
             self.bitcoinz_logo,

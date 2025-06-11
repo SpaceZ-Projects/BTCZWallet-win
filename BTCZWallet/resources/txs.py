@@ -9,43 +9,37 @@ from toga import App, Box, Label, Window, Button
 from ..framework import (
     Table, Command, Color, DockStyle,
     AlignTable, SelectMode, BorderStyle,
-    ClipBoard, FlatStyle, CustomFont
+    ClipBoard, FlatStyle
 )
 from toga.style.pack import Pack
 from toga.colors import rgb, GRAY, WHITE, GREEN, RED, ORANGE, BLACK
 from toga.constants import COLUMN, CENTER, BOLD, ROW
 
-from .client import Client
-from .utils import Utils
-from .units import Units
 from .notify import NotifyTx
-from .settings import Settings
 from .storage import StorageMessages, StorageTxs
-from ..translations import Translations
 
 
 
 class Txid(Window):
-    def __init__(self, txid):
+    def __init__(self, txid, settings, utils, units, commands, tr, monda_font):
         super().__init__(
             size =(600, 180),
             resizable= False
         )
 
-        self.utils = Utils(self.app)
-        self.units = Units(self.app)
-        self.commands = Client(self.app)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
-        self.txid = txid
-
         self.updating_txid = None
+
+        self.utils = utils
+        self.units = units
+        self.commands = commands
+        self.settings = settings
+        self.tr = tr
+        self.txid = txid
+        self.monda_font = monda_font
 
         self.title = self.tr.title("txinfo_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
-
-        self.monda_font = CustomFont()
 
         self.main_box = Box(
             style=Pack(
@@ -306,7 +300,7 @@ class Txid(Window):
 
 
 class Transactions(Box):
-    def __init__(self, app:App, main:Window):
+    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, monda_font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -318,14 +312,16 @@ class Transactions(Box):
 
         self.app = app
         self.main = main
-        self.commands = Client(self.app)
-        self.utils = Utils(self.app)
-        self.units = Units(self.app)
-        self.clipboard = ClipBoard()
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
+        self.commands = commands
+        self.utils = utils
+        self.units = units
+        self.settings = settings
+        self.tr = tr
+        self.monda_font = monda_font
+
         self.storagemsgs = StorageMessages(self.app)
         self.storagetxs = StorageTxs(self.app)
+        self.clipboard = ClipBoard()
         self.notify = NotifyTx()
 
         self.transactions_toggle = None
@@ -650,10 +646,16 @@ class Transactions(Box):
 
             await asyncio.sleep(6)
 
-                
-    def on_notification_click(self, txid):
-        self.transactions_info = Txid(txid)
+
+    def show_transaction_info(self, txid):
+        self.transactions_info = Txid(
+            txid, self.settings, self.utils, self.units, self.commands, self.tr, self.monda_font
+        )
         self.transactions_info._impl.native.ShowDialog(self.main._impl.native)
+
+         
+    def on_notification_click(self, txid):
+        self.show_transaction_info(txid)
 
 
     def add_transaction(self, index, row):
@@ -767,8 +769,7 @@ class Transactions(Box):
     def transactions_table_double_click(self, sender, event):
         row_index = event.RowIndex
         txid = sender.Rows[row_index].Cells[4].Value
-        self.transactions_info = Txid(txid)
-        self.transactions_info._impl.native.ShowDialog(self.main._impl.native)
+        self.show_transaction_info(txid)
 
     
     def copy_txid_cmd_mouse_enter(self):

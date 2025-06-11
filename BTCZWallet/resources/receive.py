@@ -8,7 +8,7 @@ from toga import (
 from ..framework import (
     Table, DockStyle, BorderStyle, AlignTable,
     Color, Command, ClipBoard, RichLabel,
-    ScrollBars, AlignRichLabel, CustomFont
+    ScrollBars, AlignRichLabel
 )
 from toga.style.pack import Pack
 from toga.constants import COLUMN, ROW, CENTER, BOLD, TOP
@@ -16,16 +16,11 @@ from toga.colors import (
     rgb, WHITE, GRAY, YELLOW
 )
 
-from .utils import Utils
-from .units import Units
-from .client import Client
 from .storage import StorageMessages
-from .settings import Settings
-from ..translations import Translations
 
 
 class Receive(Box):
-    def __init__(self, app:App, main:Window):
+    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, monda_font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -35,21 +30,21 @@ class Receive(Box):
             )
         )
 
-        self.app = app
-        self.main = main
-        self.commands = Client(self.app)
-        self.utils = Utils(self.app)
-        self.units = Units(self.app)
-        self.storage = StorageMessages(self.app)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
-        self.clipboard = ClipBoard()
-
-        self.monda_font = CustomFont()
-
         self.receive_toggle = None
         self.transparent_toggle = None
         self.private_toggle = None
+
+        self.app = app
+        self.main = main
+        self.commands = commands
+        self.utils = utils
+        self.units = units
+        self.settings = settings
+        self.tr = tr
+        self.monda_font = monda_font
+
+        self.storage = StorageMessages(self.app)
+        self.clipboard = ClipBoard()
 
         self.addresses_box = Box(
             style=Pack(

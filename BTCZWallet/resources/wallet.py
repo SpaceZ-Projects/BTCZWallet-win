@@ -7,8 +7,7 @@ from toga import (
     Button, ProgressBar
 )
 from ..framework import (
-    Cursors, FlatStyle, Forms, ProgressStyle, Os,
-    CustomFont
+    Cursors, FlatStyle, Forms, ProgressStyle, Os
 )
 from toga.style.pack import Pack
 from toga.colors import (
@@ -19,16 +18,10 @@ from toga.constants import (
     BOTTOM, HIDDEN, VISIBLE
 )
 
-from .client import Client
-from .utils import Utils
-from .units import Units
-from .settings import Settings
-from ..translations import Translations
-
 
 
 class Wallet(Box):
-    def __init__(self, app:App, main:Window):
+    def __init__(self, app:App, main:Window, settings, units, commands, tr, monda_font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -41,12 +34,12 @@ class Wallet(Box):
 
         self.app = app
         self.main = main
-        self.commands = Client(self.app)
-        self.units = Units(self.app)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
 
-        self.monda_font = CustomFont()
+        self.commands = commands
+        self.units = units
+        self.settings = settings
+        self.tr = tr
+        self.monda_font = monda_font
 
         self.bitcoinz_logo = ImageView(
             image="images/BitcoinZ.png",
@@ -308,23 +301,22 @@ class Wallet(Box):
 
 
 class ImportKey(Window):
-    def __init__(self, main:Window):
+    def __init__(self, main:Window, settings, utils, commands, tr, monda_font):
         super().__init__(
             size = (600, 150),
             resizable= False
         )
         
         self.main = main
-        self.utils = Utils(self.app)
-        self.commands = Client(self.app)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
+        self.utils = utils
+        self.commands = commands
+        self.settings = settings
+        self.tr = tr
+        self.monda_font = monda_font
 
         self.title = self.tr.title("importkey_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
-
-        self.monda_font = CustomFont()
 
         self.main_box = Box(
             style=Pack(
@@ -502,23 +494,22 @@ class ImportKey(Window):
 
 
 class ImportWallet(Window):
-    def __init__(self, main:Window):
+    def __init__(self, main:Window, settings, utils, commands, tr, monda_font):
         super().__init__(
             size = (600, 150),
             resizable= False
         )
         
         self.main = main
-        self.utils = Utils(self.app)
-        self.commands = Client(self.app)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
+        self.utils = utils
+        self.commands = commands
+        self.settings = settings
+        self.tr = tr
+        self.monda_font = monda_font
 
         self.title = self.tr.title("importwallet_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
-
-        self.monda_font = CustomFont()
 
         self.main_box = Box(
             style=Pack(

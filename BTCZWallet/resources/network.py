@@ -11,8 +11,7 @@ from toga import (
 )
 from ..framework import (
     ToolTip, FlatStyle, Forms, Color,
-    Command, ClipBoard, Os, Sys, Drawing,
-    CustomFont
+    Command, ClipBoard, Os, Sys, Drawing
 )
 from toga.constants import COLUMN, ROW, CENTER, BOLD, Direction
 from toga.style.pack import Pack
@@ -20,33 +19,25 @@ from toga.colors import (
     rgb, WHITE, GRAY, RED, GREENYELLOW, BLACK
 )
 
-from .client import Client
-from .units import Units
-from .utils import Utils
-from .settings import Settings
-from ..translations import Translations
-
 
 
 class AddNode(Window):
-    def __init__(self, main:Window):
+    def __init__(self, main:Window, utils, commands, tr, monda_font):
         super().__init__(
             resizable=False
         )
 
         self.main = main
         
-        self.utils = Utils(self.app)
-        self.commands = Client(self.app)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
+        self.utils = utils
+        self.commands = commands
+        self.tr = tr
+        self.monda_font = monda_font
 
         self.title = self.tr.title("addnode_window")
         self.size = (550, 120)
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
-
-        self.monda_font = CustomFont()
 
         self.main_box = Box(
             style=Pack(
@@ -229,19 +220,20 @@ class AddNode(Window):
 
 
 class TorConfig(Window):
-    def __init__(self, main:Window = None, startup:Window = None):
+    def __init__(self, settings, utils, commands, tr, monda_font, main:Window = None, startup:Window = None):
         super().__init__(
             resizable=False
         )
 
         self.main = main
         self.startup = startup
-        self.utils = Utils(self.app)
-        self.commands = Client(self.app)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
-        self.tooltip = ToolTip()
 
+        self.utils = utils
+        self.commands = commands
+        self.settings = settings
+        self.tr = tr
+
+        self.tooltip = ToolTip()
         self.app_data = self.app.paths.data
 
         if self.main:
@@ -253,7 +245,7 @@ class TorConfig(Window):
         self.position = position_center
         self._impl.native.ControlBox = False
 
-        self.monda_font = CustomFont()
+        self.monda_font = monda_font
 
         self.main_box = Box(
             style=Pack(
@@ -617,26 +609,26 @@ class TorConfig(Window):
 
 
 class NodeInfo(Window):
-    def __init__(self, node):
+    def __init__(self, node, settings, utils, units, tr, monda_font):
         super().__init__(
             resizable=False
         )
 
-        self.utils = Utils(self.app)
-        self.units = Units(self.app)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
-        self.tooltip = ToolTip()
-
         self.node = node
+
+        self.utils = utils
+        self.units = units
+        self.settings = settings
+        self.tr = tr
+        self.monda_font = monda_font
+
+        self.tooltip = ToolTip()
 
         self.size = (350, 510)
         self.title = self.tr.title("nodeinfo_window")
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
         self._impl.native.ControlBox = False
-
-        self.monda_font = CustomFont()
 
         self.address = self.node.get('addr')
         self.address_local = self.node.get('addrlocal')
@@ -736,7 +728,7 @@ class NodeInfo(Window):
 
 
 class Node(Box):
-    def __init__(self, app:App, peer_window:Window, node):
+    def __init__(self, app:App, peer_window:Window, node, settings, utils, units, commands, tr, monda_font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -749,15 +741,15 @@ class Node(Box):
         self.peer_window = peer_window
         self.node = node
 
-        self.utils = Utils(self.app)
-        self.units = Units(self.app)
-        self.commands = Client(self.app)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
+        self.utils = utils
+        self.units = units
+        self.commands = commands
+        self.settings = settings
+        self.tr = tr
         self.tooltip = ToolTip()
         self.clipboard = ClipBoard()
 
-        self.monda_font = CustomFont()
+        self.monda_font = monda_font
 
         self.address = self.node.get('addr')
         self.address_local = self.node.get('addrlocal')
@@ -902,7 +894,9 @@ class Node(Box):
 
 
     def show_node_info(self):
-        self.node_info = NodeInfo(self.node)
+        self.node_info = NodeInfo(
+            self.node, self.settings, self.utils, self.units, self.tr, self.monda_font
+        )
         self.node_info._impl.native.ShowDialog(self.peer_window._impl.native)
 
 
@@ -970,15 +964,21 @@ class Node(Box):
 
 
 class Peer(Window):
-    def __init__(self, main:Window):
+    def __init__(self, main:Window, settings, utils, units, commands, tr, monda_font):
         super().__init__()
 
+        self.peers_list = []
+        self.node_map = {}
+
         self.main = main
-        self.commands = Client(self.app)
-        self.utils = Utils(self.app)
-        self.units = Units(self.app)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
+
+        self.commands = commands
+        self.utils = utils
+        self.units = units
+        self.settings = settings
+        self.tr = tr
+        self.monda_font = monda_font
+
         self.tooltip = ToolTip()
 
         self.title = self.tr.title("peer_window")
@@ -988,11 +988,6 @@ class Peer(Window):
         self.position = position_center
         self.on_close = self.close_peers_window
         self._impl.native.Resize += self._handle_on_resize
-
-        self.monda_font = CustomFont()
-
-        self.peers_list = []
-        self.node_map = {}
 
         self.main_scroll = ScrollContainer(
             style=Pack(
@@ -1144,7 +1139,9 @@ class Peer(Window):
 
 
     def add_peer(self, node):
-        node_box = Node(self.app, self, node)
+        node_box = Node(
+            self.app, self, node, self.settings, self.utils, self.units, self.commands, self.tr, self.monda_font
+        )
         box_divider = Divider(
             direction=Direction.HORIZONTAL,
             style=Pack(

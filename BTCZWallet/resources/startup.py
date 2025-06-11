@@ -9,23 +9,18 @@ from toga import (
     App, Box, Label, ProgressBar, Window
 )
 from ..framework import (
-    ProgressStyle, Os, Forms, run_async, ToolTip, CustomFont
+    ProgressStyle, Os, Forms, run_async, ToolTip
 )
 from toga.colors import rgb, WHITE, GRAY
 from toga.style.pack import Pack
 from toga.constants import CENTER, BOLD, COLUMN, ROW, BOTTOM, LEFT, RIGHT
 
-from .utils import Utils
-from .client import Client
 from .menu import Menu
 from .network import TorConfig
-from .units import Units
-from .settings import Settings
-from ..translations import Translations
 
 
 class BTCZSetup(Box):
-    def __init__(self, app:App, main:Window):
+    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, monda_font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -35,22 +30,23 @@ class BTCZSetup(Box):
             )
         )
 
-        self.app = app
-        self.main = main
-        self.utils = Utils(self.app)
-        self.units = Units(self.app)
-        self.commands = Client(self.app)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
-        self.tooltip = ToolTip()
-        self.app_data = self.app.paths.data
-
-        self.monda_font = CustomFont()
-
         self.node_status = None
         self.blockchaine_index = None
         self.tor_enabled = None
         self.tor_config = None
+
+        self.app = app
+        self.main = main
+        self.app_data = self.app.paths.data
+
+        self.utils = utils
+        self.units = units
+        self.commands = commands
+        self.settings = settings
+        self.tr = tr
+        self.monda_font = monda_font
+
+        self.tooltip = ToolTip()
 
         self.status_label = Label(
             text=self.tr.text("check_network"),
@@ -217,8 +213,7 @@ class BTCZSetup(Box):
     async def check_network(self, widget):
         async def on_result(widget, result):
             if result is True:
-                self.tor_config = TorConfig(startup=self.main)
-                self.tor_config._impl.native.Show(self.main._impl.native)
+                self.show_tor_config()
             if result is False:
                 self.settings.update_settings("tor_network", False)
                 if self.node_status:
@@ -282,8 +277,7 @@ class BTCZSetup(Box):
     async def execute_tor(self, widget):
         async def on_result(widget, result):
             if result is True:
-                self.tor_config = TorConfig(startup=self.main)
-                self.tor_config._impl.native.Show(self.main._impl.native)
+                self.show_tor_config()
             if result is False:
                 self.settings.update_settings("tor_network", False)
                 if self.node_status:
@@ -332,6 +326,13 @@ class BTCZSetup(Box):
 
         except Exception as e:
             self.status_label.text = self.tr.text("tor_failed")
+
+
+    def show_tor_config(self):
+        self.tor_config = TorConfig(
+            self.settings, self.utils, self.commands, self.tr, self.monda_font, startup=self.main
+        )
+        self.tor_config._impl.native.Show(self.main._impl.native)
 
 
     async def wait_tor_bootstrap(self):
@@ -564,7 +565,9 @@ class BTCZSetup(Box):
 
 
     async def open_main_menu(self):
-        self.main_menu = Menu(self.tor_enabled)
+        self.main_menu = Menu(
+            self.tor_enabled, self.settings, self.utils, self.units, self.commands, self.tr, self.monda_font
+        )
         self.main_menu._impl.native.TopMost = True
         self.main_menu._impl.native.Shown += self.on_show
         self.main.hide()

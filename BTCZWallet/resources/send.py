@@ -9,8 +9,7 @@ from toga import (
     Button
 )
 from ..framework import (
-    Command, Color, ToolTip, FlatStyle, MenuStrip,
-    CustomFont
+    Command, Color, ToolTip, FlatStyle, MenuStrip
 )
 from toga.style.pack import Pack
 from toga.constants import (
@@ -20,15 +19,12 @@ from toga.constants import (
 from toga.colors import (
     rgb, GRAY, WHITE, YELLOW, BLACK, RED
 )
-from .client import Client
+
 from .storage import StorageMessages, StorageTxs
-from .units import Units
-from .settings import Settings
-from ..translations import Translations
 
 
 class Send(Box):
-    def __init__(self, app:App, main:Window):
+    def __init__(self, app:App, main:Window, settings, units, commands, tr, monda_font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -38,23 +34,24 @@ class Send(Box):
             )
         )
 
-        self.app = app
-        self.main = main
-        self.commands = Client(self.app)
-        self.units = Units(self.app)
-        self.storagemsgs = StorageMessages(self.app)
-        self.storagetxs = StorageTxs(self.app)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
-        self.tooltip = ToolTip()
-
-        self.monda_font = CustomFont()
-
         self.send_toggle = None
         self.transparent_toggle = None
         self.private_toggle = None
         self.is_valid_toggle = None
         self.z_addresses_limit_toggle = None
+
+        self.app = app
+        self.main = main
+        self.commands = commands
+        self.units = units
+        self.settings = settings
+        self.tr = tr
+        self.monda_font = monda_font
+
+        self.storagemsgs = StorageMessages(self.app)
+        self.storagetxs = StorageTxs(self.app)
+        self.tooltip = ToolTip()
+
 
         self.switch_box = Box(
             style=Pack(

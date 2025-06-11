@@ -8,7 +8,7 @@ from toga import (
 )
 from ..framework import (
     Drawing, Color, Sys, FormState, Os, FlatStyle,
-    Relation, AlignContent, CustomFont
+    Relation, AlignContent
 )
 
 from toga.style.pack import Pack
@@ -17,8 +17,6 @@ from toga.constants import (
     COLUMN, ROW, TOP, CENTER
 )
 
-from .client import Client
-from .utils import Utils
 from .toolbar import AppToolBar
 from .status import AppStatusBar
 from .notify import Notify, NotifyMining
@@ -30,36 +28,44 @@ from .send import Send
 from .messages import Messages, EditUser
 from .mining import Mining
 from .storage import StorageMessages
-from .settings import Settings
 from .network import Peer, AddNode, TorConfig
-from ..translations import Translations
 
 
 class Menu(Window):
-    def __init__(self, tor_enabled):
+    def __init__(self, tor_enabled, settings, utils, units, commands, tr, monda_font):
         super().__init__()
 
         self.title = f"BitcoinZ Wallet"
         self.size = (900,607)
         self._impl.native.BackColor = Color.rgb(30,33,36)
 
-        self.commands = Client(self.app)
-        self.utils = Utils(self.app)
-        self.storage = StorageMessages(self.app)
-        self.statusbar = AppStatusBar(self.app, self)
-        self.wallet = Wallet(self.app, self)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
-
-        self.monda_font = CustomFont()
-
         self.tor_enabled = tor_enabled
-        
         self._is_minimized = None
         self._is_hidden = None
         self.import_key_toggle = None
         self.peer_toggle = None
-        
+
+        self.commands = commands
+        self.units = units
+        self.settings = settings
+        self.tr = tr
+        self.utils = utils
+        self.monda_font = monda_font
+
+        self.storage = StorageMessages(self.app)
+        self.statusbar = AppStatusBar(self.app, self, settings, utils, commands, tr)
+        self.wallet = Wallet(self.app, self, settings, units, commands, tr, monda_font)
+
+        self.home_page = Home(self.app, self, settings, utils, units, commands, tr, monda_font)
+        self.transactions_page = Transactions(self.app, self, settings, utils, units, commands, tr, monda_font)
+        self.receive_page = Receive(self.app, self, settings, utils, units, commands, tr, monda_font)
+        self.send_page = Send(self.app, self, settings, units, commands, tr, monda_font)
+        self.message_page = Messages(self.app, self, settings, utils, units, commands, tr, monda_font)
+        self.mining_page = Mining(self.app, self, settings, utils, units, commands, tr, monda_font)
+        self.notify = Notify(self.app, self, self.home_page, self.mining_page, commands, tr)
+        self.notifymining = NotifyMining()
+        self.toolbar = AppToolBar(self.app, self, self.notify, self.home_page, self.mining_page, settings, commands, tr)
+
         opacity = self.settings.opacity()
         if opacity:
             self._impl.native.Opacity = opacity
@@ -95,16 +101,6 @@ class Menu(Window):
                 background_color = rgb(30,33,36)
             )
         )
-
-        self.home_page = Home(self.app, self)
-        self.transactions_page = Transactions(self.app, self)
-        self.receive_page = Receive(self.app, self)
-        self.send_page = Send(self.app, self)
-        self.message_page = Messages(self.app, self)
-        self.mining_page = Mining(self.app, self)
-        self.notify = Notify(self.app, self, self.home_page, self.mining_page)
-        self.notifymining = NotifyMining()
-        self.toolbar = AppToolBar(self.app, self, self.notify, self.home_page, self.mining_page)
 
         self.main_box.add(
             self.toolbar,
@@ -341,16 +337,18 @@ class Menu(Window):
                 self.settings.update_settings("startup", True)
 
     def show_currencies_list(self, sender, event):
-        self.currencies_window = Currency(self)
+        self.currencies_window = Currency(self, self.settings, self.utils, self.tr, self.monda_font)
         self.currencies_window._impl.native.ShowDialog(self._impl.native)
 
     def show_languages(self, sender, event):
-        self.languages_window = Languages(self)
+        self.languages_window = Languages(self, self.settings, self.utils, self.tr, self.monda_font)
         self.languages_window._impl.native.ShowDialog(self._impl.native)
 
     def show_peer_info(self, sender, event):
         if not self.peer_toggle:
-            peer_window = Peer(self)
+            peer_window = Peer(
+                self, self.settings, self.utils, self.units, self.commands, self.tr, self.monda_font
+            )
             peer_window.show()
             self.peer_window = peer_window
             self.peer_toggle = True
@@ -358,11 +356,15 @@ class Menu(Window):
             self.peer_window._impl.native.Activate()
 
     def show_add_node(self, sender, event):
-        self.add_node_window = AddNode(self)
+        self.add_node_window = AddNode(
+            self, self.utils, self.commands, self.tr, self.monda_font
+        )
         self.add_node_window._impl.native.ShowDialog(self._impl.native)
 
     def show_tor_config(self, sender, event):
-        self.tor_config = TorConfig(main=self)
+        self.tor_config = TorConfig(
+            self.settings, self.utils, self.commands, self.tr, self.monda_font, main=self
+        )
         self.tor_config._impl.native.ShowDialog(self._impl.native)
 
     def new_transparent_address(self, sender, event):
@@ -382,9 +384,10 @@ class Menu(Window):
                     await self.mining_page.reload_addresses()
         new_address,_ = await self.commands.getNewAddress()
         if new_address:
+            message = self.tr.message("newaddress_dialog")
             self.info_dialog(
-                title="New Address",
-                message=f"Generated address : {new_address}",
+                title=self.tr.title("newaddress_dialog"),
+                message=f"{message} {new_address}",
                 on_result=on_result
             )
 
@@ -399,9 +402,10 @@ class Menu(Window):
                     await self.mining_page.reload_addresses()
         new_address,_ = await self.commands.z_getNewAddress()
         if new_address:
+            message = self.tr.message("newaddress_dialog")
             self.info_dialog(
-                title="New Address",
-                message=f"Generated address : {new_address}",
+                title=self.tr.title("newaddress_dialog"),
+                message=f"{message} {new_address}",
                 on_result=on_result
             )
 
@@ -416,7 +420,7 @@ class Menu(Window):
         if data:
             username = self.storage.get_identity("username")
             if username:
-                edit_window = EditUser(username[0])
+                edit_window = EditUser(username[0], self.utils, self.monda_font)
                 edit_window._impl.native.ShowDialog(self._impl.native)
 
 
@@ -424,14 +428,15 @@ class Menu(Window):
         def on_result(widget, result):
             if result:
                 Os.File.Copy(str(data), str(result), True)
+                message = self.tr.message("backupmessages_dialog")
                 self.info_dialog(
-                    title="Backup Successful!",
-                    message=f"Your messages have been successfully backed up to:\n{result}"
+                    title=self.tr.title("backupmessages_dialog"),
+                    message=f"{message}\n{result}"
                 )
         data = self.storage.is_exists()
         if data:
             self.save_file_dialog(
-                title="Save backup to...",
+                title=self.tr.title("savefile_dialog"),
                 suggested_filename=data,
                 file_types=["dat"],
                 on_result=on_result
@@ -449,20 +454,26 @@ class Menu(Window):
         if git_version:
             self.git_link = link
             current_version = self.app.version
+            current_version_text = self.tr.text("current_version")
             if git_version == current_version:
+                message = self.tr.message("checkupdates_dialog")
                 self.info_dialog(
-                    title="Check updates",
-                    message=f"Current version: {current_version}\nThe app version is up to date."
+                    title=self.tr.title("checkupdates_dialog"),
+                    message=f"{current_version_text} {current_version}\n{message}"
                 )
             else:
+                git_version_text = self.tr.text("git_version")
+                message = self.tr.message("questionupdates_dialog")
                 self.question_dialog(
-                    title="Check updates",
-                    message=f"Current version: {current_version}\nGit version: {git_version}\nWould you like to update the app ?",
+                    title=self.tr.title("checkupdates_dialog"),
+                    message=f"{current_version_text} {current_version}\n{git_version_text} {git_version}\n{message}",
                     on_result=on_result
                 )
 
     def show_import_key(self, sender, event):
-        self.import_window = ImportKey(self)
+        self.import_window = ImportKey(
+            self, self.settings, self.utils, self.commands, self.tr, self.monda_font
+        )
         self.import_window._impl.native.ShowDialog(self._impl.native)
 
     
@@ -475,9 +486,8 @@ class Menu(Window):
             self.app.add_background_task(self.run_export_wallet)
         else:
             self.question_dialog(
-                title="Missing Export Dir",
-                message="The '-exportdir' option is not configured in your bitcoinz.conf file.\n"
-                        "Would you like to configure it ?",
+                title=self.tr.title("missingexportdir_dialog"),
+                message=self.tr.message("missingexportdir_dialog"),
                 on_result=on_result
             )
 
@@ -486,12 +496,12 @@ class Menu(Window):
             if result is not None:
                 self.utils.update_config(result)
                 self.question_dialog(
-                    title="Export Directory Set",
-                    message="Your export folder has been successfully saved. Would you like to restart your node now to apply this change?",
+                    title=self.tr.title("exportdirset_dialog"),
+                    message=self.tr.message("exportdirset_dialog"),
                     on_result=self.restart_node
                 )
         self.select_folder_dialog(
-            title="Select Folder",
+            title=self.tr.title("selectfolder_dialog"),
             on_result=on_result
         )
         
@@ -507,13 +517,16 @@ class Menu(Window):
         file_name = f"wallet{datetime.today().strftime('%d%m%Y%H%M%S')}"
         exported_file, error_message = await self.commands.z_ExportWallet(file_name)
         if exported_file and error_message is None:
+            message = self.tr.message("walletexported_dialog")
             self.info_dialog(
-                title="Wallet Exported Successfully",
-                message=f"Your wallet has been exported as '{exported_file}'."
+                title=self.tr.title("walletexported_dialog"),
+                message=f"{message} '{exported_file}'."
             )
 
     def show_import_wallet(self, sender, event):
-        self.import_window = ImportWallet(self)
+        self.import_window = ImportWallet(
+            self, self.settings, self.utils, self.commands, self.tr, self.monda_font
+        )
         self.import_window._impl.native.ShowDialog(self._impl.native)
 
 

@@ -16,13 +16,9 @@ from ..framework import (
     Os, Sys, ProgressStyle, Forms, run_async
 )
 
-from .units import Units
-from .settings import Settings
-from ..translations import Translations
-
 
 class Utils():
-    def __init__(self, app:App):
+    def __init__(self, app:App, units, tr):
         super().__init__()
 
         self.app = app
@@ -34,9 +30,8 @@ class Utils():
         if not Os.Directory.Exists(str(self.app_cache)):
             Os.Directory.CreateDirectory(str(self.app_cache))
 
-        self.units = Units(self.app)
-        self.settings = Settings(self.app)
-        self.tr = Translations(self.settings)
+        self.units = units
+        self.tr = tr
 
     
     async def get_repo_info(self, tor_enabled):

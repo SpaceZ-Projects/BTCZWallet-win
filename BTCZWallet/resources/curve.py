@@ -8,22 +8,19 @@ from aiohttp_socks import ProxyConnector, ProxyConnectionError
 from toga import App
 from ..framework import Os
 
-from .units import Units
-from .settings import Settings
-from .utils import Utils
 
 COINGECKO_API = "https://api.coingecko.com/api/v3/coins/bitcoinz/market_chart"
 
 class Curve():
-    def __init__(self, app:App):
+    def __init__(self, app:App, settings, utils, units):
         super().__init__()
 
         self.app = app
         self.app_cache = self.app.paths.cache
 
-        self.utils = Utils(self.app)
-        self.units = Units(self.app)
-        self.settings = Settings(self.app)
+        self.utils = utils
+        self.units = units
+        self.settings = settings
 
 
     async def fetch_marketchart(self):

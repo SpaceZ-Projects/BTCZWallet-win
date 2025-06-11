@@ -12,21 +12,16 @@ from toga import (
     ProgressBar, Window, ScrollContainer,
     Button, ImageView, Switch
 )
-from ..framework import FlatStyle, Os, ToolTip, CustomFont
+from ..framework import FlatStyle, Os, ToolTip
 from toga.style.pack import Pack
 from toga.constants import COLUMN, CENTER, BOLD, ROW
 from toga.colors import rgb, GRAY, WHITE, GREENYELLOW, BLACK, RED
 
-from .utils import Utils
-from .units import Units
-from .client import Client
-from .settings import Settings
 from .storage import StorageMessages
-from ..translations import Translations
 
 
 class Mining(Box):
-    def __init__(self, app:App, main:Window):
+    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, monda_font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -35,18 +30,6 @@ class Mining(Box):
                 padding = (2,5,0,5)
             )
         )
-
-        self.app = app
-        self.main = main
-        self.utils = Utils(self.app)
-        self.units = Units(self.app)
-        self.commands = Client(self.app)
-        self.settings = Settings(self.app)
-        self.storage = StorageMessages(self.app)
-        self.tr = Translations(self.settings)
-        self.tooltip = ToolTip()
-
-        self.monda_font = CustomFont()
 
         self.mining_toggle = None
         self.selected_miner = None
@@ -59,6 +42,20 @@ class Mining(Box):
         self.pool_port = None
         self.pool_ssl = None
         self.miner_command = None
+
+        self.app = app
+        self.main = main
+
+        self.utils = utils
+        self.units = units
+        self.commands = commands
+        self.settings = settings
+        self.tr = tr
+        self.monda_font = monda_font
+
+        self.storage = StorageMessages(self.app)
+        self.tooltip = ToolTip()
+
         self.tor_enabled = self.settings.tor_network()
 
         self.miner_label = Label(
