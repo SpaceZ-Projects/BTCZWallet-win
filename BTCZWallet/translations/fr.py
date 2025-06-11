@@ -1,5 +1,6 @@
 translations = {
     #startup :
+    "main_window": {"title": "Portefeuille BitcoinZ"},
     "check_network": {"text": "Vérifier le réseau..."},
     "checktor_files": {"text": "Vérifier les fichiers Tor..."},
     "checkbinary_files": {"text": "Vérifiez les fichiers binaires..."},
@@ -36,13 +37,13 @@ translations = {
     #toolbar :
     "app_menu" : {"text": "App"},
     "about_cmd" : {"text": "A Propos", "tooltip": "Informations sur cette application"},
-    "exit_cmd" : {"text": "Quitter                 |", "tooltip": "Quittez l'application et laissez le Node s'exécuter en arrière-plan"},
-    "stop_exit_cmd": {"text": "Arrêter le Node  |", "tooltip": "Arrêter le Node et quitter l'application"},
+    "exit_cmd" : {"text": "Quitter                   |", "tooltip": "Quittez l'application et laissez le Node s'exécuter en arrière-plan"},
+    "stop_exit_cmd": {"text": "Arrêter le Node   |", "tooltip": "Arrêter le Node et quitter l'application"},
     "exit_dialog": {"title": "Quitter l'App", "message": "Êtes-vous sûr de vouloir quitter l'application ?"},
     "stopexit_dialog": {"title": "Quitter l'App", "message": "Êtes-vous sûr de vouloir arrêter le node et quitter l'application ?"},
     "settings_menu": {"text": "Paramètres"},
-    "currency_cmd": {"text": "Devise                                   |", "tooltip": "Changer l'affichage de votre devise"},
-    "languages_cmd": {"text": "Langues", "tooltip": "Changer la langue de l'application"},
+    "currency_cmd": {"text": "Devise                                    |", "tooltip": "Changer l'affichage de votre devise"},
+    "languages_cmd": {"text": "Langues                                 |", "tooltip": "Changer la langue de l'application"},
     "opacity_cmd": {"text": "Opacité de la fenêtre"},
     "opacity_50_cmd": {"text": "50% Opacité"},
     "opacity_75_cmd": {"text": "75% Opacité"},
@@ -77,6 +78,17 @@ translations = {
     "send_button": {"text": "  Envoyer"},
     "messages_button": {"text" : "  Messages"},
     "mining_button": {"text": "  Minière"},
+    "newaddress_dialog": {"title": "Nouvelle Adresse", "message": "Adresse Générée :"},
+    "backupmessages_dialog": {"title": "Sauvegarde Réussie", "message": "Vos messages ont été sauvegardés avec succès sur :"},
+    "selectfolder_dialog": {"title": "Sélectionnez un répertoire"},
+    "savefile_dialog": {"title": "Enregistrer sous…"},
+    "checkupdates_dialog": {"title": "Vérifier les mises à jour", "message": "La version de l'application est à jour."},
+    "questionupdates_dialog": {"message": "Souhaitez-vous mettre à jour l'application ?"},
+    "current_version": {"text": "Version actuelle :"},
+    "git_version": {"text": "Version git :"},
+    "missingexportdir_dialog": {"title": "Répertoire d'Exportation Manquant", "message": "L'option '-exportdir' n'est pas configurée dans votre fichier bitcoinz.conf.\nVoulez-vous la configurer ?"},
+    "exportdirset_dialog": {"title": "Le répertoire d'exportation est défini", "message": "Votre dossier d'exportation a été enregistré avec succès.\nSouhaitez-vous redémarrer votre nœud maintenant pour appliquer cette modification ?"},
+    "walletexported_dialog": {"title": "Portefeuille exporté avec Succès", "message": "Votre portefeuille a été exporté sous"},
 
     #network :
     "addnode_window": {"title": "Ajouter un Node"},
@@ -226,6 +238,16 @@ translations = {
     #notify :
     "notifyexit_cmd": {"text": "Quitter"},
     "notifystopexit_cmd": {"text": "Arrêter le Node"},
+
+    #status :
+    "status_label": {"text": "Statut :"},
+    "blocks_status": {"text": "Blocs :"},
+    "deprecation_status": {"text": "Désap :"},
+    "date_status": {"text": "Date :"},
+    "sync_status": {"text": "Sync :"},
+    "network_status": {"text": "NetHash :"},
+    "connections_status": {"text": "Pairs :"},
+    "size_status": {"text": "Taille :"},
 
     #other :
     "confirm_button": {"text": "Confirmer"},

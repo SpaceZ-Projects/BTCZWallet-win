@@ -11,12 +11,9 @@ from ..framework import (
 from toga.style.pack import Pack
 from toga.constants import ROW, BOTTOM
 
-from .client import Client
-from .utils import Utils
-
 
 class AppStatusBar(Box):
-    def __init__(self, app:App, main:Window):
+    def __init__(self, app:App, main:Window, settings, utils, commands, tr):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -27,8 +24,10 @@ class AppStatusBar(Box):
 
         self.app = app
         self.main = main
-        self.commands = Client(self.app)
-        self.utils = Utils(self.app)
+        self.commands = commands
+        self.utils = utils
+        self.settigns = settings
+        self.tr = tr
 
         self.node_status = None
 
@@ -38,14 +37,14 @@ class AppStatusBar(Box):
         )
 
         self.status_label = StatusLabel(
-            text="Status :",
+            text=self.tr.text("status_label"),
             color=Color.GRAY
         )
         self.status_icon = StatusLabel(
             image="images/off.png"
         )
         self.blocks_status = StatusLabel(
-            text="Blocks :",
+            text=self.tr.text("blocks_status"),
             color=Color.GRAY
         )
         self.blocks_value = StatusLabel(
@@ -55,7 +54,7 @@ class AppStatusBar(Box):
             autotooltip=True
         )
         self.deprecation_status = StatusLabel(
-            text="Deps :",
+            text=self.tr.text("deprecation_status"),
             color=Color.GRAY
         )
         self.deprecation_value = StatusLabel(
@@ -65,7 +64,7 @@ class AppStatusBar(Box):
             autotooltip=True
         )
         self.date_status = StatusLabel(
-            text="Date :",
+            text=self.tr.text("date_status"),
             color=Color.GRAY
         )
         self.date_value = StatusLabel(
@@ -76,7 +75,7 @@ class AppStatusBar(Box):
             autotooltip=True
         )
         self.sync_status = StatusLabel(
-            text="Sync :",
+            text=self.tr.text("sync_status"),
             color=Color.GRAY
         )
         self.sync_value = StatusLabel(
@@ -86,7 +85,7 @@ class AppStatusBar(Box):
             autotooltip=True
         )
         self.network_status = StatusLabel(
-            text="NetHash :",
+            text=self.tr.text("network_status"),
             color=Color.GRAY
         )
         self.network_value = StatusLabel(
@@ -96,7 +95,7 @@ class AppStatusBar(Box):
             autotooltip=True
         )
         self.connections_status = StatusLabel(
-            text="Conns :",
+            text=self.tr.text("connections_status"),
             color=Color.GRAY
         )
         self.connections_value = StatusLabel(
@@ -106,7 +105,7 @@ class AppStatusBar(Box):
             autotooltip=True
         )
         self.size_status = StatusLabel(
-            text="Size :",
+            text=self.tr.text("size_status"),
             color=Color.GRAY
         )
         self.size_value = StatusLabel(

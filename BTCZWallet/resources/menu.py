@@ -35,10 +35,6 @@ class Menu(Window):
     def __init__(self, tor_enabled, settings, utils, units, commands, tr, monda_font):
         super().__init__()
 
-        self.title = f"BitcoinZ Wallet"
-        self.size = (900,607)
-        self._impl.native.BackColor = Color.rgb(30,33,36)
-
         self.tor_enabled = tor_enabled
         self._is_minimized = None
         self._is_hidden = None
@@ -51,6 +47,10 @@ class Menu(Window):
         self.tr = tr
         self.utils = utils
         self.monda_font = monda_font
+
+        self.title = self.tr.title("main_window")
+        self.size = (900,607)
+        self._impl.native.BackColor = Color.rgb(30,33,36)
 
         self.storage = StorageMessages(self.app)
         self.statusbar = AppStatusBar(self.app, self, settings, utils, commands, tr)

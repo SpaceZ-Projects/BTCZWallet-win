@@ -165,6 +165,7 @@ class Keys:
     C = Forms.Keys.C
     Q = Forms.Keys.Q
     N = Forms.Keys.N
+    L = Forms.Keys.L
 
 
 class Separator(Forms.ToolStripSeparator):

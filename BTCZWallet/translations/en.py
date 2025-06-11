@@ -1,5 +1,6 @@
 translations = {
     #startup :
+    "main_window": {"title": "BitcoinZ Wallet"},
     "check_network": {"text": "Check the network..."},
     "checktor_files": {"text": "Check Tor files..."},
     "checkbinary_files": {"text": "Check binary files..."},
@@ -42,7 +43,7 @@ translations = {
     "stopexit_dialog": {"title": "Exit App", "message": "Are you sure you want to stop the node and exit the application ?"},
     "settings_menu": {"text": "Settings"},
     "currency_cmd": {"text": "Currency                             |", "tooltip": "Change your currency display"},
-    "languages_cmd": {"text": "Languages", "tooltip": "Change the application language"},
+    "languages_cmd": {"text": "Languages                          |", "tooltip": "Change the application language"},
     "opacity_cmd": {"text": "Window opacity"},
     "opacity_50_cmd": {"text": "50% Opacity"},
     "opacity_75_cmd": {"text": "75% Opacity"},
@@ -77,6 +78,17 @@ translations = {
     "send_button": {"text": "  Send"},
     "messages_button": {"text" : "  Messages"},
     "mining_button": {"text": "  Mining"},
+    "newaddress_dialog": {"title": "New Address", "message": "Generated address :"},
+    "backupmessages_dialog": {"title": "Backup Successful", "message": "Your messages have been successfully backed up to:"},
+    "selectfolder_dialog": {"title": "Select folder"},
+    "savefile_dialog": {"title": "Save As…"},
+    "checkupdates_dialog": {"title": "Check updates", "message": "The app version is up to date."},
+    "questionupdates_dialog": {"message": "Would you like to update the app ?"},
+    "current_version": {"text": "Current version :"},
+    "git_version": {"text": "Git version :"},
+    "missingexportdir_dialog": {"title": "Missing Export Dir", "message": "The '-exportdir' option is not configured in your bitcoinz.conf file.\n""Would you like to configure it ?"},
+    "exportdirset_dialog": {"title": "Export Directory Set", "message": "Your export folder has been successfully saved. Would you like to restart your node now to apply this change ?"},
+    "walletexported_dialog": {"title": "Wallet Exported Successfully", "message": "Your wallet has been exported as"},
 
     #network :
     "addnode_window": {"title": "Add Node"},
@@ -226,6 +238,16 @@ translations = {
     #notify :
     "notifyexit_cmd": {"text": "Exit"},
     "notifystopexit_cmd": {"text": "Stop node"},
+
+    #status :
+    "status_label": {"text": "Status :"},
+    "blocks_status": {"text": "Blocks :"},
+    "deprecation_status": {"text": "Deps :"},
+    "date_status": {"text": "Date :"},
+    "sync_status": {"text": "Sync :"},
+    "network_status": {"text": "NetHash :"},
+    "connections_status": {"text": "Peer :"},
+    "size_status": {"text": "Size :"},
 
     #other :
     "confirm_button": {"text": "Confirm"},

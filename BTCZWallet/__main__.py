@@ -25,7 +25,7 @@ class BitcoinZGUI(Window):
         self.utils = Utils(self.app, self.units, self.tr)
         self.monda_font = CustomFont()
 
-        self.title = "BitcoinZ Wallet"
+        self.title = self.tr.title("main_window")
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
 
