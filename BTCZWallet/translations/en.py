@@ -10,7 +10,7 @@ translations = {
     "tornetwork_dialog": {"title": "Tor Network", "message": "This is your first time running the app.\nWould you like to enable the Tor network ?"},
     "missingtorrc_dialog": {"title": "Missing Tor Config", "message": "The Tor configuration file (torrc) was not found.\nWould you like to create a torrc file ?"},
     "bootstarp_dialog": {"title": "Download Bootstarp", "message": "Would you like to download the BitcoinZ bootstrap? This will help you sync faster.\nIf you prefer to sync from block 0, Click NO."},
-    "tor_enbaled": {"text": "Enabled"},
+    "tor_enabled": {"text": "Enabled"},
     "tor_disabled": {"text": "Disabled"},
     "download_tor": {"text": "Downloading Tor bundle..."},
     "download_binary": {"text": "Downloading binary..."},

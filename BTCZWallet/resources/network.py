@@ -533,7 +533,7 @@ class TorConfig(Window):
                 if self.startup.node_status:
                     await self.startup.open_main_menu()
                 else:
-                    await self.startup.verify_binary_files()
+                    await self.startup.check_binary_files()
             return
                 
         if not self.socks_input.value:
@@ -564,7 +564,7 @@ class TorConfig(Window):
             if self.startup.startup.node_status:
                 await self.commands.stopNode()
                 await asyncio.sleep(1)
-            await self.startup.startup.verify_tor_files()
+            await self.startup.startup.check_tor_files()
         else:
             self.app.current_window = self.main
         

@@ -10,7 +10,7 @@ translations = {
     "tornetwork_dialog": {"title": "Réseau Tor", "message": "C'est la première fois que vous exécutez l'application.\nSouhaitez-vous activer le réseau Tor ?"},
     "missingtorrc_dialog": {"title": "Configuration Tor Manquante", "message": "Le fichier de configuration Tor (torrc) n'a pas été trouvé.\nVoulez-vous créer un fichier torrc ?"},
     "bootstarp_dialog": {"title": "Télécharger Bootstarp", "message": "Souhaitez-vous télécharger le bootstrap BitcoinZ ? Cela accélérera la synchronisation. Si vous préférez synchroniser à partir du bloc 0, cliquez sur Non."},
-    "tor_enbaled": {"text": "Activé"},
+    "tor_enabled": {"text": "Activé"},
     "tor_disabled": {"text": "Désactivé"},
     "download_tor": {"text": "Téléchargement du bundle Tor..."},
     "download_binary": {"text": "Téléchargement du binaire..."},

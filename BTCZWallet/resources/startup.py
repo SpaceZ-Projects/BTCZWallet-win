@@ -228,15 +228,15 @@ class BTCZSetup(Box):
             self.main.network_status.style.color = GRAY
             self.main.network_status.text = self.tr.text("tor_disabled")
             self.main.question_dialog(
-                title=self.tr.title("checknetwork_dialog"),
-                message=self.tr.message("checknetwork_dialog"),
+                title=self.tr.title("tornetwork_dialog"),
+                message=self.tr.message("tornetwork_dialog"),
                 on_result=on_result
             )
         else:
             if self.tor_enabled is True:
                 self.main.tor_icon.image = "images/tor_on.png"
                 self.main.network_status.style.color = rgb(114,137,218)
-                self.main.network_status.text = self.tr.text("tor_enbaled")
+                self.main.network_status.text = self.tr.text("tor_enabled")
                 tor_running = await self.utils.is_tor_alive()
                 await asyncio.sleep(1)
                 if self.node_status and tor_running:
