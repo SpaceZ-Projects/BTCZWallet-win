@@ -10,7 +10,7 @@ from toga.constants import ROW, TOP
 
 
 class AppToolBar(Box):
-    def __init__(self, app:App, main:Window, notify, home_page ,mining_page, settings, commands, tr):
+    def __init__(self, app:App, main:Window, notify, home_page ,mining_page, settings, commands, tr, font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -27,6 +27,7 @@ class AppToolBar(Box):
         self.commands = commands
         self.settings = settings
         self.tr = tr
+        self.font = font
 
         self.app_menu_active = None
         self.settings_menu_active = None
@@ -37,9 +38,16 @@ class AppToolBar(Box):
         self.help_menu_active = None
         self.generate_address_cmd_active = None
 
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
+
         self.toolbar = Toolbar(
             color=Color.WHITE,
-            background_color=Color.rgb(40,43,48)
+            background_color=Color.rgb(40,43,48),
+            rtl = self.rtl
         )
 
         self.about_cmd = Command(
@@ -50,7 +58,9 @@ class AppToolBar(Box):
             mouse_enter=self.about_cmd_mouse_enter,
             mouse_leave=self.about_cmd_mouse_leave,
             action=self.display_about_dialog,
-            tooltip=self.tr.tooltip("about_cmd")
+            tooltip=self.tr.tooltip("about_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.exit_cmd = Command(
             title=self.tr.text("exit_cmd"),
@@ -59,7 +69,9 @@ class AppToolBar(Box):
             icon="images/exit.ico",
             action=self.exit_app,
             shortcut_key=Keys.Alt | Keys.F4,
-            tooltip=self.tr.tooltip("exit_cmd")
+            tooltip=self.tr.tooltip("exit_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.stop_exit_cmd = Command(
             title=self.tr.text("stop_exit_cmd"),
@@ -68,7 +80,9 @@ class AppToolBar(Box):
             icon="images/stop.ico",
             action=self.stop_node_exit,
             shortcut_key=Keys.Control | Keys.Q,
-            tooltip=self.tr.tooltip("stop_exit_cmd")
+            tooltip=self.tr.tooltip("stop_exit_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.app_menu = Command(
             title=self.tr.text("app_menu"),
@@ -81,7 +95,9 @@ class AppToolBar(Box):
             drop_opened=self.app_menu_opened,
             drop_closed=self.app_menu_closed,
             mouse_enter=self.app_menu_mouse_enter,
-            mouse_leave=self.app_menu_mouse_leave
+            mouse_leave=self.app_menu_mouse_leave,
+            font=self.font.get(9),
+            rtl = self.rtl
         )
 
         self.currency_cmd = Command(
@@ -92,7 +108,9 @@ class AppToolBar(Box):
             mouse_leave=self.currency_cmd_mouse_leave,
             icon="images/currency_i.ico",
             shortcut_key=Keys.Control | Keys.Shift | Keys.C,
-            tooltip=self.tr.tooltip("currency_cmd")
+            tooltip=self.tr.tooltip("currency_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.languages_cmd = Command(
             title=self.tr.text("languages_cmd"),
@@ -102,7 +120,9 @@ class AppToolBar(Box):
             mouse_leave=self.languages_cmd_mouse_leave,
             icon="images/languages_i.ico",
             shortcut_key=Keys.Control | Keys.Shift | Keys.L,
-            tooltip=self.tr.tooltip("languages_cmd")
+            tooltip=self.tr.tooltip("languages_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.opacity_50_cmd = Command(
             title=self.tr.text("opacity_50_cmd"),
@@ -110,7 +130,9 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.opacity_50_cmd_mouse_enter,
             mouse_leave=self.opacity_50_cmd_mouse_leave,
-            action=self.change_window_opacity_50
+            action=self.change_window_opacity_50,
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.opacity_75_cmd = Command(
             title=self.tr.text("opacity_75_cmd"),
@@ -118,7 +140,9 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.opacity_75_cmd_mouse_enter,
             mouse_leave=self.opacity_75_cmd_mouse_leave,
-            action=self.change_window_opacity_75
+            action=self.change_window_opacity_75,
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.opacity_100_cmd = Command(
             title=self.tr.text("opacity_100_cmd"),
@@ -126,7 +150,9 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.opacity_100_cmd_mouse_enter,
             mouse_leave=self.opacity_100_cmd_mouse_leave,
-            action=self.change_window_opacity_100
+            action=self.change_window_opacity_100,
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.opacity_cmd = Command(
             title=self.tr.text("opacity_cmd"),
@@ -141,7 +167,9 @@ class AppToolBar(Box):
             drop_opened=self.opacity_cmd_opened,
             drop_closed=self.opacity_cmd_closed,
             mouse_enter=self.opacity_cmd_mouse_enter,
-            mouse_leave=self.opacity_cmd_mouse_leave
+            mouse_leave=self.opacity_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.hide_balances_cmd = Command(
             title=self.tr.text("hide_balances_cmd"),
@@ -149,7 +177,9 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.hide_balances_cmd_mouse_enter,
             mouse_leave=self.hide_balances_cmd_mouse_leave,
-            tooltip=self.tr.tooltip("hide_balances_cmd")
+            tooltip=self.tr.tooltip("hide_balances_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.notification_txs_cmd = Command(
             title=self.tr.text("notification_txs_cmd"),
@@ -157,7 +187,9 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.notification_txs_cmd_mouse_enter,
             mouse_leave=self.notification_txs_cmd_mouse_leave,
-            tooltip=self.tr.tooltip("notification_txs_cmd")
+            tooltip=self.tr.tooltip("notification_txs_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.notification_messages_cmd = Command(
             title=self.tr.text("notification_messages_cmd"),
@@ -165,7 +197,9 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.notification_messages_cmd_mouse_enter,
             mouse_leave=self.notification_messages_cmd_mouse_leave,
-            tooltip=self.tr.tooltip("notification_messages_cmd")
+            tooltip=self.tr.tooltip("notification_messages_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.minimize_cmd = Command(
             title=self.tr.text("minimize_cmd"),
@@ -173,7 +207,9 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.minimize_cmd_mouse_enter,
             mouse_leave=self.minimize_cmd_mouse_leave,
-            tooltip=self.tr.tooltip("minimize_cmd")
+            tooltip=self.tr.tooltip("minimize_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.startup_cmd = Command(
             title=self.tr.text("startup_cmd"),
@@ -181,7 +217,9 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.startup_cmd_mouse_enter,
             mouse_leave=self.startup_cmd_mouse_leave,
-            tooltip=self.tr.tooltip("startup_cmd")
+            tooltip=self.tr.tooltip("startup_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.settings_menu = Command(
             title=self.tr.text("settings_menu"),
@@ -200,7 +238,9 @@ class AppToolBar(Box):
             drop_closed=self.settings_menu_closed,
             mouse_enter=self.settings_menu_mouse_enter,
             mouse_leave=self.settings_menu_mouse_leave,
-            icon="images/settings_i.ico"
+            icon="images/settings_i.ico",
+            font=self.font.get(9),
+            rtl = self.rtl
         )
 
         self.peer_info_cmd = Command(
@@ -211,7 +251,9 @@ class AppToolBar(Box):
             mouse_leave=self.peer_info_cmd_mouse_leave,
             shortcut_key=Keys.Control | Keys.Shift | Keys.N,
             icon="images/peer_i.ico",
-            tooltip=self.tr.tooltip("peer_info_cmd")
+            tooltip=self.tr.tooltip("peer_info_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.add_node_cmd = Command(
             title=self.tr.text("add_node_cmd"),
@@ -220,7 +262,9 @@ class AppToolBar(Box):
             mouse_enter=self.add_node_cmd_mouse_enter,
             mouse_leave=self.add_node_cmd_mouse_leave,
             icon="images/add_node_i.ico",
-            tooltip=self.tr.tooltip("add_node_cmd")
+            tooltip=self.tr.tooltip("add_node_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.tor_config_cmd = Command(
             title=self.tr.text("tor_config_cmd"),
@@ -229,7 +273,9 @@ class AppToolBar(Box):
             mouse_enter=self.tor_config_cmd_mouse_enter,
             mouse_leave=self.tor_config_cmd_mouse_leave,
             icon="images/tor_i.ico",
-            tooltip=self.tr.tooltip("tor_config_cmd")
+            tooltip=self.tr.tooltip("tor_config_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.network_menu = Command(
             title=self.tr.text("network_menu"),
@@ -243,7 +289,9 @@ class AppToolBar(Box):
             drop_closed=self.network_menu_closed,
             mouse_enter=self.network_menu_mouse_enter,
             mouse_leave=self.network_menu_mouse_leave,
-            icon="images/network_i.ico"
+            icon="images/network_i.ico",
+            font=self.font.get(9),
+            rtl = self.rtl
         )
 
         self.generate_t_cmd = Command(
@@ -253,7 +301,9 @@ class AppToolBar(Box):
             mouse_enter=self.generate_t_cmd_mouse_enter,
             mouse_leave=self.generate_t_cmd_mouse_leave,
             icon="images/transparent_i.ico",
-            tooltip=self.tr.tooltip("generate_t_cmd")
+            tooltip=self.tr.tooltip("generate_t_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.generate_z_cmd = Command(
             title=self.tr.text("generate_z_cmd"),
@@ -262,7 +312,9 @@ class AppToolBar(Box):
             mouse_enter=self.generate_z_cmd_mouse_enter,
             mouse_leave=self.generate_z_cmd_mouse_leave,
             icon="images/private_i.ico",
-            tooltip=self.tr.tooltip("generate_z_cmd")
+            tooltip=self.tr.tooltip("generate_z_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.generate_address_cmd = Command(
             title=self.tr.text("generate_address_cmd"),
@@ -276,7 +328,9 @@ class AppToolBar(Box):
             drop_closed=self.generate_address_cmd_closed,
             mouse_enter=self.generate_address_cmd_mouse_enter,
             mouse_leave=self.generate_address_cmd_mouse_leave,
-            icon="images/new_addr_i.ico"
+            icon="images/new_addr_i.ico",
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.import_key_cmd = Command(
             title=self.tr.text("importkey_cmd"),
@@ -285,7 +339,9 @@ class AppToolBar(Box):
             mouse_enter=self.import_key_cmd_mouse_enter,
             mouse_leave=self.import_key_cmd_mouse_leave,
             icon = "images/importkey_i.ico",
-            tooltip=self.tr.tooltip("importkey_cmd")
+            tooltip=self.tr.tooltip("importkey_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.export_wallet_cmd = Command(
             title=self.tr.text("export_wallet_cmd"),
@@ -294,7 +350,9 @@ class AppToolBar(Box):
             mouse_enter=self.export_wallet_cmd_mouse_enter,
             mouse_leave=self.export_wallet_cmd_mouse_leave,
             icon="images/export_i.ico",
-            tooltip=self.tr.tooltip("export_wallet_cmd")
+            tooltip=self.tr.tooltip("export_wallet_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.import_wallet_cmd = Command(
             title=self.tr.text("import_wallet_cmd"),
@@ -303,7 +361,9 @@ class AppToolBar(Box):
             mouse_enter=self.import_wallet_cmd_mouse_enter,
             mouse_leave=self.import_wallet_cmd_mouse_leave,
             icon="images/import_i.ico",
-            tooltip=self.tr.tooltip("import_wallet_cmd")
+            tooltip=self.tr.tooltip("import_wallet_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.wallet_menu = Command(
             title=self.tr.text("wallet_menu"),
@@ -317,7 +377,9 @@ class AppToolBar(Box):
                 self.import_key_cmd,
                 self.export_wallet_cmd,
                 self.import_wallet_cmd
-            ]
+            ],
+            font=self.font.get(9),
+            rtl = self.rtl
         )
 
         self.edit_username_cmd = Command(
@@ -327,7 +389,9 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.edit_username_cmd_mouse_enter,
             mouse_leave=self.edit_username_cmd_mouse_leave,
-            tooltip=self.tr.tooltip("edit_username_cmd")
+            tooltip=self.tr.tooltip("edit_username_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.backup_messages_cmd = Command(
             title=self.tr.text("backup_messages_cmd"),
@@ -336,7 +400,9 @@ class AppToolBar(Box):
             background_color=Color.rgb(40,43,48),
             mouse_enter=self.backup_messages_cmd_mouse_enter,
             mouse_leave=self.backup_messages_cmd_mouse_leave,
-            tooltip=self.tr.tooltip("backup_messages_cmd")
+            tooltip=self.tr.tooltip("backup_messages_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.messages_menu = Command(
             title=self.tr.text("messages_menu"),
@@ -348,7 +414,9 @@ class AppToolBar(Box):
             sub_commands=[
                 self.edit_username_cmd,
                 self.backup_messages_cmd
-            ]
+            ],
+            font=self.font.get(9),
+            rtl = self.rtl
         )
 
         self.check_update_cmd = Command(
@@ -358,7 +426,9 @@ class AppToolBar(Box):
             mouse_enter=self.check_update_cmd_mouse_enter,
             mouse_leave=self.check_update_cmd_mouse_leave,
             icon="images/update_i.ico",
-            tooltip=self.tr.tooltip("check_update_cmd")
+            tooltip=self.tr.tooltip("check_update_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.join_us_cmd = Command(
             title=self.tr.text("join_us_cmd"),
@@ -367,7 +437,9 @@ class AppToolBar(Box):
             mouse_enter=self.join_us_cmd_mouse_enter,
             mouse_leave=self.join_us_cmd_mouse_leave,
             icon="images/discord_i.ico",
-            tooltip=self.tr.tooltip("join_us_cmd")
+            tooltip=self.tr.tooltip("join_us_cmd"),
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         self.help_menu = Command(
             title=self.tr.text("help_menu"),
@@ -379,7 +451,9 @@ class AppToolBar(Box):
             drop_opened=self.help_menu_opened,
             drop_closed=self.help_menu_closed,
             mouse_enter=self.help_menu_mouse_enter,
-            mouse_leave=self.help_menu_mouse_leave
+            mouse_leave=self.help_menu_mouse_leave,
+            font=self.font.get(9),
+            rtl = self.rtl
         )
         
         self.toolbar.add_command(

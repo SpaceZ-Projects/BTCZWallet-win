@@ -22,12 +22,23 @@ class BitcoinZGUI(Window):
         self.commands = Client(self.app)
         self.units = Units(self.app, self.commands)
         self.tr = Translations(self.settings)
-        self.utils = Utils(self.app, self.units, self.tr)
-        self.monda_font = CustomFont()
+        self.utils = Utils(self.app, self.settings, self.units, self.tr)
+        self.font = CustomFont(self.settings)
 
         self.title = self.tr.title("main_window")
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
+
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
+
+        if self.rtl:
+            version = self.units.arabic_digits(self.app.version)
+        else:
+            version = self.app.version
 
         self.startup_panel = Box(
             style=Pack(
@@ -51,7 +62,7 @@ class BitcoinZGUI(Window):
             )
         )
         self.app_version = Label(
-            text=f"v{self.app.version}",
+            text=f"v {version}",
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -60,13 +71,13 @@ class BitcoinZGUI(Window):
                 flex = 1
             )
         )
-        self.app_version._impl.native.Font = self.monda_font.get(9, True)
+        self.app_version._impl.native.Font = self.font.get(9, True)
 
         self.tor_icon = ImageView(
             image="images/tor_off.png",
             style=Pack(
                 background_color = rgb(30,33,36),
-                padding_left = 10,
+                padding = self.tr.padding("tor_icon"),
             )
         )
         self.network_status = Label(
@@ -78,10 +89,10 @@ class BitcoinZGUI(Window):
                 flex = 1
             )
         )
-        self.network_status._impl.native.Font = self.monda_font.get(9, True)
+        self.network_status._impl.native.Font = self.font.get(9, True)
         
         self.startup = BTCZSetup(
-            self.app, self, self.settings, self.utils, self.units, self.commands, self.tr, self.monda_font
+            self.app, self, self.settings, self.utils, self.units, self.commands, self.tr, self.font
         )
         self.startup_panel.add(
             self.bitcoinz_logo,

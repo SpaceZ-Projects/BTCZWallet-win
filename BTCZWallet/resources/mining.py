@@ -21,7 +21,7 @@ from .storage import StorageMessages
 
 
 class Mining(Box):
-    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, monda_font):
+    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -51,7 +51,7 @@ class Mining(Box):
         self.commands = commands
         self.settings = settings
         self.tr = tr
-        self.monda_font = monda_font
+        self.font = font
 
         self.storage = StorageMessages(self.app)
         self.tooltip = ToolTip()
@@ -68,7 +68,7 @@ class Mining(Box):
                 padding_top = 12
             )
         )
-        self.miner_label._impl.native.Font = self.monda_font.get(11, True)
+        self.miner_label._impl.native.Font = self.font.get(11, True)
 
         self.miner_selection = Selection(
             items=[
@@ -86,7 +86,7 @@ class Mining(Box):
             accessor="miner",
             on_change=self.verify_miners_apps
         )
-        self.miner_selection._impl.native.Font = self.monda_font.get(11, True)
+        self.miner_selection._impl.native.Font = self.font.get(11, True)
         self.miner_selection._impl.native.FlatStyle = FlatStyle.FLAT
 
         self.progress_bar = ProgressBar(
@@ -126,7 +126,7 @@ class Mining(Box):
                 padding_top = 12
             )
         )
-        self.address_label._impl.native.Font = self.monda_font.get(11, True)
+        self.address_label._impl.native.Font = self.font.get(11, True)
         
         self.address_selection = Selection(
             style=Pack(
@@ -138,7 +138,7 @@ class Mining(Box):
             accessor="select_address",
             on_change=self.display_address_balance
         )
-        self.address_selection._impl.native.Font = self.monda_font.get(11, True)
+        self.address_selection._impl.native.Font = self.font.get(11, True)
         self.address_selection._impl.native.FlatStyle = FlatStyle.FLAT
         self.address_selection._impl.native.DropDownHeight = 150
 
@@ -152,7 +152,7 @@ class Mining(Box):
                 padding_top = 12
             )
         )
-        self.address_balance._impl.native.Font = self.monda_font.get(11, True)
+        self.address_balance._impl.native.Font = self.font.get(11, True)
 
         self.selection_address_box = Box(
             style=Pack(
@@ -173,7 +173,7 @@ class Mining(Box):
                 padding_top = 12
             )
         )
-        self.pool_label._impl.native.Font = self.monda_font.get(11, True)
+        self.pool_label._impl.native.Font = self.font.get(11, True)
 
         self.pool_selection = Selection(
             style=Pack(
@@ -188,7 +188,7 @@ class Mining(Box):
             accessor="pool",
             on_change=self.update_server_selection
         )
-        self.pool_selection._impl.native.Font = self.monda_font.get(11, True)
+        self.pool_selection._impl.native.Font = self.font.get(11, True)
         self.pool_selection._impl.native.FlatStyle = FlatStyle.FLAT
 
         self.pool_region_selection = Selection(
@@ -202,7 +202,7 @@ class Mining(Box):
             accessor="region",
             on_change=self.update_region_server
         )
-        self.pool_region_selection._impl.native.Font = self.monda_font.get(11, True)
+        self.pool_region_selection._impl.native.Font = self.font.get(11, True)
         self.pool_region_selection._impl.native.FlatStyle = FlatStyle.FLAT
 
         self.ssl_switch = Switch(
@@ -215,7 +215,7 @@ class Mining(Box):
             ),
             enabled=False
         )
-        self.ssl_switch._impl.native.Font = self.monda_font.get(11, True)
+        self.ssl_switch._impl.native.Font = self.font.get(11, True)
         self.tooltip.insert(self.ssl_switch._impl.native, self.tr.tooltip("ssl_switch"))
 
         self.selection_pool_box = Box(
@@ -237,7 +237,7 @@ class Mining(Box):
                 padding_top = 12
             )
         )
-        self.worker_label._impl.native.Font = self.monda_font.get(11, True)
+        self.worker_label._impl.native.Font = self.font.get(11, True)
 
         self.worker_input = TextInput(
             placeholder=self.tr.text("worker_input"),
@@ -250,7 +250,7 @@ class Mining(Box):
             ),
             on_change=self.update_worker_name
         )
-        self.worker_input._impl.native.Font = self.monda_font.get(11, True)
+        self.worker_input._impl.native.Font = self.font.get(11, True)
 
         self.empty_box = Box(
             style=Pack(
@@ -304,7 +304,7 @@ class Mining(Box):
                 padding_left = 5
             )
         )
-        self.totalshares_value._impl.native.Font = self.monda_font.get(7, True)
+        self.totalshares_value._impl.native.Font = self.font.get(7, True)
 
         self.balance_icon = ImageView(
             image="images/balance.png",
@@ -323,7 +323,7 @@ class Mining(Box):
                 padding_left = 5
             )
         )
-        self.balance_value._impl.native.Font = self.monda_font.get(7, True)
+        self.balance_value._impl.native.Font = self.font.get(7, True)
 
         self.immature_icon = ImageView(
             image="images/immature.png",
@@ -342,7 +342,7 @@ class Mining(Box):
                 padding_left = 2
             )
         )
-        self.immature_value._impl.native.Font = self.monda_font.get(7, True)
+        self.immature_value._impl.native.Font = self.font.get(7, True)
 
         self.paid_icon = ImageView(
             image="images/paid.png",
@@ -361,7 +361,7 @@ class Mining(Box):
                 padding_left = 6
             )
         )
-        self.paid_value._impl.native.Font = self.monda_font.get(7, True)
+        self.paid_value._impl.native.Font = self.font.get(7, True)
 
         self.solutions_icon = ImageView(
             image="images/hash_speed.png",
@@ -380,7 +380,7 @@ class Mining(Box):
                 padding_left = 6
             )
         )
-        self.solutions_value._impl.native.Font = self.monda_font.get(7, True)
+        self.solutions_value._impl.native.Font = self.font.get(7, True)
 
         self.estimated_icon = ImageView(
             image="images/estimated.png",
@@ -400,7 +400,7 @@ class Mining(Box):
                 padding_left = 6
             )
         )
-        self.estimated_value._impl.native.Font = self.monda_font.get(7, True)
+        self.estimated_value._impl.native.Font = self.font.get(7, True)
 
         self.estimated_earn_value = Label(
             text=f"0.00 {self.settings.symbol()}",
@@ -410,7 +410,7 @@ class Mining(Box):
                 padding_left = 6
             )
         )
-        self.estimated_earn_value._impl.native.Font = self.monda_font.get(7, True)
+        self.estimated_earn_value._impl.native.Font = self.font.get(7, True)
 
         self.estimated_box = Box(
             style=Pack(
@@ -439,7 +439,7 @@ class Mining(Box):
             ),
             on_press=self.start_mining_button_click
         )
-        self.start_mining_button._impl.native.Font = self.monda_font.get(11, True)
+        self.start_mining_button._impl.native.Font = self.font.get(self.tr.size("start_mining_button"), True)
         self.start_mining_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.start_mining_button._impl.native.MouseEnter += self.start_mining_button_mouse_enter
         self.start_mining_button._impl.native.MouseLeave += self.start_mining_button_mouse_leave
@@ -783,7 +783,7 @@ class Mining(Box):
                 padding = (0,2,0,2)
             )
         )
-        output_value._impl.native.Font = self.monda_font.get(9.5)
+        output_value._impl.native.Font = self.font.get(9.5)
         self.output_box.add(
             output_value
         )

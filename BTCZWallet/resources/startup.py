@@ -9,18 +9,19 @@ from toga import (
     App, Box, Label, ProgressBar, Window
 )
 from ..framework import (
-    ProgressStyle, Os, Forms, run_async, ToolTip
+    ProgressStyle, Os, Forms, run_async, ToolTip,
+    RightToLeft
 )
 from toga.colors import rgb, WHITE, GRAY
 from toga.style.pack import Pack
-from toga.constants import CENTER, BOLD, COLUMN, ROW, BOTTOM, LEFT, RIGHT
+from toga.constants import CENTER, COLUMN, ROW, BOTTOM, LEFT, RIGHT
 
 from .menu import Menu
 from .network import TorConfig
 
 
 class BTCZSetup(Box):
-    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, monda_font):
+    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -44,9 +45,15 @@ class BTCZSetup(Box):
         self.commands = commands
         self.settings = settings
         self.tr = tr
-        self.monda_font = monda_font
+        self.font = font
 
         self.tooltip = ToolTip()
+
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
 
         self.status_label = Label(
             text=self.tr.text("check_network"),
@@ -59,7 +66,7 @@ class BTCZSetup(Box):
                 flex = 1
             )
         )
-        self.status_label._impl.native.Font = self.monda_font.get(10)
+        self.status_label._impl.native.Font = self.font.get(10)
 
         self.status_box = Box(
             style=Pack(
@@ -80,14 +87,34 @@ class BTCZSetup(Box):
                 background_color = rgb(40,43,48)
             )
         )
-        self.status_box.add(self.status_label)
-        self.progress_box.add(self.progress_bar)
-        self.add(self.status_box, self.progress_box)
         self.progress_bar._impl.native.Style = ProgressStyle.MARQUEE
+        if self.rtl:
+            self.progress_bar._impl.native.RightToLeft = RightToLeft.YES
+            self.progress_bar._impl.native.RightToLeftLayout = True
+
+        self.status_box.add(
+            self.status_label
+        )
+        self.progress_box.add(
+            self.progress_bar
+        )
+        self.add(
+            self.status_box,
+            self.progress_box
+        )
+
         self.app.add_background_task(self.check_network)
 
 
     def update_info_box(self):
+        if self.rtl:
+            padding = 0
+            left = RIGHT
+            right = LEFT
+        else:
+            padding = 3
+            left = LEFT
+            right = RIGHT
         self.progress_bar._impl.native.Style = ProgressStyle.BLOCKS
         self.status_box.remove(self.status_label)
         self.status_box.style.direction = COLUMN
@@ -108,81 +135,89 @@ class BTCZSetup(Box):
         self.blocks_txt = Label(
             text=self.tr.text("blocks_txt"),
             style=Pack(
-                text_align = LEFT,
+                text_align = self.tr.align("blocks_txt"),
                 background_color = rgb(40,43,48),
                 color = GRAY,
-                font_weight = BOLD,
-                padding_top = 3
+                padding_top = padding
             )
         )
+        self.blocks_txt._impl.native.Font = self.font.get(self.tr.size("blocks_txt"), True)
+
         self.blocks_value = Label(
             text="",
             style=Pack(
-                text_align = LEFT,
+                text_align = self.tr.align("blocks_value"),
                 background_color = rgb(40,43,48),
                 color = WHITE,
-                font_weight = BOLD,
-                padding_top = 3
+                padding_top = padding
             )
         )
+        self.blocks_value._impl.native.Font = self.font.get(self.tr.size("blocks_value"), True)
+
         self.mediantime_text = Label(
             text=self.tr.text("mediantime_text"),
             style=Pack(
-                text_align = LEFT,
+                text_align = self.tr.align("mediantime_text"),
                 background_color = rgb(40,43,48),
-                color = GRAY,
-                font_weight = BOLD
+                color = GRAY
             )
         )
+        self.mediantime_text._impl.native.Font = self.font.get(self.tr.size("mediantime_text"), True)
+
         self.mediantime_value = Label(
             text="",
             style=Pack(
-                text_align = LEFT,
+                text_align = self.tr.align("mediantime_value"),
                 background_color = rgb(40,43,48),
-                color = WHITE,
-                font_weight = BOLD
+                color = WHITE
             )
         )
+        self.mediantime_value._impl.native.Font = self.font.get(self.tr.size("mediantime_value"), True)
+
         self.sync_txt = Label(
             text=self.tr.text("sync_txt"),
             style=Pack(
-                text_align = RIGHT,
+                text_align = self.tr.align("sync_txt"),
                 flex = 1,
                 background_color = rgb(40,43,48),
-                color = GRAY,
-                font_weight = BOLD
+                color = GRAY
             )
         )
+        self.sync_txt._impl.native.Font = self.font.get(self.tr.size("sync_txt"), True)
+
         self.sync_value = Label(
             text="",
             style=Pack(
-                text_align = RIGHT,
+                text_align = self.tr.align("sync_value"),
                 background_color = rgb(40,43,48),
-                color = WHITE,
-                font_weight = BOLD
+                color = WHITE
             )
         )
+        self.sync_value._impl.native.Font = self.font.get(self.tr.size("sync_value"), True)
+
         self.index_size_txt = Label(
             text=self.tr.text("index_size_txt"),
             style=Pack(
-                text_align = RIGHT,
+                text_align = self.tr.align("index_size_txt"),
                 flex = 1,
                 background_color = rgb(40,43,48),
                 color=GRAY,
-                font_weight = BOLD,
-                padding_top = 3
+                padding_top = padding
             )
         )
+        self.index_size_txt._impl.native.Font = self.font.get(self.tr.size("index_size_txt"), True)
+
         self.index_size_value = Label(
             text="",
             style=Pack(
-                text_align = RIGHT,
+                text_align = self.tr.align("index_size_value"),
                 background_color = rgb(40,43,48),
                 color = WHITE,
-                font_weight = BOLD,
-                padding_top = 3
+                padding_top = padding
             )
         )
+        self.index_size_value._impl.native.Font = self.font.get(self.tr.size("index_size_value"), True)
+
         self.status_box._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_status_box()))
         self.box1._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_box1()))
         self.box2._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_box2()))
@@ -194,20 +229,36 @@ class BTCZSetup(Box):
         )
 
     def update_box1(self):
-        self.box1.add(
-            self.blocks_txt,
-            self.blocks_value,
-            self.index_size_txt,
-            self.index_size_value
-        )
+        if self.rtl:
+            self.box1.add(
+                self.index_size_value,
+                self.index_size_txt,
+                self.blocks_value,
+                self.blocks_txt
+            )
+        else:
+            self.box1.add(
+                self.blocks_txt,
+                self.blocks_value,
+                self.index_size_txt,
+                self.index_size_value
+            )
 
     def update_box2(self):
-        self.box2.add(
-            self.mediantime_text,
-            self.mediantime_value,
-            self.sync_txt,
-            self.sync_value
-        )
+        if self.rtl:
+            self.box2.add(
+                self.sync_value,
+                self.sync_txt,
+                self.mediantime_value,
+                self.mediantime_text
+            )
+        else:
+            self.box2.add(
+                self.mediantime_text,
+                self.mediantime_value,
+                self.sync_txt,
+                self.sync_value
+            )
 
     
     async def check_network(self, widget):
@@ -240,7 +291,7 @@ class BTCZSetup(Box):
                 tor_running = await self.utils.is_tor_alive()
                 await asyncio.sleep(1)
                 if self.node_status and tor_running:
-                    await self.open_main_menu()
+                    await self.check_sync_progress()
                 else:
                     await self.check_tor_files()
             elif self.tor_enabled is False:
@@ -248,7 +299,7 @@ class BTCZSetup(Box):
                 self.main.network_status.text = self.tr.text("tor_disabled")
                 await asyncio.sleep(1)
                 if self.node_status:
-                    await self.open_main_menu()
+                    await self.check_sync_progress()
                 else:
                     await self.check_binary_files()
 
@@ -330,7 +381,7 @@ class BTCZSetup(Box):
 
     def show_tor_config(self):
         self.tor_config = TorConfig(
-            self.settings, self.utils, self.commands, self.tr, self.monda_font, startup=self.main
+            self.settings, self.utils, self.commands, self.tr, self.font, startup=self.main
         )
         self.tor_config._impl.native.Show(self.main._impl.native)
 
@@ -348,7 +399,11 @@ class BTCZSetup(Box):
             if match:
                 percent = int(match.group(1))
                 text = self.tr.text("tor_bootstrap")
-                self.status_label.text = f"{text}{percent}%"
+                if self.rtl:
+                    percent_ar = self.units.arabic_digits(str(percent))
+                    self.status_label.text = f"%{percent_ar}{text}"
+                else:
+                    self.status_label.text = f"{text}{percent}%"
                 self.progress_bar.value = percent
                 if percent == 100:
                     return True
@@ -497,9 +552,9 @@ class BTCZSetup(Box):
                     elif error_message == "Rewinding blocks if needed...":
                         message = self.tr.text("rewind_blocks")
                     elif error_message == "Loading wallet...":
-                        self.tr.text("loading_wallet")
+                        message = self.tr.text("loading_wallet")
                     elif error_message == "Rescanning...":
-                        self.tr.text("rescan_wallet")
+                        message = self.tr.text("rescan_wallet")
                     else:
                         message = error_message
                     self.status_label.text = message
@@ -524,20 +579,17 @@ class BTCZSetup(Box):
                     blockchaininfo, _ = await self.commands.getBlockchainInfo()
                     if blockchaininfo:
                         info = json.loads(blockchaininfo)
-                    else:
-                        self.node_status = False
-                        self.app.exit()
-                        return
-                    if info:
-                        blocks = info.get('blocks')
-                        sync = info.get('verificationprogress')
-                        mediantime = info.get('mediantime')
-                    else:
-                        blocks = sync = mediantime = "N/A"
-                    if isinstance(mediantime, int):
-                        mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
-                    else:
-                        mediantime_date = "N/A"
+                        if info is not None:
+                            blocks = info.get('blocks')
+                            sync = info.get('verificationprogress')
+                            mediantime = info.get('mediantime')
+                            if isinstance(mediantime, int):
+                                mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
+                            else:
+                                mediantime_date = "N/A"
+                        else:
+                            self.app.exit()
+                            return
 
                     peerinfo, _ = await self.commands.getPeerinfo()
                     if peerinfo:
@@ -547,12 +599,18 @@ class BTCZSetup(Box):
                             bytesrecv = node.get('bytesrecv')
                             tooltip_text += f"\n{address} - {self.units.format_bytes(bytesrecv)}"
                             
-                    bitcoinz_size = self.utils.get_bitcoinz_size()
+                    bitcoinz_size = int(self.utils.get_bitcoinz_size())
                     sync_percentage = sync * 100
+                    sync_percentage_str = f"%{float(sync_percentage):.2f}"
+                    if self.rtl:
+                        blocks = self.units.arabic_digits(str(blocks))
+                        mediantime_date = self.units.arabic_digits(mediantime_date)
+                        sync_percentage_str = self.units.arabic_digits(str(sync_percentage_str))
+                        bitcoinz_size = self.units.arabic_digits(str(bitcoinz_size))
                     self.blocks_value.text = f"{blocks}"
                     self.mediantime_value.text = mediantime_date
-                    self.index_size_value.text = f"{int(bitcoinz_size)} MB"
-                    self.sync_value.text = f"%{float(sync_percentage):.2f}"
+                    self.index_size_value.text = f"{bitcoinz_size} MB"
+                    self.sync_value.text = sync_percentage_str
                     self.progress_bar.value = int(sync_percentage)
                     self.tooltip.insert(self.progress_bar._impl.native, tooltip_text)
                     tooltip_text = f"Seeds :"
@@ -566,7 +624,7 @@ class BTCZSetup(Box):
 
     async def open_main_menu(self):
         self.main_menu = Menu(
-            self.tor_enabled, self.settings, self.utils, self.units, self.commands, self.tr, self.monda_font
+            self.tor_enabled, self.settings, self.utils, self.units, self.commands, self.tr, self.font
         )
         self.main_menu._impl.native.TopMost = True
         self.main_menu._impl.native.Shown += self.on_show

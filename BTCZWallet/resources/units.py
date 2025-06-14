@@ -158,3 +158,8 @@ class Units():
         else:
             timer = f"{minutes}m"
         return timer
+    
+
+    def arabic_digits(self, value):
+        latin_to_arabic = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
+        return value.translate(latin_to_arabic)

@@ -9,12 +9,13 @@ from toga import (
     Button
 )
 from ..framework import (
-    Command, Color, ToolTip, FlatStyle, MenuStrip
+    Command, Color, ToolTip, FlatStyle, MenuStrip,
+    RightToLeft
 )
 from toga.style.pack import Pack
 from toga.constants import (
     COLUMN, ROW, TOP, CENTER, LEFT,
-    VISIBLE, HIDDEN
+    VISIBLE, HIDDEN, RIGHT
 )
 from toga.colors import (
     rgb, GRAY, WHITE, YELLOW, BLACK, RED
@@ -24,7 +25,7 @@ from .storage import StorageMessages, StorageTxs
 
 
 class Send(Box):
-    def __init__(self, app:App, main:Window, settings, units, commands, tr, monda_font):
+    def __init__(self, app:App, main:Window, settings, units, commands, tr, font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -46,11 +47,17 @@ class Send(Box):
         self.units = units
         self.settings = settings
         self.tr = tr
-        self.monda_font = monda_font
+        self.font = font
 
         self.storagemsgs = StorageMessages(self.app)
         self.storagetxs = StorageTxs(self.app)
         self.tooltip = ToolTip()
+
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
 
 
         self.switch_box = Box(
@@ -80,7 +87,7 @@ class Send(Box):
                 flex = 1
             )
         )
-        self.transparent_label._impl.native.Font = self.monda_font.get(11, True)
+        self.transparent_label._impl.native.Font = self.font.get(self.tr.size("transparent_label"), True)
         self.transparent_button._impl.native.MouseEnter += self.transparent_button_mouse_enter
         self.transparent_label._impl.native.MouseEnter += self.transparent_button_mouse_enter
         self.transparent_button._impl.native.MouseLeave += self.transparent_button_mouse_leave
@@ -104,7 +111,7 @@ class Send(Box):
                 flex = 1
             )
         )
-        self.private_label._impl.native.Font = self.monda_font.get(11, True)
+        self.private_label._impl.native.Font = self.font.get(self.tr.size("private_label"), True)
         self.private_button._impl.native.MouseEnter += self.private_button_mouse_enter
         self.private_label._impl.native.MouseEnter += self.private_button_mouse_enter
         self.private_button._impl.native.MouseLeave += self.private_button_mouse_leave
@@ -122,7 +129,7 @@ class Send(Box):
                 padding_top = 12
             )
         )
-        self.from_address_label._impl.native.Font = self.monda_font.get(11, True)
+        self.from_address_label._impl.native.Font = self.font.get(self.tr.size("from_address_label"), True)
 
         self.address_selection = Selection(
             style=Pack(
@@ -134,12 +141,12 @@ class Send(Box):
             accessor="select_address",
             on_change=self.display_address_balance
         )
-        self.address_selection._impl.native.Font = self.monda_font.get(11, True)
+        self.address_selection._impl.native.Font = self.font.get(self.tr.size("address_selection"), True)
         self.address_selection._impl.native.FlatStyle = FlatStyle.FLAT
         self.address_selection._impl.native.DropDownHeight = 150
 
         self.address_balance = Label(
-            text="0.00000000",
+            text=self.tr.text("address_balance_value"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -148,7 +155,7 @@ class Send(Box):
                 padding_top = 12
             )
         )
-        self.address_balance._impl.native.Font = self.monda_font.get(11, True)
+        self.address_balance._impl.native.Font = self.font.get(11, True)
 
         self.selection_address_box = Box(
             style=Pack(
@@ -167,8 +174,10 @@ class Send(Box):
             ),
             on_change=self.single_option_on_change
         )
-        self.single_option._impl.native.Font = self.monda_font.get(11, True)
+        self.single_option._impl.native.Font = self.font.get(self.tr.size("single_option"), True)
         self.tooltip.insert(self.single_option._impl.native, self.tr.tooltip("single_option"))
+        if self.rtl:
+            self.single_option._impl.native.RightToLeft = RightToLeft.YES
 
         self.many_option = Switch(
             text=self.tr.text("many_option"),
@@ -179,8 +188,10 @@ class Send(Box):
             ),
             on_change=self.many_option_on_change
         )
-        self.many_option._impl.native.Font = self.monda_font.get(11, True)
+        self.many_option._impl.native.Font = self.font.get(self.tr.size("many_option"), True)
         self.tooltip.insert(self.many_option._impl.native, self.tr.tooltip("many_option"))
+        if self.rtl:
+            self.many_option._impl.native.RightToLeft = RightToLeft.YES
 
         self.send_options_switch = Box(
             style=Pack(
@@ -211,7 +222,7 @@ class Send(Box):
                 padding_top = 12
             )
         )
-        self.destination_label._impl.native.Font = self.monda_font.get(11, True)
+        self.destination_label._impl.native.Font = self.font.get(self.tr.size("destination_label"), True)
 
         self.destination_input_single = TextInput(
             placeholder=" Address",
@@ -223,7 +234,7 @@ class Send(Box):
             ),
             on_change=self.is_valid_address
         )
-        self.destination_input_single._impl.native.Font = self.monda_font.get(11, True)
+        self.destination_input_single._impl.native.Font = self.font.get(self.tr.size("destination_input_single"), True)
 
         self.destination_input_many = MultilineTextInput(
             placeholder=" Addresses list",
@@ -236,21 +247,22 @@ class Send(Box):
             ),
             on_change=self.destination_input_many_on_change
         )
-        self.destination_input_many._impl.native.Font = self.monda_font.get(11, True)
+        self.destination_input_many._impl.native.Font = self.font.get(self.tr.size("destination_input_many"), True)
 
         self.is_valid = ImageView(
             style=Pack(
                 background_color = rgb(30,33,36),
                 width = 30,
                 height = 30,
-                padding= (9,0,0,10)
+                padding= self.tr.padding("is_valid")
             )
         )
         self.is_valid_box = Box(
             style=Pack(
                 direction = COLUMN,
                 background_color = rgb(30,33,36),
-                flex = 1 
+                flex = 1,
+                alignment = self.tr.align("is_valid_box")
             )
         )
 
@@ -273,7 +285,7 @@ class Send(Box):
                 padding_top = 12
             )
         )
-        self.amount_label._impl.native.Font = self.monda_font.get(11, True)
+        self.amount_label._impl.native.Font = self.font.get(self.tr.size("amount_label"), True)
 
         self.amount_input = TextInput(
             placeholder="0.00000000",
@@ -289,20 +301,20 @@ class Send(Box):
             ],
             on_change=self.verify_balance
         )
-        self.amount_input._impl.native.Font = self.monda_font.get(11, True)
+        self.amount_input._impl.native.Font = self.font.get(self.tr.size("amount_input"), True)
 
         self.check_amount_label = Label(
             text="",
             style=Pack(
                 color = RED,
                 background_color = rgb(30,33,36),
-                text_align = LEFT,
+                text_align = self.tr.align("check_amount_label"),
                 flex = 5,
                 padding_top = 12,
                 padding_left = 10
             )
         )
-        self.check_amount_label._impl.native.Font = self.monda_font.get(10, True)
+        self.check_amount_label._impl.native.Font = self.font.get(10, True)
 
         self.split_option = Switch(
             text=self.tr.text("split_option"),
@@ -313,20 +325,24 @@ class Send(Box):
             ),
             on_change=self.split_option_on_change
         )
-        self.split_option._impl.native.Font = self.monda_font.get(11, True)
+        self.split_option._impl.native.Font = self.font.get(self.tr.size("split_option"), True)
         self.tooltip.insert(self.split_option._impl.native, self.tr.tooltip("split_option"))
+        if self.rtl:
+            self.split_option._impl.native.RightToLeft = RightToLeft.YES
 
         self.each_option = Switch(
             text=self.tr.text("each_option"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                padding_left = 20
+                padding = self.tr.padding("each_option")
             ),
             on_change=self.each_option_on_change
         )
-        self.each_option._impl.native.Font = self.monda_font.get(11, True)
+        self.each_option._impl.native.Font = self.font.get(self.tr.size("each_option"), True)
         self.tooltip.insert(self.each_option._impl.native, self.tr.tooltip("each_option"))
+        if self.rtl:
+            self.each_option._impl.native.RightToLeft = RightToLeft.YES
 
 
         self.amount_options_switch = Box(
@@ -366,7 +382,7 @@ class Send(Box):
                 padding_top = 12
             )
         )
-        self.fee_label._impl.native.Font = self.monda_font.get(11, True)
+        self.fee_label._impl.native.Font = self.font.get(self.tr.size("fee_label"), True)
 
         self.fee_input = TextInput(
             placeholder="0.00000000",
@@ -381,7 +397,7 @@ class Send(Box):
                 self.is_digit
             ]
         )
-        self.fee_input._impl.native.Font = self.monda_font.get(11, True)
+        self.fee_input._impl.native.Font = self.font.get(self.tr.size("fee_input"), True)
 
         self.empty_box = Box(
             style=Pack(
@@ -410,29 +426,29 @@ class Send(Box):
             text=self.tr.text("operation_label"),
             style=Pack(
                 color = GRAY,
-                text_align= LEFT,
+                text_align= self.tr.align("operation_label"),
                 background_color = rgb(30,33,36),
                 padding_top = 5
             )
         )
-        self.operation_label._impl.native.Font = self.monda_font.get(10, True)
+        self.operation_label._impl.native.Font = self.font.get(10, True)
 
         self.operation_status = Label(
             text="",
             style=Pack(
                 color = WHITE,
-                text_align= LEFT,
+                text_align= self.tr.align("operation_status"),
                 background_color = rgb(30,33,36),
                 padding_top = 5
             )
         )
-        self.operation_status._impl.native.Font = self.monda_font.get(10, True)
+        self.operation_status._impl.native.Font = self.font.get(10, True)
 
         self.operation_box = Box(
             style=Pack(
                 direction = ROW,
                 background_color = rgb(30,33,36),
-                padding_left = 10
+                padding = self.tr.padding("operation_box")
             )
         )
 
@@ -440,7 +456,8 @@ class Send(Box):
             style=Pack(
                 direction = COLUMN,
                 background_color = rgb(30,33,36),
-                flex = 1
+                flex = 1,
+                alignment = self.tr.align("send_box")
             )
         )
 
@@ -450,11 +467,11 @@ class Send(Box):
                 color = GRAY,
                 background_color = rgb(30,33,36),
                 width = 150,
-                padding = (10,10,0,0)
+                padding = self.tr.padding("cashout_button")
             ),
             on_press=self.send_button_click
         )
-        self.send_button._impl.native.Font = self.monda_font.get(11, True)
+        self.send_button._impl.native.Font = self.font.get(self.tr.size("cashout_button"), True)
         self.send_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.send_button._impl.native.MouseEnter += self.send_button_mouse_enter
         self.send_button._impl.native.MouseLeave += self.send_button_mouse_leave
@@ -483,70 +500,121 @@ class Send(Box):
                 self.separator_box,
                 self.confirmation_box
             )
-            self.switch_box.add(
-                self.transparent_button,
-                self.private_button
-            )
+            if self.rtl:
+                self.switch_box.add(
+                    self.private_button,
+                    self.transparent_button
+                )
+            else:
+                self.switch_box.add(
+                    self.transparent_button,
+                    self.private_button
+                )
             self.transparent_button.add(
                 self.transparent_label
             )
             self.private_button.add(
                 self.private_label
             )
-            self.selection_address_box.add(
-                self.from_address_label,
-                self.address_selection,
-                self.address_balance
-            )
+            if self.rtl:
+                self.selection_address_box.add(
+                    self.address_balance,
+                    self.address_selection,
+                    self.from_address_label
+                )
+            else:
+                self.selection_address_box.add(
+                    self.from_address_label,
+                    self.address_selection,
+                    self.address_balance
+                )
             self.send_options_box.add(
                 self.send_options_switch
             )
-            self.send_options_switch.add(
-                self.single_option,
-                self.many_option
-            )
-            self.destination_box.add(
-                self.destination_label,
-                self.is_valid_box
-            )
+            if self.rtl:
+                self.send_options_switch.add(
+                    self.many_option,
+                    self.single_option
+                )
+                self.destination_box.add(
+                    self.is_valid_box,
+                    self.destination_label
+                )
+            else:
+                self.send_options_switch.add(
+                    self.single_option,
+                    self.many_option
+                )
+                self.destination_box.add(
+                    self.destination_label,
+                    self.is_valid_box
+                )
             self.is_valid_box.add(
                 self.is_valid
             )
-            self.amount_box.add(
-                self.amount_label,
-                self.amount_input,
-                self.check_amount_label
-            )
-            self.amount_options_switch.add(
-                self.split_option,
-                self.each_option
-            )
+            if self.rtl:
+                self.amount_box.add(
+                    self.check_amount_label,
+                    self.amount_input,
+                    self.amount_label
+                )
+                self.amount_options_switch.add(
+                    self.each_option,
+                    self.split_option
+                )
+            else:
+                self.amount_box.add(
+                    self.amount_label,
+                    self.amount_input,
+                    self.check_amount_label
+                )
+                self.amount_options_switch.add(
+                    self.split_option,
+                    self.each_option
+                )
             self.amount_options_box.add(
                 self.amount_options_switch
             )
-            self.fees_box.add(
-                self.fee_label,
-                self.fee_input,
-                self.empty_box
-            )
-            self.confirmation_box.add(
-                self.send_box,
-                self.send_button
-            )
+            if self.rtl:
+                self.fees_box.add(
+                    self.empty_box,
+                    self.fee_input,
+                    self.fee_label
+                )
+                self.confirmation_box.add(
+                    self.send_button,
+                    self.send_box
+                )
+            else:
+                self.fees_box.add(
+                    self.fee_label,
+                    self.fee_input,
+                    self.empty_box
+                )
+                self.confirmation_box.add(
+                    self.send_box,
+                    self.send_button
+                )
             self.send_box.add(
                 self.operation_box
             )
-            self.operation_box.add(
-                self.operation_label,
-                self.operation_status
-            )
+            if self.rtl:
+                self.operation_box.add(
+                    self.operation_status,
+                    self.operation_label
+                )
+            else:
+                self.operation_box.add(
+                    self.operation_label,
+                    self.operation_status
+                )
             self.send_toggle = True
             self.insert_menustrip()
             self.transparent_button_click(None, None)
         
 
     def insert_menustrip(self):
-        destination_context_menu = MenuStrip()
+        destination_context_menu = MenuStrip(rtl=self.rtl)
         self.messages_address_cmd = Command(
             title=self.tr.text("messages_address_cmd"),
             color=Color.WHITE,
@@ -554,14 +622,16 @@ class Send(Box):
             action=self.set_destination_messages_address,
             icon="images/deposit_messages_i.ico",
             mouse_enter=self.messages_address_cmd_mouse_enter,
-            mouse_leave=self.messages_address_cmd_mouse_leave
+            mouse_leave=self.messages_address_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl=self.rtl
         )
         messages_address_commands = [self.messages_address_cmd]
         for command in messages_address_commands:
             destination_context_menu.Items.Add(command)
         self.destination_input_single._impl.native.ContextMenuStrip = destination_context_menu
 
-        amount_context_menu = MenuStrip()
+        amount_context_menu = MenuStrip(self.settings)
         self.percentage_25_cmd = Command(
             title=self.tr.text("percentage_25_cmd"),
             color=Color.WHITE,
@@ -569,7 +639,9 @@ class Send(Box):
             action=self.set_25_amount,
             icon="images/percentage_i.ico",
             mouse_enter=self.percentage_25_cmd_mouse_enter,
-            mouse_leave=self.percentage_25_cmd_mouse_leave
+            mouse_leave=self.percentage_25_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl=self.rtl
         )
         self.percentage_50_cmd = Command(
             title=self.tr.text("percentage_50_cmd"),
@@ -578,7 +650,9 @@ class Send(Box):
             action=self.set_50_amount,
             icon="images/percentage_i.ico",
             mouse_enter=self.percentage_50_cmd_mouse_enter,
-            mouse_leave=self.percentage_50_cmd_mouse_leave
+            mouse_leave=self.percentage_50_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl=self.rtl
         )
         self.percentage_75_cmd = Command(
             title=self.tr.text("percentage_75_cmd"),
@@ -587,7 +661,9 @@ class Send(Box):
             action=self.set_75_amount,
             icon="images/percentage_i.ico",
             mouse_enter=self.percentage_75_cmd_mouse_enter,
-            mouse_leave=self.percentage_75_cmd_mouse_leave
+            mouse_leave=self.percentage_75_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl=self.rtl
         )
         self.max_amount_cmd = Command(
             title=self.tr.text("max_amount_cmd"),
@@ -596,7 +672,9 @@ class Send(Box):
             action=self.set_max_amount,
             icon="images/max_i.ico",
             mouse_enter=self.max_amount_cmd_mouse_enter,
-            mouse_leave=self.max_amount_cmd_mouse_leave
+            mouse_leave=self.max_amount_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl=self.rtl
         )
         amount_commands = [
             self.percentage_25_cmd,
@@ -608,7 +686,7 @@ class Send(Box):
             amount_context_menu.Items.Add(command)
         self.amount_input._impl.native.ContextMenuStrip = amount_context_menu
 
-        fee_context_menu = MenuStrip()
+        fee_context_menu = MenuStrip(rtl=self.rtl)
         self.slow_fee_cmd = Command(
             title=self.tr.text("slow_fee_cmd"),
             color=Color.WHITE,
@@ -616,7 +694,9 @@ class Send(Box):
             action=self.set_slow_fee,
             icon="images/slow_i.ico",
             mouse_enter=self.slow_fee_cmd_mouse_enter,
-            mouse_leave=self.slow_fee_cmd_mouse_leave
+            mouse_leave=self.slow_fee_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl=self.rtl
         )
         self.normal_fee_cmd = Command(
             title=self.tr.text("normal_fee_cmd"),
@@ -625,7 +705,9 @@ class Send(Box):
             action=self.set_normal_fee,
             icon="images/normal_i.ico",
             mouse_enter=self.normal_fee_cmd_mouse_enter,
-            mouse_leave=self.normal_fee_cmd_mouse_leave
+            mouse_leave=self.normal_fee_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl=self.rtl
         )
         self.fast_fee_cmd = Command(
             title=self.tr.text("fast_fee_cmd"),
@@ -634,7 +716,9 @@ class Send(Box):
             action=self.set_fast_fee,
             icon="images/fast_i.ico",
             mouse_enter=self.fast_fee_cmd_mouse_enter,
-            mouse_leave=self.fast_fee_cmd_mouse_leave
+            mouse_leave=self.fast_fee_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl=self.rtl
         )
         fee_commands = [
             self.slow_fee_cmd,
@@ -754,7 +838,7 @@ class Send(Box):
     def set_25_amount(self):
         if self.address_selection.value.select_address:
             selected_address = self.address_selection.value.select_address
-            balance = self.address_balance.text
+            balance = self.format_balance
             if selected_address == self.tr.text("main_account"):
                 if float(balance) > 0.0002:
                     balance_after_fee = float(balance) - 0.0001
@@ -771,7 +855,7 @@ class Send(Box):
     def set_50_amount(self):
         if self.address_selection.value.select_address:
             selected_address = self.address_selection.value.select_address
-            balance = self.address_balance.text
+            balance = self.format_balance
             if selected_address == self.tr.text("main_account"):
                 if float(balance) > 0.0002:
                     balance_after_fee = float(balance) - 0.0001
@@ -788,7 +872,7 @@ class Send(Box):
     def set_75_amount(self):
         if self.address_selection.value.select_address:
             selected_address = self.address_selection.value.select_address
-            balance = self.address_balance.text
+            balance = self.format_balance
             if selected_address == self.tr.text("main_account"):
                 if float(balance) > 0.0002:
                     balance_after_fee = float(balance) - 0.0001
@@ -805,7 +889,7 @@ class Send(Box):
     def set_max_amount(self):
         if self.address_selection.value.select_address:
             selected_address = self.address_selection.value.select_address
-            balance = self.address_balance.text
+            balance = self.format_balance
             if selected_address == self.tr.text("main_account"):
                 if float(balance) > 0.0002:
                     amount = float(balance) - 0.0001
@@ -855,6 +939,7 @@ class Send(Box):
     
     
     async def display_address_balance(self, selection):
+        self.format_balance = 0
         if selection.value is None:
             self.address_balance.text = "0.00000000"
             return
@@ -872,7 +957,11 @@ class Send(Box):
                     self.address_balance.style.color = GRAY
                 else:
                     self.address_balance.style.color = WHITE
-                format_balance = self.units.format_balance(float(balance))
+                self.format_balance = self.units.format_balance(float(balance))
+                if self.rtl:
+                    format_balance = self.units.arabic_digits(str(self.format_balance))
+                else:
+                    format_balance = self.format_balance
                 self.address_balance.text = format_balance
         elif selected_address == self.tr.text("main_account"):
             self.single_option.value = True
@@ -887,10 +976,15 @@ class Send(Box):
                     self.address_balance.style.color = GRAY
                 else:
                     self.address_balance.style.color = WHITE
-                format_balance = self.units.format_balance(float(transparent))
+                self.format_balance = self.units.format_balance(float(transparent))
+                if self.rtl:
+                    format_balance = self.units.arabic_digits(str(self.format_balance))
+                else:
+                    format_balance = self.format_balance
                 self.address_balance.text = format_balance
         else:
-            self.address_balance.text = "0.00000000"
+            self.format_balance = 0
+            self.address_balance.text = self.tr.text("address_balance_value")
 
 
     async def single_option_on_change(self, switch):
@@ -1026,7 +1120,7 @@ class Send(Box):
         if not amount:
             self.check_amount_label.text = ""
             return
-        balance = self.address_balance.text
+        balance = self.format_balance
         if float(balance) < float(amount):
             self.check_amount_label.text = self.tr.text("check_amount_label")
         else:
@@ -1054,7 +1148,7 @@ class Send(Box):
         else:
             destination_address = self.destination_input_single.value
         amount = self.amount_input.value
-        balance = self.address_balance.text
+        balance = self.format_balance
         if selected_address is None:
             self.main.error_dialog(
                 title=self.tr.title("selectaddress_dialog"),
@@ -1107,7 +1201,7 @@ class Send(Box):
         selected_address = self.address_selection.value.select_address
         amount = self.amount_input.value
         txfee = self.fee_input.value
-        balance = self.address_balance.text
+        balance = self.format_balance
         if self.many_option.value is True:
             destination_address = self.destination_input_many.value
             addresses_array = self.create_addresses_array(destination_address)
@@ -1134,6 +1228,10 @@ class Send(Box):
                     )
                 self.enable_send()
 
+            elif selected_address == self.tr.text("main_account") and destination_address.startswith("z"):
+                self.enable_send()
+                return
+
             elif selected_address != self.tr.text("main_account"):
                 if (float(amount)+float(txfee)) > float(balance):
                     self.main.error_dialog(
@@ -1148,7 +1246,12 @@ class Send(Box):
                     transaction_status = json.loads(transaction_status)
                     if isinstance(transaction_status, list) and transaction_status:
                         status = transaction_status[0].get('status')
-                        self.operation_status.text = status
+                        if status == "failed":
+                            self.operation_status.text = self.tr.text("send_failed")
+                        elif status == "executing":
+                            self.operation_status.text = self.tr.text("send_executing")
+                        elif status == "success":
+                            self.operation_status.text = self.tr.text("send_success")
                         if status == "executing" or status =="success":
                             await asyncio.sleep(1)
                             while True:
@@ -1158,14 +1261,18 @@ class Send(Box):
                                     status = transaction_result[0].get('status')
                                     result = transaction_result[0].get('result', {})
                                     txid = result.get('txid')
-                                    self.operation_status.text = status
                                     if status == "failed":
+                                        self.operation_status.text = self.tr.text("send_failed")
                                         self.enable_send()
                                         self.main.error_dialog(
                                             title=self.tr.title("sendfailed_dialog"),
                                             message=self.tr.message("sendfailed_dialog")
                                         )
                                         return
+                                    elif status == "executing":
+                                        self.operation_status.text = self.tr.text("send_executing")
+                                    elif status == "success":
+                                        self.operation_status.text = self.tr.text("send_success")
                                     if selected_address.startswith('z'):
                                         self.store_private_transaction(destination_address, txid, amount)
                                     self.enable_send()
@@ -1202,7 +1309,7 @@ class Send(Box):
             amount = f"{amount:.8f}"
         elif self.each_option.value is True:
             total_amount = float(amount_value) * len(addresses)
-            address_balance = self.address_balance.text
+            address_balance = self.format_balance
             if float(total_amount) > float(address_balance):
                 message = self.tr.message("insufficientmany_dialog")
                 self.main.error_dialog(
@@ -1225,6 +1332,12 @@ class Send(Box):
                 transaction_status = json.loads(transaction_status)
                 if isinstance(transaction_status, list) and transaction_status:
                     status = transaction_status[0].get('status')
+                    if status == "failed":
+                        self.operation_status.text = self.tr.text("send_failed")
+                    elif status == "executing":
+                        self.operation_status.text = self.tr.text("send_executing")
+                    elif status == "success":
+                        self.operation_status.text = self.tr.text("send_success")
                     self.operation_status.text = status
                     if status == "executing" or status =="success":
                         await asyncio.sleep(1)
@@ -1236,13 +1349,17 @@ class Send(Box):
                                 result = transaction_result[0].get('result', {})
                                 txid = result.get('txid')
                                 if status == "failed":
+                                    self.operation_status.text = self.tr.text("send_failed")
                                     self.enable_send()
                                     self.main.error_dialog(
                                         title=self.tr.title("sendfailed_dialog"),
                                         message=self.tr.message("sendfailed_dialog")
                                     )
-                                    self.operation_status.text = status
                                     return
+                                elif status == "executing":
+                                    self.operation_status.text = self.tr.text("send_executing")
+                                elif status == "success":
+                                    self.operation_status.text = self.tr.text("send_success")
                                 if selected_address.startswith('z'):
                                     self.store_private_transaction("To Many", txid, self.amount_input.value)
                                 self.enable_send()

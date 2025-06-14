@@ -18,7 +18,7 @@ from ..framework import (
 
 
 class Utils():
-    def __init__(self, app:App, units, tr):
+    def __init__(self, app:App, settings, units, tr):
         super().__init__()
 
         self.app = app
@@ -30,8 +30,15 @@ class Utils():
         if not Os.Directory.Exists(str(self.app_cache)):
             Os.Directory.CreateDirectory(str(self.app_cache))
 
+        self.settings = settings
         self.units = units
         self.tr = tr
+
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
 
     
     async def get_repo_info(self, tor_enabled):
@@ -609,7 +616,11 @@ class Utils():
         if progress is None:
             label._impl.native.Text = text
         else:
-            label._impl.native.Text = f"{text}{progress}%"
+            if self.rtl:
+                progress_ar = self.units.arabic_digits(str(progress))
+                label._impl.native.Text = f"%{progress_ar}{text}"
+            else:
+                label._impl.native.Text = f"{text}{progress}%"
 
     def update_progress_bar(self, progress_bar, progress):
         progress_bar.value = progress

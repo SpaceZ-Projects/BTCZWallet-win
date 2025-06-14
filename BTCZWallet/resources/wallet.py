@@ -21,7 +21,7 @@ from toga.constants import (
 
 
 class Wallet(Box):
-    def __init__(self, app:App, main:Window, settings, units, commands, tr, monda_font):
+    def __init__(self, app:App, main:Window, settings, units, commands, tr, font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -39,7 +39,13 @@ class Wallet(Box):
         self.units = units
         self.settings = settings
         self.tr = tr
-        self.monda_font = monda_font
+        self.font = font
+
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
 
         self.bitcoinz_logo = ImageView(
             image="images/BitcoinZ.png",
@@ -47,31 +53,30 @@ class Wallet(Box):
                 width=100,
                 height=100,
                 background_color = rgb(40,43,48),
-                padding_top = 10,
-                padding_left = 10
+                padding = self.tr.padding("bitcoinz_logo"),
             )
         )
         self.bitcoinz_title = Label(
-            text="Full Node Wallet",
+            text=self.tr.text("bitcoinz_title"),
             style=Pack(
                 color = WHITE,
                 background_color = rgb(40,43,48),
-                text_align = LEFT,
+                text_align = self.tr.align("bitcoinz_title"),
                 padding_top = 25
             )
         )
-        self.bitcoinz_title._impl.native.Font = self.monda_font.get(22, True)
+        self.bitcoinz_title._impl.native.Font = self.font.get(self.tr.size("bitcoinz_title"), True)
 
         self.bitcoinz_version = Label(
             text="",
             style=Pack(
                 color = GRAY,
                 background_color = rgb(40,43,48),
-                text_align = LEFT,
-                padding_left = 13
+                text_align = self.tr.align("bitcoinz_version"),
+                padding = self.tr.padding("bitcoinz_version")
             )
         )
-        self.bitcoinz_version._impl.native.Font = self.monda_font.get(8, True)
+        self.bitcoinz_version._impl.native.Font = self.font.get(8, True)
         
         self.bitcoinz_title_box = Box(
             style=Pack(
@@ -100,7 +105,7 @@ class Wallet(Box):
                 flex =1
             )
         )
-        self.total_balances_label._impl.native.Font = self.monda_font.get(14, True)
+        self.total_balances_label._impl.native.Font = self.font.get(self.tr.size("total_balances_label"), True)
 
         self.total_value = Label(
             text="",
@@ -110,7 +115,7 @@ class Wallet(Box):
                 background_color = rgb(30,33,36)
             )
         )
-        self.total_value._impl.native.Font = self.monda_font.get(14, True)
+        self.total_value._impl.native.Font = self.font.get(self.tr.size("total_value"), True)
 
         self.balances_type_box = Box(
             style=Pack(
@@ -146,7 +151,7 @@ class Wallet(Box):
                 color = GRAY
             )
         )
-        self.transparent_label._impl.native.Font = self.monda_font.get(8, True)
+        self.transparent_label._impl.native.Font = self.font.get(8, True)
 
         self.transparent_value = Label(
             text="",
@@ -156,7 +161,7 @@ class Wallet(Box):
                 color = YELLOW
             )
         )
-        self.transparent_value._impl.native.Font = self.monda_font.get(9, True)
+        self.transparent_value._impl.native.Font = self.font.get(9, True)
 
         self.private_label = Label(
             text=self.tr.text("private_label"),
@@ -166,7 +171,7 @@ class Wallet(Box):
                 color = GRAY
             )
         )
-        self.private_label._impl.native.Font = self.monda_font.get(8, True)
+        self.private_label._impl.native.Font = self.font.get(8, True)
 
         self.private_value = Label(
             text="",
@@ -176,7 +181,7 @@ class Wallet(Box):
                 color = rgb(114,137,218)
             )
         )
-        self.private_value._impl.native.Font = self.monda_font.get(9, True)
+        self.private_value._impl.native.Font = self.font.get(9, True)
 
         self.unconfirmed_label = Label(
             text=self.tr.text("unconfirmed_label"),
@@ -187,7 +192,7 @@ class Wallet(Box):
                 visibility = HIDDEN
             )
         )
-        self.unconfirmed_label._impl.native.Font = self.monda_font.get(8, True)
+        self.unconfirmed_label._impl.native.Font = self.font.get(8, True)
 
         self.unconfirmed_value = Label(
             text="",
@@ -198,24 +203,32 @@ class Wallet(Box):
                 visibility = HIDDEN
             )
         )
-        self.unconfirmed_value._impl.native.Font = self.monda_font.get(9, True)
+        self.unconfirmed_value._impl.native.Font = self.font.get(9, True)
         
         self.unconfirmed_box = Box(
             style=Pack(
                 direction = COLUMN,
                 alignment = CENTER,
                 background_color = rgb(30,33,36),
-                padding_top = 82,
+                padding = self.tr.padding("unconfirmed_box"),
                 visibility = HIDDEN
             )
         )
-
-        self.add(
-            self.bitcoinz_logo,
-            self.bitcoinz_title_box,
-            self.unconfirmed_box,
-            self.balances_box
-        )
+        
+        if self.rtl:
+            self.add(
+                self.balances_box,
+                self.unconfirmed_box,
+                self.bitcoinz_title_box,
+                self.bitcoinz_logo
+            )
+        else:
+            self.add(
+                self.bitcoinz_logo,
+                self.bitcoinz_title_box,
+                self.unconfirmed_box,
+                self.balances_box
+            )
         self.bitcoinz_title_box.add(
             self.bitcoinz_title,
             self.bitcoinz_version
@@ -230,11 +243,16 @@ class Wallet(Box):
             self.total_value,
             self.balances_type_box
         )
-
-        self.balances_type_box.add(
-            self.transparent_balance_box,
-            self.private_balance_box
-        )
+        if self.rtl:
+            self.balances_type_box.add(
+                self.private_balance_box,
+                self.transparent_balance_box
+            )
+        else:
+            self.balances_type_box.add(
+                self.transparent_balance_box,
+                self.private_balance_box
+            )
 
         self.transparent_balance_box.add(
             self.transparent_label,
@@ -275,6 +293,10 @@ class Wallet(Box):
                 totalbalance = self.units.format_balance(float(balances.get('total')))
                 transparentbalance = self.units.format_balance(float(balances.get('transparent')))
                 privatebalance = self.units.format_balance(float(balances.get('private')))
+                if self.rtl:
+                    totalbalance = self.units.arabic_digits(totalbalance)
+                    transparentbalance = self.units.arabic_digits(transparentbalance)
+                    privatebalance = self.units.arabic_digits(privatebalance)
                 if self.settings.hidden_balances():
                     totalbalance = "*.********"
                     transparentbalance = "*.********"
@@ -289,6 +311,8 @@ class Wallet(Box):
                     self.unconfirmed_box.style.visibility = VISIBLE
                     self.unconfirmed_label.style.visibility = VISIBLE
                     self.unconfirmed_value.style.visibility = VISIBLE
+                    if self.rtl:
+                        unconfirmed = self.units.arabic_digits(unconfirmed)
                     if self.settings.hidden_balances():
                         unconfirmed = "*.********"
                     self.unconfirmed_value.text = unconfirmed
@@ -301,7 +325,7 @@ class Wallet(Box):
 
 
 class ImportKey(Window):
-    def __init__(self, main:Window, settings, utils, commands, tr, monda_font):
+    def __init__(self, main:Window, settings, utils, commands, tr, font):
         super().__init__(
             size = (600, 150),
             resizable= False
@@ -312,7 +336,7 @@ class ImportKey(Window):
         self.commands = commands
         self.settings = settings
         self.tr = tr
-        self.monda_font = monda_font
+        self.font = font
 
         self.title = self.tr.title("importkey_window")
         self.position = self.utils.windows_screen_center(self.size)
@@ -336,7 +360,7 @@ class ImportKey(Window):
                 padding_top = 5
             )
         )
-        self.info_label._impl.native.Font = self.monda_font.get(11)
+        self.info_label._impl.native.Font = self.font.get(11)
 
         self.key_input = TextInput(
             style=Pack(
@@ -347,7 +371,7 @@ class ImportKey(Window):
                 padding_left = 10
             )
         )
-        self.key_input._impl.native.Font = self.monda_font.get(11, True)
+        self.key_input._impl.native.Font = self.font.get(self.tr.size("key_input"), True)
         
         self.import_button = Button(
             text=self.tr.text("import_button"),
@@ -359,7 +383,7 @@ class ImportKey(Window):
             ),
             on_press=self.import_button_click
         )
-        self.import_button._impl.native.Font = self.monda_font.get(9, True)
+        self.import_button._impl.native.Font = self.font.get(self.tr.size("import_button"), True)
         self.import_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.import_button._impl.native.MouseEnter += self.import_button_mouse_enter
         self.import_button._impl.native.MouseLeave += self.import_button_mouse_leave
@@ -394,7 +418,7 @@ class ImportKey(Window):
             ),
             on_press=self.close_import_key
         )
-        self.cancel_button._impl.native.Font = self.monda_font.get(9, True)
+        self.cancel_button._impl.native.Font = self.font.get(self.tr.size("cancel_button"), True)
         self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
         self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
@@ -494,7 +518,7 @@ class ImportKey(Window):
 
 
 class ImportWallet(Window):
-    def __init__(self, main:Window, settings, utils, commands, tr, monda_font):
+    def __init__(self, main:Window, settings, utils, commands, tr, font):
         super().__init__(
             size = (600, 150),
             resizable= False
@@ -505,7 +529,7 @@ class ImportWallet(Window):
         self.commands = commands
         self.settings = settings
         self.tr = tr
-        self.monda_font = monda_font
+        self.font = font
 
         self.title = self.tr.title("importwallet_window")
         self.position = self.utils.windows_screen_center(self.size)
@@ -529,7 +553,7 @@ class ImportWallet(Window):
                 padding_top = 5
             )
         )
-        self.info_label._impl.native.Font = self.monda_font.get(11)
+        self.info_label._impl.native.Font = self.font.get(11)
 
         self.file_input = TextInput(
             value=self.tr.text("file_input"),
@@ -542,7 +566,7 @@ class ImportWallet(Window):
             ),
             readonly=True
         )
-        self.file_input._impl.native.Font = self.monda_font.get(11, True)
+        self.file_input._impl.native.Font = self.font.get(self.tr.size("file_input"), True)
         self.file_input._impl.native.AllowDrop = True
         self.file_input._impl.native.Click += self.select_wallet_file
         self.file_input._impl.native.DragEnter += Forms.DragEventHandler(self.on_drag_enter)
@@ -559,7 +583,7 @@ class ImportWallet(Window):
             ),
             on_press = self.import_button_click
         )
-        self.import_button._impl.native.Font = self.monda_font.get(9, True)
+        self.import_button._impl.native.Font = self.font.get(self.tr.size("import_button"), True)
         self.import_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.import_button._impl.native.MouseEnter += self.import_button_mouse_enter
         self.import_button._impl.native.MouseLeave += self.import_button_mouse_leave
@@ -579,7 +603,7 @@ class ImportWallet(Window):
                 background_color = rgb(30,33,36),
                 flex = 1,
                 alignment = CENTER,
-                padding = (10,0,10,0)
+                padding = (5,0,10,0)
             )
         )
 
@@ -594,7 +618,7 @@ class ImportWallet(Window):
             ),
             on_press=self.close_import_file
         )
-        self.cancel_button._impl.native.Font = self.monda_font.get(9, True)
+        self.cancel_button._impl.native.Font = self.font.get(self.tr.size("cancel_button"), True)
         self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
         self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave

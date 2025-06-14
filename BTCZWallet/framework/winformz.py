@@ -30,25 +30,7 @@ class FontStyle:
     REGULAR = Drawing.FontStyle.Regular
     BOLD = Drawing.FontStyle.Bold
     ITALIC = Drawing.FontStyle.Italic
-
-
-class CustomFont:
-    def __init__(self):
-        self.font_path = Os.Path.Combine(get_app_path(), 'font/Monda.ttf')
-        self.font_collection = Drawing.Text.PrivateFontCollection()
-        self.font_collection.AddFontFile(self.font_path)
-        self.font_family = self.font_collection.Families[0]
-
-        self.font_cache = {}
-
-    def get(self, size, bold=False):
-        style = FontStyle.BOLD if bold else FontStyle.REGULAR
-        key = (size, style)
-        if key not in self.font_cache:
-            self.font_cache[key] = Drawing.Font(self.font_family, size, style)
-        return self.font_cache[key]
     
-
 class AlignContent:
     LEFT = Drawing.ContentAlignment.MiddleLeft
     CENTER = Drawing.ContentAlignment.MiddleCenter
@@ -114,6 +96,7 @@ class FlatStyle:
 
 class Relation:
     IMAGEBEFORETEXT = Forms.TextImageRelation.ImageBeforeText
+    TEXTBEFORIMAGE = Forms.TextImageRelation.TextBeforeImage
     
 
 class ClipBoard(Forms.Clipboard):
@@ -168,14 +151,43 @@ class Keys:
     L = Forms.Keys.L
 
 
+
+class CustomFont:
+    def __init__(self, settings):
+        lang = settings.language()
+        if lang:
+            if lang == "Arabic":
+                font = 'fonts/Cairo.ttf'
+            else:
+                font = 'fonts/Monda.ttf'
+        else:
+            font = 'fonts/Monda.ttf'
+        self.font_path = Os.Path.Combine(get_app_path(), font)
+        self.font_collection = Drawing.Text.PrivateFontCollection()
+        self.font_collection.AddFontFile(self.font_path)
+        self.font_family = self.font_collection.Families[0]
+
+        self.font_cache = {}
+
+    def get(self, size, bold=False):
+        style = FontStyle.BOLD if bold else FontStyle.REGULAR
+        key = (size, style)
+        if key not in self.font_cache:
+            self.font_cache[key] = Drawing.Font(self.font_family, size, style)
+        return self.font_cache[key]
+
+
 class Separator(Forms.ToolStripSeparator):
     def __init__(self):
         super().__init__()
 
 
 class MenuStrip(Forms.ContextMenuStrip):
-    def __init__(self):
+    def __init__(self, rtl: bool = None):
         super().__init__()
+
+        if rtl:
+            self.RightToLeft = RightToLeft.YES
 
 
 class Toolbar(Forms.MenuStrip):
@@ -183,6 +195,7 @@ class Toolbar(Forms.MenuStrip):
         self,
         color: Optional[Color] = None,
         background_color: Optional[Color] = None,
+        rtl: bool = None
     ):
         super().__init__()
 
@@ -190,12 +203,16 @@ class Toolbar(Forms.MenuStrip):
         
         self._color = color
         self._background_color = background_color
+        self._rtl = rtl
 
         if self._color:
             self.ForeColor = self._color
 
         if self._background_color:
             self.BackColor = self._background_color
+
+        if self._rtl:
+            self.RightToLeft = RightToLeft.YES
 
     @property
     def color(self):
@@ -229,7 +246,8 @@ class StatusBar(Forms.StatusStrip):
         self,
         color: Optional[Color] = None,
         background_color: Optional[Color] = None,
-        dockstyle: Optional[DockStyle] = None
+        dockstyle: Optional[DockStyle] = None,
+        rtl: bool = None
     ):
         super().__init__()
 
@@ -237,6 +255,7 @@ class StatusBar(Forms.StatusStrip):
         self._color = color
         self._background_color = background_color
         self._dockstyle = dockstyle
+        self._rtl = rtl
 
         if self._color:
             self.ForeColor = self._color
@@ -246,6 +265,9 @@ class StatusBar(Forms.StatusStrip):
 
         if self._dockstyle:
             self.Dock = self._dockstyle
+        if self._rtl:
+            self.RightToLeft = RightToLeft.YES
+        
         self.ShowItemToolTips = True
 
     @property
@@ -289,38 +311,35 @@ class StatusLabel(Forms.ToolStripStatusLabel):
         self,
         text : str = "",
         image: Path = None,
-        font_size: Optional[int] = 8,
+        font = None,
         color : Optional[Color] = None,
         background_color :Optional[Color] = None,
         text_align:Optional[AlignContent] = None,
         image_align:Optional[AlignContent] =None,
         spring : bool = None,
-        bold: bool = None,
-        size:tuple[int, int] = None,
         autotooltip:bool = False,
+        rtl: bool = None
     ):
         super().__init__()
 
         self._text = text
         self._image_path = image
-        self._font_size = font_size
+        self._font = font
         self._color = color
         self._background_color = background_color
         self._text_align = text_align
         self._image_align = image_align
         self._spring = spring
-        self._bold = bold
-        self._size = size
         self._autotooltip = autotooltip
+        self._rtl = rtl
 
         self.app_path  = get_app_path()
-        self.monda_font = CustomFont()
 
         if self._text:
             self.Text = self._text
         if self._image_path:
             self._set_image(self._image_path)
-        self.Font = self.monda_font.get(font_size, self._bold)
+        self.Font = self._font
         if self._color:
             self.ForeColor = self._color
         if self._background_color:
@@ -331,10 +350,10 @@ class StatusLabel(Forms.ToolStripStatusLabel):
             self.ImageAlign = self._image_align
         if self._spring:
             self.Spring = self._spring
-        if self._size:
-            self.Size = Drawing.Size(*self._size)
         if self._autotooltip:
             self.AutoToolTip = self._autotooltip
+        if self._rtl:   
+            self.RightToLeft = RightToLeft.YES
 
     @property
     def text(self):
@@ -375,6 +394,7 @@ class Command(Forms.ToolStripMenuItem):
         sub_commands=None,
         icon: Path = None,
         color: Optional[Color] = None,
+        font = None,
         background_color :Optional[Color] = None,
         mouse_enter: Optional[Callable] = None,
         mouse_leave: Optional[Callable] = None,
@@ -385,7 +405,8 @@ class Command(Forms.ToolStripMenuItem):
         drop_opened: Optional[Callable[[], None]] = None,
         drop_closed: Optional[Callable[[], None]] = None,
         shortcut_key: Optional[Keys] = None,
-        tooltip: Optional[str] = None
+        tooltip: Optional[str] = None,
+        rtl: bool = False
     ):
         super().__init__(title)
 
@@ -394,6 +415,7 @@ class Command(Forms.ToolStripMenuItem):
         self._sub_commands = sub_commands
         self._icon = icon
         self._color = color
+        self._font = font
         self._background_color = background_color
         self._mouse_enter = mouse_enter
         self._mouse_leave = mouse_leave
@@ -405,9 +427,9 @@ class Command(Forms.ToolStripMenuItem):
         self._drop_closed = drop_closed
         self._shortcut_key = shortcut_key
         self._tooltip = tooltip
+        self._rtl = rtl
 
         self.app_path = get_app_path()
-        self.monda_font = CustomFont()
 
         if self._icon:
             self._set_icon(self._icon)
@@ -420,7 +442,7 @@ class Command(Forms.ToolStripMenuItem):
             self.ForeColor = self._color
         if self._background_color:
             self.BackColor = self._background_color
-        self.Font = self.monda_font.get(9)
+        self.Font = self._font
         if self._mouse_enter:
             self.MouseEnter += self._handle_mouse_enter
         if self._mouse_leave:
@@ -439,6 +461,8 @@ class Command(Forms.ToolStripMenuItem):
             self.ShortcutKeys = self._shortcut_key
         if self._tooltip:
             self.ToolTipText = self._tooltip
+        if self._rtl:
+            self.RightToLeft = RightToLeft.YES
         self.Checked = self._checked
 
 
@@ -650,16 +674,14 @@ class Command(Forms.ToolStripMenuItem):
 
 
 class TextBox(Forms.ToolStripTextBox):
-    def __init__(self):
+    def __init__(self, font):
         super().__init__()
-
-        self.monda_font = CustomFont()
 
         self.ReadOnly = True
         self.AutoSize = False
         self.BorderStyle = BorderStyle.NONE
         self.Width = 180
-        self.Font = self.monda_font.get(9)
+        self.Font = font
 
     @property
     def text(self) -> str:
@@ -773,12 +795,13 @@ class NotifyIcon(Forms.NotifyIcon):
 class Table(Forms.DataGridView):
     def __init__(
         self,
-        size: tuple[int, int] = None,
         location: tuple[int, int] = None,
         text_color: Optional[Color] = None,
         background_color: Optional[Color] = None,
         cell_color: Optional[Color] = None,
         align: Optional[AlignContent] = None,
+        font = None,
+        cell_font = None,
         data_source: Optional[Union[List[dict], List[List]]] = None,
         dockstyle: Optional[DockStyle] = None,
         column_count: Optional[int] = None,
@@ -797,16 +820,18 @@ class Table(Forms.DataGridView):
         commands: Optional[List[type]] = None,
         on_select: Optional[Callable[[Forms.DataGridViewRow], None]] = None,
         on_scroll: Optional[Callable[[Forms.ScrollEventArgs], None]] = None,
-        on_double_click: Optional[Callable[[Forms.DataGridViewCellEventArgs], None]] = None
+        on_double_click: Optional[Callable[[Forms.DataGridViewCellEventArgs], None]] = None,
+        rtl: bool = None
     ):
         super().__init__()
         
-        self._size = size
         self._location = location
         self._text_color = text_color
         self._background_color = background_color
         self._cell_color = cell_color
         self._align = align
+        self._font = font
+        self._cell_font = cell_font
         self._data_source = data_source
         self._dockstyle = dockstyle
         self._column_count = column_count
@@ -825,12 +850,10 @@ class Table(Forms.DataGridView):
         self._commands = commands
         self._on_select = on_select
         self._on_double_click = on_double_click
+        self._rtl = rtl
 
         self.app_path = get_app_path()
-        self.monda_font = CustomFont()
 
-        if self._size:
-            self.Size = Drawing.Size(*self._size)
         if self._location:
             self.Location = Drawing.Point(*self._location)
         if self._text_color:
@@ -841,8 +864,8 @@ class Table(Forms.DataGridView):
             self.DefaultCellStyle.BackColor = self._cell_color
         if self._dockstyle:
             self.Dock = self._dockstyle
-        self.DefaultCellStyle.Font = self.monda_font.get(9, True)
-        self.Font = self.monda_font.get(8, True)
+        self.DefaultCellStyle.Font = self._cell_font
+        self.Font = self._font
         if self._align:
             self.DefaultCellStyle.Alignment = self._align
         if self._column_count:
@@ -872,6 +895,8 @@ class Table(Forms.DataGridView):
             self.Scroll += self._on_scroll_handler
         if self._on_double_click:
             self.CellDoubleClick += self._on_cell_double_click
+        if self._rtl:
+            self.RightToLeft = RightToLeft.YES
 
         self.AllowUserToAddRows = False
         self.AllowUserToDeleteRows = False
@@ -884,17 +909,6 @@ class Table(Forms.DataGridView):
         self.Resize += self._on_resize
         self.CellFormatting += self._on_cell_formatting
 
-    @property
-    def size(self) -> tuple[int, int]:
-        return self._size
-
-    @size.setter
-    def size(self, value: tuple[int, int]):
-        self._size = value
-        self.Invoke(Forms.MethodInvoker(lambda:self.update_size(value)))
-    
-    def update_size(self, value):
-        self.Size = Drawing.Size(*value)
 
     @property
     def location(self) -> tuple[int, int]:
@@ -1189,7 +1203,7 @@ class RichLabel(Forms.RichTextBox):
     def __init__(
         self,
         text: str = None,
-        text_size: int = 11,
+        font = None,
         readonly: bool = False,
         color: Optional[Color] = None,
         background_color: Optional[Color]= None,
@@ -1209,7 +1223,7 @@ class RichLabel(Forms.RichTextBox):
         super().__init__()
 
         self._text = text
-        self._text_size = text_size
+        self._font = font
         self._readonly = readonly
         self._color = color
         self._background_color = background_color
@@ -1227,12 +1241,11 @@ class RichLabel(Forms.RichTextBox):
         self._mouse_move = mouse_move
 
         self.tooltip = Forms.ToolTip()
-        self.monda_font = CustomFont()
         self.tooltip_visible = None
 
         if self._text:
             self.Text = self._text
-        self.Font = self.monda_font.get(text_size)
+        self.Font = self._font
         if self._color:
             self.ForeColor = self._color
         if self._background_color:

@@ -11,7 +11,7 @@ from ..framework import (
     ScrollBars, AlignRichLabel
 )
 from toga.style.pack import Pack
-from toga.constants import COLUMN, ROW, CENTER, BOLD, TOP
+from toga.constants import COLUMN, ROW, CENTER, TOP
 from toga.colors import (
     rgb, WHITE, GRAY, YELLOW
 )
@@ -20,7 +20,7 @@ from .storage import StorageMessages
 
 
 class Receive(Box):
-    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, monda_font):
+    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -41,10 +41,16 @@ class Receive(Box):
         self.units = units
         self.settings = settings
         self.tr = tr
-        self.monda_font = monda_font
+        self.font = font
 
         self.storage = StorageMessages(self.app)
         self.clipboard = ClipBoard()
+
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
 
         self.addresses_box = Box(
             style=Pack(
@@ -88,7 +94,7 @@ class Receive(Box):
                 flex = 1
             )
         )
-        self.transparent_label._impl.native.Font = self.monda_font.get(11, True)
+        self.transparent_label._impl.native.Font = self.font.get(11, True)
         self.transparent_button._impl.native.MouseEnter += self.transparent_button_mouse_enter
         self.transparent_label._impl.native.MouseEnter += self.transparent_button_mouse_enter
         self.transparent_button._impl.native.MouseLeave += self.transparent_button_mouse_leave
@@ -112,7 +118,7 @@ class Receive(Box):
                 flex = 1
             )
         )
-        self.private_label._impl.native.Font = self.monda_font.get(11, True)
+        self.private_label._impl.native.Font = self.font.get(11, True)
         self.private_button._impl.native.MouseEnter += self.private_button_mouse_enter
         self.private_label._impl.native.MouseEnter += self.private_button_mouse_enter
         self.private_button._impl.native.MouseLeave += self.private_button_mouse_leave
@@ -134,7 +140,9 @@ class Receive(Box):
             action=self.copy_address,
             icon="images/copy_i.ico",
             mouse_enter=self.copy_address_cmd_mouse_enter,
-            mouse_leave=self.copy_address_cmd_mouse_leave
+            mouse_leave=self.copy_address_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl=self.rtl
         )
         self.copy_key_cmd = Command(
             title=self.tr.text("copy_key_cmd"),
@@ -143,7 +151,9 @@ class Receive(Box):
             action=self.copy_key,
             icon="images/copy_i.ico",
             mouse_enter=self.copy_key_cmd_mouse_enter,
-            mouse_leave=self.copy_key_cmd_mouse_leave
+            mouse_leave=self.copy_key_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl=self.rtl
         )
         self.explorer_cmd = Command(
             title=self.tr.text("exploreraddress_cmd"),
@@ -152,7 +162,9 @@ class Receive(Box):
             action=self.open_address_in_explorer,
             icon="images/explorer_i.ico",
             mouse_enter=self.explorer_cmd_mouse_enter,
-            mouse_leave=self.explorer_cmd_mouse_leave
+            mouse_leave=self.explorer_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl=self.rtl
         )
 
         self.addresses_table = Table(
@@ -176,7 +188,10 @@ class Receive(Box):
                 self.copy_address_cmd,
                 self.copy_key_cmd,
                 self.explorer_cmd,
-            ]
+            ],
+            font=self.font.get(7, True),
+            cell_font=self.font.get(9, True),
+            rtl=self.rtl
         )
 
         self.address_info = Box(
@@ -198,7 +213,6 @@ class Receive(Box):
         )
         self.address_value = RichLabel(
             text="",
-            text_size=10,
             borderstyle=BorderStyle.NONE,
             background_color=Color.rgb(40,43,48),
             color=Color.WHITE,
@@ -209,7 +223,8 @@ class Receive(Box):
             text_align=AlignRichLabel.CENTER,
             scrollbars=ScrollBars.NONE,
             maxsize=(0, 65),
-            minsize=(0, 65)
+            minsize=(0, 65),
+            font=self.font.get(10)
         )
         self.address_value_box = Box(
             style=Pack(
@@ -227,13 +242,13 @@ class Receive(Box):
                 background_color = rgb(30,33,36),
                 color = WHITE,
                 text_align = CENTER,
-                font_weight = BOLD,
-                font_size = 14,
                 padding = (20,50,0,50) ,
                 flex =1,
                 alignment = TOP
             )
         )
+        self.address_balance._impl.native.Font = self.font.get(12, True)
+
         self.address_panel = Box(
             style=Pack(
                 direction = COLUMN,

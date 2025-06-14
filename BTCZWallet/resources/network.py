@@ -11,7 +11,8 @@ from toga import (
 )
 from ..framework import (
     ToolTip, FlatStyle, Forms, Color,
-    Command, ClipBoard, Os, Sys, Drawing
+    Command, ClipBoard, Os, Sys, Drawing,
+    MenuStrip
 )
 from toga.constants import COLUMN, ROW, CENTER, BOLD, Direction
 from toga.style.pack import Pack
@@ -22,7 +23,7 @@ from toga.colors import (
 
 
 class AddNode(Window):
-    def __init__(self, main:Window, utils, commands, tr, monda_font):
+    def __init__(self, main:Window, utils, commands, tr, font):
         super().__init__(
             resizable=False
         )
@@ -32,7 +33,7 @@ class AddNode(Window):
         self.utils = utils
         self.commands = commands
         self.tr = tr
-        self.monda_font = monda_font
+        self.font = font
 
         self.title = self.tr.title("addnode_window")
         self.size = (550, 120)
@@ -70,7 +71,7 @@ class AddNode(Window):
             ),
             on_press=self.add_button_click
         )
-        self.add_button._impl.native.Font = self.monda_font.get(9, True)
+        self.add_button._impl.native.Font = self.font.get(9, True)
         self.add_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.add_button._impl.native.MouseEnter += self.add_button_mouse_enter
         self.add_button._impl.native.MouseLeave += self.add_button_mouse_leave
@@ -96,7 +97,7 @@ class AddNode(Window):
             ),
             on_press=self.close_import_key
         )
-        self.cancel_button._impl.native.Font = self.monda_font.get(9, True)
+        self.cancel_button._impl.native.Font = self.font.get(9, True)
         self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
         self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
@@ -220,7 +221,7 @@ class AddNode(Window):
 
 
 class TorConfig(Window):
-    def __init__(self, settings, utils, commands, tr, monda_font, main:Window = None, startup:Window = None):
+    def __init__(self, settings, utils, commands, tr, font, main:Window = None, startup:Window = None):
         super().__init__(
             resizable=False
         )
@@ -232,20 +233,31 @@ class TorConfig(Window):
         self.commands = commands
         self.settings = settings
         self.tr = tr
+        self.font = font
 
         self.tooltip = ToolTip()
         self.app_data = self.app.paths.data
 
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
+
         if self.main:
-            self.size = (350, 325)
+            if self.rtl:
+                self.size = (350, 335)
+            else:
+                self.size = (350, 325)
         if self.startup:
-            self.size = (350, 280)
+            if self.rtl:
+                self.size = (350, 290)
+            else:
+                self.size = (350, 280)
         self.title = self.tr.title("torconfig_window")
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
         self._impl.native.ControlBox = False
-
-        self.monda_font = monda_font
 
         self.main_box = Box(
             style=Pack(
@@ -264,7 +276,7 @@ class TorConfig(Window):
                 text_align = CENTER
             )
         )
-        self.enabled_label._impl.native.Font = self.monda_font.get(11, True)
+        self.enabled_label._impl.native.Font = self.font.get(self.tr.size("enabled_label"), True)
 
         self.socks_label = Label(
             text=self.tr.text("socks_label"),
@@ -275,7 +287,7 @@ class TorConfig(Window):
                 padding_top = 16
             )
         )
-        self.socks_label._impl.native.Font = self.monda_font.get(11, True)
+        self.socks_label._impl.native.Font = self.font.get(self.tr.size("socks_label"), True)
 
         self.onlyonion_label = Label(
             text=self.tr.text("onlyonion_label"),
@@ -286,7 +298,7 @@ class TorConfig(Window):
                 padding_top = 16
             )
         )
-        self.onlyonion_label._impl.native.Font = self.monda_font.get(11, True)
+        self.onlyonion_label._impl.native.Font = self.font.get(self.tr.size("onlyonion_label"), True)
 
         self.service_label = Label(
             text=self.tr.text("service_label"),
@@ -297,7 +309,7 @@ class TorConfig(Window):
                 padding_top = 16
             )
         )
-        self.service_label._impl.native.Font = self.monda_font.get(11, True)
+        self.service_label._impl.native.Font = self.font.get(self.tr.size("service_label"), True)
 
         self.service_port_label = Label(
             text=self.tr.text("service_port_label"),
@@ -308,7 +320,7 @@ class TorConfig(Window):
                 padding_top = 19
             )
         )
-        self.service_port_label._impl.native.Font = self.monda_font.get(11, True)
+        self.service_port_label._impl.native.Font = self.font.get(self.tr.size("service_port_label"), True)
 
         self.hostname_label = Label(
             text=self.tr.text("hostname_label"),
@@ -319,7 +331,7 @@ class TorConfig(Window):
                 padding_top = 19
             )
         )
-        self.hostname_label._impl.native.Font = self.monda_font.get(11, True)
+        self.hostname_label._impl.native.Font = self.font.get(self.tr.size("hostname_label"), True)
 
         self.labels_box = Box(
             style=Pack(
@@ -349,7 +361,7 @@ class TorConfig(Window):
                 padding_top = 15
             )
         )
-        self.socks_input._impl.native.Font = self.monda_font.get(11, True)
+        self.socks_input._impl.native.Font = self.font.get(11, True)
         self.tooltip.insert(self.socks_input._impl.native, self.tr.tooltip("socks_label"))
 
         self.onlyonion_switch = Switch(
@@ -381,7 +393,7 @@ class TorConfig(Window):
             )
         )
         self.service_input.enabled = False
-        self.service_input._impl.native.Font = self.monda_font.get(11, True)
+        self.service_input._impl.native.Font = self.font.get(11, True)
         self.tooltip.insert(self.service_input._impl.native, self.tr.tooltip("service_port_label"))
 
         self.hostname_input = TextInput(
@@ -394,7 +406,7 @@ class TorConfig(Window):
             ),
             readonly=True
         )
-        self.hostname_input._impl.native.Font = self.monda_font.get(11)
+        self.hostname_input._impl.native.Font = self.font.get(11)
 
         self.inputs_box = Box(
             style=Pack(
@@ -402,7 +414,7 @@ class TorConfig(Window):
                 background_color = rgb(30,33,36),
                 flex = 1,
                 alignment = CENTER,
-                padding = (10,30,0,0)
+                padding = self.tr.padding("inputs_box")
             )
         )
 
@@ -411,7 +423,7 @@ class TorConfig(Window):
                 direction = ROW,
                 background_color = rgb(30,33,36),
                 flex = 1,
-                padding = (10,5,10,5)
+                padding = self.tr.padding("options_box")
             )
         )
 
@@ -426,7 +438,7 @@ class TorConfig(Window):
             ),
             on_press=self.close_tor_config
         )
-        self.cancel_button._impl.native.Font = self.monda_font.get(9, True)
+        self.cancel_button._impl.native.Font = self.font.get(self.tr.size("cancel_button"), True)
         self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
         self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
@@ -442,7 +454,7 @@ class TorConfig(Window):
             ),
             on_press=self.save_options
         )
-        self.save_button._impl.native.Font = self.monda_font.get(9, True)
+        self.save_button._impl.native.Font = self.font.get(self.tr.size("save_button"), True)
         self.save_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.save_button._impl.native.MouseEnter += self.save_button_mouse_enter
         self.save_button._impl.native.MouseLeave += self.save_button_mouse_leave
@@ -461,10 +473,16 @@ class TorConfig(Window):
             self.options_box,
             self.buttons_box
         )
-        self.options_box.add(
-            self.labels_box,
-            self.inputs_box
-        )
+        if self.rtl:
+            self.options_box.add(
+                self.inputs_box,
+                self.labels_box
+            )
+        else:
+            self.options_box.add(
+                self.labels_box,
+                self.inputs_box
+            )
         self.labels_box.add(
             self.enabled_label,
             self.socks_label,
@@ -609,7 +627,7 @@ class TorConfig(Window):
 
 
 class NodeInfo(Window):
-    def __init__(self, node, settings, utils, units, tr, monda_font):
+    def __init__(self, node, settings, utils, units, tr, font):
         super().__init__(
             resizable=False
         )
@@ -620,7 +638,7 @@ class NodeInfo(Window):
         self.units = units
         self.settings = settings
         self.tr = tr
-        self.monda_font = monda_font
+        self.font = font
 
         self.tooltip = ToolTip()
 
@@ -682,7 +700,7 @@ class NodeInfo(Window):
             ),
             on_press=self.close_node_info
         )
-        self.close_button._impl.native.Font = self.monda_font.get(9, True)
+        self.close_button._impl.native.Font = self.font.get(9, True)
         self.close_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
         self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
@@ -698,7 +716,7 @@ class NodeInfo(Window):
                     padding = (1,0,0,5)
                 )
             )
-            info_label._impl.native.Font = self.monda_font.get(10)
+            info_label._impl.native.Font = self.font.get(10)
             if label_text == "Address":
                 self.tooltip.insert(info_label._impl.native, self.address)
             if label_text == "Local Address":
@@ -728,7 +746,7 @@ class NodeInfo(Window):
 
 
 class Node(Box):
-    def __init__(self, app:App, peer_window:Window, node, settings, utils, units, commands, tr, monda_font):
+    def __init__(self, app:App, peer_window:Window, node, settings, utils, units, commands, tr, font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -749,7 +767,13 @@ class Node(Box):
         self.tooltip = ToolTip()
         self.clipboard = ClipBoard()
 
-        self.monda_font = monda_font
+        self.font = font
+
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
 
         self.address = self.node.get('addr')
         self.address_local = self.node.get('addrlocal')
@@ -774,7 +798,7 @@ class Node(Box):
                 padding_top = 10
             )
         )
-        self.node_address._impl.native.Font = self.monda_font.get(9, True)
+        self.node_address._impl.native.Font = self.font.get(9, True)
         self.tooltip.insert(self.node_address._impl.native, self.address)
 
         self.node_address_local = Label(
@@ -787,7 +811,7 @@ class Node(Box):
                 padding_top = 10
             )
         )
-        self.node_address_local._impl.native.Font = self.monda_font.get(9, True)
+        self.node_address_local._impl.native.Font = self.font.get(9, True)
         self.tooltip.insert(self.node_address_local._impl.native, self.address_local)
 
         self.node_sent = Label(
@@ -800,7 +824,7 @@ class Node(Box):
                 padding_top = 10
             )
         )
-        self.node_sent._impl.native.Font = self.monda_font.get(9)
+        self.node_sent._impl.native.Font = self.font.get(9)
 
         self.node_receive = Label(
             text=self.units.format_bytes(bytesrecv),
@@ -812,7 +836,7 @@ class Node(Box):
                 padding_top = 10
             )
         )
-        self.node_receive._impl.native.Font = self.monda_font.get(9)
+        self.node_receive._impl.native.Font = self.font.get(9)
 
         self.node_subversion = Label(
             text=clean_subversion,
@@ -824,7 +848,7 @@ class Node(Box):
                 padding_top = 10
             )
         )
-        self.node_subversion._impl.native.Font = self.monda_font.get(9, True)
+        self.node_subversion._impl.native.Font = self.font.get(9, True)
 
         self.node_conntime= Label(
             text=conn_duration,
@@ -836,7 +860,7 @@ class Node(Box):
                 padding_top = 10
             )
         )
-        self.node_conntime._impl.native.Font = self.monda_font.get(9, True)
+        self.node_conntime._impl.native.Font = self.font.get(9, True)
 
         self.add(
             self.node_address,
@@ -850,7 +874,7 @@ class Node(Box):
 
 
     def insert_node_menustrip(self):
-        context_menu = Forms.ContextMenuStrip()
+        context_menu = MenuStrip(rtl=self.rtl)
         self.node_info_cmd = Command(
             title=self.tr.text("node_info_cmd"),
             color=Color.WHITE,
@@ -858,7 +882,8 @@ class Node(Box):
             mouse_enter=self.node_info_cmd_mouse_enter,
             mouse_leave=self.node_info_cmd_mouse_leave,
             action=self.show_node_info,
-            icon="images/about_i.ico"
+            icon="images/about_i.ico",
+            rtl=self.rtl
         )
         self.copy_node_cmd = Command(
             title=self.tr.text("copy_node_cmd"),
@@ -867,7 +892,8 @@ class Node(Box):
             mouse_enter=self.copy_node_cmd_mouse_enter,
             mouse_leave=self.copy_node_cmd_mouse_leave,
             action=self.copy_node_address,
-            icon="images/copy_i.ico"
+            icon="images/copy_i.ico",
+            rtl=self.rtl
         )
         self.remove_node_cmd = Command(
             title=self.tr.text("remove_node_cmd"),
@@ -876,7 +902,8 @@ class Node(Box):
             mouse_enter=self.remove_node_cmd_mouse_enter,
             mouse_leave=self.remove_node_cmd_mouse_leave,
             action=self.remove_node_from_config,
-            icon="images/remove_node_i.ico"
+            icon="images/remove_node_i.ico",
+            rtl=self.rtl
         )
         commands = [
             self.node_info_cmd,
@@ -895,7 +922,7 @@ class Node(Box):
 
     def show_node_info(self):
         self.node_info = NodeInfo(
-            self.node, self.settings, self.utils, self.units, self.tr, self.monda_font
+            self.node, self.settings, self.utils, self.units, self.tr, self.font
         )
         self.node_info._impl.native.ShowDialog(self.peer_window._impl.native)
 
@@ -964,7 +991,7 @@ class Node(Box):
 
 
 class Peer(Window):
-    def __init__(self, main:Window, settings, utils, units, commands, tr, monda_font):
+    def __init__(self, main:Window, settings, utils, units, commands, tr, font):
         super().__init__()
 
         self.peers_list = []
@@ -977,7 +1004,7 @@ class Peer(Window):
         self.units = units
         self.settings = settings
         self.tr = tr
-        self.monda_font = monda_font
+        self.font = font
 
         self.tooltip = ToolTip()
 
@@ -1021,7 +1048,7 @@ class Peer(Window):
                 padding_top = 10
             )
         )
-        self.address_title._impl.native.Font = self.monda_font.get(10, True)
+        self.address_title._impl.native.Font = self.font.get(10, True)
 
         self.address_local_title = Label(
             text=self.tr.text("address_local_title"),
@@ -1033,7 +1060,7 @@ class Peer(Window):
                 padding_top = 10
             )
         )
-        self.address_local_title._impl.native.Font = self.monda_font.get(10, True)
+        self.address_local_title._impl.native.Font = self.font.get(10, True)
 
         self.sent_title = Label(
             text=self.tr.text("sent_title"),
@@ -1045,7 +1072,7 @@ class Peer(Window):
                 padding_top = 10
             )
         )
-        self.sent_title._impl.native.Font = self.monda_font.get(10, True)
+        self.sent_title._impl.native.Font = self.font.get(10, True)
 
         self.received_title = Label(
             text=self.tr.text("received_title"),
@@ -1057,7 +1084,7 @@ class Peer(Window):
                 padding_top = 10
             )
         )
-        self.received_title._impl.native.Font = self.monda_font.get(10, True)
+        self.received_title._impl.native.Font = self.font.get(10, True)
 
         self.subversion_title = Label(
             text=self.tr.text("subversion_title"),
@@ -1069,7 +1096,7 @@ class Peer(Window):
                 padding_top = 10
             )
         )
-        self.subversion_title._impl.native.Font = self.monda_font.get(10, True)
+        self.subversion_title._impl.native.Font = self.font.get(10, True)
 
         self.conntime_title = Label(
             text=self.tr.text("conntime_title"),
@@ -1081,7 +1108,7 @@ class Peer(Window):
                 padding_top = 10
             )
         )
-        self.conntime_title._impl.native.Font = self.monda_font.get(10, True)
+        self.conntime_title._impl.native.Font = self.font.get(10, True)
 
         self.content = self.main_scroll
 
@@ -1140,7 +1167,7 @@ class Peer(Window):
 
     def add_peer(self, node):
         node_box = Node(
-            self.app, self, node, self.settings, self.utils, self.units, self.commands, self.tr, self.monda_font
+            self.app, self, node, self.settings, self.utils, self.units, self.commands, self.tr, self.font
         )
         box_divider = Divider(
             direction=Direction.HORIZONTAL,

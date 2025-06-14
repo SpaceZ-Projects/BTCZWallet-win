@@ -13,106 +13,146 @@ from toga.constants import ROW, BOTTOM
 
 
 class AppStatusBar(Box):
-    def __init__(self, app:App, main:Window, settings, utils, commands, tr):
+    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, font):
         super().__init__(
             style=Pack(
                 direction = ROW,
-                alignment = BOTTOM,
-                height = 24
+                alignment = BOTTOM
             )
         )
 
+        self.node_status = None
         self.app = app
         self.main = main
+
         self.commands = commands
         self.utils = utils
-        self.settigns = settings
+        self.settings = settings
+        self.units = units
         self.tr = tr
+        self.font = font
 
-        self.node_status = None
+        self.style.height = self.tr.size("appstatusbar")
+
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
 
         self.statusbar = StatusBar(
             background_color=Color.rgb(40,43,48),
-            dockstyle=DockStyle.BOTTOM
+            dockstyle=DockStyle.BOTTOM,
+            rtl=self.rtl
         )
 
         self.status_label = StatusLabel(
             text=self.tr.text("status_label"),
-            color=Color.GRAY
+            color=Color.GRAY,
+            font=self.font.get(8),
+            rtl=self.rtl
         )
         self.status_icon = StatusLabel(
             image="images/off.png"
         )
         self.blocks_status = StatusLabel(
             text=self.tr.text("blocks_status"),
-            color=Color.GRAY
+            color=Color.GRAY,
+            font=self.font.get(8),
+            rtl=self.rtl
         )
         self.blocks_value = StatusLabel(
             text="",
             color=Color.WHITE,
             text_align=AlignContent.LEFT,
-            autotooltip=True
+            autotooltip=True,
+            font=self.font.get(8),
+            rtl=self.rtl
         )
         self.deprecation_status = StatusLabel(
             text=self.tr.text("deprecation_status"),
-            color=Color.GRAY
+            color=Color.GRAY,
+            font=self.font.get(8),
+            rtl=self.rtl
         )
         self.deprecation_value = StatusLabel(
             text="",
             color=Color.WHITE,
             text_align=AlignContent.LEFT,
-            autotooltip=True
+            autotooltip=True,
+            font=self.font.get(8),
+            rtl=self.rtl
         )
         self.date_status = StatusLabel(
             text=self.tr.text("date_status"),
-            color=Color.GRAY
+            color=Color.GRAY,
+            font=self.font.get(8),
+            rtl=self.rtl
         )
         self.date_value = StatusLabel(
             text="",
             color=Color.WHITE,
             spring=True,
             text_align=AlignContent.LEFT,
-            autotooltip=True
+            autotooltip=True,
+            font=self.font.get(8),
+            rtl=self.rtl
         )
         self.sync_status = StatusLabel(
             text=self.tr.text("sync_status"),
-            color=Color.GRAY
+            color=Color.GRAY,
+            font=self.font.get(8),
+            rtl=self.rtl
         )
         self.sync_value = StatusLabel(
             text="",
             color=Color.WHITE,
             text_align=AlignContent.LEFT,
-            autotooltip=True
+            autotooltip=True,
+            font=self.font.get(8),
+            rtl=self.rtl
         )
         self.network_status = StatusLabel(
             text=self.tr.text("network_status"),
-            color=Color.GRAY
+            color=Color.GRAY,
+            font=self.font.get(8),
+            rtl=self.rtl
         )
         self.network_value = StatusLabel(
             text="",
             color=Color.WHITE,
             text_align=AlignContent.LEFT,
-            autotooltip=True
+            autotooltip=True,
+            font=self.font.get(8),
+            rtl=self.rtl
         )
         self.connections_status = StatusLabel(
             text=self.tr.text("connections_status"),
-            color=Color.GRAY
+            color=Color.GRAY,
+            font=self.font.get(8),
+            rtl=self.rtl
         )
         self.connections_value = StatusLabel(
             text="",
             color=Color.WHITE,
             text_align=AlignContent.LEFT,
-            autotooltip=True
+            autotooltip=True,
+            font=self.font.get(8),
+            rtl=self.rtl
         )
         self.size_status = StatusLabel(
             text=self.tr.text("size_status"),
-            color=Color.GRAY
+            color=Color.GRAY,
+            font=self.font.get(8),
+            rtl=self.rtl
         )
         self.size_value = StatusLabel(
             text="",
             color=Color.WHITE,
             text_align=AlignContent.LEFT,
-            autotooltip=True
+            autotooltip=True,
+            font=self.font.get(8),
+            rtl=self.rtl
         )
         self.statusbar.add_items(
             [
@@ -164,30 +204,36 @@ class AppStatusBar(Box):
                 blocks = info.get('blocks')
                 sync = info.get('verificationprogress')
                 sync_percentage = float(sync) * 100
-                sync_text = f"{sync_percentage:.2f}%"
+                sync_str = f"{sync_percentage:.2f}"
                 mediantime = info.get('mediantime')
                 mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
                 status_icon = "images/on.png"
                 
             else:
                 self.node_status = None
-                blocks = "N/A"
-                sync_text = "N/A"
-                mediantime_date = "N/A"
                 status_icon = "images/off.png"
 
-            bitcoinz_size = self.utils.get_bitcoinz_size()
+            bitcoinz_size = int(self.utils.get_bitcoinz_size())
 
-            await self.update_statusbar(status_icon, blocks, sync_text, mediantime_date, bitcoinz_size)
+            await self.update_statusbar(status_icon, blocks, sync_str, mediantime_date, bitcoinz_size)
             await asyncio.sleep(5)
 
 
     async def update_statusbar(self, status_icon, blocks, sync, mediantime, bitcoinz_size):
+        if self.rtl:
+            blocks = self.units.arabic_digits(str(blocks))
+            mediantime = self.units.arabic_digits(mediantime)
+            sync = self.units.arabic_digits(sync)
+            bitcoinz_size = self.units.arabic_digits(str(bitcoinz_size))
+            size_text = f"{bitcoinz_size} ميجا"
+        else:
+            blocks = str(blocks)
+            size_text = f"{bitcoinz_size} MB"
         self.status_icon.image = status_icon
-        self.blocks_value.text = str(blocks)
+        self.blocks_value.text = blocks
         self.date_value.text = mediantime
-        self.sync_value.text = sync
-        self.size_value.text = f"{int(bitcoinz_size)} MB"
+        self.sync_value.text = f"{sync}%"
+        self.size_value.text = size_text
         if not self.node_status:
             await asyncio.sleep(1)
             restart = self.utils.restart_app()
@@ -208,9 +254,12 @@ class AppStatusBar(Box):
                     info = json.loads(networksol)
                 if info is not None:
                     netsol = info
-                else:
-                    netsol = "N/A"
-            self.network_value.text = f"{netsol} Sol/s"
+                    if self.rtl:
+                        netsol = self.units.arabic_digits(str(netsol))
+                        netsol_text = f"{netsol} سول/ث"
+                    else:
+                        netsol_text = f"{netsol} Sol/s"
+                    self.network_value.text = netsol_text
             await asyncio.sleep(5)
 
     
@@ -221,6 +270,8 @@ class AppStatusBar(Box):
                 continue
             connection_count,_ = await self.commands.getConnectionCount()
             if connection_count is not None:
+                if self.rtl:
+                    connection_count = self.units.arabic_digits(connection_count)
                 self.connections_value.text = connection_count
 
 
@@ -231,7 +282,8 @@ class AppStatusBar(Box):
                 info = json.loads(deprecationinfo)
             if info is not None:
                 deprecation = info.get('deprecationheight')
-            else:
-                deprecation = "N/A"
-
-        self.deprecation_value.text = str(deprecation)
+                if self.rtl:
+                    deprecation = self.units.arabic_digits(str(deprecation))
+                else:
+                    deprecation = str(deprecation)
+                self.deprecation_value.text = deprecation

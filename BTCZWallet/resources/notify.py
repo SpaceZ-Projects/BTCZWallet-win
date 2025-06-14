@@ -6,26 +6,37 @@ from ..framework import NotifyIcon, Command, FormState, TextBox
 
 
 class Notify(NotifyIcon):
-    def __init__(self, app:App, main:Window, home_page, mining_page, commands, tr):
+    def __init__(self, app:App, main:Window, home_page, mining_page, settings, commands, tr, font):
 
         self.app = app
         self.main = main
         self.home_page = home_page
         self.mining_page = mining_page
         
+        self.settings = settings
         self.commands = commands
         self.tr = tr
+
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
 
         self.stop_exit_cmd = Command(
             title=self.tr.text("notifystopexit_cmd"),
             action=self.stop_node_exit,
-            icon="images/stop.ico"
+            icon="images/stop.ico",
+            font=font.get(9),
+            rtl=self.rtl
         )
 
         self.exit_cmd = Command(
             title=self.tr.text("notifyexit_cmd"),
             action=self.exit_app,
-            icon="images/exit.ico"
+            icon="images/exit.ico",
+            font=font.get(9),
+            rtl=self.rtl
         )
         super().__init__(
             icon="images/BitcoinZ.ico",
@@ -92,12 +103,12 @@ class Notify(NotifyIcon):
 
 
 class NotifyMining(NotifyIcon):
-    def __init__(self):
+    def __init__(self, font):
 
-        self.solutions = TextBox()
-        self.balance = TextBox()
-        self.immature = TextBox()
-        self.paid = TextBox()
+        self.solutions = TextBox(font.get(8))
+        self.balance = TextBox(font.get(8))
+        self.immature = TextBox(font.get(8))
+        self.paid = TextBox(font.get(8))
 
         super().__init__(
             icon="images/mining_notify.ico",

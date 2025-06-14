@@ -32,7 +32,7 @@ from .network import Peer, AddNode, TorConfig
 
 
 class Menu(Window):
-    def __init__(self, tor_enabled, settings, utils, units, commands, tr, monda_font):
+    def __init__(self, tor_enabled, settings, utils, units, commands, tr, font):
         super().__init__()
 
         self.tor_enabled = tor_enabled
@@ -46,25 +46,25 @@ class Menu(Window):
         self.settings = settings
         self.tr = tr
         self.utils = utils
-        self.monda_font = monda_font
+        self.font = font
 
         self.title = self.tr.title("main_window")
         self.size = (900,607)
         self._impl.native.BackColor = Color.rgb(30,33,36)
 
         self.storage = StorageMessages(self.app)
-        self.statusbar = AppStatusBar(self.app, self, settings, utils, commands, tr)
-        self.wallet = Wallet(self.app, self, settings, units, commands, tr, monda_font)
+        self.statusbar = AppStatusBar(self.app, self, settings, utils, units, commands, tr, font)
+        self.wallet = Wallet(self.app, self, settings, units, commands, tr, font)
 
-        self.home_page = Home(self.app, self, settings, utils, units, commands, tr, monda_font)
-        self.transactions_page = Transactions(self.app, self, settings, utils, units, commands, tr, monda_font)
-        self.receive_page = Receive(self.app, self, settings, utils, units, commands, tr, monda_font)
-        self.send_page = Send(self.app, self, settings, units, commands, tr, monda_font)
-        self.message_page = Messages(self.app, self, settings, utils, units, commands, tr, monda_font)
-        self.mining_page = Mining(self.app, self, settings, utils, units, commands, tr, monda_font)
-        self.notify = Notify(self.app, self, self.home_page, self.mining_page, commands, tr)
-        self.notifymining = NotifyMining()
-        self.toolbar = AppToolBar(self.app, self, self.notify, self.home_page, self.mining_page, settings, commands, tr)
+        self.home_page = Home(self.app, self, settings, utils, units, commands, tr, font)
+        self.transactions_page = Transactions(self.app, self, settings, utils, units, commands, tr, font)
+        self.receive_page = Receive(self.app, self, settings, utils, units, commands, tr, font)
+        self.send_page = Send(self.app, self, settings, units, commands, tr, font)
+        self.message_page = Messages(self.app, self, settings, utils, units, commands, tr, font)
+        self.mining_page = Mining(self.app, self, settings, utils, units, commands, tr, font)
+        self.notify = Notify(self.app, self, self.home_page, self.mining_page, settings, commands, tr, font)
+        self.notifymining = NotifyMining(font)
+        self.toolbar = AppToolBar(self.app, self, self.notify, self.home_page, self.mining_page, settings, commands, tr, font)
 
         opacity = self.settings.opacity()
         if opacity:
@@ -75,6 +75,12 @@ class Menu(Window):
         self._impl.native.Resize += self._handle_on_resize
         self._impl.native.Activated += self._handle_on_activated
         self._impl.native.Deactivate += self._handle_on_deactivated
+
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
 
         self.main_box = Box(
             style=Pack(
@@ -115,6 +121,12 @@ class Menu(Window):
         self.insert_menu_buttons()
 
     def insert_menu_buttons(self):
+        if self.rtl:
+            relation = Relation.TEXTBEFORIMAGE
+            align = AlignContent.LEFT
+        else:
+            relation = Relation.IMAGEBEFORETEXT
+            align = AlignContent.RIGHT
         self.home_button = Button(
             text=self.tr.text("home_button"),
             style=Pack(
@@ -124,10 +136,10 @@ class Menu(Window):
             ),
             on_press=self.home_button_click
         )
-        self.home_button._impl.native.Font = self.monda_font.get(10, True)
+        self.home_button._impl.native.Font = self.font.get(self.tr.size("home_button"), True)
         self.home_button._impl.native.FlatStyle = FlatStyle.FLAT
-        self.home_button._impl.native.TextImageRelation = Relation.IMAGEBEFORETEXT
-        self.home_button._impl.native.ImageAlign = AlignContent.RIGHT
+        self.home_button._impl.native.TextImageRelation = relation
+        self.home_button._impl.native.ImageAlign = align
         self.home_button._impl.native.MouseEnter += self.home_button_mouse_enter
         self.home_button._impl.native.MouseLeave += self.home_button_mouse_leave
 
@@ -141,11 +153,11 @@ class Menu(Window):
             on_press=self.transactions_button_click
         )
         transactions_i_icon = self.menu_icon("images/txs_i.png")
-        self.transactions_button._impl.native.Font = self.monda_font.get(10, True)
+        self.transactions_button._impl.native.Font = self.font.get(self.tr.size("transactions_button"), True)
         self.transactions_button._impl.native.Image = Drawing.Image.FromFile(transactions_i_icon)
         self.transactions_button._impl.native.FlatStyle = FlatStyle.FLAT
-        self.transactions_button._impl.native.TextImageRelation = Relation.IMAGEBEFORETEXT
-        self.transactions_button._impl.native.ImageAlign = AlignContent.RIGHT
+        self.transactions_button._impl.native.TextImageRelation = relation
+        self.transactions_button._impl.native.ImageAlign = align
         self.transactions_button._impl.native.MouseEnter += self.transactions_button_mouse_enter
         self.transactions_button._impl.native.MouseLeave += self.transactions_button_mouse_leave
 
@@ -159,11 +171,11 @@ class Menu(Window):
             on_press=self.receive_button_click
         )
         receive_i_icon = self.menu_icon("images/receive_i.png")
-        self.receive_button._impl.native.Font = self.monda_font.get(10, True)
+        self.receive_button._impl.native.Font = self.font.get(self.tr.size("receive_button"), True)
         self.receive_button._impl.native.Image = Drawing.Image.FromFile(receive_i_icon)
         self.receive_button._impl.native.FlatStyle = FlatStyle.FLAT
-        self.receive_button._impl.native.TextImageRelation = Relation.IMAGEBEFORETEXT
-        self.receive_button._impl.native.ImageAlign = AlignContent.RIGHT
+        self.receive_button._impl.native.TextImageRelation = relation
+        self.receive_button._impl.native.ImageAlign = align
         self.receive_button._impl.native.MouseEnter += self.receive_button_mouse_enter
         self.receive_button._impl.native.MouseLeave += self.receive_button_mouse_leave
 
@@ -177,11 +189,11 @@ class Menu(Window):
             on_press=self.send_button_click
         )
         send_i_icon = self.menu_icon("images/send_i.png")
-        self.send_button._impl.native.Font = self.monda_font.get(10, True)
+        self.send_button._impl.native.Font = self.font.get(self.tr.size("send_button"), True)
         self.send_button._impl.native.Image = Drawing.Image.FromFile(send_i_icon)
         self.send_button._impl.native.FlatStyle = FlatStyle.FLAT
-        self.send_button._impl.native.TextImageRelation = Relation.IMAGEBEFORETEXT
-        self.send_button._impl.native.ImageAlign = AlignContent.RIGHT
+        self.send_button._impl.native.TextImageRelation = relation
+        self.send_button._impl.native.ImageAlign = align
         self.send_button._impl.native.MouseEnter += self.send_button_mouse_enter
         self.send_button._impl.native.MouseLeave += self.send_button_mouse_leave
 
@@ -195,11 +207,11 @@ class Menu(Window):
             on_press=self.message_button_click
         )
         message_i_icon = self.menu_icon("images/messages_i.png")
-        self.message_button._impl.native.Font = self.monda_font.get(10, True)
+        self.message_button._impl.native.Font = self.font.get(self.tr.size("messages_button"), True)
         self.message_button._impl.native.Image = Drawing.Image.FromFile(message_i_icon)
         self.message_button._impl.native.FlatStyle = FlatStyle.FLAT
-        self.message_button._impl.native.TextImageRelation = Relation.IMAGEBEFORETEXT
-        self.message_button._impl.native.ImageAlign = AlignContent.RIGHT
+        self.message_button._impl.native.TextImageRelation = relation
+        self.message_button._impl.native.ImageAlign = align
         self.message_button._impl.native.MouseEnter += self.message_button_mouse_enter
         self.message_button._impl.native.MouseLeave += self.message_button_mouse_leave
         
@@ -213,22 +225,32 @@ class Menu(Window):
             on_press=self.mining_button_click
         )
         mining_i_icon = self.menu_icon("images/mining_i.png")
-        self.mining_button._impl.native.Font = self.monda_font.get(10, True)
+        self.mining_button._impl.native.Font = self.font.get(self.tr.size("mining_button"), True)
         self.mining_button._impl.native.Image = Drawing.Image.FromFile(mining_i_icon)
         self.mining_button._impl.native.FlatStyle = FlatStyle.FLAT
-        self.mining_button._impl.native.TextImageRelation = Relation.IMAGEBEFORETEXT
-        self.mining_button._impl.native.ImageAlign = AlignContent.RIGHT
+        self.mining_button._impl.native.TextImageRelation = relation
+        self.mining_button._impl.native.ImageAlign = align
         self.mining_button._impl.native.MouseEnter += self.mining_button_mouse_enter
         self.mining_button._impl.native.MouseLeave += self.mining_button_mouse_leave
 
-        self.menu_bar.add(
-            self.home_button,
-            self.transactions_button,
-            self.receive_button,
-            self.send_button,
-            self.message_button,
-            self.mining_button
-        )
+        if self.rtl:
+            self.menu_bar.add(
+                self.mining_button,
+                self.message_button,
+                self.send_button,
+                self.receive_button,
+                self.transactions_button,
+                self.home_button,
+            )
+        else:
+            self.menu_bar.add(
+                self.home_button,
+                self.transactions_button,
+                self.receive_button,
+                self.send_button,
+                self.message_button,
+                self.mining_button
+            )
 
         self.home_button_toggle = None
         self.transactions_button_toggle = None
@@ -337,17 +359,17 @@ class Menu(Window):
                 self.settings.update_settings("startup", True)
 
     def show_currencies_list(self, sender, event):
-        self.currencies_window = Currency(self, self.settings, self.utils, self.tr, self.monda_font)
+        self.currencies_window = Currency(self, self.settings, self.utils, self.tr, self.font)
         self.currencies_window._impl.native.ShowDialog(self._impl.native)
 
     def show_languages(self, sender, event):
-        self.languages_window = Languages(self, self.settings, self.utils, self.tr, self.monda_font)
+        self.languages_window = Languages(self, self.settings, self.utils, self.tr, self.font)
         self.languages_window._impl.native.ShowDialog(self._impl.native)
 
     def show_peer_info(self, sender, event):
         if not self.peer_toggle:
             peer_window = Peer(
-                self, self.settings, self.utils, self.units, self.commands, self.tr, self.monda_font
+                self, self.settings, self.utils, self.units, self.commands, self.tr, self.font
             )
             peer_window.show()
             self.peer_window = peer_window
@@ -357,13 +379,13 @@ class Menu(Window):
 
     def show_add_node(self, sender, event):
         self.add_node_window = AddNode(
-            self, self.utils, self.commands, self.tr, self.monda_font
+            self, self.utils, self.commands, self.tr, self.font
         )
         self.add_node_window._impl.native.ShowDialog(self._impl.native)
 
     def show_tor_config(self, sender, event):
         self.tor_config = TorConfig(
-            self.settings, self.utils, self.commands, self.tr, self.monda_font, main=self
+            self.settings, self.utils, self.commands, self.tr, self.font, main=self
         )
         self.tor_config._impl.native.ShowDialog(self._impl.native)
 
@@ -420,7 +442,7 @@ class Menu(Window):
         if data:
             username = self.storage.get_identity("username")
             if username:
-                edit_window = EditUser(username[0], self.utils, self.monda_font)
+                edit_window = EditUser(username[0], self.utils, self.font)
                 edit_window._impl.native.ShowDialog(self._impl.native)
 
 
@@ -472,7 +494,7 @@ class Menu(Window):
 
     def show_import_key(self, sender, event):
         self.import_window = ImportKey(
-            self, self.settings, self.utils, self.commands, self.tr, self.monda_font
+            self, self.settings, self.utils, self.commands, self.tr, self.font
         )
         self.import_window._impl.native.ShowDialog(self._impl.native)
 
@@ -525,7 +547,7 @@ class Menu(Window):
 
     def show_import_wallet(self, sender, event):
         self.import_window = ImportWallet(
-            self, self.settings, self.utils, self.commands, self.tr, self.monda_font
+            self, self.settings, self.utils, self.commands, self.tr, self.font
         )
         self.import_window._impl.native.ShowDialog(self._impl.native)
 

@@ -9,11 +9,11 @@ from toga import (
     App, Box, Label, ImageView, Window, Button,
     Selection, Divider
 )
-from ..framework import Os, FlatStyle, ToolTip, Forms
+from ..framework import Os, FlatStyle, ToolTip, Forms, RightToLeft
 from toga.style.pack import Pack
 from toga.constants import (
     COLUMN, ROW, TOP, LEFT, BOLD,
-    CENTER, Direction
+    CENTER, Direction, RIGHT
 )
 from toga.colors import rgb, GRAY, WHITE, RED, BLACK, YELLOW
 
@@ -21,7 +21,7 @@ from .curve import Curve
 
 
 class Languages(Window):
-    def __init__(self, main:Window, settings, utils, tr, monda_font):
+    def __init__(self, main:Window, settings, utils, tr, font):
         super().__init__(
             size= (200,100),
             resizable=False
@@ -32,11 +32,17 @@ class Languages(Window):
         self.utils = utils
         self.settings = settings
         self.tr = tr
-        self.monda_font = monda_font
+        self.font = font
 
         self.title = self.tr.title("language_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
 
         self.main_box = Box(
             style=Pack(
@@ -55,13 +61,16 @@ class Languages(Window):
             ),
             items=[
                 {"language": "English"},
-                {"language": "Français"}
+                {"language": "Français"},
+                {"language": "العربية"}
             ],
             accessor="language"
         )
-        self.languages_selection._impl.native.Font = self.monda_font.get(11, True)
+        self.languages_selection._impl.native.Font = self.font.get(self.tr.size("languages_selection"), True)
         self.languages_selection._impl.native.FlatStyle = FlatStyle.STANDARD
         self.languages_selection._impl.native.DropDownHeight = 150
+        if self.rtl:
+            self.languages_selection._impl.native.RightToLeft = RightToLeft.YES
 
         self.close_button = Button(
             text=self.tr.text("close_button"),
@@ -74,7 +83,7 @@ class Languages(Window):
             ),
             on_press=self.close_languages_window
         )
-        self.close_button._impl.native.Font = self.monda_font.get(9, True)
+        self.close_button._impl.native.Font = self.font.get(self.tr.size("close_button"), True)
         self.close_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
         self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
@@ -90,12 +99,12 @@ class Languages(Window):
 
 
     def load_languages(self):
-        language = self.settings.language()
-        if language:
-            if language == "French":
-                language = "Français"
-        else:
-            language = "English"
+        lang = self.settings.language()
+        language_map = {
+            "French": "Français",
+            "Arabic": "العربية"
+        }
+        language = language_map.get(lang, "English")
         self.languages_selection.value = self.languages_selection.items.find(language)
         self.languages_selection.on_change = self.update_language
 
@@ -108,6 +117,8 @@ class Languages(Window):
         value = self.languages_selection.value.language
         if value == "Français":
             value = "French"
+        elif value == "العربية":
+            value = "Arabic"
         self.settings.update_settings("lang", value)
         self.info_dialog(
             title=self.tr.title("language_dialog"),
@@ -130,7 +141,7 @@ class Languages(Window):
 
 
 class Currency(Window):
-    def __init__(self, main:Window, settings, utils, tr, monda_font):
+    def __init__(self, main:Window, settings, utils, tr, font):
         super().__init__(
             size= (200,100),
             resizable=False
@@ -141,11 +152,17 @@ class Currency(Window):
         self.utils = utils
         self.settings = settings
         self.tr = tr
-        self.monda_font = monda_font
+        self.font = font
 
         self.title = self.tr.title("currency_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
 
         self.main_box = Box(
             style=Pack(
@@ -167,9 +184,11 @@ class Currency(Window):
             ],
             accessor="currency"
         )
-        self.currencies_selection._impl.native.Font = self.monda_font.get(11, True)
+        self.currencies_selection._impl.native.Font = self.font.get(self.tr.size("currencies_selection"), True)
         self.currencies_selection._impl.native.FlatStyle = FlatStyle.STANDARD
         self.currencies_selection._impl.native.DropDownHeight = 150
+        if self.rtl:
+            self.currencies_selection._impl.native.RightToLeft = RightToLeft.YES
 
         self.close_button = Button(
             text=self.tr.text("close_button"),
@@ -184,7 +203,7 @@ class Currency(Window):
             ),
             on_press=self.close_currency_window
         )
-        self.close_button._impl.native.Font = self.monda_font.get(9, True)
+        self.close_button._impl.native.Font = self.font.get(self.tr.size("close_button"), True)
         self.close_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
         self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
@@ -256,7 +275,7 @@ class Currency(Window):
 
 
 class Home(Box):
-    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, monda_font):
+    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -275,7 +294,7 @@ class Home(Box):
         self.commands = commands
         self.settings = settings
         self.tr = tr
-        self.monda_font = monda_font
+        self.font = font
         
         self.curve = Curve(self.app, settings, utils, units)
         self.tooltip = ToolTip()
@@ -287,35 +306,41 @@ class Home(Box):
         self.curve_image = None
         self.circulating = None
 
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
+
         self.coingecko_icon = ImageView(
             image="images/coingecko.png",
             style=Pack(
                 background_color = rgb(40,43,48),
-                padding = (5,0,0,10),
+                padding = self.tr.padding("coingecko_icon"),
             )
         )
         self.coingecko_label = Label(
             text="coingecko",
             style=Pack(
-                text_align = LEFT,
+                text_align = RIGHT,
                 background_color = rgb(40,43,48),
                 color = WHITE,
-                padding = (5,0,0,5)
+                padding = self.tr.padding("coingecko_label")
             )
         )
-        self.coingecko_label._impl.native.Font = self.monda_font.get(12, True)
+        self.coingecko_label._impl.native.Font = self.font.get(12, True)
 
         self.last_updated_label = Label(
-            "",
+            text="",
             style=Pack(
-                text_align = LEFT,
+                text_align = self.tr.align("last_updated_label"),
                 background_color = rgb(40,43,48),
                 color = GRAY,
                 padding = (9,0,0,5),
                 flex = 1
             )
         )
-        self.last_updated_label._impl.native.Font = self.monda_font.get(9)
+        self.last_updated_label._impl.native.Font = self.font.get(9)
 
         self.coingecko_box = Box(
             style=Pack(
@@ -338,117 +363,117 @@ class Home(Box):
         self.price_label = Label(
             text=self.tr.text("price_label"),
             style=Pack(
-                text_align = LEFT,
+                text_align = self.tr.align("price_label"),
                 background_color = rgb(30,33,36),
                 color = GRAY,
                 padding = 10
             )
         )
-        self.price_label._impl.native.Font = self.monda_font.get(11)
+        self.price_label._impl.native.Font = self.font.get(self.tr.size("price_label"))
 
         self.price_value = Label(
             text="",
             style=Pack(
-                text_align = LEFT,
+                text_align = self.tr.align("price_value"),
                 background_color = rgb(30,33,36),
                 color = WHITE,
                 padding_top = 13,
                 flex = 1
             )
         )
-        self.price_value._impl.native.Font = self.monda_font.get(9, True)
+        self.price_value._impl.native.Font = self.font.get(self.tr.size("price_value"), True)
 
         self.percentage_24_label = Label(
             text=self.tr.text("percentage_24_label"),
             style=Pack(
-                text_align = LEFT,
+                text_align = self.tr.align("percentage_24_label"),
                 background_color = rgb(30,33,36),
                 color = GRAY,
                 padding = 10
             )
         )
-        self.percentage_24_label._impl.native.Font = self.monda_font.get(11)
+        self.percentage_24_label._impl.native.Font = self.font.get(self.tr.size("percentage_24_label"))
 
         self.percentage_24_value = Label(
-            "",
+            text="",
             style=Pack(
-                text_align = LEFT,
+                text_align = self.tr.align("percentage_24_value"),
                 background_color = rgb(30,33,36),
                 color = WHITE,
                 padding_top = 13,
                 flex = 1
             )
         )
-        self.percentage_24_value._impl.native.Font = self.monda_font.get(9, True)
+        self.percentage_24_value._impl.native.Font = self.font.get(self.tr.size("percentage_24_value"), True)
 
         self.percentage_7_label = Label(
             text=self.tr.text("percentage_7_label"),
             style=Pack(
-                text_align = LEFT,
+                text_align = self.tr.align("percentage_7_label"),
                 background_color = rgb(30,33,36),
                 color = GRAY,
                 padding = 10
             )
         )
-        self.percentage_7_label._impl.native.Font = self.monda_font.get(11)
+        self.percentage_7_label._impl.native.Font = self.font.get(self.tr.size("percentage_7_label"))
 
         self.percentage_7_value = Label(
-            "",
+            text="",
             style=Pack(
-                text_align = LEFT,
+                text_align = self.tr.align("percentage_7_value"),
                 background_color = rgb(30,33,36),
                 color = WHITE,
                 padding_top = 13,
                 flex = 1
             )
         )
-        self.percentage_7_value._impl.native.Font = self.monda_font.get(9, True)
+        self.percentage_7_value._impl.native.Font = self.font.get(self.tr.size("percentage_7_value"), True)
 
         self.cap_label = Label(
             text=self.tr.text("cap_label"),
             style=Pack(
-                text_align = LEFT,
+                text_align = self.tr.align("cap_label"),
                 background_color = rgb(30,33,36),
                 color = GRAY,
                 padding = 10
             )
         )
-        self.cap_label._impl.native.Font = self.monda_font.get(11)
+        self.cap_label._impl.native.Font = self.font.get(self.tr.size("cap_label"))
 
         self.cap_value = Label(
-            "",
+            text="",
             style=Pack(
-                text_align = LEFT,
+                text_align = self.tr.align("cap_value"),
                 background_color = rgb(30,33,36),
                 color = WHITE,
                 padding_top = 13,
                 flex = 1
             )
         )
-        self.cap_value._impl.native.Font = self.monda_font.get(9, True)
+        self.cap_value._impl.native.Font = self.font.get(self.tr.size("cap_value"), True)
 
         self.volume_label = Label(
             text=self.tr.text("volume_label"),
             style=Pack(
-                text_align = LEFT,
+                text_align = self.tr.align("volume_label"),
                 background_color = rgb(30,33,36),
                 color = GRAY,
                 padding = 10
             )
         )
-        self.volume_label._impl.native.Font = self.monda_font.get(11)
+        self.volume_label._impl.native.Font = self.font.get(self.tr.size("volume_label"))
 
         self.volume_value = Label(
-            "",
+            text="",
             style=Pack(
-                text_align = LEFT,
+                text_align = self.tr.align("volume_value"),
                 background_color = rgb(30,33,36),
                 color = WHITE,
                 padding_top = 13,
                 flex = 1
             )
         )
-        self.volume_value._impl.native.Font = self.monda_font.get(9, True)
+        self.volume_value._impl.native.Font = self.font.get(self.tr.size("volume_value"), True)
 
         self.circulating_label = Label(
             text=self.tr.text("circulating_label"),
@@ -459,36 +484,36 @@ class Home(Box):
                 padding = 10
             )
         )
-        self.circulating_label._impl.native.Font = self.monda_font.get(11)
+        self.circulating_label._impl.native.Font = self.font.get(self.tr.size("circulating_label"))
 
         self.circulating_value = Label(
-            "",
+            text="",
             style=Pack(
-                text_align = LEFT,
+                text_align = self.tr.align("circulating_value"),
                 background_color = rgb(30,33,36),
                 color = WHITE,
                 padding_top = 13,
                 flex = 1
             )
         )
-        self.circulating_value._impl.native.Font = self.monda_font.get(9, True)
+        self.circulating_value._impl.native.Font = self.font.get(self.tr.size("circulating_value"), True)
         self.circulating_value._impl.native.Click += self.circulating_value_click
 
         self.max_emissions_value = Label(
-            "21000000000",
+            text=self.tr.text("max_emissions_value"),
             style=Pack(
-                text_align = LEFT,
+                text_align = self.tr.align("max_emissions_value"),
                 background_color = rgb(30,33,36),
                 color = YELLOW,
             )
         )
-        self.max_emissions_value._impl.native.Font = self.monda_font.get(9, True)
+        self.max_emissions_value._impl.native.Font = self.font.get(self.tr.size("max_emissions_value"), True)
 
         self.circulating_divider = Divider(
             direction=Direction.HORIZONTAL,
             style=Pack(
                 background_color = WHITE,
-                width = 100,
+                width = self.tr.size("circulating_divider"),
                 flex = 1
             )
         )
@@ -496,7 +521,7 @@ class Home(Box):
         self.circulating_box = Box(
             style=Pack(
                 direction = COLUMN,
-                alignment = LEFT,
+                alignment = self.tr.align("circulating_box"),
                 background_color = rgb(30,33,36),
                 flex = 1
             )
@@ -519,7 +544,7 @@ class Home(Box):
                 padding_top = 10
             )
         )
-        self.halving_label._impl.native.Font = self.monda_font.get(13, True)
+        self.halving_label._impl.native.Font = self.font.get(self.tr.size("halving_label"), True)
 
         self.remaining_label = Label(
             text="",
@@ -530,7 +555,7 @@ class Home(Box):
                 padding_bottom = 10
             )
         )
-        self.remaining_label._impl.native.Font = self.monda_font.get(13, True)
+        self.remaining_label._impl.native.Font = self.font.get(self.tr.size("remaining_label"), True)
 
 
     async def insert_widgets(self, widget):
@@ -542,21 +567,40 @@ class Home(Box):
                 self.halving_label,
                 self.remaining_label
             )
-            self.coingecko_box.add(
-                self.coingecko_icon,
-                self.coingecko_label,
-                self.last_updated_label
-            )
-            self.market_box.add(
-                self.price_label,
-                self.price_value,
-                self.percentage_24_label,
-                self.percentage_24_value,
-                self.percentage_7_label,
-                self.percentage_7_value,
-                self.circulating_label,
-                self.circulating_box
-            )
+            if self.rtl:
+                self.coingecko_box.add(
+                    self.last_updated_label,
+                    self.coingecko_label,
+                    self.coingecko_icon
+                )
+            else:
+                self.coingecko_box.add(
+                    self.coingecko_icon,
+                    self.coingecko_label,
+                    self.last_updated_label
+                )
+            if self.rtl:
+                self.market_box.add(
+                    self.circulating_box,
+                    self.circulating_label,
+                    self.percentage_7_value,
+                    self.percentage_7_label,
+                    self.percentage_24_value,
+                    self.percentage_24_label,
+                    self.price_value,
+                    self.price_label
+                )
+            else:
+                self.market_box.add(
+                    self.price_label,
+                    self.price_value,
+                    self.percentage_24_label,
+                    self.percentage_24_value,
+                    self.percentage_7_label,
+                    self.percentage_7_value,
+                    self.circulating_label,
+                    self.circulating_box
+                )
             self.circulating_box.add(
                 self.circulating_value
             )
@@ -597,19 +641,23 @@ class Home(Box):
                 await asyncio.sleep(1)
                 continue
             current_block,_ = await self.commands.getBlockCount()
-            if not current_block:
-                return
-            self.circulating = self.units.calculate_circulating(int(current_block))
-            remaining_blocks = self.units.remaining_blocks_until_halving(int(current_block))
-            remaining_days = self.units.remaining_days_until_halving(int(current_block))
-            if not self.circulating_toggle:
-                self.circulating_value.text = int(self.circulating)
-            halving_text = self.tr.text("halving_label")
-            remaining_text = self.tr.text("remaining_label")
-            blocks_text = self.tr.text("blocks_label")
-            days_text = self.tr.text("days_label")
-            self.halving_label.text = f"{halving_text} {remaining_blocks} {blocks_text}"
-            self.remaining_label.text = f"{remaining_text} {remaining_days} {days_text}"
+            if current_block:
+                self.circulating = self.units.calculate_circulating(int(current_block))
+                remaining_blocks = self.units.remaining_blocks_until_halving(int(current_block))
+                remaining_days = self.units.remaining_days_until_halving(int(current_block))
+                circulating = int(self.circulating)
+                if self.rtl:
+                    circulating = self.units.arabic_digits(str(circulating))
+                    remaining_blocks = self.units.arabic_digits(str(remaining_blocks))
+                    remaining_days = self.units.arabic_digits(str(remaining_days))
+                if not self.circulating_toggle:
+                    self.circulating_value.text = circulating
+                halving_text = self.tr.text("halving_label")
+                remaining_text = self.tr.text("remaining_label")
+                blocks_text = self.tr.text("blocks_label")
+                days_text = self.tr.text("days_label")
+                self.halving_label.text = f"{halving_text} {remaining_blocks} {blocks_text}"
+                self.remaining_label.text = f"{remaining_text} {remaining_days} {days_text}"
             await asyncio.sleep(10)
 
 
@@ -625,15 +673,30 @@ class Home(Box):
                 last_updated = data["market_data"]["last_updated"]
 
                 last_updated_datetime = datetime.fromisoformat(last_updated.replace("Z", ""))
-                formatted_last_updated = last_updated_datetime.strftime("%Y-%m-%d %H:%M:%S UTC")
+                formatted_last_updated = last_updated_datetime.strftime("%Y-%m-%d %H:%M:%S")
                 btcz_price = self.units.format_price(market_price)
                 self.settings.update_settings("btcz_price", btcz_price)
-                self.price_value.text = f"{btcz_price} {self.settings.symbol()}"
-                self.percentage_24_value.text = f"{price_percentage_24} %"
-                self.percentage_7_value.text = f"{price_percentage_7d} %"
-                self.cap_value.text = f"{market_cap} {self.settings.symbol()}"
-                self.volume_value.text = f"{market_volume} {self.settings.symbol()}"
-                self.last_updated_label.text = formatted_last_updated
+
+                if self.rtl:
+                    formatted_last_updated = self.units.arabic_digits(formatted_last_updated)
+                    btcz_price = self.units.arabic_digits(btcz_price)
+                    price_percentage_24 = self.units.arabic_digits(str(price_percentage_24))
+                    price_percentage_7d = self.units.arabic_digits(str(price_percentage_7d))
+                    market_cap = self.units.arabic_digits(str(market_cap))
+                    market_volume = self.units.arabic_digits(str(market_volume))
+                    self.price_value.text = f"{self.settings.symbol()} {btcz_price}"
+                    self.percentage_24_value.text = f"% {price_percentage_24}"
+                    self.percentage_7_value.text = f"% {price_percentage_7d}"
+                    self.cap_value.text = f"{self.settings.symbol()} {market_cap}"
+                    self.volume_value.text = f"{self.settings.symbol()} {market_volume}"
+                    self.last_updated_label.text = f"UTC {formatted_last_updated}"
+                else:
+                    self.price_value.text = f"{btcz_price} {self.settings.symbol()}"
+                    self.percentage_24_value.text = f"{price_percentage_24} %"
+                    self.percentage_7_value.text = f"{price_percentage_7d} %"
+                    self.cap_value.text = f"{market_cap} {self.settings.symbol()}"
+                    self.volume_value.text = f"{market_volume} {self.settings.symbol()}"
+                    self.last_updated_label.text = f"{formatted_last_updated} UTC"
 
             await asyncio.sleep(601)
 
@@ -660,10 +723,18 @@ class Home(Box):
         box_width = self.market_box._impl.native.Width
         if not self.cap_toggle:
             if box_width >= 1000:
-                self.market_box.add(
-                    self.cap_label,
-                    self.cap_value
-                )
+                if self.rtl:
+                    self.market_box.insert(
+                        0, self.cap_label
+                    )
+                    self.market_box.insert(
+                        0, self.cap_value
+                    )
+                else:
+                    self.market_box.add(
+                        self.cap_label,
+                        self.cap_value
+                    )
                 self.cap_toggle = True
         elif self.cap_toggle:
             if box_width < 1000:
@@ -677,10 +748,18 @@ class Home(Box):
         box_width = self.market_box._impl.native.Width
         if not self.volume_toggle:
             if box_width >= 1200:
-                self.market_box.add(
-                    self.volume_label,
-                    self.volume_value
-                )
+                if self.rtl:
+                    self.market_box.insert(
+                        0, self.volume_label
+                    )
+                    self.market_box.insert(
+                        0, self.volume_value
+                    )
+                else:
+                    self.market_box.add(
+                        self.volume_label,
+                        self.volume_value
+                    )
                 self.volume_toggle = True
         elif self.volume_toggle:
             if box_width < 1200:

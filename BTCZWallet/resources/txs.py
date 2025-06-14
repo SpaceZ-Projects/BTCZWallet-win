@@ -13,7 +13,7 @@ from ..framework import (
 )
 from toga.style.pack import Pack
 from toga.colors import rgb, GRAY, WHITE, GREEN, RED, ORANGE, BLACK
-from toga.constants import COLUMN, CENTER, BOLD, ROW
+from toga.constants import COLUMN, CENTER, BOLD, ROW, RIGHT
 
 from .notify import NotifyTx
 from .storage import StorageMessages, StorageTxs
@@ -21,25 +21,31 @@ from .storage import StorageMessages, StorageTxs
 
 
 class Txid(Window):
-    def __init__(self, txid, settings, utils, units, commands, tr, monda_font):
+    def __init__(self, txid, settings, utils, units, commands, tr, font):
         super().__init__(
             size =(600, 180),
             resizable= False
         )
 
         self.updating_txid = None
+        self.txid = txid
 
         self.utils = utils
         self.units = units
         self.commands = commands
         self.settings = settings
         self.tr = tr
-        self.txid = txid
-        self.monda_font = monda_font
+        self.font = font
 
         self.title = self.tr.title("txinfo_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
 
         self.main_box = Box(
             style=Pack(
@@ -56,10 +62,10 @@ class Txid(Window):
                 text_align = CENTER,
                 color = GRAY,
                 background_color = rgb(30,33,36),
-                padding_left = 20
+                padding = self.tr.padding("txid_label")
             )
         )
-        self.txid_label._impl.native.Font = self.monda_font.get(9)
+        self.txid_label._impl.native.Font = self.font.get(9)
 
         self.txid_value = Label(
             text=self.txid,
@@ -69,7 +75,7 @@ class Txid(Window):
                 background_color = rgb(30,33,36)
             )
         )
-        self.txid_value._impl.native.Font = self.monda_font.get(9)
+        self.txid_value._impl.native.Font = self.font.get(9)
 
         self.txid_box = Box(
             style=Pack(
@@ -87,17 +93,18 @@ class Txid(Window):
                 background_color = rgb(40,43,48)
             )
         )
-        self.confirmations_label._impl.native.Font = self.monda_font.get(9)
+        self.confirmations_label._impl.native.Font = self.font.get(9)
 
         self.confirmations_value = Label(
             text="",
             style=Pack(
                 color = WHITE,
                 background_color = rgb(40,43,48),
+                text_align = self.tr.align("confirmations_value"),
                 flex = 1
             )
         )
-        self.confirmations_value._impl.native.Font = self.monda_font.get(9)
+        self.confirmations_value._impl.native.Font = self.font.get(9)
         
         self.confirmations_box = Box(
             style=Pack(
@@ -115,17 +122,18 @@ class Txid(Window):
                 background_color = rgb(40,43,48)
             )
         )
-        self.category_label._impl.native.Font = self.monda_font.get(9)
+        self.category_label._impl.native.Font = self.font.get(9)
 
         self.category_value = Label(
             text="",
             style=Pack(
                 color = WHITE,
                 background_color = rgb(40,43,48),
+                text_align = self.tr.align("category_value"),
                 flex = 1
             )
         )
-        self.category_value._impl.native.Font = self.monda_font.get(9)
+        self.category_value._impl.native.Font = self.font.get(9)
 
         self.time_label = Label(
             text=self.tr.text("time_label"),
@@ -134,7 +142,7 @@ class Txid(Window):
                 background_color = rgb(40,43,48)
             )
         )
-        self.time_label._impl.native.Font = self.monda_font.get(9)
+        self.time_label._impl.native.Font = self.font.get(9)
 
         self.time_value = Label(
             text="",
@@ -143,7 +151,7 @@ class Txid(Window):
                 background_color = rgb(40,43,48)
             )
         )
-        self.time_value._impl.native.Font = self.monda_font.get(9)
+        self.time_value._impl.native.Font = self.font.get(9)
 
         self.category_box = Box(
             style=Pack(
@@ -161,17 +169,18 @@ class Txid(Window):
                 background_color = rgb(40,43,48)
             )
         )
-        self.amount_label._impl.native.Font = self.monda_font.get(9)
+        self.amount_label._impl.native.Font = self.font.get(9)
 
         self.amount_value = Label(
             text="",
             style=Pack(
                 color = WHITE,
                 background_color = rgb(40,43,48),
+                text_align = self.tr.align("amount_value"),
                 flex = 1
             )
         )
-        self.amount_value._impl.native.Font = self.monda_font.get(9)
+        self.amount_value._impl.native.Font = self.font.get(9)
 
         self.fee_label = Label(
             text=self.tr.text("fee_label"),
@@ -180,7 +189,7 @@ class Txid(Window):
                 background_color = rgb(40,43,48)
             )
         )
-        self.fee_label._impl.native.Font = self.monda_font.get(9)
+        self.fee_label._impl.native.Font = self.font.get(9)
 
         self.fee_value = Label(
             text="",
@@ -189,7 +198,7 @@ class Txid(Window):
                 background_color = rgb(40,43,48)
             )
         )
-        self.fee_value._impl.native.Font = self.monda_font.get(9)
+        self.fee_value._impl.native.Font = self.font.get(9)
 
         self.amount_box = Box(
             style=Pack(
@@ -201,7 +210,7 @@ class Txid(Window):
         )
         
         self.close_button = Button(
-            text="Close",
+            text=self.tr.text("close_button"),
             style=Pack(
                 color = RED,
                 background_color = rgb(30,33,36),
@@ -211,7 +220,7 @@ class Txid(Window):
             ),
             on_press=self.close_transaction_info
         )
-        self.close_button._impl.native.Font = self.monda_font.get(9, True)
+        self.close_button._impl.native.Font = self.font.get(self.tr.size("close_button"), True)
         self.close_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
         self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
@@ -225,26 +234,48 @@ class Txid(Window):
             self.amount_box,
             self.close_button
         )
-        self.txid_box.add(
-            self.txid_label,
-            self.txid_value
-        )
-        self.confirmations_box.add(
-            self.confirmations_label,
-            self.confirmations_value
-        )
-        self.category_box.add(
-            self.category_label,
-            self.category_value,
-            self.time_label,
-            self.time_value
-        )
-        self.amount_box.add(
-            self.amount_label,
-            self.amount_value,
-            self.fee_label,
-            self.fee_value
-        )
+        if self.rtl:
+            self.txid_box.add(
+                self.txid_value,
+                self.txid_label
+            )
+            self.confirmations_box.add(
+                self.confirmations_value,
+                self.confirmations_label
+            )
+            self.category_box.add(
+                self.time_value,
+                self.time_label,
+                self.category_value,
+                self.category_label
+            )
+            self.amount_box.add(
+                self.fee_value,
+                self.fee_label,
+                self.amount_value,
+                self.amount_label
+            )
+        else:
+            self.txid_box.add(
+                self.txid_label,
+                self.txid_value
+            )
+            self.confirmations_box.add(
+                self.confirmations_label,
+                self.confirmations_value
+            )
+            self.category_box.add(
+                self.category_label,
+                self.category_value,
+                self.time_label,
+                self.time_value
+            )
+            self.amount_box.add(
+                self.amount_label,
+                self.amount_value,
+                self.fee_label,
+                self.fee_value
+            )
 
         self.app.add_background_task(self.update_transaction_info)
 
@@ -262,9 +293,15 @@ class Txid(Window):
                     category = transaction_info['details'][0]['category']
                     if category == "send":
                         fee = self.units.format_balance(float(transaction_info['fee']))
+                        if self.rtl:
+                            category = self.tr.text("category_send")
+                            fee = self.units.arabic_digits(fee)
                     else:
+                        category = self.tr.text("category_receive")
                         fee = "NaN"
                     amount = self.units.format_balance(float(transaction_info['amount']))
+                    if self.rtl:
+                        amount = self.units.arabic_digits(amount)
                     if self.settings.hidden_balances():
                         amount = "*.********"
                     confirmations = transaction_info['confirmations']
@@ -276,6 +313,10 @@ class Txid(Window):
                         color = ORANGE
                     else:
                         color = GREEN
+                    if self.rtl:
+                        confirmations = self.units.arabic_digits(str(confirmations))
+                        formatted_timereceived = self.units.arabic_digits(formatted_timereceived)
+
                     self.confirmations_value.style.color = color
                     self.confirmations_value.text = confirmations
                     self.category_value.text = category
@@ -300,7 +341,7 @@ class Txid(Window):
 
 
 class Transactions(Box):
-    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, monda_font):
+    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -317,7 +358,7 @@ class Transactions(Box):
         self.units = units
         self.settings = settings
         self.tr = tr
-        self.monda_font = monda_font
+        self.font = font
 
         self.storagemsgs = StorageMessages(self.app)
         self.storagetxs = StorageTxs(self.app)
@@ -335,6 +376,12 @@ class Transactions(Box):
         self.transactions_ids = []
         self.transactions_data = []
 
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
+
         self.copy_txid_cmd = Command(
             title=self.tr.text("copy_txid_cmd"),
             color=Color.WHITE,
@@ -342,7 +389,9 @@ class Transactions(Box):
             action=self.copy_transaction_id,
             icon="images/copy_i.ico",
             mouse_enter=self.copy_txid_cmd_mouse_enter,
-            mouse_leave=self.copy_txid_cmd_mouse_leave
+            mouse_leave=self.copy_txid_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl=self.rtl
         )
         self.copy_address_cmd = Command(
             title=self.tr.text("copy_address_cmd"),
@@ -351,7 +400,9 @@ class Transactions(Box):
             action=self.copy_address,
             icon="images/copy_i.ico",
             mouse_enter=self.copy_address_cmd_mouse_enter,
-            mouse_leave=self.copy_address_cmd_mouse_leave
+            mouse_leave=self.copy_address_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl=self.rtl
         )
 
         self.explorer_cmd = Command(
@@ -361,7 +412,9 @@ class Transactions(Box):
             action=self.open_transaction_in_explorer,
             icon="images/explorer_i.ico",
             mouse_enter=self.explorer_cmd_mouse_enter,
-            mouse_leave=self.explorer_cmd_mouse_leave
+            mouse_leave=self.explorer_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl=self.rtl
         )
 
         self.transactions_table = Table(
@@ -392,7 +445,10 @@ class Transactions(Box):
                 self.explorer_cmd
             ],
             on_scroll=self.on_scroll_table,
-            on_double_click=self.transactions_table_double_click
+            on_double_click=self.transactions_table_double_click,
+            font=self.font.get(7, True),
+            cell_font=self.font.get(9, True),
+            rtl=self.rtl
         )
 
         self.no_transaction = Label(
@@ -472,6 +528,9 @@ class Transactions(Box):
                 amount = "*.********"
             timereceived = data[5]
             formatted_timereceived = datetime.fromtimestamp(timereceived).strftime("%Y-%m-%d %H:%M:%S")
+            if self.rtl:
+                amount = self.units.arabic_digits(str(amount))
+                formatted_timereceived = self.units.arabic_digits(formatted_timereceived)
             row = {
                 self.tr.text("column_category"): icon,
                 self.tr.text("column_address"): address,
@@ -608,21 +667,27 @@ class Transactions(Box):
                             else:
                                 icon = "images/tx_send_transparent.png"
                             notify_icon = "images/tx_send.ico"
+                            notify_categoty = self.tr.text("notify_send")
                         elif category == "receive":
                             if tx_type == "private":
                                 icon = "images/tx_receive_private.png"
                             else:
                                 icon = "images/tx_receive_transparent.png"
                             notify_icon = "images/tx_receive.ico"
+                            notify_categoty = self.tr.text("notify_receive")
                         elif category == "mining":
                             icon = "images/tx_mining.png"
                             notify_icon = "images/mining_notify.ico"
+                            notify_categoty = self.tr.text("notify_mining")
                         address = data[2]
                         amount = data[4]
                         if self.settings.hidden_balances():
                             amount = "*.********"
                         timereceived = data[5]
                         formatted_timereceived = datetime.fromtimestamp(timereceived).strftime("%Y-%m-%d %H:%M:%S")
+                        if self.rtl:
+                            amount = self.units.arabic_digits(str(amount))
+                            formatted_timereceived = self.units.arabic_digits(formatted_timereceived)
                         row = {
                             self.tr.text("column_category"): icon,
                             self.tr.text("column_address"): address,
@@ -637,7 +702,7 @@ class Transactions(Box):
                                 self.notify.icon = notify_icon
                                 self.notify.show()
                                 self.notify.send_note(
-                                    title=f"[{category}] : {amount} BTCZ",
+                                    title=f"{notify_categoty} : {amount} BTCZ",
                                     text=f"TxID : {txid}",
                                     on_click=lambda sender, event:self.on_notification_click(txid)
                                 )
@@ -649,7 +714,7 @@ class Transactions(Box):
 
     def show_transaction_info(self, txid):
         self.transactions_info = Txid(
-            txid, self.settings, self.utils, self.units, self.commands, self.tr, self.monda_font
+            txid, self.settings, self.utils, self.units, self.commands, self.tr, self.font
         )
         self.transactions_info._impl.native.ShowDialog(self.main._impl.native)
 
@@ -751,6 +816,9 @@ class Transactions(Box):
                     amount = "*.********"
                 timereceived = data[5]
                 formatted_timereceived = datetime.fromtimestamp(timereceived).strftime("%Y-%m-%d %H:%M:%S")
+                if self.rtl:
+                    amount = self.units.arabic_digits(str(amount))
+                    formatted_timereceived = self.units.arabic_digits(formatted_timereceived)
                 row = {
                     self.tr.text("column_category"): icon,
                     self.tr.text("column_address"): address,
