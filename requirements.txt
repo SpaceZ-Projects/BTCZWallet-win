@@ -1,5 +1,5 @@
 toga-winforms==0.4.7
-travertino==0.3.0
+travertino==0.5.1
 aiohttp==3.11.11
 aiohttp-socks==0.10.1
 py7zr==0.22.0
