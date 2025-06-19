@@ -14,11 +14,11 @@ from ..framework import (
     BorderStyle, ToolTip, ClipBoard, RichLabel,
     Color, DockStyle, ScrollBars, Forms, Command,
     FlatStyle, Drawing, Relation, Os, AlignContent,
-    MenuStrip, RightToLeft
+    MenuStrip, RightToLeft, AlignRichLabel
 )
 from toga.style.pack import Pack
 from toga.constants import (
-    COLUMN, ROW, CENTER, BOLD, RIGHT,
+    COLUMN, ROW, CENTER, BOLD,
     BOTTOM, HIDDEN, VISIBLE
 )
 from toga.colors import (
@@ -33,22 +33,31 @@ from .notify import NotifyRequest, NotifyMessage
 
 
 class EditUser(Window):
-    def __init__(self, username, utils, font):
+    def __init__(self, main:Window, username, settings, utils, tr, font):
         super().__init__(
-            size = (450, 150),
+            size = (450, 120),
             resizable= False
         )
 
+        self.main = main
         self.username = username
 
+        self.settings = settings
         self.utils = utils
+        self.tr = tr
         self.font = font
 
         self.storage = StorageMessages(self.app)
 
-        self.title = "Edit Username"
+        self.title = self.tr.title("edituser_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
 
         self.main_box = Box(
             style=Pack(
@@ -58,19 +67,9 @@ class EditUser(Window):
                 alignment = CENTER
             )
         )
-        self.info_label = Label(
-            text="Edit your messenger username",
-            style=Pack(
-                color = WHITE,
-                background_color = rgb(30,33,36),
-                text_align = CENTER,
-                padding_top = 5
-            )
-        )
-        self.info_label._impl.native.Font = self.font.get(11)
 
         self.username_label = Label(
-            text="Username :",
+            text=self.tr.text("username_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36)
@@ -80,7 +79,7 @@ class EditUser(Window):
 
         self.username_input = TextInput(
             value=self.username,
-            placeholder="required",
+            placeholder=self.tr.text("username_input"),
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -95,12 +94,12 @@ class EditUser(Window):
                 direction = ROW,
                 background_color = rgb(30,33,36),
                 flex = 1,
-                padding_top = 15
+                padding_top = 20
             )
         )
 
         self.cancel_button = Button(
-            text="Cancel",
+            text=self.tr.text("cancel_button"),
             style=Pack(
                 color = RED,
                 background_color = rgb(30,33,36),
@@ -110,13 +109,13 @@ class EditUser(Window):
             ),
             on_press=self.close_edit_window
         )
-        self.cancel_button._impl.native.Font = self.font.get(9, True)
+        self.cancel_button._impl.native.Font = self.font.get(self.tr.size("cancel_button"), True)
         self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
         self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
 
         self.confirm_button = Button(
-            text="Confirm",
+            text=self.tr.text("confirm_button"),
             style=Pack(
                 color = GRAY,
                 font_size=10,
@@ -128,7 +127,7 @@ class EditUser(Window):
             ),
             on_press=self.verify_username
         )
-        self.confirm_button._impl.native.Font = self.font.get(9, True)
+        self.confirm_button._impl.native.Font = self.font.get(self.tr.size("confirm_button"), True)
         self.confirm_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.confirm_button._impl.native.MouseEnter += self.confirm_button_mouse_enter
         self.confirm_button._impl.native.MouseLeave += self.confirm_button_mouse_leave
@@ -143,14 +142,19 @@ class EditUser(Window):
         self.content = self.main_box
 
         self.main_box.add(
-            self.info_label,
             self.username_box,
             self.buttons_box
         )
-        self.username_box.add(
-            self.username_label,
-            self.username_input
-        )
+        if self.rtl:
+            self.username_box.add(
+                self.username_input,
+                self.username_label
+            )
+        else:
+            self.username_box.add(
+                self.username_label,
+                self.username_input
+            )
         self.buttons_box.add(
             self.cancel_button,
             self.confirm_button
@@ -198,12 +202,13 @@ class EditUser(Window):
     
     def close_edit_window(self, button):
         self.close()
+        self.app.current_window = self.main
 
 
 class Indentifier(Window):
-    def __init__(self, messages:Box, main:Window, chat, utils, commands, font):
+    def __init__(self, messages:Box, main:Window, chat, settings, utils, commands, tr, font):
         super().__init__(
-            size = (600, 150),
+            size = (450, 120),
             resizable= False
         )
 
@@ -211,15 +216,23 @@ class Indentifier(Window):
         self.chat = chat
         self.messages_page = messages
 
+        self.settings = settings
         self.utils = utils
         self.commands = commands
+        self.tr = tr
         self.font = font
 
         self.storage = StorageMessages(self.app)
 
-        self.title = "Setup Indentity"
+        self.title = self.tr.title("newmessenger_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
 
         self.main_box = Box(
             style=Pack(
@@ -229,19 +242,9 @@ class Indentifier(Window):
                 alignment = CENTER
             )
         )
-        self.info_label = Label(
-            text="For fist time a username is required for address indentity, you can edit it later",
-            style=Pack(
-                color = WHITE,
-                background_color = rgb(30,33,36),
-                text_align = CENTER,
-                padding_top = 5
-            )
-        )
-        self.info_label._impl.native.Font = self.font.get(11)
 
         self.username_label = Label(
-            text="Username :",
+            text=self.tr.text("username_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -252,7 +255,7 @@ class Indentifier(Window):
         self.username_label._impl.native.Font = self.font.get(11, True)
 
         self.username_input = TextInput(
-            placeholder="required",
+            placeholder=self.tr.text("username_input"),
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -272,7 +275,7 @@ class Indentifier(Window):
         )
 
         self.cancel_button = Button(
-            text="Cancel",
+            text=self.tr.text("cancel_button"),
             style=Pack(
                 color = RED,
                 background_color = rgb(30,33,36),
@@ -282,13 +285,13 @@ class Indentifier(Window):
             ),
             on_press=self.close_indentity_setup
         )
-        self.cancel_button._impl.native.Font = self.font.get(9, True)
+        self.cancel_button._impl.native.Font = self.font.get(self.tr.size("cancel_button"), True)
         self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
         self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
 
         self.confirm_button = Button(
-            text="Confirm",
+            text=self.tr.text("confirm_button"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -298,7 +301,7 @@ class Indentifier(Window):
             ),
             on_press=self.verify_identity
         )
-        self.confirm_button._impl.native.Font = self.font.get(9, True)
+        self.confirm_button._impl.native.Font = self.font.get(self.tr.size("confirm_button"), True)
         self.confirm_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.confirm_button._impl.native.MouseEnter += self.confirm_button_mouse_enter
         self.confirm_button._impl.native.MouseLeave += self.confirm_button_mouse_leave
@@ -314,14 +317,19 @@ class Indentifier(Window):
         self.content = self.main_box
 
         self.main_box.add(
-            self.info_label,
             self.username_box,
             self.buttons_box
         )
-        self.username_box.add(
-            self.username_label,
-            self.username_input
-        )
+        if self.rtl:
+            self.username_box.add(
+                self.username_input,
+                self.username_label
+            )
+        else:
+            self.username_box.add(
+                self.username_label,
+                self.username_input
+            )
         self.buttons_box.add(
             self.cancel_button,
             self.confirm_button
@@ -378,11 +386,12 @@ class Indentifier(Window):
     
     def close_indentity_setup(self, button):
         self.close()
+        self.app.current_window = self.main
 
 
 
 class NewMessenger(Box):
-    def __init__(self, app:App, messages, main:Window, chat, utils, commands, font):
+    def __init__(self, app:App, messages, main:Window, chat, settings, utils, commands, tr, font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -398,22 +407,24 @@ class NewMessenger(Box):
         self.main = main
         self.chat = chat
 
+        self.settings = settings
         self.utils = utils
         self.commands = commands
+        self.tr = tr
         self.font = font
 
-        self.new_label = Label(
-            text="There no messages address for this wallet, click the button to create new messages address",
+        self.newmessenger_label = Label(
+            text=self.tr.text("newmessenger_label"),
             style=Pack(
                 text_align = CENTER,
                 color = GRAY,
                 background_color = rgb(40,43,48)
             )
         )
-        self.new_label._impl.native.Font = self.font.get(11, True)
+        self.newmessenger_label._impl.native.Font = self.font.get(11, True)
 
         self.create_button = Button(
-            text="New Messenger",
+            text=self.tr.text("create_button"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -432,14 +443,14 @@ class NewMessenger(Box):
         self.create_button._impl.native.MouseLeave += self.create_button_mouse_leave
 
         self.add(
-            self.new_label,
+            self.newmessenger_label,
             self.create_button
         )
 
     
     def create_button_click(self, button):
         self.indentity = Indentifier(
-            self.messages_page, self.main, self.chat, self.utils, self.commands, self.font
+            self.messages_page, self.main, self.chat, self.settings, self.utils, self.commands, self.tr, self.font
         )
         self.indentity._impl.native.ShowDialog(self.main._impl.native)
 
@@ -461,7 +472,7 @@ class NewMessenger(Box):
 
 
 class Contact(Box):
-    def __init__(self, category, contact_id, username, address, app:App, chat, main:Window, settings, font):
+    def __init__(self, category, contact_id, username, address, app:App, chat, main:Window, settings, tr, font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -483,6 +494,7 @@ class Contact(Box):
         self.chat = chat
         self.main = main
         self.settings = settings
+        self.tr = tr
         self.font = font
 
         self.storage = StorageMessages(self.app)
@@ -503,7 +515,7 @@ class Contact(Box):
             image=image_path,
             style=Pack(
                 background_color = rgb(40,43,48),
-                padding_left = 10
+                padding = self.tr.padding("category_icon")
             )
         )
         self.category_icon._impl.native.MouseEnter += self.contact_mouse_enter
@@ -529,18 +541,25 @@ class Contact(Box):
                 color = WHITE,
                 background_color = RED,
                 text_align = CENTER,
-                padding =(15,20,0,0)
+                padding = self.tr.padding("unread_messages")
             )
         )
         self.unread_messages._impl.native.Font = self.font.get(9)
         self.unread_messages._impl.native.MouseEnter += self.contact_mouse_enter
         self.unread_messages._impl.native.MouseLeave += self.contact_mouse_leave
 
-        self.add(
-            self.category_icon,
-            self.username_label,
-            self.unread_messages
-        )
+        if self.rtl:
+            self.add(
+                self.unread_messages,
+                self.username_label,
+                self.category_icon
+            )
+        else:
+            self.add(
+                self.category_icon,
+                self.username_label,
+                self.unread_messages
+            )
         self.insert_contact_menustrip()
         self.app.add_background_task(self.update_contact)
 
@@ -548,7 +567,7 @@ class Contact(Box):
     def insert_contact_menustrip(self):
         context_menu = MenuStrip(rtl=self.rtl)
         self.copy_address_cmd = Command(
-            title="Copy address",
+            title=self.tr.text("copy_address_cmd"),
             icon="images/copy_i.ico",
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
@@ -559,7 +578,7 @@ class Contact(Box):
             rtl=self.rtl
         )
         self.ban_contact_cmd = Command(
-            title="Ban contact",
+            title=self.tr.text("ban_contact_cmd"),
             icon="images/ban_i.ico",
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
@@ -606,8 +625,8 @@ class Contact(Box):
     def copy_contact_address(self):
         self.clipboard.copy(self.address)
         self.main.info_dialog(
-            title="Copied",
-            message="The address has copied to clipboard.",
+            title=self.tr.title("copyaddress_dialog"),
+            message=self.tr.message("copyaddress_dialog"),
         )
 
 
@@ -848,7 +867,7 @@ class Pending(Box):
 
 
 class Message(Box):
-    def __init__(self, author, message, amount, timestamp, app:App, output:ScrollContainer, utils, units, font):
+    def __init__(self, author, message, amount, timestamp, app:App, output:ScrollContainer, settings, utils, units, tr, font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -866,23 +885,40 @@ class Message(Box):
         self.amount = amount
         self.timestamp = timestamp
 
+        self.settings = settings
         self.utils = utils
         self.units = units
         self.font = font
+        self.tr = tr
+
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
+                message_align = AlignRichLabel.RIGHT
+            else:
+                message_align = AlignRichLabel.LEFT
+        else:
+            message_align = AlignRichLabel.LEFT
 
         if self.author == "you":
+            if self.rtl:
+                self.author = "أنت :"
             color = GRAY
         else:
             color = rgb(114,137,218)
 
         message_time = datetime.fromtimestamp(self.timestamp).strftime('%Y-%m-%d %H:%M:%S')
+        if self.rtl:
+            message_time = self.units.arabic_digits(message_time)
 
         self.author_value = Label(
-            text=f"{self.author} :",
+            text=self.author,
             style=Pack(
                 color = color,
                 background_color = rgb(30,30,30),
-                padding = (0,0,8,5),
+                padding = self.tr.padding("author_value"),
                 flex = 1
             )
         )
@@ -924,6 +960,7 @@ class Message(Box):
             wrap=True,
             readonly=True,
             urls=True,
+            text_align=message_align,
             dockstyle=DockStyle.FILL,
             scrollbars=ScrollBars.NONE,
             urls_click=self.show_url_dialog,
@@ -935,9 +972,10 @@ class Message(Box):
                 direction = ROW,
                 background_color=rgb(40,43,48),
                 height = 90,
-                padding_left = 10 
+                padding = self.tr.padding("message_box")
             )
         )
+
         self.add(
             self.sender_box,
             self.message_box
@@ -945,17 +983,31 @@ class Message(Box):
         if self.amount > 0.0001:
             gift = self.amount - 0.0001
             gift_format = self.units.format_balance(gift)
-            self.gift_value.text = f"Gift : {gift_format}"
-            self.sender_box.add(
-                self.author_value,
-                self.gift_value,
-                self.message_time
-            )
+            text = self.tr.text("gift_value")
+            self.gift_value.text = f"{text} {gift_format}"
+            if self.rtl:
+                self.sender_box.add(
+                    self.message_time,
+                    self.gift_value,
+                    self.author_value
+                )
+            else:
+                self.sender_box.add(
+                    self.author_value,
+                    self.gift_value,
+                    self.message_time
+                )
         else:
-            self.sender_box.add(
-                self.author_value,
-                self.message_time
-            )
+            if self.rtl:
+                self.sender_box.add(
+                    self.message_time,
+                    self.author_value
+                )
+            else:
+                self.sender_box.add(
+                    self.author_value,
+                    self.message_time
+                )
         self.message_box._impl.native.Controls.Add(self.message_value)
 
 
@@ -978,24 +1030,33 @@ class Message(Box):
 
 
 class NewContact(Window):
-    def __init__(self, utils, units, commands, font):
+    def __init__(self, main:Window, settings, utils, units, commands, tr, font):
         super().__init__(
-            size = (600, 150),
+            size = (600, 120),
             resizable= False
         )
 
+        self.main = main
         self.is_valid_toggle = None
-
+        
+        self.settings = settings
         self.utils = utils
         self.units = units
         self.commands = commands
+        self.tr = tr
         self.font = font
 
         self.storage = StorageMessages(self.app)
 
-        self.title = "Add Contact"
+        self.title = self.tr.title("addcontact_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
 
         self.main_box = Box(
             style=Pack(
@@ -1005,17 +1066,6 @@ class NewContact(Window):
                 alignment = CENTER
             )
         )
-
-        self.info_label = Label(
-            text="Enter the message address",
-            style=Pack(
-                color = WHITE,
-                background_color = rgb(30,33,36),
-                text_align = CENTER,
-                padding_top = 5
-            )
-        )
-        self.info_label._impl.native.Font = self.font.get(11)
 
         self.address_input = TextInput(
             placeholder="Z Address",
@@ -1049,7 +1099,7 @@ class NewContact(Window):
         )
 
         self.cancel_button = Button(
-            text="Cancel",
+            text=self.tr.text("cancel_button"),
             style=Pack(
                 color = RED,
                 background_color = rgb(30,33,36),
@@ -1059,13 +1109,13 @@ class NewContact(Window):
             ),
             on_press=self.close_indentity_setup
         )
-        self.cancel_button._impl.native.Font = self.font.get(9, True)
+        self.cancel_button._impl.native.Font = self.font.get(self.tr.size("cancel_button"), True)
         self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
         self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
 
         self.confirm_button = Button(
-            text="Confirm",
+            text=self.tr.text("confirm_button"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -1075,7 +1125,7 @@ class NewContact(Window):
             ),
             on_press=self.verify_address
         )
-        self.confirm_button._impl.native.Font = self.font.get(9, True)
+        self.confirm_button._impl.native.Font = self.font.get(self.tr.size("confirm_button"), True)
         self.confirm_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.confirm_button._impl.native.MouseEnter += self.confirm_button_mouse_enter
         self.confirm_button._impl.native.MouseLeave += self.confirm_button_mouse_leave
@@ -1091,7 +1141,6 @@ class NewContact(Window):
         self.content = self.main_box
 
         self.main_box.add(
-            self.info_label,
             self.input_box,
             self.buttons_box
         )
@@ -1132,36 +1181,36 @@ class NewContact(Window):
             return
         if not self.is_valid_toggle:
             self.error_dialog(
-                title="Invalid Address",
-                message="The address entered is not valid."
+                title=self.tr.title("invalidaddress_dialog"),
+                message=self.tr.message("invalidaddress_dialog")
             )
             return
         contacts = self.storage.get_contacts("address")
         if address in contacts:
             self.error_dialog(
-                title="Address Already in Contacts",
-                message="This address is already in your contacts list."
+                title=self.tr.title("addressexists_dialog"),
+                message=self.tr.message("addressexists_dialog")
             )
             return
         pending = self.storage.get_pending()
         if address in pending:
             self.error_dialog(
-                title="Address in Pending List",
-                message="This address is already in your pending list."
+                title=self.tr.title("addressinpending_dialog"),
+                message=self.tr.message("addressinpending_dialog")
             )
             return
         requests = self.storage.get_requests()
         if address in requests:
             self.error_dialog(
-                title="Address in Requests",
-                message="This address is already in your requests list."
+                title=self.tr.title("addressinrequest_dialog"),
+                message=self.tr.message("addressinrequest_dialog")
             )
             return
         banned = self.storage.get_banned()
         if address in banned:
             self.error_dialog(
-                title="Address Banned",
-                message="This address has been banned."
+                title=self.tr.title("addressisbanned_dialog"),
+                message=self.tr.message("addressisbanned_dialog")
             )
             return
         self.app.add_background_task(self.send_request)
@@ -1233,10 +1282,11 @@ class NewContact(Window):
     
     def close_indentity_setup(self, button):
         self.close()
+        self.app.current_window = self.main
 
 
 class PendingList(Window):
-    def __init__(self, chat:Box, utils, units, commands, font):
+    def __init__(self, chat:Box, utils, units, commands, tr, font):
         super().__init__(
             size = (500, 400),
             resizable= False
@@ -1247,11 +1297,12 @@ class PendingList(Window):
         self.utils = utils
         self.units = units
         self.commands = commands
+        self.tr = tr
         self.font = font
 
         self.storage = StorageMessages(self.app)
 
-        self.title = "Pending List"
+        self.title = self.tr.title("pendinglist_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
 
@@ -1265,7 +1316,7 @@ class PendingList(Window):
         )
 
         self.no_pending_label = Label(
-            text="Empty list",
+            text=self.tr.text("no_pending_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
@@ -1302,7 +1353,7 @@ class PendingList(Window):
         )
 
         self.close_button = Button(
-            text="Close",
+            text=self.tr.text("close_button"),
             style=Pack(
                 color = RED,
                 background_color = rgb(30,33,36),
@@ -1311,7 +1362,7 @@ class PendingList(Window):
                 width = 100
             )
         )
-        self.close_button._impl.native.Font = self.font.get(9, True)
+        self.close_button._impl.native.Font = self.font.get(self.tr.size("close_button"), True)
         self.close_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
         self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
@@ -1466,11 +1517,11 @@ class Chat(Box):
         )
 
         self.address_balance = Label(
-            text = "Balance : 0.00000000",
+            text = self.tr.text("address_balance"),
             style=Pack(
                 color = rgb(114,137,218),
                 background_color = rgb(66,69,73),
-                text_align = RIGHT,
+                text_align = self.tr.align("address_balance"),
                 flex = 1
             )
         )
@@ -1482,7 +1533,7 @@ class Chat(Box):
                 color = WHITE,
                 background_color = rgb(40,43,48),
                 text_align = CENTER,
-                padding_left = 5
+                padding = self.tr.padding("list_unspent_utxos")
             )
         )
         self.list_unspent_utxos._impl.native.Font = self.font.get(9, True)
@@ -1548,6 +1599,8 @@ class Chat(Box):
                 padding = (0,5,5,0)
             )
         )
+        if self.rtl:
+            self.output_box._impl.native.RightToLeft = RightToLeft.YES
 
         self.input_box = Box(
             style=Pack(
@@ -1564,7 +1617,7 @@ class Chat(Box):
                 color = WHITE,
                 background_color = rgb(30,30,30),
                 flex = 1,
-                padding =(3,0,5,8)
+                padding = self.tr.padding("message_input")
             ),
             on_change=self.update_character_count,
             on_confirm=self.verify_message
@@ -1574,8 +1627,13 @@ class Chat(Box):
             self.message_input._impl.native.RightToLeft = RightToLeft.YES
         self.message_input.placeholder = self.tr.text("message_input")
 
+        text = self.tr.text("character_count")
+        value = "0 / 325"
+        if self.rtl:
+            value = self.units.arabic_digits(value)
+
         self.character_count = Label(
-            text="Limit : 0 / 325",
+            text=f"{text} {value}",
             style=Pack(
                 background_color = rgb(40,43,48),
                 text_align = CENTER,
@@ -1648,35 +1706,60 @@ class Chat(Box):
             )
         )
 
-        self.add(
-            self.panel_box,
-            self.chat_box
-        )
+        if self.rtl:
+            self.add(
+                self.chat_box,
+                self.panel_box
+            )
+        else:
+            self.add(
+                self.panel_box,
+                self.chat_box
+            )
         self.panel_box.add(
             self.buttons_box,
             self.contacts_scroll
         )
-        self.buttons_box.add(
-            self.add_contact,
-            self.pending_contacts,
-            self.copy_address,
-            self.info_box
-        )
-        self.info_box.add(
-            self.list_unspent_utxos,
-            self.address_balance
-        )
+        if self.rtl:
+            self.buttons_box.add(
+                self.info_box,
+                self.copy_address,
+                self.pending_contacts,
+                self.add_contact
+            )
+            self.info_box.add(
+                self.address_balance,
+                self.list_unspent_utxos
+            )
+        else:
+            self.buttons_box.add(
+                self.add_contact,
+                self.pending_contacts,
+                self.copy_address,
+                self.info_box
+            )
+            self.info_box.add(
+                self.list_unspent_utxos,
+                self.address_balance
+            )
         self.contacts_scroll.content = self.contacts_box
+
         self.chat_box.add(
             self.contact_info_box,
             self.output_box,
             self.input_box
         )
         self.output_box.content = self.messages_box
-        self.input_box.add(
-            self.message_input,
-            self.chat_buttons
-        )
+        if self.rtl:
+            self.input_box.add(
+                self.chat_buttons,
+                self.message_input
+            )
+        else:
+            self.input_box.add(
+                self.message_input,
+                self.chat_buttons
+            )
         self.chat_buttons.add(
             self.options_box,
             self.send_box
@@ -1709,8 +1792,11 @@ class Chat(Box):
             if address:
                 balance, _= await self.commands.z_getBalance(address[0])
                 if balance:
+                    text = self.tr.text("address_balance")
                     balance = self.units.format_balance(balance)
-                    self.address_balance.text = f"Balance : {balance}"
+                    if self.rtl:
+                        balance = self.units.arabic_digits(balance)
+                    self.address_balance.text = f"{text} {balance}"
             
             await asyncio.sleep(5)
             
@@ -1909,6 +1995,7 @@ class Chat(Box):
                                 chat = self,
                                 main = self.main,
                                 settings = self.settings,
+                                tr=self.tr,
                                 font=self.font
                             )
                             contact._impl.native.Click += lambda sender, event, contact_id=contact_id, address=address:self.contact_click(
@@ -1960,13 +2047,14 @@ class Chat(Box):
             self.last_unread_timestamp = None
         self.selected_contact_toggle = True
         self.processed_timestamps.clear()
+
         username_label = Label(
-            text="Username :",
+            text=self.tr.text("username_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,30,30),
                 font_weight = BOLD,
-                padding = (9,0,0,10)
+                padding = self.tr.padding("username_label")
             )
         )
         self.username_value = Label(
@@ -1975,16 +2063,17 @@ class Chat(Box):
                 color = WHITE,
                 background_color = rgb(30,30,30),
                 font_weight = BOLD,
-                padding = (9,0,0,0)
+                padding = (9,0,0,0),
+                text_align = self.tr.align("username_value")
             )
         )
         id_label = Label(
-            text="ID :",
+            text=self.tr.text("id_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,30,30),
                 font_weight = BOLD,
-                padding = (9,0,0,10)
+                padding = self.tr.padding("id_label")
             )
         )
         id_value = Label(
@@ -1994,11 +2083,12 @@ class Chat(Box):
                 background_color = rgb(30,30,30),
                 font_weight = BOLD,
                 padding = (9,0,0,0),
-                flex =1
+                flex =1,
+                text_align = self.tr.align("id_value")
             )
         )
         self.unread_label = Label(
-            text="--Unread Messages--",
+            text=self.tr.text("unread_label"),
             style=Pack(
                 color = YELLOW,
                 background_color = rgb(30,30,30),
@@ -2009,12 +2099,20 @@ class Chat(Box):
                 padding = (0,30,5,15)
             )
         )
-        self.contact_info_box.add(
-            username_label,
-            self.username_value,
-            id_label,
-            id_value
-        )
+        if self.rtl:
+            self.contact_info_box.add(
+                id_value,
+                id_label,
+                self.username_value,
+                username_label,
+            )
+        else:
+            self.contact_info_box.add(
+                username_label,
+                self.username_value,
+                id_label,
+                id_value
+            )
         self.contact_id = contact_id
         self.user_address = address
 
@@ -2037,7 +2135,7 @@ class Chat(Box):
                     timestamp=message_timestamp,
                     app= self.app,
                     output = self.output_box,
-                    utils=self.utils, units=self.units, font=self.font
+                    settings=self.settings, utils=self.utils, units=self.units, tr=self.tr, font=self.font
                 )
                 self.messages_box.insert(
                     0, message
@@ -2062,7 +2160,7 @@ class Chat(Box):
                     timestamp=message_timestamp,
                     app= self.app,
                     output = self.output_box,
-                    utils=self.utils, units=self.units, font=self.font
+                    settings=self.settings, utils=self.utils, units=self.units, tr=self.tr, font=self.font
                 )
                 self.messages_box.insert(
                     6, message
@@ -2151,7 +2249,7 @@ class Chat(Box):
                     timestamp=data[3],
                     app=self.app,
                     output=self.output_box,
-                    utils=self.utils, units=self.units, font=self.font
+                    settings=self.settings, utils=self.utils, units=self.units, tr=self.tr, font=self.font
                 )
                 self.messages_box.insert(0, message)
             await asyncio.sleep(1)
@@ -2178,7 +2276,7 @@ class Chat(Box):
                     timestamp=message_timestamp,
                     app=self.app,
                     output=self.output_box,
-                    utils=self.utils, units=self.units, font=self.font
+                    settings=self.settings, utils=self.utils, units=self.units, tr=self.tr, font=self.font
                 )
                 self.messages_box.add(message)
 
@@ -2202,7 +2300,9 @@ class Chat(Box):
 
 
     def add_contact_click(self, sender, event):
-        self.new_contact = NewContact(self.utils, self.units, self.commands, self.font)
+        self.new_contact = NewContact(
+            self.main, self.settings, self.utils, self.units, self.commands, self.tr, self.font
+        )
         self.new_contact._impl.native.ShowDialog(self.main._impl.native)
         
     
@@ -2214,7 +2314,7 @@ class Chat(Box):
             self.pending_contacts._impl.native.MouseLeave += self.pending_contacts_mouse_leave
             self.pending_contacts.image = "images/pending_i.png"
             self.new_pending_toggle = None
-        self.pending_list = PendingList(self, self.utils, self.units, self.commands, self.font)
+        self.pending_list = PendingList(self, self.utils, self.units, self.commands, self.tr, self.font)
         self.pending_list.close_button.on_press = self.close_pending_list
         self.pending_list._impl.native.ShowDialog(self.main._impl.native)
         self.pending_toggle = True
@@ -2344,7 +2444,7 @@ class Chat(Box):
             timestamp=timestamp,
             app=self.app,
             output=self.output_box,
-            utils=self.utils, units=self.units, font=self.font
+            settings=self.settings, utils=self.utils, units=self.units, tr=self.tr, font=self.font
         )
         self.messages_box.add(
             message
@@ -2362,7 +2462,7 @@ class Chat(Box):
             timestamp=timestamp,
             app=self.app,
             output=self.output_box,
-            utils=self.utils, units=self.units, font=self.font
+            settings=self.settings, utils=self.utils, units=self.units, tr=self.tr, font=self.font
         )
         self.messages_box.add(
             message
@@ -2376,8 +2476,12 @@ class Chat(Box):
 
     def update_character_count(self, input):
         message = self.message_input.value
+        text = self.tr.text("character_count")
+        value = "0 / 325"
+        if self.rtl:
+            value = self.units.arabic_digits(value)
         if not message:
-            self.character_count.text = f"Limit : 0 / 325"
+            self.character_count.text = f"{text} {value}"
             return
         character_count = len(message)
         if character_count > 325:
@@ -2386,7 +2490,9 @@ class Chat(Box):
             self.character_count.style.color = GRAY
         elif character_count == 325:
             self.character_count.style.color = YELLOW
-        self.character_count.text = f"Limit : {character_count} / 325"
+        if self.rtl:
+            value = self.units.arabic_digits(f"{character_count} / 325")
+        self.character_count.text = f"{text} {value}"
         
 
     def send_button_mouse_enter(self, sender, event):
@@ -2491,7 +2597,7 @@ class Messages(Box):
 
     def create_new_messenger(self):
         self.new_messenger = NewMessenger(
-            self.app, self, self.main, self.chat, self.utils, self.commands, self.font
+            self.app, self, self.main, self.chat, self.settings, self.utils, self.commands, self.tr, self.font
         )
         self.add(self.new_messenger)
 

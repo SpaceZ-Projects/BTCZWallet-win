@@ -442,7 +442,7 @@ class Menu(Window):
         if data:
             username = self.storage.get_identity("username")
             if username:
-                edit_window = EditUser(username[0], self.utils, self.font)
+                edit_window = EditUser(self, username[0], self.settings, self.utils, self.tr, self.font)
                 edit_window._impl.native.ShowDialog(self._impl.native)
 
 

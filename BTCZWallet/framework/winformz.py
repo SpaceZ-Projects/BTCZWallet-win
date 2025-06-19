@@ -42,6 +42,8 @@ class AlignTable:
 
 class AlignRichLabel:
     CENTER = Forms.HorizontalAlignment.Center
+    RIGHT = Forms.HorizontalAlignment.Right
+    LEFT = Forms.HorizontalAlignment.Left
 
 class DockStyle:
     NONE = Forms.DockStyle(0)

@@ -225,7 +225,6 @@ class Send(Box):
         self.destination_label._impl.native.Font = self.font.get(self.tr.size("destination_label"), True)
 
         self.destination_input_single = TextInput(
-            placeholder=" Address",
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -235,9 +234,11 @@ class Send(Box):
             on_change=self.is_valid_address
         )
         self.destination_input_single._impl.native.Font = self.font.get(self.tr.size("destination_input_single"), True)
+        if self.rtl:
+            self.destination_input_single._impl.native.RightToLeft = RightToLeft.YES
+        self.destination_input_single.placeholder = self.tr.text("destination_input_single")
 
         self.destination_input_many = MultilineTextInput(
-            placeholder=" Addresses list",
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -248,6 +249,9 @@ class Send(Box):
             on_change=self.destination_input_many_on_change
         )
         self.destination_input_many._impl.native.Font = self.font.get(self.tr.size("destination_input_many"), True)
+        if self.rtl:
+            self.destination_input_many._impl.native.RightToLeft = RightToLeft.YES
+        self.destination_input_many.placeholder = self.tr.text("destination_input_many")
 
         self.is_valid = ImageView(
             style=Pack(

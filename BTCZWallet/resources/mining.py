@@ -12,7 +12,7 @@ from toga import (
     ProgressBar, Window, ScrollContainer,
     Button, ImageView, Switch
 )
-from ..framework import FlatStyle, Os, ToolTip
+from ..framework import FlatStyle, Os, ToolTip, RightToLeft
 from toga.style.pack import Pack
 from toga.constants import COLUMN, CENTER, BOLD, ROW
 from toga.colors import rgb, GRAY, WHITE, GREENYELLOW, BLACK, RED
@@ -56,6 +56,12 @@ class Mining(Box):
         self.storage = StorageMessages(self.app)
         self.tooltip = ToolTip()
 
+        self.rtl = None
+        lang = self.settings.language()
+        if lang:
+            if lang == "Arabic":
+                self.rtl = True
+
         self.tor_enabled = self.settings.tor_network()
 
         self.miner_label = Label(
@@ -94,9 +100,12 @@ class Mining(Box):
             style=Pack(
                 height = 5,
                 width = 100,
-                padding_left = 20
+                padding = self.tr.padding("progress_bar")
             )
         )
+        if self.rtl:
+            self.progress_bar._impl.native.RightToLeft = RightToLeft.YES
+            self.progress_bar._impl.native.RightToLeftLayout = True
 
         self.setup_miner_box = Box(
             style=Pack(
@@ -217,6 +226,8 @@ class Mining(Box):
         )
         self.ssl_switch._impl.native.Font = self.font.get(11, True)
         self.tooltip.insert(self.ssl_switch._impl.native, self.tr.tooltip("ssl_switch"))
+        if self.rtl:
+            self.ssl_switch._impl.native.RightToLeft = RightToLeft.YES
 
         self.selection_pool_box = Box(
             style=Pack(
@@ -251,6 +262,8 @@ class Mining(Box):
             on_change=self.update_worker_name
         )
         self.worker_input._impl.native.Font = self.font.get(11, True)
+        if self.rtl:
+            self.worker_input._impl.native.RightToLeft = RightToLeft.YES
 
         self.empty_box = Box(
             style=Pack(
@@ -290,7 +303,7 @@ class Mining(Box):
             image="images/shares.png",
             style=Pack(
                 background_color = rgb(30,33,36),
-                padding_left = 10
+                padding = self.tr.padding("miningstats_icon")
             )
         )
         self.tooltip.insert(self.totalshares_icon._impl.native, self.tr.tooltip("totalshares_icon"))
@@ -301,7 +314,7 @@ class Mining(Box):
                 color = WHITE,
                 background_color = rgb(30,33,36),
                 font_weight = BOLD,
-                padding_left = 5
+                padding = self.tr.padding("miningstats_value")
             )
         )
         self.totalshares_value._impl.native.Font = self.font.get(7, True)
@@ -310,7 +323,7 @@ class Mining(Box):
             image="images/balance.png",
             style=Pack(
                 background_color = rgb(30,33,36),
-                padding_left = 20
+                padding = self.tr.padding("miningstats_icon")
             )
         )
         self.tooltip.insert(self.balance_icon._impl.native, self.tr.tooltip("balance_icon"))
@@ -320,7 +333,7 @@ class Mining(Box):
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                padding_left = 5
+                padding = self.tr.padding("miningstats_value")
             )
         )
         self.balance_value._impl.native.Font = self.font.get(7, True)
@@ -329,7 +342,7 @@ class Mining(Box):
             image="images/immature.png",
             style=Pack(
                 background_color = rgb(30,33,36),
-                padding_left = 20
+                padding = self.tr.padding("miningstats_icon")
             )
         )
         self.tooltip.insert(self.immature_icon._impl.native, self.tr.tooltip("immature_icon"))
@@ -339,7 +352,7 @@ class Mining(Box):
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                padding_left = 2
+                padding = self.tr.padding("miningstats_value")
             )
         )
         self.immature_value._impl.native.Font = self.font.get(7, True)
@@ -348,7 +361,7 @@ class Mining(Box):
             image="images/paid.png",
             style=Pack(
                 background_color = rgb(30,33,36),
-                padding = (2,0,0,20)
+                padding = self.tr.padding("miningstats_icon")
             )
         )
         self.tooltip.insert(self.paid_icon._impl.native, self.tr.tooltip("paid_icon"))
@@ -358,7 +371,7 @@ class Mining(Box):
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                padding_left = 6
+                padding = self.tr.padding("miningstats_value")
             )
         )
         self.paid_value._impl.native.Font = self.font.get(7, True)
@@ -367,7 +380,7 @@ class Mining(Box):
             image="images/hash_speed.png",
             style=Pack(
                 background_color = rgb(30,33,36),
-                padding_left = 20
+                padding = self.tr.padding("miningstats_icon")
             )
         )
         self.tooltip.insert(self.solutions_icon._impl.native, self.tr.tooltip("solutions_icon"))
@@ -377,7 +390,7 @@ class Mining(Box):
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                padding_left = 6
+                padding = self.tr.padding("miningstats_value")
             )
         )
         self.solutions_value._impl.native.Font = self.font.get(7, True)
@@ -386,7 +399,7 @@ class Mining(Box):
             image="images/estimated.png",
             style=Pack(
                 background_color = rgb(30,33,36),
-                padding_left = 20
+                padding = self.tr.padding("miningstats_icon")
             )
         )
         self.tooltip.insert(self.estimated_icon._impl.native, self.tr.tooltip("estimated_icon"))
@@ -397,7 +410,7 @@ class Mining(Box):
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                padding_left = 6
+                padding = self.tr.padding("miningstats_value")
             )
         )
         self.estimated_value._impl.native.Font = self.font.get(7, True)
@@ -407,7 +420,7 @@ class Mining(Box):
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
-                padding_left = 6
+                padding = self.tr.padding("miningstats_value")
             )
         )
         self.estimated_earn_value._impl.native.Font = self.font.get(7, True)
@@ -419,11 +432,20 @@ class Mining(Box):
             )
         )
 
-        self.mining_box = Box(
+        self.mining_stats_box = Box(
             style=Pack(
                 direction = ROW,
                 background_color = rgb(30,33,36),
-                alignment= CENTER,
+                alignment = CENTER,
+                flex = 1
+            )
+        )
+
+        self.mining_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(30,33,36),
+                alignment= self.tr.align("mining_box"),
                 flex = 1
             )
         )
@@ -435,7 +457,7 @@ class Mining(Box):
                 background_color = rgb(30,33,36),
                 width = 150,
                 alignment= CENTER,
-                padding_right = 10
+                padding = self.tr.padding("start_mining_button")
             ),
             on_press=self.start_mining_button_click
         )
@@ -466,44 +488,90 @@ class Mining(Box):
                 self.output_scroll,
                 self.start_mining_box
             )
-            self.selection_miner_box.add(
-                self.miner_label,
-                self.miner_selection,
-                self.setup_miner_box
-            )
-            self.selection_address_box.add(
-                self.address_label,
-                self.address_selection,
-                self.address_balance
-            )
-            self.selection_pool_box.add(
-                self.pool_label,
-                self.pool_selection,
-                self.pool_region_selection,
-                self.ssl_switch
-            )
-            self.worker_box.add(
-                self.worker_label,
-                self.worker_input,
-                self.empty_box
-            )
-            self.start_mining_box.add(
-                self.mining_box,
-                self.start_mining_button
-            )
+            if self.rtl:
+                self.selection_miner_box.add(
+                    self.setup_miner_box,
+                    self.miner_selection,
+                    self.miner_label
+                )
+                self.selection_address_box.add(
+                    self.address_balance,
+                    self.address_selection,
+                    self.address_label
+                )
+                self.selection_pool_box.add(
+                    self.ssl_switch,
+                    self.pool_region_selection,
+                    self.pool_selection,
+                    self.pool_label
+                )
+                self.worker_box.add(
+                    self.empty_box,
+                    self.worker_input,
+                    self.worker_label
+                )
+                self.start_mining_box.add(
+                    self.start_mining_button,
+                    self.mining_box
+                )
+                self.mining_stats_box.add(
+                    self.estimated_box,
+                    self.estimated_icon,
+                    self.solutions_value,
+                    self.solutions_icon,
+                    self.paid_value,
+                    self.paid_icon,
+                    self.immature_value,
+                    self.immature_icon,
+                    self.balance_value,
+                    self.balance_icon,
+                    self.totalshares_value,
+                    self.totalshares_icon
+                )
+            else:
+                self.selection_miner_box.add(
+                    self.miner_label,
+                    self.miner_selection,
+                    self.setup_miner_box
+                )
+                self.selection_address_box.add(
+                    self.address_label,
+                    self.address_selection,
+                    self.address_balance
+                )
+                self.selection_pool_box.add(
+                    self.pool_label,
+                    self.pool_selection,
+                    self.pool_region_selection,
+                    self.ssl_switch
+                )
+                self.worker_box.add(
+                    self.worker_label,
+                    self.worker_input,
+                    self.empty_box
+                )
+                self.start_mining_box.add(
+                    self.mining_box,
+                    self.start_mining_button
+                )
+                self.mining_stats_box.add(
+                    self.totalshares_icon,
+                    self.totalshares_value,
+                    self.balance_icon,
+                    self.balance_value,
+                    self.immature_icon,
+                    self.immature_value,
+                    self.paid_icon,
+                    self.paid_value,
+                    self.solutions_icon,
+                    self.solutions_value,
+                    self.estimated_icon,
+                    self.estimated_box
+                )
+
+                
             self.mining_box.add(
-                self.totalshares_icon,
-                self.totalshares_value,
-                self.balance_icon,
-                self.balance_value,
-                self.immature_icon,
-                self.immature_value,
-                self.paid_icon,
-                self.paid_value,
-                self.solutions_icon,
-                self.solutions_value,
-                self.estimated_icon,
-                self.estimated_box
+                self.mining_stats_box
             )
             self.estimated_box.add(
                 self.estimated_value,
@@ -817,64 +885,65 @@ class Mining(Box):
                     async with session.get(api, headers=headers, timeout=10) as response:
                         response.raise_for_status()
                         mining_data = await response.json()
-                        total_share = mining_data.get("totalShares") or sum(miner.get("accepted", 0) for miner in mining_data.get("miners", []))
-                        balance = mining_data.get("balance", 0)
-                        immature_bal = mining_data.get("immature", mining_data.get("unpaid", 0))
-                        paid = mining_data.get("paid", mining_data.get("paidtotal", 0))
-                        workers_data = mining_data.get("workers", {})
-                        text = self.tr.text("estimated_value")
-                        if workers_data:
-                            for worker_name, worker_info in workers_data.items():
-                                worker_name_parts = worker_name.split(".")
-                                if len(worker_name_parts) > 1:
-                                    name = worker_name_parts[1]
+                        if mining_data:
+                            total_share = mining_data.get("totalShares") or sum(miner.get("accepted", 0) for miner in mining_data.get("miners", []))
+                            balance = mining_data.get("balance", 0)
+                            immature_bal = mining_data.get("immature", mining_data.get("unpaid", 0))
+                            paid = mining_data.get("paid", mining_data.get("paidtotal", 0))
+                            workers_data = mining_data.get("workers", {})
+                            text = self.tr.text("estimated_value")
+                            if workers_data:
+                                for worker_name, worker_info in workers_data.items():
+                                    worker_name_parts = worker_name.split(".")
+                                    if len(worker_name_parts) > 1:
+                                        name = worker_name_parts[1]
+                                    else:
+                                        name = worker_name
+                                    if name == self.worker_name:
+                                        hashrate = worker_info.get("hashrate", None)
+                                        if hashrate:
+                                            converted_rate = self.units.hash_to_solutions(hashrate)
+                                            self.solutions_value.text = f"{converted_rate:.2f} Sol/s"
+                                            estimated_24h = await self.units.estimated_earn(24, hashrate)
+                                            self.estimated_value.text = f"{int(estimated_24h)} {text}"
+                            else:
+                                total_hashrates = mining_data.get("total_hashrates", [])
+                                if total_hashrates:
+                                    for hashrate in total_hashrates:
+                                        for algo, rate in hashrate.items():
+                                            self.solutions_value.text = f"{rate:.2f} Sol/s"
+                                            converted_rate = self.units.solution_to_hash(rate)
+                                            estimated_24h = await self.units.estimated_earn(24, converted_rate)
+                                            self.estimated_value.text = f"{int(estimated_24h)} {text}"
+                                            converted_rate = rate
                                 else:
-                                    name = worker_name
-                                if name == self.worker_name:
-                                    hashrate = worker_info.get("hashrate", None)
-                                    if hashrate:
-                                        converted_rate = self.units.hash_to_solutions(hashrate)
-                                        self.solutions_value.text = f"{converted_rate:.2f} Sol/s"
-                                        estimated_24h = await self.units.estimated_earn(24, hashrate)
-                                        self.estimated_value.text = f"{int(estimated_24h)} {text}"
-                        else:
-                            total_hashrates = mining_data.get("total_hashrates", [])
-                            if total_hashrates:
-                                for hashrate in total_hashrates:
-                                    for algo, rate in hashrate.items():
+                                    rate = sum(float(miner.get("hashrate", "0").replace("h/s", "").strip()) for miner in mining_data.get("miners", []))
+                                    if rate:
                                         self.solutions_value.text = f"{rate:.2f} Sol/s"
                                         converted_rate = self.units.solution_to_hash(rate)
                                         estimated_24h = await self.units.estimated_earn(24, converted_rate)
                                         self.estimated_value.text = f"{int(estimated_24h)} {text}"
                                         converted_rate = rate
-                            else:
-                                rate = sum(float(miner.get("hashrate", "0").replace("h/s", "").strip()) for miner in mining_data.get("miners", []))
-                                if rate:
-                                    self.solutions_value.text = f"{rate:.2f} Sol/s"
-                                    converted_rate = self.units.solution_to_hash(rate)
-                                    estimated_24h = await self.units.estimated_earn(24, converted_rate)
-                                    self.estimated_value.text = f"{int(estimated_24h)} {text}"
-                                    converted_rate = rate
 
-                        btcz_price = self.settings.price()
-                        if btcz_price:
-                            estimated_earn = float(btcz_price) * float(estimated_24h)
-                            self.estimated_earn_value.text = f"{self.units.format_price(estimated_earn)} {self.settings.symbol()}"
+                            btcz_price = self.settings.price()
+                            if btcz_price:
+                                estimated_earn = float(btcz_price) * float(estimated_24h)
+                                self.estimated_earn_value.text = f"{self.units.format_price(estimated_earn)} {self.settings.symbol()}"
 
-                        self.totalshares_value.text = f"{total_share:.2f}"
-                        self.balance_value.text = self.units.format_balance(balance)
-                        self.immature_value.text = self.units.format_balance(immature_bal)
-                        self.paid_value.text = self.units.format_balance(paid)
-                        
-                        solutions_text = self.tr.text("notifymining_solutions")
-                        balance_text = self.tr.text("notifymining_balance")
-                        immature_text = self.tr.text("notifymining_immature")
-                        paid_text = self.tr.text("notifymining_paid")
-                        self.main.notifymining.text = f"{solutions_text} {converted_rate:.2f} Sol/s"
-                        self.main.notifymining.solutions.text = f"⛏️ {solutions_text} {converted_rate:.2f} Sol/s"
-                        self.main.notifymining.balance.text = f"💰 {balance_text} {self.units.format_balance(balance)}"
-                        self.main.notifymining.immature.text = f"🔃 {immature_text} {self.units.format_balance(immature_bal)}"
-                        self.main.notifymining.paid.text = f"💸 {paid_text} {self.units.format_balance(paid)}"
+                            self.totalshares_value.text = f"{total_share:.2f}"
+                            self.balance_value.text = self.units.format_balance(balance)
+                            self.immature_value.text = self.units.format_balance(immature_bal)
+                            self.paid_value.text = self.units.format_balance(paid)
+                            
+                            solutions_text = self.tr.text("notifymining_solutions")
+                            balance_text = self.tr.text("notifymining_balance")
+                            immature_text = self.tr.text("notifymining_immature")
+                            paid_text = self.tr.text("notifymining_paid")
+                            self.main.notifymining.text = f"{solutions_text} {converted_rate:.2f} Sol/s"
+                            self.main.notifymining.solutions.text = f"⛏️ {solutions_text} {converted_rate:.2f} Sol/s"
+                            self.main.notifymining.balance.text = f"💰 {balance_text} {self.units.format_balance(balance)}"
+                            self.main.notifymining.immature.text = f"🔃 {immature_text} {self.units.format_balance(immature_bal)}"
+                            self.main.notifymining.paid.text = f"💸 {paid_text} {self.units.format_balance(paid)}"
 
                 except ProxyConnectionError:
                     print("Proxy connection failed.")

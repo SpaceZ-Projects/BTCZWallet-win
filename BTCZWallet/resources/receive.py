@@ -261,18 +261,30 @@ class Receive(Box):
     async def insert_widgets(self, widget):
         if not self.receive_toggle:
             self.addresses_list._impl.native.Controls.Add(self.addresses_table)
-            self.addresses_box.add(
-                self.addresses_list_box,
-                self.address_info
-            )
+            if self.rtl:
+                self.addresses_box.add(
+                    self.address_info,
+                    self.addresses_list_box
+                )
+            else:
+                self.addresses_box.add(
+                    self.addresses_list_box,
+                    self.address_info
+                )
             self.addresses_list_box.add(
                 self.switch_address_box,
                 self.addresses_list
             )
-            self.switch_address_box.add(
-                self.transparent_button,
-                self.private_button
-            )
+            if self.rtl:
+                self.switch_address_box.add(
+                    self.private_button,
+                    self.transparent_button
+                )
+            else:
+                self.switch_address_box.add(
+                    self.transparent_button,
+                    self.private_button
+                )
             self.transparent_button.add(
                 self.transparent_label
             )
@@ -397,6 +409,8 @@ class Receive(Box):
             return
         qr_image = self.utils.qr_generate(self.selected_address)
         balance = self.units.format_balance(balance)
+        if self.rtl:
+            balance = self.units.arabic_digits(balance)
         self.address_qr.image = qr_image
         self.address_value.text = self.selected_address
         text = self.tr.text("address_balance")
