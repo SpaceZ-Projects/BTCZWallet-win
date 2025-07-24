@@ -14,14 +14,13 @@ from ..framework import (
 )
 from toga.style.pack import Pack
 from toga.constants import (
-    COLUMN, ROW, TOP, CENTER, LEFT,
-    VISIBLE, HIDDEN, RIGHT
+    COLUMN, ROW, TOP, CENTER, VISIBLE, HIDDEN
 )
 from toga.colors import (
     rgb, GRAY, WHITE, YELLOW, BLACK, RED
 )
 
-from .storage import StorageMessages, StorageTxs
+from .storage import StorageMessages, StorageTxs, StorageMarket
 
 
 class Send(Box):
@@ -51,6 +50,7 @@ class Send(Box):
 
         self.storagemsgs = StorageMessages(self.app)
         self.storagetxs = StorageTxs(self.app)
+        self.storage_market = StorageMarket(self.app)
         self.tooltip = ToolTip()
 
         self.rtl = None
@@ -635,7 +635,7 @@ class Send(Box):
             destination_context_menu.Items.Add(command)
         self.destination_input_single._impl.native.ContextMenuStrip = destination_context_menu
 
-        amount_context_menu = MenuStrip(self.settings)
+        amount_context_menu = MenuStrip(rtl=self.rtl)
         self.percentage_25_cmd = Command(
             title=self.tr.text("percentage_25_cmd"),
             color=Color.WHITE,
@@ -921,8 +921,11 @@ class Send(Box):
             addresses_data = json.loads(addresses_data)
         else:
             addresses_data = []
+            
         if addresses_data is not None:
-            address_items = [(self.tr.text("main_account"))] + [(address_info, address_info) for address_info in addresses_data]
+            orders_addresses = self.storage_market.get_orders_addresses()
+            filtered_addresses = [addr for addr in addresses_data if addr not in orders_addresses]
+            address_items = [(self.tr.text("main_account"))] + [(addr, addr) for addr in filtered_addresses]
         else:
             address_items = [(self.tr.text("main_account"))]
         return address_items
@@ -932,11 +935,7 @@ class Send(Box):
         addresses_data, _ = await self.commands.z_listAddresses()
         addresses_data = json.loads(addresses_data)
         if addresses_data is not None:
-            message_address = self.storagemsgs.get_identity("address")
-            if message_address:
-                address_items = [address_info for address_info in addresses_data if address_info != message_address[0]]
-            else:
-                address_items = [(address, address) for address in addresses_data]
+            address_items = [(address, address) for address in addresses_data]
         else:
             address_items = []
         return address_items

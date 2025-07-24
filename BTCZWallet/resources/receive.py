@@ -16,7 +16,7 @@ from toga.colors import (
     rgb, WHITE, GRAY, YELLOW
 )
 
-from .storage import StorageMessages
+from .storage import StorageMessages, StorageMarket
 
 
 class Receive(Box):
@@ -44,6 +44,7 @@ class Receive(Box):
         self.font = font
 
         self.storage = StorageMessages(self.app)
+        self.storage_market = StorageMarket(self.app)
         self.clipboard = ClipBoard()
 
         self.rtl = None
@@ -465,7 +466,9 @@ class Receive(Box):
         addresses_data,_ = await self.commands.ListAddresses()
         addresses_data = json.loads(addresses_data)
         if addresses_data is not None:
-            address_items = {address_info for address_info in addresses_data}
+            orders_addresses = self.storage_market.get_orders_addresses()
+            filtered_addresses = [addr for addr in addresses_data if addr not in orders_addresses]
+            address_items = {address_info for address_info in filtered_addresses}
         else:
             address_items = []
         return address_items
@@ -483,6 +486,35 @@ class Receive(Box):
         else:
             address_items = []
         return address_items
+    
+    
+    async def reload_addresses(self):
+        if self.receive_toggle:
+            self.addresses_table.data_source.clear()
+            if self.transparent_toggle:
+                addresses = []
+                transparent_addresses = await self.get_transparent_addresses()
+                for address in transparent_addresses:
+                    row = {
+                        self.tr.text("columnt_addresses"): address
+                    }
+                    addresses.append(row)
+                self.addresses_table.data_source = addresses
+            elif self.private_toggle:
+                addresses = []
+                private_addresses = await self.get_private_addresses()
+                if private_addresses:
+                    for address in private_addresses:
+                        row = {
+                            self.tr.text("columnz_addresses"): address
+                        }
+                        addresses.append(row)
+                else:
+                    addresses = [{
+                        self.tr.text("columnz_addresses"): ''
+                    }]
+                self.addresses_table.data_source = addresses
+
     
 
     def copy_address_cmd_mouse_enter(self):
