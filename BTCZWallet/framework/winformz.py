@@ -4,6 +4,7 @@ import clr
 from pathlib import Path
 from typing import Optional, Union, List, Callable
 import re
+import inspect
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Drawing')
@@ -104,9 +105,14 @@ class Relation:
 class ClipBoard(Forms.Clipboard):
     def __init__(self):
         super().__init__()
+
     def copy(self, value):
         self.SetText(value)
 
+    def paste(self):
+        if self.ContainsText():
+            return self.GetText()
+        return ""
 
 class ToolTip(Forms.ToolTip):
     def __init__(self):
@@ -633,7 +639,17 @@ class Command(Forms.ToolStripMenuItem):
 
     def _handle_click(self, sender, event):
         if self._action:
-            self._action()
+            sig = inspect.signature(self._action)
+            param_count = len(sig.parameters)
+            try:
+                if param_count == 0:
+                    self._action()
+                elif param_count == 1:
+                    self._action(sender)
+                else:
+                    self._action(sender, event)
+            except Exception as e:
+                print(f"Error invoking action for {self._title}: {e}")
 
 
     def _set_icon(self, icon_path: Path):
@@ -647,11 +663,31 @@ class Command(Forms.ToolStripMenuItem):
 
     def _handle_mouse_enter(self, sender, event):
         if self._mouse_enter:
-            self._mouse_enter()
+            sig = inspect.signature(self._mouse_enter)
+            param_count = len(sig.parameters)
+            try:
+                if param_count == 0:
+                    self._mouse_enter()
+                elif param_count == 1:
+                    self._mouse_enter(sender)
+                else:
+                    self._mouse_enter(sender, event)
+            except Exception as e:
+                print(f"Error invoking mouse_enter for {self._title}: {e}")
 
     def _handle_mouse_leave(self, sender, event):
         if self._mouse_leave:
-            self._mouse_leave()
+            sig = inspect.signature(self._mouse_leave)
+            param_count = len(sig.parameters)
+            try:
+                if param_count == 0:
+                    self._mouse_leave()
+                elif param_count == 1:
+                    self._mouse_leave(sender)
+                else:
+                    self._mouse_leave(sender, event)
+            except Exception as e:
+                print(f"Error invoking mouse_leave for {self._title}: {e}")
 
     def _handle_mouse_up(self, sender, event):
         if self._mouse_up:
