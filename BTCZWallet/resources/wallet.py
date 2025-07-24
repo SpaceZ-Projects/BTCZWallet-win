@@ -14,7 +14,7 @@ from toga.colors import (
     rgb, WHITE, GRAY, YELLOW, RED, GREENYELLOW, BLACK
 )
 from toga.constants import (
-    TOP, ROW, LEFT, COLUMN, RIGHT, CENTER,
+    TOP, ROW, COLUMN, RIGHT, CENTER,
     BOTTOM, HIDDEN, VISIBLE
 )
 
@@ -62,7 +62,7 @@ class Wallet(Box):
                 color = WHITE,
                 background_color = rgb(40,43,48),
                 text_align = self.tr.align("bitcoinz_title"),
-                padding_top = 25
+                padding = self.tr.padding("bitcoinz_title")
             )
         )
         self.bitcoinz_title._impl.native.Font = self.font.get(self.tr.size("bitcoinz_title"), True)
@@ -486,9 +486,11 @@ class ImportKey(Window):
             result,_ = await self.commands.getInfo()
             if result:
                 self.main.transactions_page.reload_transactions()
+                await self.main.receive_page.reload_addresses()
                 await self.main.mining_page.reload_addresses()
                 self.main.import_key_toggle = None
                 self.close()
+                self.app.current_window = self.main
                 return
             
             await asyncio.sleep(5)
@@ -700,6 +702,7 @@ class ImportWallet(Window):
             result,_ = await self.commands.getInfo()
             if result:
                 self.main.transactions_page.reload_transactions()
+                await self.main.receive_page.reload_addresses()
                 await self.main.mining_page.reload_addresses()
                 self.main.import_key_toggle = None
                 self.close()

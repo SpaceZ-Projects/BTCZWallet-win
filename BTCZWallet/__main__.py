@@ -2,7 +2,7 @@
 from toga import (
     App, Window, Box, ImageView, Label
 )
-from .framework import CustomFont
+from .framework import CustomFont, ToolTip
 from toga.colors import rgb, WHITE, YELLOW
 from toga.style.pack import Pack
 from toga.constants import RIGHT, COLUMN, ROW, LEFT
@@ -24,6 +24,7 @@ class BitcoinZGUI(Window):
         self.tr = Translations(self.settings)
         self.utils = Utils(self.app, self.settings, self.units, self.tr)
         self.font = CustomFont(self.settings)
+        self.tooltip = ToolTip()
 
         self.title = self.tr.title("main_window")
         position_center = self.utils.windows_screen_center(self.size)
@@ -80,6 +81,8 @@ class BitcoinZGUI(Window):
                 padding = self.tr.padding("tor_icon"),
             )
         )
+        self.tooltip.insert(self.tor_icon._impl.native, "Tor Network")
+        
         self.network_status = Label(
             text="",
             style=Pack(

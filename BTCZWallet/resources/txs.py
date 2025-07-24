@@ -13,7 +13,7 @@ from ..framework import (
 )
 from toga.style.pack import Pack
 from toga.colors import rgb, GRAY, WHITE, GREEN, RED, ORANGE, BLACK
-from toga.constants import COLUMN, CENTER, BOLD, ROW, RIGHT
+from toga.constants import COLUMN, CENTER, BOLD, ROW
 
 from .notify import NotifyTx
 from .storage import StorageMessages, StorageTxs
@@ -21,12 +21,13 @@ from .storage import StorageMessages, StorageTxs
 
 
 class Txid(Window):
-    def __init__(self, txid, settings, utils, units, commands, tr, font):
+    def __init__(self, main:Window, txid, settings, utils, units, commands, tr, font):
         super().__init__(
             size =(600, 180),
             resizable= False
         )
-
+        
+        self.main = main
         self.updating_txid = None
         self.txid = txid
 
@@ -337,6 +338,7 @@ class Txid(Window):
     def close_transaction_info(self, button):
         self.updating_txid = None
         self.close()
+        self.app.current_window = self.main
 
 
 
@@ -714,7 +716,7 @@ class Transactions(Box):
 
     def show_transaction_info(self, txid):
         self.transactions_info = Txid(
-            txid, self.settings, self.utils, self.units, self.commands, self.tr, self.font
+            self.main, txid, self.settings, self.utils, self.units, self.commands, self.tr, self.font
         )
         self.transactions_info._impl.native.ShowDialog(self.main._impl.native)
 
