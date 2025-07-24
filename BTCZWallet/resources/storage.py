@@ -5,6 +5,210 @@ from toga import App
 from ..framework import Os
 
 
+
+class StorageMarket:
+    def __init__(self, app:App):
+        super().__init__()
+
+        self.app = app
+        self.app_data = self.app.paths.data
+        self.data = Os.Path.Combine(str(self.app_data), 'marketplace.dat')
+
+        self.file_stream = Os.FileStream(
+            self.data,
+            Os.FileMode.OpenOrCreate,
+            Os.FileAccess.ReadWrite,
+            Os.FileShare.ReadWrite
+        )
+
+    def create_items_table(self):
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS market_items (
+                id TEXT,
+                title TEXT,
+                image TEXT,
+                description TEXT,
+                price REAL,
+                currency TEXT,
+                quantity INTEGER,
+                timestamp INTEGER
+            )
+            '''
+        )
+        conn.commit()
+        conn.close()
+
+
+    def create_orders_table(self):
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS market_orders (
+                order_id TEXT,
+                item_id TEXT,
+                contact_id TEXT,
+                total_price REAL,
+                quantity INTEGER,
+                comment TEXT,
+                address TEXT,
+                status TEXT,
+                created INTEGER,
+                expired INTEGER
+            )
+            '''
+        )
+        conn.commit()
+        conn.close()
+
+
+    def insert_item(self, id, title, image, description, price, currency, quantity, timestamp):
+        self.create_items_table()
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            INSERT INTO market_items (id, title, image, description, price, currency, quantity, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', 
+            (id, title, image, description, price, currency, quantity, timestamp)
+        )
+        conn.commit()
+        conn.close()
+
+
+    def insert_order(self, order_id, item_id, contact_id, total_price, quantity, comment, address, status, created, expired):
+        self.create_orders_table()
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            INSERT INTO market_orders (order_id, item_id, contact_id, total_price, quantity, comment, address, status, created, expired)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', 
+            (order_id, item_id, contact_id, total_price, quantity, comment, address, status, created, expired)
+        )
+        conn.commit()
+        conn.close()
+
+
+    def delete_item(self, item_id):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute(
+                '''
+                DELETE FROM market_items WHERE id = ?
+                ''', 
+                (item_id,)
+            )
+            conn.commit()
+            conn.close()
+        except sqlite3.OperationalError as e:
+            print(f"Error deleting item: {e}")
+
+
+    def get_market_items(self):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM market_items')
+            data = cursor.fetchall()
+            conn.close()
+            return data
+        except sqlite3.OperationalError:
+            return []
+        
+
+    def get_market_orders(self):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM market_orders')
+            data = cursor.fetchall()
+            conn.close()
+            return data
+        except sqlite3.OperationalError:
+            return []
+        
+
+    def get_orders_addresses(self):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute('SELECT address FROM market_orders')
+            data = cursor.fetchall()
+            conn.close()
+            return [addr[0] for addr in data]
+        except sqlite3.OperationalError:
+            return []
+        
+
+    def get_item(self, item_id):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT * FROM market_items WHERE id = ?',
+                (item_id,)
+            )
+            data = cursor.fetchone()
+            conn.close()
+            return data
+        except sqlite3.OperationalError:
+            return []
+        
+
+    def search_title(self, title):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute(
+                '''
+                SELECT * FROM market_items
+                WHERE title LIKE ?
+                ''',
+                (f'%{title}%',)
+            )
+            data = cursor.fetchall()
+            conn.close()
+            return data
+        except sqlite3.OperationalError:
+            return []
+        
+
+    def update_item_quantity(self, id, quantity):
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            UPDATE market_items
+            SET quantity = ?
+            WHERE id = ?
+            ''', (quantity, id)
+        )
+        conn.commit()
+        conn.close()
+
+
+    def update_order_status(self, order_id, status):
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            UPDATE market_orders
+            SET status = ?
+            WHERE order_id = ?
+            ''', (status, order_id)
+        )
+        conn.commit()
+        conn.close()
+
+
+
 class StorageTxs:
     def __init__(self, app:App):
         super().__init__()
@@ -335,6 +539,37 @@ class StorageMessages:
         conn.commit()
         conn.close()
 
+
+    def insert_market(self, contact_id, hostname):
+        self.create_market_tabel()
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            INSERT INTO market (contact_id, hostname)
+            VALUES (?, ?)
+            ''', 
+            (contact_id, hostname)
+        )
+        conn.commit()
+        conn.close()
+
+
+    def get_hostname(self, contact_id):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT hostname FROM market WHERE contact_id = ?',
+                (contact_id,)
+            )
+            data = cursor.fetchone()
+            conn.close()
+            return data
+        except sqlite3.OperationalError:
+            return None
+
+
     def get_txs(self):
         try:
             conn = sqlite3.connect(self.data)
@@ -394,6 +629,18 @@ class StorageMessages:
             return id
         except sqlite3.OperationalError:
             return None
+        
+
+    def get_ids_contacts(self):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute('SELECT id FROM contacts')
+            data = cursor.fetchall()
+            conn.close()
+            return [row[0] for row in data]
+        except sqlite3.OperationalError:
+            return []
         
 
     def get_pending(self, option = None):
@@ -605,6 +852,19 @@ class StorageMessages:
         conn.commit()
         conn.close()
 
+    def update_market(self, contact_id, hostname):
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            UPDATE market
+            SET hostname = ?
+            WHERE contact_id = ?
+            ''', (hostname, contact_id)
+        )
+        conn.commit()
+        conn.close()
+
     def create_pending_table(self):
         conn = sqlite3.connect(self.data)
         cursor = conn.cursor()
@@ -702,6 +962,21 @@ class StorageMessages:
             '''
             CREATE TABLE IF NOT EXISTS banned (
                 address TEXT
+            )
+            '''
+        )
+        conn.commit()
+        conn.close()
+
+
+    def create_market_tabel(self):
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS market (
+                contact_id TEXT,
+                hostname TEXT
             )
             '''
         )
