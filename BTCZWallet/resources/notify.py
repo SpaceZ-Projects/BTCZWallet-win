@@ -1,12 +1,10 @@
 
-import psutil
-
 from toga import App, Window
 from ..framework import NotifyIcon, Command, FormState, TextBox
 
 
 class Notify(NotifyIcon):
-    def __init__(self, app:App, main:Window, home_page, mining_page, settings, commands, tr, font):
+    def __init__(self, app:App, main:Window, home_page, mining_page, settings, utils, commands, tr, font):
 
         self.app = app
         self.main = main
@@ -14,6 +12,7 @@ class Notify(NotifyIcon):
         self.mining_page = mining_page
         
         self.settings = settings
+        self.utils = utils
         self.commands = commands
         self.tr = tr
 
@@ -23,6 +22,12 @@ class Notify(NotifyIcon):
             if lang == "Arabic":
                 self.rtl = True
 
+        self.restart_cmd = Command(
+            title="Restart",
+            action=self.restart_app,
+            font=font.get(9),
+            rtl = self.rtl
+        )
         self.stop_exit_cmd = Command(
             title=self.tr.text("notifystopexit_cmd"),
             action=self.stop_node_exit,
@@ -43,6 +48,7 @@ class Notify(NotifyIcon):
             text = "BitcoinZ Wallet",
             double_click=self.show_menu,
             commands=[
+                self.restart_cmd,
                 self.stop_exit_cmd,
                 self.exit_cmd
             ]
@@ -66,6 +72,7 @@ class Notify(NotifyIcon):
                 self.home_page.bitcoinz_curve.image = None
                 self.home_page.clear_cache()
                 self.hide()
+                self.dispose()
                 self.app.exit()
         if self.mining_page.mining_status:
             return
@@ -75,22 +82,15 @@ class Notify(NotifyIcon):
             on_result=on_result
         )
 
-    def stop_tor(self):
-        try:
-            for proc in psutil.process_iter(['pid', 'name']):
-                if proc.info['name'] == "tor.exe":
-                    proc.kill()
-        except Exception as e:
-            pass
-
     def stop_node_exit(self):
         async def on_result(widget, result):
             if result is True:
-                self.stop_tor()
+                self.utils.stop_tor()
                 await self.commands.stopNode()
                 self.home_page.bitcoinz_curve.image = None
                 self.home_page.clear_cache()
                 self.hide()
+                self.dispose()
                 self.app.exit()
 
         if self.mining_page.mining_status:
@@ -98,6 +98,27 @@ class Notify(NotifyIcon):
         self.main.question_dialog(
             title=self.tr.title("stopexit_dialog"),
             message=self.tr.message("stopexit_dialog"),
+            on_result=on_result
+        )
+
+
+    def restart_app(self):
+        async def on_result(widget, result):
+            if result is True:
+                restart = self.utils.restart_app()
+                if restart:
+                    self.utils.stop_tor()
+                    await self.commands.stopNode()
+                    self.home_page.bitcoinz_curve.image = None
+                    self.home_page.clear_cache()
+                    self.hide()
+                    self.dispose()
+                    self.app.exit()
+        if self.mining_page.mining_status:
+            return
+        self.main.question_dialog(
+            title="Restart App",
+            message="Are you sure you want to restart the application ?",
             on_result=on_result
         )
 
@@ -119,6 +140,14 @@ class NotifyMining(NotifyIcon):
                 self.immature,
                 self.paid
             ]
+        )
+
+
+class NotifyMarket(NotifyIcon):
+    def __init__(self):
+        super().__init__(
+            icon="images/market_notify.ico",
+            text = "Marketplace Server"
         )
 
 
