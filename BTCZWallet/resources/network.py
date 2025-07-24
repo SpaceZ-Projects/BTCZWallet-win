@@ -7,14 +7,14 @@ from aiohttp_socks import ProxyConnector, ProxyConnectionError, ProxyError
 
 from toga import (
     App, Window, ScrollContainer, Box,
-    Label, Divider, Button, TextInput, Switch
+    Label, Button, TextInput, Switch
 )
 from ..framework import (
-    ToolTip, FlatStyle, Forms, Color,
+    ToolTip, FlatStyle, Color,
     Command, ClipBoard, Os, Sys, Drawing,
     MenuStrip
 )
-from toga.constants import COLUMN, ROW, CENTER, BOLD, Direction
+from toga.constants import COLUMN, ROW, CENTER, BOLD
 from toga.style.pack import Pack
 from toga.colors import (
     rgb, WHITE, GRAY, RED, GREENYELLOW, BLACK
@@ -221,7 +221,7 @@ class AddNode(Window):
 
 
 class TorConfig(Window):
-    def __init__(self, settings, utils, commands, tr, font, main:Window = None, startup:Window = None):
+    def __init__(self, settings, utils, commands, tr, font, main:Window = None, startup = None):
         super().__init__(
             resizable=False
         )
@@ -246,14 +246,14 @@ class TorConfig(Window):
 
         if self.main:
             if self.rtl:
-                self.size = (350, 335)
+                self.size = (350, 405)
             else:
-                self.size = (350, 325)
+                self.size = (350, 400)
         if self.startup:
             if self.rtl:
-                self.size = (350, 290)
+                self.size = (350, 370)
             else:
-                self.size = (350, 280)
+                self.size = (350, 360)
         self.title = self.tr.title("torconfig_window")
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
@@ -333,6 +333,28 @@ class TorConfig(Window):
         )
         self.hostname_label._impl.native.Font = self.font.get(self.tr.size("hostname_label"), True)
 
+        self.market_label = Label(
+            text="Market Server :",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                text_align = CENTER,
+                padding_top = 19
+            )
+        )
+        self.market_label._impl.native.Font = self.font.get(11, True)
+
+        self.market_port_label = Label(
+            text="Market Port :",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                text_align = CENTER,
+                padding_top = 19
+            )
+        )
+        self.market_port_label._impl.native.Font = self.font.get(11, True)
+
         self.labels_box = Box(
             style=Pack(
                 direction = COLUMN,
@@ -407,6 +429,27 @@ class TorConfig(Window):
             readonly=True
         )
         self.hostname_input._impl.native.Font = self.font.get(11)
+
+        self.market_switch = Switch(
+            "",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                padding = (20,0,0,65)
+            ),
+            on_change=self.update_market_input
+        )
+
+        self.market_port_input = TextInput(
+            placeholder="Default 9052",
+            style=Pack(
+                color = WHITE,
+                text_align= CENTER,
+                background_color = rgb(30,33,36),
+                padding_top = 15
+            )
+        )
+        self.market_port_input.enabled = False
+        self.market_port_input._impl.native.Font = self.font.get(11, True)
 
         self.inputs_box = Box(
             style=Pack(
@@ -494,6 +537,10 @@ class TorConfig(Window):
             self.labels_box.add(
                 self.hostname_label
             )
+        self.labels_box.add(
+            self.market_label,
+            self.market_port_label
+        )
         self.inputs_box.add(
             self.enabled_switch,
             self.socks_input,
@@ -505,6 +552,10 @@ class TorConfig(Window):
             self.inputs_box.add(
                 self.hostname_input
             )
+        self.inputs_box.add(
+            self.market_switch,
+            self.market_port_input
+        )
         self.buttons_box.add(
             self.cancel_button,
             self.save_button
@@ -516,21 +567,28 @@ class TorConfig(Window):
         torrc = self.utils.read_torrc()
         if torrc:
             socks_port = torrc.get("SocksPort", "")
-            tor_service = torrc.get("HiddenServiceDir", "")
-            if tor_service:
-                self.service_switch.value = True
-                self.service_input.enabled = True
-                service_port_line = torrc.get("HiddenServicePort", "")
-                if service_port_line:
-                    service_port = service_port_line.split()[0]
-                else:
-                    service_port = ""
-                self.service_input.value = service_port
+            hs_dirs = torrc.get("HiddenServiceDir", [])
+            hs_ports = torrc.get("HiddenServicePort", [])
+            if not isinstance(hs_dirs, list):
+                hs_dirs = [hs_dirs]
+            if not isinstance(hs_ports, list):
+                hs_ports = [hs_ports]
+            for dir_path, port_line in zip(hs_dirs, hs_ports):
+                if dir_path.endswith("tor_service"):
+                    self.service_switch.value = True
+                    self.service_input.enabled = True
+                    service_port = port_line.split()[0] if port_line else ""
+                    self.service_input.value = service_port
+                if dir_path.endswith("market_service"):
+                    self.market_switch.value = True
+                    self.market_port_input.enabled = True
+                    market_port = port_line.split()[1].split(":")[1] if port_line else ""
+                    self.market_port_input.value = market_port
 
             self.socks_input.value = socks_port
 
         if self.main:
-            hostname = self.utils.get_onion_hostname()
+            hostname = self.utils.get_onion_hostname("node")
             if hostname:
                 self.hostname_input.value = f"{hostname}:{service_port}"
 
@@ -566,25 +624,33 @@ class TorConfig(Window):
             tor_service = Os.Path.Combine(str(self.app_data), "tor_service")
         else:
             tor_service = None
+        if self.market_switch.value is True:
+            market_service = Os.Path.Combine(str(self.app_data), "market_service")
+            self.settings.update_settings("market_service", True)
+        else:
+            market_service = None
+            self.settings.update_settings("market_service", False)
         if tor_service and not self.service_input.value:
             service_port = "1989"
         else:
             service_port = self.service_input.value.strip()
+        if market_service and not self.market_port_input.value:
+            market_port = "9052"
+        else:
+            market_port = self.market_port_input.value.strip()
         self.settings.update_settings("tor_network", True)
-        self.utils.create_torrc(socks_port, tor_service, service_port)
+        self.utils.create_torrc(socks_port, tor_service, service_port, market_service, market_port)
         self.close()
+        self.app.current_window = self.main
 
         if self.startup:
-            self.app.current_window = self.startup
-            self.startup.tor_icon.image = "images/tor_on.png"
-            self.startup.network_status.style.color = rgb(114,137,218)
-            self.startup.network_status.text = self.tr.text("tor_enabled")
-            if self.startup.startup.node_status:
+            self.main.tor_icon.image = "images/tor_on.png"
+            self.main.network_status.style.color = rgb(114,137,218)
+            self.main.network_status.text = self.tr.text("tor_enabled")
+            if self.startup.node_status:
                 await self.commands.stopNode()
                 await asyncio.sleep(1)
-            await self.startup.startup.check_tor_files()
-        else:
-            self.app.current_window = self.main
+            await self.startup.check_tor_files()
         
 
 
@@ -594,6 +660,14 @@ class TorConfig(Window):
         else:
             self.service_input.value = ""
             self.service_input.enabled = False
+
+
+    def update_market_input(self, switch):
+        if switch.value is True:
+            self.market_port_input.enabled = True
+        else:
+            self.market_port_input.value = ""
+            self.market_port_input.enabled = False
 
 
     def save_button_mouse_enter(self, sender, event):
@@ -1169,11 +1243,10 @@ class Peer(Window):
         node_box = Node(
             self.app, self, node, self.settings, self.utils, self.units, self.commands, self.tr, self.font
         )
-        box_divider = Divider(
-            direction=Direction.HORIZONTAL,
+        box_divider = Box(
             style=Pack(
-                background_color = WHITE,
-                flex =1
+                background_color = GRAY,
+                height = 2
             )
         )
         self.main_box.add(node_box, box_divider)
@@ -1186,17 +1259,23 @@ class Peer(Window):
         if not widgets:
             return
         node_box, _ = widgets
+        address_local = node.get('addrlocal')
         lastsend = node.get('lastsend')
         lastrecv = node.get('lastrecv')
+        subver = node.get('subver')
         conntime = node.get('conntime')
         conn_time = datetime.fromtimestamp(conntime, tz=timezone.utc)
         last_send = datetime.fromtimestamp(lastsend).strftime('%Y-%m-%d %H:%M:%S')
         last_receive = datetime.fromtimestamp(lastrecv).strftime('%Y-%m-%d %H:%M:%S')
+        clean_subversion = subver.strip('/')
         conn_duration = self.units.create_timer(conn_time)
+        node_box.node_address_local.text = self.utils.shorten_address(address_local)
+        self.tooltip.insert(node_box.node_address_local._impl.native, address_local)
         node_box.node_sent.text = self.units.format_bytes(node.get('bytessent'))
         self.tooltip.insert(node_box.node_sent._impl.native, f"Last send :{last_send}")
         node_box.node_receive.text = self.units.format_bytes(node.get('bytesrecv'))
         self.tooltip.insert(node_box.node_receive._impl.native, f"Last receive :{last_receive}")
+        node_box.node_subversion.text = clean_subversion
         node_box.node_conntime.text = conn_duration
         node_box.node = node
 

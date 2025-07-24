@@ -122,6 +122,14 @@ class Settings():
             else:
                 return settings['tor_network']
             
+    def market_service(self):
+        with open(self.settings_path, 'r') as f:
+            settings = json.load(f)
+            if 'market_service' not in settings:
+                return None
+            else:
+                return settings['market_service']
+            
 
     def only_onion(self):
         with open(self.settings_path, 'r') as f:

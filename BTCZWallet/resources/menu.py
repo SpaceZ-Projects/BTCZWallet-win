@@ -19,7 +19,7 @@ from toga.constants import (
 
 from .toolbar import AppToolBar
 from .status import AppStatusBar
-from .notify import Notify, NotifyMining
+from .notify import Notify, NotifyMining, NotifyMarket
 from .wallet import Wallet, ImportKey, ImportWallet
 from .home import Home, Currency, Languages
 from .txs import Transactions
@@ -29,6 +29,8 @@ from .messages import Messages, EditUser
 from .mining import Mining
 from .storage import StorageMessages
 from .network import Peer, AddNode, TorConfig
+from .marketplace import MarketPlace
+from .server import MarketServer
 
 
 class Menu(Window):
@@ -40,6 +42,7 @@ class Menu(Window):
         self._is_hidden = None
         self.import_key_toggle = None
         self.peer_toggle = None
+        self.marketplace_toggle = None
 
         self.commands = commands
         self.units = units
@@ -62,9 +65,11 @@ class Menu(Window):
         self.send_page = Send(self.app, self, settings, units, commands, tr, font)
         self.message_page = Messages(self.app, self, settings, utils, units, commands, tr, font)
         self.mining_page = Mining(self.app, self, settings, utils, units, commands, tr, font)
-        self.notify = Notify(self.app, self, self.home_page, self.mining_page, settings, commands, tr, font)
+        self.notify = Notify(self.app, self, self.home_page, self.mining_page, settings, utils, commands, tr, font)
         self.notifymining = NotifyMining(font)
-        self.toolbar = AppToolBar(self.app, self, self.notify, self.home_page, self.mining_page, settings, commands, tr, font)
+        self.toolbar = AppToolBar(self.app, self, self.notify, self.home_page, self.mining_page, settings, utils, commands, tr, font)
+        self.notifymarket = NotifyMarket()
+        self.server = MarketServer(self.app, settings=self.settings, notify=self.notifymarket)
 
         opacity = self.settings.opacity()
         if opacity:
@@ -308,6 +313,7 @@ class Menu(Window):
         self.toolbar.export_wallet_cmd.action = self.export_wallet
         self.toolbar.import_wallet_cmd.action = self.show_import_wallet
         self.toolbar.edit_username_cmd.action = self.edit_messages_username
+        self.toolbar.market_place_cmd.action = self.show_marketplace
         self.toolbar.backup_messages_cmd.action = self.backup_messages
 
 
@@ -446,6 +452,17 @@ class Menu(Window):
                 edit_window._impl.native.ShowDialog(self._impl.native)
 
 
+    def show_marketplace(self, sender, event):
+        if self.settings.market_service():
+            if not self.marketplace_toggle:
+                marketplace_window = MarketPlace(self, self.notifymarket, self.settings, self.utils, self.tr, self.font, self.server)
+                marketplace_window.show()
+                self.marketplace_window = marketplace_window
+                self.marketplace_toggle = True
+            else:
+                self.marketplace_window._impl.native.Activate()
+
+
     def backup_messages(self, sender, event):
         def on_result(widget, result):
             if result:
@@ -507,6 +524,8 @@ class Menu(Window):
         if export_dir:
             self.app.add_background_task(self.run_export_wallet)
         else:
+            if self.mining_page.mining_status:
+                return
             self.question_dialog(
                 title=self.tr.title("missingexportdir_dialog"),
                 message=self.tr.message("missingexportdir_dialog"),
@@ -532,7 +551,13 @@ class Menu(Window):
         if result is True:
             restart = self.utils.restart_app()
             if restart:
-                self.toolbar.stop_node_exit()
+                self.utils.stop_tor()
+                await self.commands.stopNode()
+                self.home_page.bitcoinz_curve.image = None
+                self.home_page.clear_cache()
+                self.notify.hide()
+                self.notify.dispose()
+                self.app.exit()
 
 
     async def run_export_wallet(self, widget):

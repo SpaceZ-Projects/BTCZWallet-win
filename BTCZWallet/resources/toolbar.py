@@ -1,6 +1,4 @@
 
-import psutil
-
 from toga import App, Box, Window
 from ..framework import (
     Toolbar, Command, Color, Keys
@@ -10,7 +8,7 @@ from toga.constants import ROW, TOP
 
 
 class AppToolBar(Box):
-    def __init__(self, app:App, main:Window, notify, home_page ,mining_page, settings, commands, tr, font):
+    def __init__(self, app:App, main:Window, notify, home_page ,mining_page, settings, utils, commands, tr, font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -26,6 +24,7 @@ class AppToolBar(Box):
 
         self.commands = commands
         self.settings = settings
+        self.utils = utils
         self.tr = tr
         self.font = font
 
@@ -62,6 +61,14 @@ class AppToolBar(Box):
             font=self.font.get(9),
             rtl = self.rtl
         )
+        self.restart_cmd = Command(
+            title="Restart",
+            color=Color.YELLOW,
+            background_color=Color.rgb(40,43,48),
+            action=self.restart_app,
+            font=self.font.get(9),
+            rtl = self.rtl
+        )
         self.exit_cmd = Command(
             title=self.tr.text("exit_cmd"),
             color=Color.RED,
@@ -88,6 +95,7 @@ class AppToolBar(Box):
             title=self.tr.text("app_menu"),
             sub_commands=[
                 self.about_cmd,
+                self.restart_cmd,
                 self.exit_cmd,
                 self.stop_exit_cmd
             ],
@@ -393,6 +401,16 @@ class AppToolBar(Box):
             font=self.font.get(9),
             rtl = self.rtl
         )
+        self.market_place_cmd = Command(
+            title="Marketplace",
+            icon="images/marketplace_i.ico",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            mouse_enter=self.market_place_cmd_mouse_enter,
+            mouse_leave=self.market_place_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl=self.rtl
+        )
         self.backup_messages_cmd = Command(
             title=self.tr.text("backup_messages_cmd"),
             icon="images/backup_i.ico",
@@ -413,6 +431,7 @@ class AppToolBar(Box):
             mouse_leave=self.messages_menu_mouse_leave,
             sub_commands=[
                 self.edit_username_cmd,
+                self.market_place_cmd,
                 self.backup_messages_cmd
             ],
             font=self.font.get(9),
@@ -720,6 +739,14 @@ class AppToolBar(Box):
         self.edit_username_cmd.icon = "images/edit_username_i.ico"
         self.edit_username_cmd.color = Color.WHITE
 
+    def market_place_cmd_mouse_enter(self):
+        self.market_place_cmd.icon = "images/marketplace_a.ico"
+        self.market_place_cmd.color = Color.BLACK
+
+    def market_place_cmd_mouse_leave(self):
+        self.market_place_cmd.icon = "images/marketplace_i.ico"
+        self.market_place_cmd.color = Color.WHITE
+
     def backup_messages_cmd_mouse_enter(self):
         self.backup_messages_cmd.icon = "images/backup_a.ico"
         self.backup_messages_cmd.color = Color.BLACK
@@ -832,20 +859,12 @@ class AppToolBar(Box):
             message=self.tr.message("exit_dialog"),
             on_result=on_result
         )
-
-    def stop_tor(self):
-        try:
-            for proc in psutil.process_iter(['pid', 'name']):
-                if proc.info['name'] == "tor.exe":
-                    proc.kill()
-        except Exception as e:
-            pass
         
 
     def stop_node_exit(self):
         async def on_result(widget, result):
             if result is True:
-                self.stop_tor()
+                self.utils.stop_tor()
                 await self.commands.stopNode()
                 self.home_page.bitcoinz_curve.image = None
                 self.home_page.clear_cache()
@@ -858,5 +877,25 @@ class AppToolBar(Box):
         self.main.question_dialog(
             title=self.tr.title("stopexit_dialog"),
             message=self.tr.message("stopexit_dialog"),
+            on_result=on_result
+        )
+
+    def restart_app(self):
+        async def on_result(widget, result):
+            if result is True:
+                restart = self.utils.restart_app()
+                if restart:
+                    self.utils.stop_tor()
+                    await self.commands.stopNode()
+                    self.home_page.bitcoinz_curve.image = None
+                    self.home_page.clear_cache()
+                    self.notify.hide()
+                    self.notify.dispose()
+                    self.app.exit()
+        if self.mining_page.mining_status:
+            return
+        self.main.question_dialog(
+            title="Restart App",
+            message="Are you sure you want to restart the application ?",
             on_result=on_result
         )

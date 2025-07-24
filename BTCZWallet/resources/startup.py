@@ -381,7 +381,7 @@ class BTCZSetup(Box):
 
     def show_tor_config(self):
         self.tor_config = TorConfig(
-            self.settings, self.utils, self.commands, self.tr, self.font, startup=self.main
+            self.settings, self.utils, self.commands, self.tr, self.font, main=self.main, startup=self
         )
         self.tor_config._impl.native.Show(self.main._impl.native)
 
@@ -508,13 +508,25 @@ class BTCZSetup(Box):
         command = [node_file]
         if self.settings.tor_network():
             torrc = self.utils.read_torrc()
-            socks_port = torrc.get("SocksPort")
-            tor_service = torrc.get("HiddenServiceDir", "")
-            service_port = torrc.get("HiddenServicePort", "")
-            command += [f'-proxy=127.0.0.1:{socks_port}']
+            socks_port = torrc.get("SocksPort", "")
+            hs_dirs = torrc.get("HiddenServiceDir", [])
+            hs_ports = torrc.get("HiddenServicePort", [])
+            if not isinstance(hs_dirs, list):
+                hs_dirs = [hs_dirs]
+            if not isinstance(hs_ports, list):
+                hs_ports = [hs_ports]
+            service_port = ""
+            found_tor_service = False
+            for dir_path, port_line in zip(hs_dirs, hs_ports):
+                if dir_path.endswith("tor_service"):
+                    service_port = port_line.split()[0] if port_line else ""
+                    found_tor_service = True
+                    break
+            if socks_port:
+                command += [f'-proxy=127.0.0.1:{socks_port}']
             if self.settings.only_onion():
                 command += ['-onlynet=onion']
-            if tor_service and service_port:
+            if found_tor_service and service_port:
                 command += ['-listen=1', '-discover=1']
         try:
             self.process = await asyncio.create_subprocess_exec(
@@ -523,7 +535,7 @@ class BTCZSetup(Box):
             )
             await self.waiting_node_status()
         except Exception as e:
-            print(e)
+            print(f"Error starting bitcoinzd: {e}")
         finally:
             if self.process:
                 await self.process.wait()
@@ -570,56 +582,56 @@ class BTCZSetup(Box):
         blockchaininfo, _ = await self.commands.getBlockchainInfo()
         if isinstance(blockchaininfo, str):
             info = json.loads(blockchaininfo)
-        if info is not None:
-            sync = info.get('verificationprogress')
-            sync_percentage = sync * 100
-            if sync_percentage <= 99.95:
-                self.update_info_box()
-                while True:
-                    blockchaininfo, _ = await self.commands.getBlockchainInfo()
-                    if blockchaininfo:
-                        info = json.loads(blockchaininfo)
-                        if info is not None:
-                            blocks = info.get('blocks')
-                            sync = info.get('verificationprogress')
-                            mediantime = info.get('mediantime')
-                            if isinstance(mediantime, int):
-                                mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
+            if info is not None:
+                sync = info.get('verificationprogress')
+                sync_percentage = sync * 100
+                if sync_percentage <= 99.95:
+                    self.update_info_box()
+                    while True:
+                        blockchaininfo, _ = await self.commands.getBlockchainInfo()
+                        if blockchaininfo:
+                            info = json.loads(blockchaininfo)
+                            if info is not None:
+                                blocks = info.get('blocks')
+                                sync = info.get('verificationprogress')
+                                mediantime = info.get('mediantime')
+                                if isinstance(mediantime, int):
+                                    mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
+                                else:
+                                    mediantime_date = "N/A"
                             else:
-                                mediantime_date = "N/A"
-                        else:
-                            self.app.exit()
-                            return
+                                self.app.exit()
+                                return
 
-                    peerinfo, _ = await self.commands.getPeerinfo()
-                    if peerinfo:
-                        peerinfo = json.loads(peerinfo)
-                        for node in peerinfo:
-                            address = node.get('addr')
-                            bytesrecv = node.get('bytesrecv')
-                            tooltip_text += f"\n{address} - {self.units.format_bytes(bytesrecv)}"
-                            
-                    bitcoinz_size = int(self.utils.get_bitcoinz_size())
-                    sync_percentage = sync * 100
-                    sync_percentage_str = f"%{float(sync_percentage):.2f}"
-                    if self.rtl:
-                        blocks = self.units.arabic_digits(str(blocks))
-                        mediantime_date = self.units.arabic_digits(mediantime_date)
-                        sync_percentage_str = self.units.arabic_digits(str(sync_percentage_str))
-                        bitcoinz_size = self.units.arabic_digits(str(bitcoinz_size))
-                    self.blocks_value.text = f"{blocks}"
-                    self.mediantime_value.text = mediantime_date
-                    self.index_size_value.text = f"{bitcoinz_size} MB"
-                    self.sync_value.text = sync_percentage_str
-                    self.progress_bar.value = int(sync_percentage)
-                    self.tooltip.insert(self.progress_bar._impl.native, tooltip_text)
-                    tooltip_text = f"Seeds :"
-                    if sync_percentage > 99.95:
-                        await self.open_main_menu()
-                        return
-                    await asyncio.sleep(2)
-            elif sync_percentage > 99.95:
-                await self.open_main_menu()
+                        peerinfo, _ = await self.commands.getPeerinfo()
+                        if peerinfo:
+                            peerinfo = json.loads(peerinfo)
+                            for node in peerinfo:
+                                address = node.get('addr')
+                                bytesrecv = node.get('bytesrecv')
+                                tooltip_text += f"\n{address} - {self.units.format_bytes(bytesrecv)}"
+                                
+                        bitcoinz_size = int(self.utils.get_bitcoinz_size())
+                        sync_percentage = sync * 100
+                        sync_percentage_str = f"%{float(sync_percentage):.2f}"
+                        if self.rtl:
+                            blocks = self.units.arabic_digits(str(blocks))
+                            mediantime_date = self.units.arabic_digits(mediantime_date)
+                            sync_percentage_str = self.units.arabic_digits(str(sync_percentage_str))
+                            bitcoinz_size = self.units.arabic_digits(str(bitcoinz_size))
+                        self.blocks_value.text = f"{blocks}"
+                        self.mediantime_value.text = mediantime_date
+                        self.index_size_value.text = f"{bitcoinz_size} MB"
+                        self.sync_value.text = sync_percentage_str
+                        self.progress_bar.value = int(sync_percentage)
+                        self.tooltip.insert(self.progress_bar._impl.native, tooltip_text)
+                        tooltip_text = f"Seeds :"
+                        if sync_percentage > 99.95:
+                            await self.open_main_menu()
+                            return
+                        await asyncio.sleep(2)
+                elif sync_percentage > 99.95:
+                    await self.open_main_menu()
 
 
     async def open_main_menu(self):

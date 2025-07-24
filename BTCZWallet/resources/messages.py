@@ -26,9 +26,9 @@ from toga.colors import (
     GREENYELLOW
 )
 
+from .marketplace import MarketView
 from .storage import StorageMessages
-from .notify import NotifyRequest, NotifyMessage
-            
+from .notify import NotifyRequest, NotifyMessage     
 
 
 
@@ -472,7 +472,7 @@ class NewMessenger(Box):
 
 
 class Contact(Box):
-    def __init__(self, category, contact_id, username, address, app:App, chat, main:Window, settings, tr, font):
+    def __init__(self, data, app:App, chat, main:Window, utils, units, commands, settings, tr, font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -484,15 +484,18 @@ class Contact(Box):
         self._impl.native.MouseEnter += self.contact_mouse_enter
         self._impl.native.MouseLeave += self.contact_mouse_leave
 
-        self.category = category
-        self.contact_id = contact_id
-        self.username = username
-        self.address = address
+        self.category = data[0]
+        self.contact_id = data[2]
+        self.username = data[3]
+        self.address = data[4]
         self.unread_count = 0
 
         self.app = app
         self.chat = chat
         self.main = main
+        self.utils = utils
+        self.units = units
+        self.commands = commands
         self.settings = settings
         self.tr = tr
         self.font = font
@@ -592,11 +595,32 @@ class Contact(Box):
             self.copy_address_cmd,
             self.ban_contact_cmd
         ]
+        self.market = self.storage.get_hostname(self.contact_id)
+        if self.market:
+            self.marketplace_cmd = Command(
+                title="Visit marketplace",
+                icon="images/marketplace_i.ico",
+                color=Color.WHITE,
+                background_color=Color.rgb(30,33,36),
+                mouse_enter=self.marketplace_cmd_mouse_enter,
+                mouse_leave=self.marketplace_cmd_mouse_leave,
+                action=self.show_contact_market,
+                font=self.font.get(9),
+                rtl=self.rtl
+            )
+            commands.append(self.marketplace_cmd)
         for command in commands:
             context_menu.Items.Add(command)
         self._impl.native.ContextMenuStrip = context_menu
         self.category_icon._impl.native.ContextMenuStrip = context_menu
         self.username_label._impl.native.ContextMenuStrip = context_menu
+
+
+    def reload_contact_menustrip(self):
+        self._impl.native.ContextMenuStrip = None
+        self.category_icon._impl.native.ContextMenuStrip = None
+        self.username_label._impl.native.ContextMenuStrip = None
+        self.insert_contact_menustrip()
 
 
     async def update_contact(self, widget):
@@ -608,6 +632,7 @@ class Contact(Box):
             if username:
                 if username[0] != self.username:
                     self.username_label.text = username[0]
+                    self.username = username[0]
             unread_messages = self.storage.get_unread_messages(self.contact_id)
             if unread_messages:
                 unread_count = len(unread_messages)
@@ -619,6 +644,10 @@ class Contact(Box):
                 self.unread_messages.text = ""
                 self.unread_messages.style.visibility = HIDDEN
                 self.unread_count = 0
+            if not self.market:
+                self.market = self.storage.get_hostname(self.contact_id)
+                if self.market:
+                    self.reload_contact_menustrip()
             await asyncio.sleep(3)
 
 
@@ -663,6 +692,15 @@ class Contact(Box):
         )
 
 
+    def show_contact_market(self):
+        if not self.chat.marketplace_toggle:
+            self.market_window = MarketView(
+                self.chat, self.main, self.utils, self.units, self.commands, self.tr, self.font, self.username, self.contact_id
+            )
+            self.market_window.show()
+            self.chat.marketplace_toggle = True
+
+
     def contact_mouse_enter(self, sender, event):
         self.category_icon.style.background_color = rgb(66,69,73)
         self.username_label.style.background_color = rgb(66,69,73)
@@ -689,6 +727,14 @@ class Contact(Box):
     def ban_contact_cmd_mouse_leave(self):
         self.ban_contact_cmd.icon = "images/ban_i.ico"
         self.ban_contact_cmd.color = Color.WHITE
+
+    def marketplace_cmd_mouse_enter(self):
+        self.marketplace_cmd.icon = "images/marketplace_a.ico"
+        self.marketplace_cmd.color = Color.BLACK
+
+    def marketplace_cmd_mouse_leave(self):
+        self.marketplace_cmd.icon = "images/marketplace_i.ico"
+        self.marketplace_cmd.color = Color.WHITE
 
 
 class Pending(Box):
@@ -1448,6 +1494,8 @@ class Chat(Box):
         self.unread_messages_toggle = None
         self.last_message_timestamp = None
         self.last_unread_timestamp = None
+        self.marketplace_toggle = None
+        self.fee_input = None
         self.messages = []
         self.unread_messages = []
         self.processed_timestamps = set()
@@ -1650,7 +1698,10 @@ class Chat(Box):
                 color = rgb(114,137,218),
                 padding_bottom = 5,
                 text_align = CENTER
-            )
+            ),
+            validators=[
+                self.is_digit
+            ]
         )
         self.fee_input._impl.native.Font = self.font.get(10, True)
 
@@ -1772,6 +1823,64 @@ class Chat(Box):
             self.send_button
         )
 
+        self.insert_context_menu()
+
+
+    def insert_context_menu(self):
+        fee_context_menu = MenuStrip(rtl=self.rtl)
+        self.fee_clear_cmd = Command(
+            title="Clear",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            font=self.font.get(9),
+            mouse_enter=self.fee_clear_cmd_mouse_enter,
+            mouse_leave=self.fee_clear_cmd_mouse_leave,
+            action=self.clear_fee_input,
+            rtl=self.rtl
+        )
+        fee_context_menu.Items.Add(self.fee_clear_cmd)
+        self.fee_input._impl.native.ContextMenuStrip = fee_context_menu
+
+        message_context_menu = MenuStrip(rtl=self.rtl)
+        self.message_copy_cmd = Command(
+            title="Copy",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            font=self.font.get(9),
+            mouse_enter=self.message_cmds_mouse_enter,
+            mouse_leave=self.message_cmds_mouse_leave,
+            action=self.copy_message_input,
+            rtl=self.rtl
+        )
+        self.message_paste_cmd = Command(
+            title="Paste",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            font=self.font.get(9),
+            mouse_enter=self.message_cmds_mouse_enter,
+            mouse_leave=self.message_cmds_mouse_leave,
+            action=self.paste_message_input,
+            rtl=self.rtl
+        )
+        self.message_clear_cmd = Command(
+            title="Clear",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            font=self.font.get(9),
+            mouse_enter=self.message_cmds_mouse_enter,
+            mouse_leave=self.message_cmds_mouse_leave,
+            action=self.clear_message_input,
+            rtl=self.rtl
+        )
+        commands = [
+            self.message_copy_cmd,
+            self.message_paste_cmd,
+            self.message_clear_cmd
+        ]
+        for command in commands:
+            message_context_menu.Items.Add(command)
+        self.message_input._impl.native.ContextMenuStrip = message_context_menu
+
 
     def run_tasks(self):
         self.app.add_background_task(self.update_messages_balance)
@@ -1875,13 +1984,17 @@ class Chat(Box):
 
             if form_type == "identity":
                 await self.get_identity(form_dict)
-                self.storage.tx(txid)
+
             elif form_type == "message":
                 await self.get_message(form_dict, amount)
-                self.storage.tx(txid)
+
             elif form_type == "request":
                 await self.get_request(form_dict)
-                self.storage.tx(txid)
+
+            elif form_type == "market":
+                await self.get_marketplace(form_dict)
+
+            self.storage.tx(txid)
 
         except (binascii.Error, json.decoder.JSONDecodeError) as e:
             self.storage.tx(txid)
@@ -1971,6 +2084,19 @@ class Chat(Box):
             notify.dispose()
 
 
+    async def get_marketplace(self, form):
+        contact_id = form.get('id')
+        hostname = form.get('hostname')
+        contact_username = self.storage.get_contact_username(contact_id)
+        if not contact_username:
+            return
+        if not self.storage.get_hostname(contact_id):
+            self.storage.insert_market(contact_id, hostname)
+            return
+        self.storage.update_market(contact_id, hostname)
+            
+
+
     async def update_contacts_list(self, widget):
         self.contacts = []
         while True:
@@ -1981,22 +2107,11 @@ class Chat(Box):
             if contacts:
                 for data in contacts:
                     try:
-                        category = data[0]
                         contact_id = data[2]
-                        username = data[3]
                         address = data[4]
                         if contact_id not in self.contacts:
                             contact = Contact(
-                                category=category,
-                                contact_id=contact_id,
-                                username=username,
-                                address=address,
-                                app = self.app,
-                                chat = self,
-                                main = self.main,
-                                settings = self.settings,
-                                tr=self.tr,
-                                font=self.font
+                                data, self.app, self, self.main, self.utils, self.units, self.commands, self.settings, self.tr, self.font
                             )
                             contact._impl.native.Click += lambda sender, event, contact_id=contact_id, address=address:self.contact_click(
                                 sender, event, contact_id, address)
@@ -2117,7 +2232,6 @@ class Chat(Box):
         self.user_address = address
 
         self.messages = self.storage.get_messages(self.contact_id)
-        self.unread_messages = self.storage.get_unread_messages(self.contact_id)
         if self.messages:
             messages = sorted(self.messages, key=lambda x: x[3], reverse=True)
             recent_messages = messages[:5]
@@ -2140,8 +2254,9 @@ class Chat(Box):
                 self.messages_box.insert(
                     0, message
                 )
+        self.unread_messages = self.storage.get_unread_messages(self.contact_id)
         if self.unread_messages:
-            unread_messages = sorted(self.unread_messages, key=lambda x: x[3], reverse=True)
+            unread_messages = sorted(self.unread_messages, key=lambda x: x[3], reverse=False)
             recent_unread_messages = unread_messages[:5]
             self.last_unread_timestamp = recent_unread_messages[-1][3]
             self.messages_box.add(
@@ -2162,8 +2277,8 @@ class Chat(Box):
                     output = self.output_box,
                     settings=self.settings, utils=self.utils, units=self.units, tr=self.tr, font=self.font
                 )
-                self.messages_box.insert(
-                    6, message
+                self.messages_box.add(
+                    message
                 )
         self.output_box.on_scroll = self.update_messages_on_scroll
         self.app.add_background_task(self.update_current_messages)     
@@ -2366,7 +2481,67 @@ class Chat(Box):
             )
             self.fee_input.value = "0.00020000"
             return
+        if message.lower() == "/market":
+            self.app.add_background_task(self.handle_market_command)
+            return
         self.app.add_background_task(self.send_message)
+
+
+    async def handle_market_command(self, widget):
+        if not self.settings.market_service():
+            self.main.error_dialog(
+                title="Disbaled",
+                message="Your marketplace service is disabled"
+            )
+            return
+        hostname = self.utils.get_onion_hostname("market")
+        _, _, address = self.storage.get_identity()
+        id = self.storage.get_id_contact(self.contact_id)
+        fee = self.fee_input.value
+        amount = float(fee) - 0.0001
+        txfee = 0.0001
+        memo = {"type":"market","id":id[0],"hostname":hostname}
+        memo_str = json.dumps(memo)
+        self.disable_send_button()
+        await self.send_command(address, amount, txfee, memo_str)
+
+
+    async def send_command(self, address, amount, txfee, memo):
+        async def on_result(widget, result):
+            if result is None:
+                self.send_button._impl.native.Focus()
+                self.fee_input.value = "0.00020000"
+                self.character_count.style.color = GRAY
+                await asyncio.sleep(0.2)
+                self.message_input.focus()
+
+        operation, _= await self.commands.SendMemo(address, self.user_address, amount, txfee, memo)
+        if operation:
+            transaction_status, _= await self.commands.z_getOperationStatus(operation)
+            transaction_status = json.loads(transaction_status)
+            if isinstance(transaction_status, list) and transaction_status:
+                status = transaction_status[0].get('status')
+                if status == "executing" or status =="success":
+                    await asyncio.sleep(1)
+                    while True:
+                        transaction_result, _= await self.commands.z_getOperationResult(operation)
+                        transaction_result = json.loads(transaction_result)
+                        if isinstance(transaction_result, list) and transaction_result:
+                            self.message_input.value = ""
+                            result = transaction_result[0].get('result', {})
+                            txid = result.get('txid')
+                            self.storage.tx(txid)
+                            self.main.info_dialog(
+                                title="Market Sent",
+                                message="Your market command was successfully sent",
+                                on_result=on_result
+                            )
+                            return
+                        await asyncio.sleep(3)
+                else:
+                    self.enable_send_button()
+        else:
+            self.enable_send_button()
 
     
     async def send_message(self, widget):
@@ -2425,15 +2600,19 @@ class Chat(Box):
     
 
     def enable_send_button(self):
-        self.send_toggle = False
-        self.message_input.readonly = False
+        self.send_button.text = "Send"
+        send_i_icon = self.messages_icon("images/send_message_i.png")
+        self.send_button._impl.native.Image = Drawing.Image.FromFile(send_i_icon)
         self.send_button.on_press = self.verify_message
+        self.message_input.readonly = False
+        self.send_toggle = False
 
     
     def disable_send_button(self):
         self.send_toggle = True
-        self.message_input.readonly = True
+        self.send_button.text = "Sending..."
         self.send_button.on_press = None
+        self.message_input.readonly = True
 
 
     async def insert_message(self, author, text, amount, timestamp):
@@ -2492,20 +2671,24 @@ class Chat(Box):
             self.character_count.style.color = YELLOW
         if self.rtl:
             value = self.units.arabic_digits(f"{character_count} / 325")
+        else:
+            value = f"{character_count} / 325"
         self.character_count.text = f"{text} {value}"
         
 
     def send_button_mouse_enter(self, sender, event):
-        send_a_icon = self.messages_icon("images/send_message_a.png")
-        self.send_button._impl.native.Image = Drawing.Image.FromFile(send_a_icon)
-        self.send_button.style.color = BLACK
-        self.send_button.style.background_color = rgb(114,137,218)
+        if not self.send_toggle:
+            send_a_icon = self.messages_icon("images/send_message_a.png")
+            self.send_button._impl.native.Image = Drawing.Image.FromFile(send_a_icon)
+            self.send_button.style.color = BLACK
+            self.send_button.style.background_color = rgb(114,137,218)
 
     def send_button_mouse_leave(self, sender, event):
-        send_i_icon = self.messages_icon("images/send_message_i.png")
-        self.send_button._impl.native.Image = Drawing.Image.FromFile(send_i_icon)
-        self.send_button.style.color = GRAY
-        self.send_button.style.background_color = rgb(30,33,36)
+        if not self.send_toggle:
+            send_i_icon = self.messages_icon("images/send_message_i.png")
+            self.send_button._impl.native.Image = Drawing.Image.FromFile(send_i_icon)
+            self.send_button.style.color = GRAY
+            self.send_button.style.background_color = rgb(30,33,36)
 
     def add_contact_mouse_enter(self, sender, event):
         self.add_contact.image = "images/add_contact_a.png"
@@ -2548,6 +2731,39 @@ class Chat(Box):
 
     def messages_icon(self, path):
         return Os.Path.Combine(str(self.app.paths.app), path)
+    
+    def is_digit(self, input):
+        if self.fee_input:
+            if not self.fee_input.value.replace('.', '', 1).isdigit():
+                self.fee_input.value = "0.00020000"
+
+    def clear_fee_input(self):
+        self.fee_input.value = "0.00020000"
+
+    def clear_message_input(self):
+        self.character_count.style.color = GRAY
+        self.message_input.value = ""
+
+    def copy_message_input(self):
+        value = self.message_input.value
+        self.clipboard.copy(value)
+
+    def paste_message_input(self):
+        value = self.clipboard.paste()
+        self.message_input.value = value
+
+    def fee_clear_cmd_mouse_enter(self):
+        self.fee_clear_cmd.color = Color.BLACK
+
+    def fee_clear_cmd_mouse_leave(self):
+        self.fee_clear_cmd.color = Color.WHITE
+
+    def message_cmds_mouse_enter(self, sender):
+        sender.ForeColor = Color.BLACK
+
+    def message_cmds_mouse_leave(self, sender):
+        sender.ForeColor = Color.WHITE
+                
 
 
 class Messages(Box):

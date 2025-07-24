@@ -3,12 +3,17 @@ import asyncio
 import aiohttp
 import zipfile
 import tarfile
+from datetime import datetime, timezone
+import psutil
+import hashlib
+import hmac
+import json
 import py7zr
 import qrcode
 import winreg as reg
 import aiohttp
 from aiohttp.client_exceptions import ClientConnectionError, ServerDisconnectedError
-from aiohttp_socks import ProxyConnector, ProxyConnectionError
+from aiohttp_socks import ProxyConnector, ProxyConnectionError, ProxyError
 import ipaddress
 
 from toga import App
@@ -89,13 +94,62 @@ class Utils():
             return None
         
 
-    def get_onion_hostname(self):
-        tor_service = Os.Path.Combine(str(self.app_data), "tor_service")
-        if Os.Directory.Exists(tor_service):
-            hostname_file = Os.Path.Combine(tor_service, "hostname")
-            with open(hostname_file, 'r') as file:
-                hostname = file.read().strip()
-                return hostname
+    def stop_tor(self):
+        try:
+            for proc in psutil.process_iter(['pid', 'name']):
+                if proc.info['name'] == "tor.exe":
+                    proc.kill()
+        except Exception as e:
+            pass
+        
+
+    async def make_request(self, key, url, params = None, return_bytes = None):
+        if params is None:
+            params = {}
+        torrc = self.read_torrc()
+        socks_port = torrc.get("SocksPort")
+        connector = ProxyConnector.from_url(f'socks5://127.0.0.1:{socks_port}')
+        timestamp = datetime.now(timezone.utc).isoformat()
+        message = f"{timestamp}.{json.dumps(params, separators=(',', ':'), sort_keys=True)}"
+        signature = hmac.new(
+            key.encode(),
+            message.encode(),
+            hashlib.sha512
+        ).hexdigest()
+        headers = {
+            'Authorization': key,
+            'X-Timestamp': timestamp,
+            'X-Signature': signature
+        }
+        try:
+            async with aiohttp.ClientSession(connector=connector) as session:
+                async with session.get(url, headers=headers, params=params) as response:
+                    if return_bytes:
+                        data = await response.read()
+                    else:
+                        data = await response.json()
+                    await session.close()
+                    return data
+        except (ProxyConnectionError, ProxyError, aiohttp.ClientError, aiohttp.ClientConnectionError):
+            return None
+        
+
+    def get_onion_hostname(self, service):
+        if service == "node":
+            tor_service = Os.Path.Combine(str(self.app_data), "tor_service")
+            if Os.Directory.Exists(tor_service):
+                hostname_file = Os.Path.Combine(tor_service, "hostname")
+                with open(hostname_file, 'r') as file:
+                    hostname = file.read().strip()
+                    return hostname
+                
+        elif service == "market":
+            market_service = Os.Path.Combine(str(self.app_data), "market_service")
+            if Os.Directory.Exists(market_service):
+                hostname_file = Os.Path.Combine(market_service, "hostname")
+                with open(hostname_file, 'r') as file:
+                    hostname = file.read().strip()
+                    return hostname
         return None
     
     def is_ipv6_address(self, address: str):
@@ -653,7 +707,7 @@ sendchangeback=1
             print(f"Error creating config file: {e}")
 
 
-    def create_torrc(self, socks_port=None, tor_service=None, service_port=None):
+    def create_torrc(self, socks_port=None, tor_service=None, service_port=None, market_service=None, market_port=None):
         if not socks_port:
             socks_port = "9050"
         geoip = Os.Path.Combine(str(self.app_data), "geoip")
@@ -669,6 +723,10 @@ DataDirectory {tor_data}
         if tor_service:
             torrc_content += f"HiddenServiceDir {tor_service}\n"
             torrc_content += f"HiddenServicePort {service_port} 127.0.0.1:{service_port}\n"
+        
+        if market_service:
+            torrc_content += f"HiddenServiceDir {market_service}\n"
+            torrc_content += f"HiddenServicePort 80 127.0.0.1:{market_port}"
 
         torrc_path = Os.Path.Combine(str(self.app_data), "torrc")
         with open(torrc_path, "w") as f:
@@ -728,7 +786,7 @@ DataDirectory {tor_data}
             return None
         batch_script = f"""
 @echo off
-timeout /t 10 /nobreak > NUL
+timeout /t 5 /nobreak > NUL
 start "" "{excutable_file}"
 del "%~f0"
 """
