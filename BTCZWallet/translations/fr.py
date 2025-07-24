@@ -131,8 +131,8 @@ translations = {
 
     #wallet:
     "bitcoinz_logo": {"padding": (10,0,0,10)},
-    "bitcoinz_title": {"text": "Full Node Wallet", "align": LEFT, "size": 22},
-    "bitcoinz_version": {"padding": (0,0,0,13), "align": LEFT},
+    "bitcoinz_title": {"text": "Portefeuille à Node Complet", "align": LEFT, "size": 18, "padding": (30,0,0,0)},
+    "bitcoinz_version": {"padding": (0,0,0,47), "align": LEFT},
     "total_balances_label": {"text": "Solde Totaux", "size": 14},
     "total_value": {"size": 14},
     "transparent_label": {"text": "Transparent", "size": 11},
@@ -264,7 +264,7 @@ translations = {
     "author_value": {"padding": (0,0,8,5)},
     "message_input": {"text": " Écrire un message", "size": 11, "padding": (3,0,5,8)},
     "character_count": {"text": "Limite :"},
-    "sendmessage_button": {"text": "  Send", "size": 9.5},
+    "sendmessage_button": {"text": "  Envoyer", "size": 9.5},
     "username_label": {"text": "Nom d'utilisateur :", "padding": (9,0,0,10)},
     "id_label": {"text": "ID :", "padding": (9,0,0,10)},
     "id_value": {"align": LEFT},

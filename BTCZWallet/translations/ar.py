@@ -131,7 +131,7 @@ translations = {
 
     #wallet :
     "bitcoinz_logo": {"padding": (10,10,0,0)},
-    "bitcoinz_title": {"text": "محفظة نود كاملة", "align": RIGHT, "size": 21},
+    "bitcoinz_title": {"text": "محفظة نود كاملة", "align": RIGHT, "size": 21, "padding": (25,0,0,0)},
     "bitcoinz_version": {"padding": (0,12,0,0), "align": RIGHT},
     "total_balances_label": {"text": "الرصيد الجملي", "size": 10},
     "total_value": {"size": 12},

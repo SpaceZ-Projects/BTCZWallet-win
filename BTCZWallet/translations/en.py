@@ -131,7 +131,7 @@ translations = {
 
     #wallet :
     "bitcoinz_logo": {"padding": (10,0,0,10)},
-    "bitcoinz_title": {"text": "Full Node Wallet", "align": LEFT, "size": 22},
+    "bitcoinz_title": {"text": "Full Node Wallet", "align": LEFT, "size": 22, "padding": (25,0,0,0)},
     "bitcoinz_version": {"padding": (0,0,0,13), "align": LEFT},
     "total_balances_label": {"text": "Total Balances", "size": 14},
     "total_value": {"size": 14},
@@ -147,7 +147,7 @@ translations = {
     "invalidfile_dialog": {"title": "Invalid File Format", "message": "Unsupported file type, Select a valid wallet file."},
     "info_label": {"text": "(This operation may take up to 10 minutes to complete.)"},
     "file_input": {"text": "+ Select / Drag and Drop File", "size": 11},
-    "selectfile_dialog": {"title": "Select a file"},
+    "selectfile_dialog": {"title": "Select file"},
     "key_input": {"size": 11},
 
     #home :
