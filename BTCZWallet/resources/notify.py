@@ -4,10 +4,11 @@ from ..framework import NotifyIcon, Command, FormState, TextBox
 
 
 class Notify(NotifyIcon):
-    def __init__(self, app:App, main:Window, home_page, mining_page, settings, utils, commands, tr, font):
+    def __init__(self, app:App, main:Window, notifymarket, home_page, mining_page, settings, utils, commands, tr, font):
 
         self.app = app
         self.main = main
+        self.notifymarket = notifymarket
         self.home_page = home_page
         self.mining_page = mining_page
         
@@ -73,6 +74,9 @@ class Notify(NotifyIcon):
                 self.home_page.clear_cache()
                 self.hide()
                 self.dispose()
+                if self.main.server.server_status:
+                    self.notifymarket.hide()
+                    self.notifymarket.dispose()
                 self.app.exit()
         if self.mining_page.mining_status:
             return
@@ -81,6 +85,7 @@ class Notify(NotifyIcon):
             message=self.tr.message("exit_dialog"),
             on_result=on_result
         )
+        
 
     def stop_node_exit(self):
         async def on_result(widget, result):
@@ -113,6 +118,9 @@ class Notify(NotifyIcon):
                     self.home_page.clear_cache()
                     self.hide()
                     self.dispose()
+                    if self.main.server.server_status:
+                        self.notifymarket.hide()
+                        self.notifymarket.dispose()
                     self.app.exit()
         if self.mining_page.mining_status:
             return

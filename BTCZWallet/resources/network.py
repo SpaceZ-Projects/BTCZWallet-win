@@ -651,6 +651,14 @@ class TorConfig(Window):
                 await self.commands.stopNode()
                 await asyncio.sleep(1)
             await self.startup.check_tor_files()
+        else:
+            self.info_dialog(
+                title="Configuration Saved",
+                message=(
+                    "Your Tor network settings have been saved\n\n"
+                    "To apply these changes, restart the node"
+                )
+            )
         
 
 

@@ -16,7 +16,7 @@ from toga.colors import (
     rgb, WHITE, GRAY, YELLOW
 )
 
-from .storage import StorageMessages, StorageMarket
+from .storage import StorageMessages
 
 
 class Receive(Box):
@@ -44,7 +44,6 @@ class Receive(Box):
         self.font = font
 
         self.storage = StorageMessages(self.app)
-        self.storage_market = StorageMarket(self.app)
         self.clipboard = ClipBoard()
 
         self.rtl = None
@@ -466,9 +465,7 @@ class Receive(Box):
         addresses_data,_ = await self.commands.ListAddresses()
         addresses_data = json.loads(addresses_data)
         if addresses_data is not None:
-            orders_addresses = self.storage_market.get_orders_addresses()
-            filtered_addresses = [addr for addr in addresses_data if addr not in orders_addresses]
-            address_items = {address_info for address_info in filtered_addresses}
+            address_items = {address_info for address_info in addresses_data}
         else:
             address_items = []
         return address_items

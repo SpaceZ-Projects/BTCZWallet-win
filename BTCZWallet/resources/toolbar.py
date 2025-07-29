@@ -8,7 +8,7 @@ from toga.constants import ROW, TOP
 
 
 class AppToolBar(Box):
-    def __init__(self, app:App, main:Window, notify, home_page ,mining_page, settings, utils, commands, tr, font):
+    def __init__(self, app:App, main:Window, notify, notifymarket, home_page ,mining_page, settings, utils, commands, tr, font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -19,6 +19,7 @@ class AppToolBar(Box):
         self.app = app
         self.main = main
         self.notify = notify
+        self.notifymarket = notifymarket
         self.home_page = home_page
         self.mining_page = mining_page
 
@@ -851,6 +852,9 @@ class AppToolBar(Box):
                 self.home_page.clear_cache()
                 self.notify.hide()
                 self.notify.dispose()
+                if self.main.server.server_status:
+                    self.notifymarket.hide()
+                    self.notifymarket.dispose()
                 self.app.exit()
         if self.mining_page.mining_status:
             return
@@ -870,6 +874,9 @@ class AppToolBar(Box):
                 self.home_page.clear_cache()
                 self.notify.hide()
                 self.notify.dispose()
+                if self.main.server.server_status:
+                    self.notifymarket.hide()
+                    self.notifymarket.dispose()
                 self.app.exit()
 
         if self.mining_page.mining_status:
@@ -891,6 +898,9 @@ class AppToolBar(Box):
                     self.home_page.clear_cache()
                     self.notify.hide()
                     self.notify.dispose()
+                    if self.main.server.server_status:
+                        self.notifymarket.hide()
+                        self.notifymarket.dispose()
                     self.app.exit()
         if self.mining_page.mining_status:
             return

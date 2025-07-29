@@ -17,7 +17,7 @@ from toga.style.pack import Pack
 from toga.constants import COLUMN, CENTER, BOLD, ROW
 from toga.colors import rgb, GRAY, WHITE, GREENYELLOW, BLACK, RED
 
-from .storage import StorageMessages, StorageMarket
+from .storage import StorageMessages
 
 
 class Mining(Box):
@@ -54,7 +54,6 @@ class Mining(Box):
         self.font = font
 
         self.storage = StorageMessages(self.app)
-        self.storage_market = StorageMarket(self.app)
         self.tooltip = ToolTip()
 
         self.rtl = None
@@ -642,9 +641,7 @@ class Mining(Box):
         else:
             addresses_data = []
         if addresses_data is not None:
-            orders_addresses = self.storage_market.get_orders_addresses()
-            filtered_addresses = [addr for addr in addresses_data if addr not in orders_addresses]
-            address_items = [(address_info, address_info) for address_info in filtered_addresses]
+            address_items = [(address_info, address_info) for address_info in addresses_data]
 
         return address_items
     

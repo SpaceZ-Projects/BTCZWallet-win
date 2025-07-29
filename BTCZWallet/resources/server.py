@@ -15,7 +15,8 @@ from ..framework import Sys, Os
 from .client import Client
 
 
-class WebServerThread(Thread):
+
+class MarketServerThread(Thread):
     def __init__(self, flask, host, port, event):
         Thread.__init__(self, daemon=True)
         self.flask = flask
@@ -85,9 +86,11 @@ class MarketServer():
     def add_rules(self):
         self.flask.add_url_rule('/status', 'status', self.handle_status, methods=['GET'])
         self.flask.add_url_rule('/items', 'items', self.handle_items_list, methods=['GET'])
+        self.flask.add_url_rule('/orders', 'orders', self.handle_orders_list, methods=['GET'])
         self.flask.add_url_rule('/item/<string:item_id>', 'item', self.handle_item_id, methods=['GET'])
         self.flask.add_url_rule('/price', 'price', self.handle_price, methods=['GET'])
         self.flask.add_url_rule('/place_order', 'place_order', self.handle_place_order, methods=['GET'])
+        self.flask.add_url_rule('/cancel_order', 'cancel_order', self.handle_cancel_order, methods=['GET'])
         self.flask.before_request(self.log_request)
 
 
@@ -200,29 +203,31 @@ class MarketServer():
         return jsonify({"price": btcz_price}), 200
     
 
-    async def handle_place_order(self):
+    def handle_place_order(self):
         valid, response = self.verify_signature()
         if not valid:
             return response
+        
         get_params = request.args
+        required_params = ["id", "contact_id", "total_price", "quantity"]
+        missing = [p for p in required_params if not get_params.get(p)]
+        if missing:
+            return jsonify({"error": f"Missing required parameters: {', '.join(missing)}"}), 400
+        
         item_id = get_params.get("id")
         contact_id = get_params.get("contact_id")
         total_price = get_params.get("total_price")
         quantity = get_params.get("quantity")
         comment = get_params.get("comment")
-
-        address, _ = await self.commands.getNewAddress()
-        if not address:
-            return jsonify({"error": "Failed to generate invoice address"}), 400
         
         status = "pending"
         order_id = str(uuid.uuid4())
-        created = int(datetime.now().timestamp())
+        created = int(datetime.now(timezone.utc).timestamp())
         expired = 3600
         duration = created + expired
 
         self.market_storage.insert_order(
-            order_id, item_id, contact_id, total_price, int(quantity), comment, address, status, created, duration)
+            order_id, item_id, contact_id, total_price, int(quantity), comment, status, created, duration)
         
         item = self.market_storage.get_item(item_id)
         available_items = item[6] - int(quantity)
@@ -234,10 +239,81 @@ class MarketServer():
 
         return jsonify({"result": "success"}), 200
     
+
+    def handle_orders_list(self):
+        valid, response = self.verify_signature()
+        if not valid:
+            return response
+        contact_id = request.args.get("contact_id")
+        if not contact_id:
+            return jsonify({"error": "Missing required parameter: contact_id"}), 400
+        
+        try:
+            market_orders = self.market_storage.get_orders_by_contact_id(contact_id)
+        except Exception:
+            return jsonify({"error": "Internal server error while retrieving orders"}), 500
+        
+        if not market_orders:
+            return jsonify([]), 200
+        
+        sorted_orders = sorted(market_orders, key=lambda x: x[7], reverse=True)
+        result = []
+        now = int(datetime.now(timezone.utc).timestamp())
+        for order in sorted_orders:
+            expired = order[8]
+            item_title = self.market_storage.get_item_title(order[1])
+            remaining_seconds = expired - now
+            item_dict = {
+                "order_id": order[0],
+                "item_id": order[1],
+                "item_title": item_title[0],
+                "total_price": order[3],
+                "quantity": order[4],
+                "comment": order[5],
+                "status": order[6],
+                "remaining": remaining_seconds
+            }
+            result.append(item_dict)
+        return jsonify(result), 200
+    
+    
+
+    def handle_cancel_order(self):
+        valid, response = self.verify_signature()
+        if not valid:
+            return response
+        
+        get_params = request.args
+        required_params = ["order_id"]
+        missing = [p for p in required_params if not get_params.get(p)]
+        if missing:
+            return jsonify({"error": f"Missing required parameters: {', '.join(missing)}"}), 400
+        
+        order_id = get_params.get("order_id")
+        order = self.market_storage.get_order(order_id)
+
+        status = order[6]
+
+        if status == "expired":
+            return jsonify({"result": "expired", "reason": "Order already cancelled"}), 200
+
+        if status == "cancelled":
+            return jsonify({"result": "failed", "reason": "Order already cancelled"}), 200
+        
+        if status != "pending":
+            return jsonify({"error": "Order cannot be cancelled in its current state"}), 400
+
+        self.market_storage.update_order_status(order_id, "cancelled")
+        item = self.market_storage.get_item(order[1])
+        quantity = order[4] + item[6]
+        self.market_storage.update_item_quantity(order[1] ,quantity)
+
+        return jsonify({"result": "success"}), 200
+        
     
     def start(self):
         event = Event()
-        self.server_thread = WebServerThread(self.flask, self.host, self.port, event)
+        self.server_thread = MarketServerThread(self.flask, self.host, self.port, event)
         self.server_thread.start()
         if event.wait(timeout=5):
             self.server_status = True

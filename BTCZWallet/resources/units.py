@@ -145,18 +145,32 @@ class Units():
         return f"{size:.2f} {units[i]}"
     
 
-    def create_timer(self, value):
+    def create_timer(self, value, countdown = None):
         now = datetime.now(timezone.utc)
-        duration = now - value
+        if isinstance(value, (int, float)):
+            duration = timedelta(seconds=value)
+        elif isinstance(value, timedelta):
+            duration = value
+        elif isinstance(value, datetime):
+            if countdown:
+                duration = value - now
+            else:
+                duration = now - value
+
+        if duration.total_seconds() < 0:
+            duration = timedelta(seconds=0)
         days = duration.days
         hours, remainder = divmod(duration.seconds, 3600)
-        minutes, _ = divmod(remainder, 60)
+        minutes, seconds = divmod(remainder, 60)
         if days > 0:
             timer = f"{days}d {hours}h {minutes}m"
         elif hours > 0:
             timer = f"{hours}h {minutes}m"
+        elif minutes > 0:
+            timer = f"{minutes}m {seconds}s" if countdown else f"{minutes}m"
         else:
-            timer = f"{minutes}m"
+            timer = f"{seconds}s" if countdown else "0m"
+
         return timer
     
 

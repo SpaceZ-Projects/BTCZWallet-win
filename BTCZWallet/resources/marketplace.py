@@ -1,7 +1,8 @@
 
 import asyncio
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
+import json
 
 from toga import (
     Window, Box, Button, Label, TextInput, ImageView,
@@ -13,11 +14,11 @@ from ..framework import (
     ToolTip, Command, Color, ClipBoard, DockStyle, BorderStyle,
     run_async
 )
-from toga.constants import COLUMN, CENTER, ROW, LEFT
+from toga.constants import COLUMN, CENTER, ROW, LEFT, RIGHT
 from toga.style import Pack
 from toga.colors import (
     rgb, GRAY, WHITE, RED, BLACK, GREENYELLOW,
-    YELLOW
+    YELLOW, ORANGE
 )
 
 from .storage import StorageMarket, StorageMessages
@@ -720,6 +721,363 @@ class ItemView(Box):
 
 
 
+
+class OrderView(Box):
+    def __init__(self, main:Window, storage, utils, units, commands, font, order, contact_id):
+        super().__init__(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(40,43,48),
+                padding = (5,5,0,5),
+                height = 55,
+                alignment = CENTER
+            )
+        )
+        
+        self.main = main
+        self.utils = utils
+        self.units = units
+        self.commands = commands
+        self.font = font
+        self.storage = storage
+
+        self.order = order
+        self.contact_id = contact_id
+
+        self.order_id = order.get('order_id')
+        self.item_id = order.get('item_id')
+        self.total_price = order.get('total_price')
+        self.order_quantity = order.get('quantity')
+        self.order_comment = order.get('comment')
+        self.order_status = order.get('status')
+        self.order_remaining = order.get('remaining')
+
+        if self.order_status == "completed":
+            color = GREENYELLOW
+        elif self.order_status == "pending":
+            color = WHITE
+        elif self.order_status == "expired":
+            color = RED
+        elif self.order_status == "paid":
+            color = YELLOW
+        elif self.order_status == "cancelled":
+            color = ORANGE
+
+        if self.order_remaining <= 0 or self.order_status != "pending":
+            remaining_time = ""
+            remaining_background_color = rgb(40,43,48)
+            remaining_enabled = False
+        else:
+            remaining_time = self.units.create_timer(self.order_remaining, True)
+            remaining_background_color = rgb(30,33,36)
+            remaining_enabled = True
+
+        self.order_icon = ImageView(
+            image="images/product.png",
+            style=Pack(
+                background_color = rgb(40,43,48),
+                width = 45,
+                height = 45,
+                padding = (5,15,0,5)
+            )
+        )
+
+        self.order_id_label = Label(
+            text=f"{self.order_id[:15]}...",
+            style=Pack(
+                color = GRAY,
+                text_align = CENTER,
+                background_color = rgb(40,43,48),
+                flex = 2
+            )
+        )
+        self.order_id_label._impl.native.Font = self.font.get(10, True)
+
+        self.status_label = Label(
+            text=self.order_status,
+            style=Pack(
+                color = color,
+                text_align = CENTER,
+                background_color = rgb(40,43,48),
+                flex = 1
+            )
+        )
+        self.status_label._impl.native.Font = self.font.get(10, True)
+
+        self.remaining_label = TextInput(
+            value=remaining_time,
+            readonly=True,
+            style=Pack(
+                color = GRAY,
+                text_align = CENTER,
+                background_color = remaining_background_color,
+                width = 80,
+                padding = (0,20,0,0)
+            )
+        )
+        self.remaining_label._impl.native.Font = self.font.get(9, True)
+        self.remaining_label._impl.native.BorderStyle = BorderStyle.NONE
+        self.remaining_label._impl.native.Enabled = remaining_enabled
+
+        self.order_info = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(40,43,48),
+                padding = (2,5,0,5),
+                height = 50,
+                alignment = CENTER
+            )
+        )
+
+        self.order_details = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(30,33,36),
+                padding = (10,5,5,10),
+                height = 200,
+                alignment = CENTER
+            )
+        )
+
+        self.pay_button = Button(
+            text="Pay",
+            style=Pack(
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                width = 80,
+                padding = (0,10,0,0)
+            ),
+            on_press=self.pay_order
+        )
+        self.pay_button._impl.native.Font = self.font.get(9, True)
+        self.pay_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.pay_button._impl.native.MouseEnter += self.pay_button_mouse_enter
+        self.pay_button._impl.native.MouseLeave += self.pay_button_mouse_leave
+
+        self.cancel_button = Button(
+            text="Cancel",
+            style=Pack(
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                width = 80,
+                padding = (0,10,0,0)
+            ),
+            on_press=self.cancel_order
+        )
+        self.cancel_button._impl.native.Font = self.font.get(9, True)
+        self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
+        self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
+
+        self.more_button = Button(
+            text="More",
+            style=Pack(
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                padding = (0,10,0,0)
+            ),
+            on_press=self.show_more
+        )
+        self.more_button._impl.native.Font = self.font.get(9, True)
+        self.more_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.more_button._impl.native.MouseEnter += self.more_button_mouse_enter
+        self.more_button._impl.native.MouseLeave += self.more_button_mouse_leave
+
+        self.add(
+            self.order_info
+        )
+        self.order_info.add(
+            self.order_icon,
+            self.order_id_label,
+            self.status_label,
+            self.remaining_label
+        )
+        if self.order_status == "pending":
+            self.order_info.add(
+                self.pay_button,
+                self.cancel_button
+            )
+        self.order_info.add(
+            self.more_button
+        )
+
+
+    async def show_more(self, button):
+        self.more_button.enabled = False
+        self.style.height = 280
+        self.more_button.text = "Less"
+        self.add(self.order_details)
+        self.more_button.on_press = self.show_less
+        self.more_button.enabled = True
+
+
+    async def show_less(self, button):
+        self.more_button.enabled = False
+        self.style.height = 55
+        self.more_button.text = "More"
+        self.remove(self.order_details)
+        self.more_button.on_press = self.show_more
+        self.more_button.enabled = True
+
+
+    async def pay_order(self, button):
+        async def on_result(widget, result):
+            if result is True:
+                self.main.operation_toggle = True
+                self.cancel_button.enabled = False
+                self.pay_button.enabled = False
+                address = self.storage.get_identity("address")
+                market_address = self.storage.get_contact_address(self.contact_id)
+                amount = float(self.total_price) + 0.0001
+                txfee = 0.0001
+                memo = {"type":"payment","order_id":self.order_id}
+                memo_str = json.dumps(memo)
+                await self.send_payment(address[0], market_address[0], amount, txfee, memo_str)
+                     
+        if not self.main.operation_toggle:
+            if self.total_price >= float(self.main.balance):
+                return
+            self.main.question_dialog(
+                title="Pay Order",
+                message=f"Are you sure you want to pay this order ?\nTotal Price : {self.total_price} BTCZ",
+                on_result=on_result
+            )
+
+
+    async def send_payment(self, address, market_address, amount, txfee, memo):
+        operation, _= await self.commands.SendMemo(address, market_address, amount, txfee, memo)
+        if operation:
+            transaction_status, _= await self.commands.z_getOperationStatus(operation)
+            transaction_status = json.loads(transaction_status)
+            if isinstance(transaction_status, list) and transaction_status:
+                status = transaction_status[0].get('status')
+                if status == "executing" or status =="success":
+                    await asyncio.sleep(1)
+                    while True:
+                        transaction_result, _= await self.commands.z_getOperationResult(operation)
+                        transaction_result = json.loads(transaction_result)
+                        if isinstance(transaction_result, list) and transaction_result:
+                            status = transaction_result[0].get('status')
+                            result = transaction_result[0].get('result', {})
+                            txid = result.get('txid')
+                            if status == "failed":
+                                self.main.operation_toggle = None
+                                self.cancel_button.enabled = True
+                                self.pay_button.enabled = True
+                                return
+                            elif status == "executing":
+                                pass
+                            elif status == "success":
+                                self.storage.tx(txid)
+                                self.order_info.remove(self.pay_button, self.cancel_button)
+                                self.status_label.text = "paid"
+                                self.status_label.style.color = YELLOW
+                                self.remaining_label.value = ""
+                                self.remaining_label.style.background_color = rgb(40,43,48)
+                                self.remaining_label._impl.native.Enbaled = False
+                                self.main.operation_toggle = None
+                                return
+                        await asyncio.sleep(3)
+                else:
+                    self.main.operation_toggle = None
+                    self.cancel_button.enabled = True
+                    self.pay_button.enabled = True
+        else:
+            self.main.operation_toggle = None
+            self.cancel_button.enabled = True
+            self.pay_button.enabled = True
+            
+
+
+    async def cancel_order(self, button):
+        async def on_result(widget, result):
+            if result is True:
+                self.main.operation_toggle = True
+                self.cancel_button.enabled = False
+                self.pay_button.enabled = False
+                market = self.storage.get_hostname(self.contact_id)
+                params = {"order_id": self.order_id}
+                url = f'http://{market[0]}/cancel_order'
+                response = await self.utils.make_request(self.contact_id, url, params)
+                self.main.operation_toggle = None
+                if not response or "error" in response:
+                    self.cancel_button.enabled = True
+                    self.pay_button.enabled = True
+                    return
+
+                result_value = response.get("result")
+
+                if result_value == "failed":
+                    self.order_info.remove(self.pay_button, self.cancel_button)
+                    self.status_label.text = "cancelled"
+                    self.status_label.style.color = ORANGE
+                    self.remaining_label.value = ""
+                    self.remaining_label.style.background_color = rgb(40,43,48)
+                    self.remaining_label._impl.native.Enbaled = False
+                    self.main.info_dialog(
+                        title="Already Cancelled",
+                        message=f"Order #{self.order_id} was already cancelled."
+                    )
+                    return
+
+                if result_value == "expired":
+                    self.order_info.remove(self.pay_button, self.cancel_button)
+                    self.status_label.text = "expired"
+                    self.status_label.style.color = RED
+                    self.remaining_label.value = ""
+                    self.remaining_label.style.background_color = rgb(40,43,48)
+                    self.remaining_label._impl.native.Enbaled = False
+                    self.main.info_dialog(
+                        title="Order Expired",
+                        message=f"Order #{self.order_id} has expired and cannot be cancelled."
+                    )
+                    return
+                if result_value == "success":
+                    self.order_info.remove(self.pay_button, self.cancel_button)
+                    self.status_label.text = "cancelled"
+                    self.status_label.style.color = ORANGE
+                    self.remaining_label.value = ""
+                    self.remaining_label.style.background_color = rgb(40,43,48)
+                    self.remaining_label._impl.native.Enbaled = False
+                    self.main.info_dialog(
+                        title="Order Cancelled",
+                        message=f"Order #{self.order_id} has been successfully cancelled"
+                    )
+
+        if not self.main.operation_toggle:
+            self.main.question_dialog(
+                title="Cancel Order",
+                message="Are you sure you want to cancel this order ?\nThis action cannot be undone",
+                on_result=on_result
+            )
+
+
+
+    def pay_button_mouse_enter(self, sender, event):
+        self.pay_button.style.color = BLACK
+        self.pay_button.style.background_color = GREENYELLOW
+
+    def pay_button_mouse_leave(self, sender, event):
+        self.pay_button.style.color = GRAY
+        self.pay_button.style.background_color = rgb(30,33,36)
+
+    def cancel_button_mouse_enter(self, sender, event):
+        self.cancel_button.style.color = BLACK
+        self.cancel_button.style.background_color = RED
+
+    def cancel_button_mouse_leave(self, sender, event):
+        self.cancel_button.style.color = GRAY
+        self.cancel_button.style.background_color = rgb(30,33,36)
+
+
+    def more_button_mouse_enter(self, sender, event):
+        self.more_button.style.color = WHITE
+
+    def more_button_mouse_leave(self, sender, event):
+        self.more_button.style.color = GRAY
+
+
+
 class MarketView(Window):
     def __init__(self, chat, main:Window, utils, units, commands, tr, font, username, contact_id):
         super().__init__()
@@ -743,7 +1101,11 @@ class MarketView(Window):
         self.storage = StorageMessages(self.app)
         self.market_status = None
         self.marketplace_toggle = True
-        self.items_data = []
+        self.items_toggle = None
+        self.orders_toggle = None
+        self.items_data = {}
+        self.orders_data = {}
+        self.operation_toggle = None
 
         self.main_box = Box(
             style=Pack(
@@ -772,10 +1134,14 @@ class MarketView(Window):
                 background_color = rgb(30,33,36),
                 width = 100,
                 padding =(5,10,0,0)
-            )
+            ),
+            enabled=False,
+            on_press=self.show_orders_list
         )
         self.orders_button._impl.native.FlatStyle = FlatStyle.FLAT
         self.orders_button._impl.native.Font = self.font.get(9, True)
+        self.orders_button._impl.native.MouseEnter += self.orders_button_mouse_enter
+        self.orders_button._impl.native.MouseLeave += self.orders_button_mouse_leave
 
         self.balance_label = Label(
             text="Balance : 0.00000000",
@@ -791,7 +1157,8 @@ class MarketView(Window):
             style=Pack(
                 direction = ROW,
                 background_color = rgb(40,43,48),
-                height = 40
+                height = 40,
+                padding = (0,0,10,0)
             )
         )
 
@@ -852,8 +1219,11 @@ class MarketView(Window):
             return
         self.status_label.text = "Status : Online"
         self.status_label.style.color = GREENYELLOW
+
         self.app.add_background_task(self.update_status)
         self.app.add_background_task(self.get_market_items)
+        self.app.add_background_task(self.update_items_list)
+        self.app.add_background_task(self.update_orders_list)
 
 
     async def update_status(self, widget):
@@ -879,16 +1249,20 @@ class MarketView(Window):
         market = self.storage.get_hostname(self.contact_id)
         url = f'http://{market[0]}/items'
         result = await self.utils.make_request(self.contact_id, url)
-        if "error" in result:
+        if not result:
+            self.items_toggle = True
+            self.orders_button.enabled = True
             return
         for item in result:
             item_id = item.get('id')
             item_view = ItemView(
                 self.app, self, self.utils, self.units, self.tr, self.font, item, market, self.contact_id
             )
+            self.items_data[item_id] = item_view
             self.items_list.add(item_view)
-            self.items_data.append(item_id)
-        self.app.add_background_task(self.update_items_list)
+        self.items_toggle = True
+        await asyncio.sleep(1)
+        self.orders_button.enabled = True
 
 
     async def update_items_list(self, widget):
@@ -897,8 +1271,11 @@ class MarketView(Window):
         while True:
             if not self.marketplace_toggle:
                 return
+            if not self.items_toggle:
+                await asyncio.sleep(1)
+                continue
             result = await self.utils.make_request(self.contact_id, url)
-            if "error" in result:
+            if not result:
                 pass
             else:
                 current_ids = set()
@@ -909,21 +1286,139 @@ class MarketView(Window):
                         item_view = ItemView(
                             self.app, self, self.utils, self.units, self.tr, self.font, item, market, self.contact_id
                         )
+                        self.items_data[item_id] = item_view
                         self.items_list.insert(0, item_view)
-                        self.items_data.append(item_id)
 
                 for item_view in self.items_list.children:
                     if item_view.item_id not in current_ids:
                         self.items_list.remove(item_view)
-                        self.items_data.remove(item_view.item_id)
+                        del self.items_data[item_view.item_id]
 
             await asyncio.sleep(60)
+
+
+    async def get_market_orders(self, widget):
+        market = self.storage.get_hostname(self.contact_id)
+        url = f'http://{market[0]}/orders'
+        param = {"contact_id": self.contact_id}
+        result = await self.utils.make_request(self.contact_id, url, param)
+        if not result or "error" in result:
+            self.orders_toggle = True
+            self.orders_button.enabled = True
+            return
+        for order in result:
+            order_id = order.get('order_id')
+            order_view = OrderView(
+                self, self.storage, self.utils, self.units, self.commands, self.font, order, self.contact_id
+            )
+            self.orders_data[order_id] = order_view
+            self.items_list.add(order_view)
+        self.orders_toggle = True
+        await asyncio.sleep(1)
+        self.orders_button.enabled = True
+
+
+
+    async def update_orders_list(self, widget):
+        market = self.storage.get_hostname(self.contact_id)
+        url = f'http://{market[0]}/orders'
+        param = {"contact_id": self.contact_id}
+        while True:
+            if not self.marketplace_toggle:
+                return
+            if not self.orders_toggle:
+                await asyncio.sleep(1)
+                continue
+            result = await self.utils.make_request(self.contact_id, url, param)
+            if "error" in result:
+                pass
+            else:
+                current_ids = set()
+                for order in result:
+                    order_id = order.get('order_id')
+                    order_status = order.get('status')
+                    order_remaining = order.get('remaining')
+                    current_ids.add(order_id)
+                    if order_id not in self.orders_data:
+                        order_view = OrderView(
+                            self, self.storage, self.utils, self.units, self.commands, self.font, order, self.contact_id
+                        )
+                        self.orders_data[order_id] = order_view
+                        self.items_list.insert(0, order_view)
+                    else:
+                        existing_order = self.orders_data[order_id]
+                        if order_status == "completed":
+                            color = GREENYELLOW
+                        elif order_status == "pending":
+                            color = WHITE
+                        elif order_status == "expired":
+                            existing_order.order_info.remove(existing_order.pay_button)
+                            existing_order.order_info.remove(existing_order.cancel_button)
+                            color = RED
+                        elif order_status == "paid":
+                            color = YELLOW
+                        elif order_status == "cancelled":
+                            color = ORANGE
+                        if order_remaining <= 0 or order_status != "pending":
+                            remaining_time = ""
+                            remaining_background_color = rgb(40,43,48)
+                            remaining_enabled = False
+                        else:
+                            remaining_time = self.units.create_timer(order_remaining)
+                            remaining_background_color = rgb(30,33,36)
+                            remaining_enabled = True
+
+                        if existing_order.status_label.text != order_status:    
+                            existing_order.status_label.text = order_status
+                            existing_order.status_label.style.color = color
+                        existing_order.remaining_label.value = remaining_time
+                        existing_order.remaining_label.style.background_color = remaining_background_color
+                        existing_order.remaining_label._impl.native.Enabled = remaining_enabled
+
+                for order_view in self.items_list.children:
+                    if order_view.order_id not in current_ids:
+                        self.items_list.remove(order_view)
+                        del self.items_data[order_view.order_id]
+            
+            await asyncio.sleep(60)
+
+    
+
+    def show_items_list(self, button):
+        if not self.items_toggle:
+            self.orders_toggle = None
+            self.orders_button.enabled = False
+            self.orders_button.text = "My Orders"
+            self.items_list.clear()
+            self.items_data.clear()
+            self.app.add_background_task(self.get_market_items)
+            self.orders_button.on_press = self.show_orders_list
+
+
+    def show_orders_list(self, button):
+        if not self.orders_toggle:
+            self.items_toggle = None
+            self.orders_button.enabled = False
+            self.orders_button.text = "Market"
+            self.items_list.clear()
+            self.orders_data.clear()
+            self.app.add_background_task(self.get_market_orders)
+            self.orders_button.on_press = self.show_items_list
 
 
     def _handle_on_resize(self, sender, event:Sys.EventArgs):
         min_width = 916
         min_height = 646
         self._impl.native.MinimumSize = Drawing.Size(min_width, min_height)
+
+
+    def orders_button_mouse_enter(self, sender, event):
+        self.orders_button.style.color = BLACK
+        self.orders_button.style.background_color = YELLOW
+
+    def orders_button_mouse_leave(self, sender, event):
+        self.orders_button.style.color = GRAY
+        self.orders_button.style.background_color = rgb(30,33,36)
 
 
     def close_market_window(self, widget):
@@ -966,7 +1461,7 @@ class AddItem(Window):
                 color = WHITE,
                 text_align = CENTER,
                 background_color = rgb(40,43,48),
-                padding = (11,0,0,0)
+                padding = (21,0,0,0)
             )
         )
         self.title_label._impl.native.Font = self.font.get(10, True)
@@ -988,7 +1483,7 @@ class AddItem(Window):
                 color = WHITE,
                 text_align = CENTER,
                 background_color = rgb(40,43,48),
-                padding = (85,0,0,0)
+                padding = (92,0,0,0)
             )
         )
         self.description_label._impl.native.Font = self.font.get(10, True)
@@ -1028,7 +1523,7 @@ class AddItem(Window):
                 color = WHITE,
                 background_color = rgb(40,43,48),
                 width = 250,
-                padding = (10,15,0,15)
+                padding = (20,15,0,15)
             )
         )
         self.title_input._impl.native.Font = self.font.get(11, True)
@@ -1068,12 +1563,28 @@ class AddItem(Window):
             )
         )
 
+        text = self.tr.text("character_count")
+        value = "0 / 2000"
+
+        self.character_count = Label(
+            text=f"{text} {value}",
+            style=Pack(
+                background_color = rgb(40,43,48),
+                text_align = RIGHT,
+                color = GRAY,
+                flex = 1,
+                padding = (0,15,0,0)
+            )
+        )
+        self.character_count._impl.native.Font = self.font.get(8)
+
         self.description_input = MultilineTextInput(
             style=Pack(
                 color = WHITE,
                 background_color = rgb(40,43,48),
-                padding = (10,15,0,15)
-            )
+                padding = (0,15,0,15)
+            ),
+            on_change=self.update_character_count
         )
         self.description_input._impl.native.Font = self.font.get(11, True)
         
@@ -1200,6 +1711,7 @@ class AddItem(Window):
         self.inputs_box.add(
             self.title_input,
             self.image_box,
+            self.character_count,
             self.description_input,
             self.price_box,
             self.quantity_input
@@ -1235,6 +1747,8 @@ class AddItem(Window):
                 self.close()
                 self.app.current_window = self.main
 
+        description = self.description_input.value.strip()
+        character_count = len(description)
         if not self.title_input.value:
             self.error_dialog(
                 title="Missing Title",
@@ -1256,6 +1770,12 @@ class AddItem(Window):
             )
             self.quantity_input.focus()
             return
+        elif character_count > 2000:
+            self.main.error_dialog(
+                title="Description Too Long",
+                message="Description exceeds the maximum length of 2000 characters."
+            )
+            return
         quantity = self.quantity_input.value
         if int(quantity) <= 0:
             self.quantity_input.value = "1"
@@ -1273,11 +1793,10 @@ class AddItem(Window):
             new_path = Os.Path.Combine(destination_dir, new_filename)
             Os.File.Copy(str(original_path), new_path, overwrite=True)
 
-        description = self.description_input.value.strip()
         price = self.price_input.value
         currency = self.currencies_selection.value.currency
         quantity = int(self.quantity_input.value)
-        timestamp = int(datetime.now().timestamp())
+        timestamp = int(datetime.now(timezone.utc).timestamp())
         self.storage.insert_item(item_id, title, new_filename, description, price, currency, quantity, timestamp)
         self.info_dialog(
             title="Item Added",
@@ -1329,6 +1848,24 @@ class AddItem(Window):
         self.image_box.remove(
             self.clear_button
         )
+
+
+    def update_character_count(self, input):
+        message = self.description_input.value
+        text = self.tr.text("character_count")
+        value = "0 / 2000"
+        if not message:
+            self.character_count.text = f"{text} {value}"
+            return
+        character_count = len(message)
+        if character_count > 2000:
+            self.character_count.style.color = RED
+        elif character_count < 2000:
+            self.character_count.style.color = GRAY
+        elif character_count == 2000:
+            self.character_count.style.color = YELLOW
+        value = f"{character_count} / 2000"
+        self.character_count.text = f"{text} {value}"
 
 
     def is_digit(self, value):
@@ -1467,13 +2004,21 @@ class Item(Box):
     def insert_item_menustrip(self):
         context_menu = Forms.ContextMenuStrip()
         self.copy_id_cmd = Command(
-            title="Copy id",
+            title="Copy item id",
             icon="images/copy_i.ico",
             color=Color.WHITE,
             background_color=Color.rgb(30,33,36),
             mouse_enter=self.copy_id_cmd_mouse_enter,
             mouse_leave=self.copy_id_cmd_mouse_leave,
             action=self.copy_item_id
+        )
+        self.add_quantity_cmd = Command(
+            title="Add quantity",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            mouse_enter=self.add_quantity_cmd_mouse_enter,
+            mouse_leave=self.add_quantity_cmd_mouse_leave,
+            action=self.add_quantity_to_item
         )
         self.remove_item_cmd = Command(
             title="Remove item",
@@ -1486,6 +2031,7 @@ class Item(Box):
         )
         commands = [
             self.copy_id_cmd,
+            self.add_quantity_cmd,
             self.remove_item_cmd
         ]
         for command in commands:
@@ -1494,6 +2040,9 @@ class Item(Box):
         self.item_image._impl.native.ContextMenuStrip = context_menu
         self.item_title._impl.native.ContextMenuStrip = context_menu
         self.item_id_label._impl.native.ContextMenuStrip = context_menu
+        self.item_price._impl.native.ContextMenuStrip = context_menu
+        self.item_currency._impl.native.ContextMenuStrip = context_menu
+        self.item_quantity._impl.native.ContextMenuStrip = context_menu
 
 
     def copy_item_id(self):
@@ -1502,6 +2051,11 @@ class Item(Box):
             title="Copied",
             message="The item id has copied to clipboard.",
         )
+
+    
+    def add_quantity_to_item(self):
+        pass
+
 
     def remove_item_from_list(self):
         def on_result(widget, result):
@@ -1524,6 +2078,12 @@ class Item(Box):
         self.copy_id_cmd.icon = "images/copy_i.ico"
         self.copy_id_cmd.color = Color.WHITE
 
+    def add_quantity_cmd_mouse_enter(self):
+        self.add_quantity_cmd.color = Color.BLACK
+
+    def add_quantity_cmd_mouse_leave(self):
+        self.add_quantity_cmd.color = Color.WHITE
+
     def remove_item_cmd_mouse_enter(self):
         self.remove_item_cmd.icon = "images/remove_item_a.ico"
         self.remove_item_cmd.color = Color.BLACK
@@ -1536,10 +2096,10 @@ class Item(Box):
 
 
 class Order(Box):
-    def __init__(self, main:Window, storage, font, order):
+    def __init__(self, main:Window, storage, units, font, order):
         super().__init__(
             style=Pack(
-                direction = ROW,
+                direction = COLUMN,
                 background_color = rgb(40,43,48),
                 padding = (5,5,0,5),
                 height = 55,
@@ -1548,12 +2108,34 @@ class Order(Box):
         )
 
         self.main = main
-        self.font = font
         self.storage = storage
+        self.units = units
+        self.font = font
         self.tootip = ToolTip()
         self.clipboard = ClipBoard()
 
-        order_id, item_id, contact_id, total_price, quantity, comment, address, status, created, expired = order
+        order_id, item_id, contact_id, total_price, quantity, comment, status, created, expired = order
+        now = int(datetime.now(timezone.utc).timestamp())
+        remaining_seconds = expired - now
+        if remaining_seconds <= 0 or status != "expired":
+            remaining_time = ""
+            remaining_background_color = rgb(40,43,48)
+            remaining_enabled = False
+        else:
+            remaining_time = self.units.create_timer(remaining_seconds, True)
+            remaining_background_color = rgb(30,33,36)
+            remaining_enabled = True
+
+        if status == "completed":
+            color = GREENYELLOW
+        elif status == "pending":
+            color = WHITE
+        elif status == "expired":
+            color = RED
+        elif status == "paid":
+            color = YELLOW
+        elif status == "cancelled":
+            color = ORANGE
 
         self.order_icon = ImageView(
             image="images/order.png",
@@ -1587,7 +2169,6 @@ class Order(Box):
             )
         )
         self.item_id_label._impl.native.Font = self.font.get(9, True)
-        self.tootip.insert(self.item_id_label._impl.native, item_id)
 
         self.total_price_label = Label(
             text=f"{total_price} BTCZ",
@@ -1603,7 +2184,7 @@ class Order(Box):
         self.status_label = Label(
             text=status,
             style=Pack(
-                color = WHITE,
+                color = color,
                 text_align = CENTER,
                 background_color = rgb(40,43,48),
                 flex = 1
@@ -1611,24 +2192,138 @@ class Order(Box):
         )
         self.status_label._impl.native.Font = self.font.get(10, True)
 
+        self.remaining_label = TextInput(
+            value=remaining_time,
+            readonly=True,
+            style=Pack(
+                color = GRAY,
+                text_align = CENTER,
+                background_color = remaining_background_color,
+                width = 80,
+                padding = (0,20,0,0)
+            )
+        )
+        self.remaining_label._impl.native.Font = self.font.get(10, True)
+        self.remaining_label._impl.native.BorderStyle = BorderStyle.NONE
+        self.remaining_label._impl.native.Enabled = remaining_enabled
+
+        self.order_info = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(40,43,48),
+                padding = (2,5,0,5),
+                height = 50,
+                alignment = CENTER
+            )
+        )
+
+        self.order_details = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(30,33,36),
+                padding = (10,5,5,10),
+                height = 200,
+                alignment = CENTER
+            )
+        )
+
+        self.more_button = Button(
+            text="More",
+            style=Pack(
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                padding = (0,10,0,0)
+            ),
+            on_press=self.show_more
+        )
+        self.more_button._impl.native.Font = self.font.get(9, True)
+        self.more_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.more_button._impl.native.MouseEnter += self.more_button_mouse_enter
+        self.more_button._impl.native.MouseLeave += self.more_button_mouse_leave
+
+        self.confirm_button = Button(
+            text="Confirm",
+            style=Pack(
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                width = 80,
+                padding = (0,10,0,0)
+            ),
+            on_press=self.confirm_order
+        )
+        self.confirm_button._impl.native.Font = self.font.get(9, True)
+        self.confirm_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.confirm_button._impl.native.MouseEnter += self.pay_button_mouse_enter
+        self.confirm_button._impl.native.MouseLeave += self.pay_button_mouse_leave
+
         self.add(
+            self.order_info
+        )
+        self.order_info.add(
             self.order_icon,
             self.order_id_label,
-            self.item_id_label,
             self.total_price_label,
-            self.status_label
+            self.status_label,
+            self.remaining_label
         )
+        if status == "paid":
+            self.order_info.add(
+                self.confirm_button
+            )
+        self.order_info.add(
+            self.more_button
+        )
+
+
+    async def show_more(self, button):
+        self.more_button.enabled = False
+        self.style.height = 280
+        self.more_button.text = "Less"
+        self.add(self.order_details)
+        self.more_button.on_press = self.show_less
+        self.more_button.enabled = True
+
+
+    async def show_less(self, button):
+        self.more_button.enabled = False
+        self.style.height = 55
+        self.more_button.text = "More"
+        self.remove(self.order_details)
+        self.more_button.on_press = self.show_more
+        self.more_button.enabled = True
+
+
+    async def confirm_order(self, button):
+        pass
+
+
+    def pay_button_mouse_enter(self, sender, event):
+        self.confirm_button.style.color = BLACK
+        self.confirm_button.style.background_color = GREENYELLOW
+
+    def pay_button_mouse_leave(self, sender, event):
+        self.confirm_button.style.color = GRAY
+        self.confirm_button.style.background_color = rgb(30,33,36)
+
+
+    def more_button_mouse_enter(self, sender, event):
+        self.more_button.style.color = WHITE
+
+    def more_button_mouse_leave(self, sender, event):
+        self.more_button.style.color = GRAY
 
 
 
 class MarketPlace(Window):
-    def __init__(self, main:Window, notify, settings, utils, tr, font, server):
+    def __init__(self, main:Window, notify, settings, utils, units, commands, tr, font, server):
         super().__init__()
 
         self.main = main
         self.notify = notify
         self.settings = settings
         self.utils = utils
+        self.units = units
+        self.commands = commands
         self.tr = tr
         self.font = font
         self.server = server
@@ -1644,8 +2339,8 @@ class MarketPlace(Window):
         self._impl.native.Resize += self._handle_on_resize
         self.on_close = self.close_market_window
 
-        self.items_data = []
-        self.orders_data = []
+        self.items_data = {}
+        self.orders_data = {}
         self.search_toggle = None
         self.items_toggle = True
         self.orders_toggle = None
@@ -1790,29 +2485,38 @@ class MarketPlace(Window):
                 if dir_path.endswith("market_service"):
                     self.market_port = port_line.split()[1].split(":")[1] if port_line else ""
                     self.start_server.enabled = True
-        self.load_items_list()
+        self.app.add_background_task(self.load_items_list)
         self.app.add_background_task(self.updating_items_list)
+        self.app.add_background_task(self.updating_orders_list)
 
 
 
-    def load_items_list(self):
+    async def load_items_list(self, widget):
         market_items = self.market_storage.get_market_items()
         if market_items:
             sorted_items = sorted(market_items, key=lambda x: x[7], reverse=True)
             for item in sorted_items:
+                item_id = item[0]
                 item_info = Item(self.app, self, self.market_storage, self.font, item)
+                self.items_data[item_id] = item_info
                 self.items_list.add(item_info)
-                self.items_data.append(item[0])
+        self.items_toggle = True
+        await asyncio.sleep(0.5)
+        self.orders_button.enabled = True
 
 
-    def load_orders_list(self):
+    async def load_orders_list(self, widget):
         market_orders = self.market_storage.get_market_orders()
         if market_orders:
-            sorted_orders = sorted(market_orders, key=lambda x: x[8], reverse=True)
+            sorted_orders = sorted(market_orders, key=lambda x: x[7], reverse=True)
             for order in sorted_orders:
-                order_info = Order(self, self.market_storage, self.font, order)
+                order_id = order[0]
+                order_info = Order(self, self.market_storage, self.units, self.font, order)
+                self.orders_data[order_id] = order_info
                 self.items_list.add(order_info)
-                self.orders_data.append(order[0])
+        self.orders_toggle = True
+        await asyncio.sleep(0.5)
+        self.orders_button.enabled = True
 
 
     async def updating_items_list(self, widget):
@@ -1826,11 +2530,17 @@ class MarketPlace(Window):
             if market_items:
                 sorted_items = sorted(market_items, key=lambda x: x[7], reverse=True)
                 for item in sorted_items:
-                    if item[0] not in self.items_data:
+                    item_id = item[0]
+                    if item_id not in self.items_data:
                         item_info = Item(self.app, self, self.market_storage, self.font, item)
-                        self.items_data.append(item[0])
+                        self.items_data[item_id] = item_info
                         if not self.search_toggle:
                             self.items_list.insert(0, item_info)
+                    else:
+                        existing_item = self.items_data[item_id]
+                        if existing_item.item_quantity.text != f"QN: {item[6]}":
+                            existing_item.item_quantity.text = f"QN: {item[6]}"
+
             await asyncio.sleep(3)
 
 
@@ -1839,15 +2549,50 @@ class MarketPlace(Window):
             if not self.main.marketplace_toggle:
                 return
             if not self.orders_toggle:
-                return
+                await asyncio.sleep(1)
+                continue
             market_orders = self.market_storage.get_market_orders()
             if market_orders:
-                sorted_orders = sorted(market_orders, key=lambda x: x[8], reverse=True)
+                sorted_orders = sorted(market_orders, key=lambda x: x[7], reverse=True)
                 for order in sorted_orders:
-                    if order[0] not in self.orders_data:
-                        order_info = Order(self, self.market_storage, self.font, order)
-                        self.orders_data.append(order[0])
+                    order_id = order[0]
+                    order_status = order[6]
+                    order_expired = order[8]
+                    if order_id not in self.orders_data:
+                        order_info = Order(self, self.market_storage, self.units, self.font, order)
+                        self.orders_data[order_id] = order_info
                         self.items_list.insert(0, order_info)
+                    else:
+                        now = int(datetime.now(timezone.utc).timestamp())
+                        existing_order = self.orders_data[order_id]
+                        if order_status == "completed":
+                            color = GREENYELLOW
+                        elif order_status == "pending":
+                            color = WHITE
+                        elif order_status == "expired":
+                            color = RED
+                        elif order_status == "paid":
+                            existing_order.order_info.insert(5, existing_order.confirm_button)
+                            color = YELLOW
+                        elif order_status == "cancelled":
+                            color = ORANGE
+                        if order_expired <= now or order_status != "pending":
+                            remaining_time = ""
+                            remaining_background_color = rgb(40,43,48)
+                            remaining_enabled = False
+                        else:
+                            expired = datetime.fromtimestamp(order_expired, tz=timezone.utc)
+                            remaining_time = self.units.create_timer(expired, True)
+                            remaining_background_color = rgb(30,33,36)
+                            remaining_enabled = True
+
+                        if existing_order.status_label.text != order_status:
+                            existing_order.status_label.text = order_status
+                            existing_order.status_label.style.color = color
+                        existing_order.remaining_label.value = remaining_time
+                        existing_order.remaining_label.style.background_color = remaining_background_color
+                        existing_order.remaining_label._impl.native.Enabled = remaining_enabled
+
             await asyncio.sleep(3)
 
 
@@ -1882,32 +2627,29 @@ class MarketPlace(Window):
             self.items_toggle = None
             self.orders_button.enabled = False
             self.menu_box.remove(self.add_button)
-            self.orders_button._impl.native.Text = "  Items"
+            self.orders_button._impl.native.Text = "Items"
             self.search_input.placeholder = " Order ID"
+            self.search_input.value = ""
             self.search_input.on_confirm = self.search_order
             self.orders_button.on_press = self.show_items_list
             self.items_list.clear()
             self.items_data.clear()
-            self.load_orders_list()
-            self.orders_toggle = True
-            self.app.add_background_task(self.updating_orders_list)
-            self.orders_button.enabled = True
+            self.app.add_background_task(self.load_orders_list)
 
 
     async def show_items_list(self, button):
         if not self.items_toggle:
             self.orders_toggle = None
             self.orders_button.enabled = False
-            self.orders_button._impl.native.Text = "  Orders"
+            self.orders_button._impl.native.Text = "Orders"
             self.search_input.placeholder=" Item ID or Title"
+            self.search_input.value = ""
             self.search_input.on_confirm = self.search_item
             self.orders_button.on_press = self.show_orders_list
             self.items_list.clear()
             self.orders_data.clear()
-            self.load_items_list()
+            self.app.add_background_task(self.load_items_list)
             self.menu_box.insert(0, self.add_button)
-            self.items_toggle = True
-            self.orders_button.enabled = True
 
 
     def search_item(self, input):
@@ -1938,6 +2680,17 @@ class MarketPlace(Window):
     def search_order(self, input):
         if not input.value:
             return
+        order = self.market_storage.get_order(input.value.strip())
+        if order:
+            self.items_list.clear()
+            info_order = Order(self, self.market_storage, self.font, order)
+            self.items_list.add(info_order)
+            self.search_toggle = True
+        else:
+            self.error_dialog(
+                title="Not Found",
+                message="The order is not found."
+            )
 
         
     def clean_search(self, input):
@@ -2023,3 +2776,4 @@ class MarketPlace(Window):
     def close_market_window(self, widget):
         self.main.marketplace_toggle = None
         self.close()
+        self.app.current_window = self.main

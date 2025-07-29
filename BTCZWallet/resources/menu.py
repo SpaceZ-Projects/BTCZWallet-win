@@ -27,7 +27,7 @@ from .receive import Receive
 from .send import Send
 from .messages import Messages, EditUser
 from .mining import Mining
-from .storage import StorageMessages
+from .storage import StorageMessages, StorageMarket
 from .network import Peer, AddNode, TorConfig
 from .marketplace import MarketPlace
 from .server import MarketServer
@@ -56,6 +56,7 @@ class Menu(Window):
         self._impl.native.BackColor = Color.rgb(30,33,36)
 
         self.storage = StorageMessages(self.app)
+        self.market_storage = StorageMarket(self.app)
         self.statusbar = AppStatusBar(self.app, self, settings, utils, units, commands, tr, font)
         self.wallet = Wallet(self.app, self, settings, units, commands, tr, font)
 
@@ -65,10 +66,10 @@ class Menu(Window):
         self.send_page = Send(self.app, self, settings, units, commands, tr, font)
         self.message_page = Messages(self.app, self, settings, utils, units, commands, tr, font)
         self.mining_page = Mining(self.app, self, settings, utils, units, commands, tr, font)
-        self.notify = Notify(self.app, self, self.home_page, self.mining_page, settings, utils, commands, tr, font)
         self.notifymining = NotifyMining(font)
-        self.toolbar = AppToolBar(self.app, self, self.notify, self.home_page, self.mining_page, settings, utils, commands, tr, font)
         self.notifymarket = NotifyMarket()
+        self.notify = Notify(self.app, self, self.notifymarket, self.home_page, self.mining_page, settings, utils, commands, tr, font)
+        self.toolbar = AppToolBar(self.app, self, self.notify, self.notifymarket, self.home_page, self.mining_page, settings, utils, commands, tr, font)
         self.server = MarketServer(self.app, settings=self.settings, notify=self.notifymarket)
 
         opacity = self.settings.opacity()
@@ -271,7 +272,9 @@ class Menu(Window):
         self.add_actions_cmds()
         self.app.add_background_task(self.transactions_page.run_tasks)
         await asyncio.sleep(1)
-        await self.message_page.gather_unread_memos()
+        self.app.add_background_task(self.message_page.gather_unread_memos)
+        await asyncio.sleep(1)
+        self.app.add_background_task(self.updating_orders_status)
 
     def add_actions_cmds(self):
         if self.settings.hidden_balances():
@@ -455,12 +458,47 @@ class Menu(Window):
     def show_marketplace(self, sender, event):
         if self.settings.market_service():
             if not self.marketplace_toggle:
-                marketplace_window = MarketPlace(self, self.notifymarket, self.settings, self.utils, self.tr, self.font, self.server)
+                marketplace_window = MarketPlace(
+                    self, self.notifymarket, self.settings, self.utils, self.units, self.commands, self.tr, self.font, self.server
+                )
                 marketplace_window.show()
                 self.marketplace_window = marketplace_window
                 self.marketplace_toggle = True
             else:
                 self.marketplace_window._impl.native.Activate()
+        else:
+            self.error_dialog(
+                title="Marketplace Disabled",
+                message=(
+                    "To access the marketplace, you need to enable the market server\n\n"
+                    "  Network → Tor network\n"
+                    "and enable the Market Server option"
+                )
+            )
+
+
+    async def updating_orders_status(self, widget):
+        while True:
+            if self.settings.market_service():
+                market_orders = self.market_storage.get_market_orders()
+                if market_orders:
+                    for order in market_orders:
+                        order_id = order[0]
+                        item_id = order[1]
+                        order_quantity = order[4]
+                        order_status = order[6]
+                        order_expired = order[8]
+                        if order_status in ("expired", "completed", "paid", "cancelled"):
+                            continue
+
+                        now = int(datetime.now().timestamp())
+                        if order_expired < now:
+                            self.market_storage.update_order_status(order_id, "expired")
+                            item = self.market_storage.get_item(item_id)
+                            quantity = order_quantity + item[6]
+                            self.market_storage.update_item_quantity(item_id, quantity)
+
+            await asyncio.sleep(5)
 
 
     def backup_messages(self, sender, event):

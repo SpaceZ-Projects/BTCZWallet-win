@@ -27,7 +27,7 @@ from toga.colors import (
 )
 
 from .marketplace import MarketView
-from .storage import StorageMessages
+from .storage import StorageMessages, StorageMarket
 from .notify import NotifyRequest, NotifyMessage     
 
 
@@ -1511,6 +1511,7 @@ class Chat(Box):
         self.font = font
 
         self.storage = StorageMessages(self.app)
+        self.market_storage = StorageMarket(self.app)
         self.tooltip = ToolTip()
         self.clipboard = ClipBoard()
 
@@ -1994,6 +1995,9 @@ class Chat(Box):
             elif form_type == "market":
                 await self.get_marketplace(form_dict)
 
+            elif form_type == "payment":
+                await self.get_payment(form_dict, amount)
+
             self.storage.tx(txid)
 
         except (binascii.Error, json.decoder.JSONDecodeError) as e:
@@ -2094,8 +2098,19 @@ class Chat(Box):
             self.storage.insert_market(contact_id, hostname)
             return
         self.storage.update_market(contact_id, hostname)
-            
 
+
+    
+    async def get_payment(self, form, amount):
+        order_id = form.get('order_id')
+        order = self.market_storage.get_order(order_id)
+        if order:
+            total_price = order[3]
+            if amount < total_price:
+                return
+            self.market_storage.update_order_status(order_id, "paid")
+
+            
 
     async def update_contacts_list(self, widget):
         self.contacts = []
@@ -2746,7 +2761,8 @@ class Chat(Box):
 
     def copy_message_input(self):
         value = self.message_input.value
-        self.clipboard.copy(value)
+        if value:
+            self.clipboard.copy(value)
 
     def paste_message_input(self):
         value = self.clipboard.paste()
@@ -2818,7 +2834,7 @@ class Messages(Box):
         self.add(self.new_messenger)
 
 
-    async def gather_unread_memos(self):
+    async def gather_unread_memos(self, widget):
         data = self.storage.is_exists()
         if data:
             address = self.storage.get_identity("address")

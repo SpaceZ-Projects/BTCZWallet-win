@@ -20,7 +20,7 @@ from toga.colors import (
     rgb, GRAY, WHITE, YELLOW, BLACK, RED
 )
 
-from .storage import StorageMessages, StorageTxs, StorageMarket
+from .storage import StorageMessages, StorageTxs
 
 
 class Send(Box):
@@ -50,7 +50,6 @@ class Send(Box):
 
         self.storagemsgs = StorageMessages(self.app)
         self.storagetxs = StorageTxs(self.app)
-        self.storage_market = StorageMarket(self.app)
         self.tooltip = ToolTip()
 
         self.rtl = None
@@ -923,11 +922,9 @@ class Send(Box):
             addresses_data = []
             
         if addresses_data is not None:
-            orders_addresses = self.storage_market.get_orders_addresses()
-            filtered_addresses = [addr for addr in addresses_data if addr not in orders_addresses]
-            address_items = [(self.tr.text("main_account"))] + [(addr, addr) for addr in filtered_addresses]
+            address_items = [("Main Account")] + [(address_info, address_info) for address_info in addresses_data]
         else:
-            address_items = [(self.tr.text("main_account"))]
+            address_items = [("Main Account")]
         return address_items
     
     

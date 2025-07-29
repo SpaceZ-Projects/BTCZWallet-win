@@ -294,7 +294,7 @@ class BTCZSetup(Box):
                     await self.check_sync_progress()
                 else:
                     await self.check_tor_files()
-            elif self.tor_enabled is False:
+            else:
                 self.main.network_status.style.color = GRAY
                 self.main.network_status.text = self.tr.text("tor_disabled")
                 await asyncio.sleep(1)

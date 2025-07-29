@@ -54,7 +54,6 @@ class StorageMarket:
                 total_price REAL,
                 quantity INTEGER,
                 comment TEXT,
-                address TEXT,
                 status TEXT,
                 created INTEGER,
                 expired INTEGER
@@ -80,16 +79,16 @@ class StorageMarket:
         conn.close()
 
 
-    def insert_order(self, order_id, item_id, contact_id, total_price, quantity, comment, address, status, created, expired):
+    def insert_order(self, order_id, item_id, contact_id, total_price, quantity, comment, status, created, expired):
         self.create_orders_table()
         conn = sqlite3.connect(self.data)
         cursor = conn.cursor()
         cursor.execute(
             '''
-            INSERT INTO market_orders (order_id, item_id, contact_id, total_price, quantity, comment, address, status, created, expired)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO market_orders (order_id, item_id, contact_id, total_price, quantity, comment, status, created, expired)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', 
-            (order_id, item_id, contact_id, total_price, quantity, comment, address, status, created, expired)
+            (order_id, item_id, contact_id, total_price, quantity, comment, status, created, expired)
         )
         conn.commit()
         conn.close()
@@ -135,14 +134,17 @@ class StorageMarket:
             return []
         
 
-    def get_orders_addresses(self):
+    def get_orders_by_contact_id(self, contact_id):
         try:
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
-            cursor.execute('SELECT address FROM market_orders')
+            cursor.execute(
+                'SELECT * FROM market_orders WHERE contact_id = ?',
+                (contact_id,)
+            )
             data = cursor.fetchall()
             conn.close()
-            return [addr[0] for addr in data]
+            return data
         except sqlite3.OperationalError:
             return []
         
@@ -154,6 +156,36 @@ class StorageMarket:
             cursor.execute(
                 'SELECT * FROM market_items WHERE id = ?',
                 (item_id,)
+            )
+            data = cursor.fetchone()
+            conn.close()
+            return data
+        except sqlite3.OperationalError:
+            return []
+        
+        
+    def get_item_title(self, item_id):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT title FROM market_items WHERE id = ?',
+                (item_id,)
+            )
+            data = cursor.fetchone()
+            conn.close()
+            return data
+        except sqlite3.OperationalError:
+            return []
+        
+
+    def get_order(self, order_id):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT * FROM market_orders WHERE order_id = ?',
+                (order_id,)
             )
             data = cursor.fetchone()
             conn.close()
@@ -607,6 +639,21 @@ class StorageMessages:
             cursor = conn.cursor()
             cursor.execute(
                 'SELECT username FROM contacts WHERE contact_id = ?',
+                (contact_id,)
+            )
+            contact = cursor.fetchone()
+            conn.close()
+            return contact
+        except sqlite3.OperationalError:
+            return None
+        
+
+    def get_contact_address(self, contact_id):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT address FROM contacts WHERE contact_id = ?',
                 (contact_id,)
             )
             contact = cursor.fetchone()

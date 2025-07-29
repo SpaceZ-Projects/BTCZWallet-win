@@ -707,26 +707,32 @@ sendchangeback=1
             print(f"Error creating config file: {e}")
 
 
-    def create_torrc(self, socks_port=None, tor_service=None, service_port=None, market_service=None, market_port=None):
+    def create_torrc(
+            self, 
+            socks_port=None,
+            tor_service=None,
+            service_port=None,
+            market_service=None,
+            market_port=None
+        ):
         if not socks_port:
             socks_port = "9050"
         geoip = Os.Path.Combine(str(self.app_data), "geoip")
         geoip6 = Os.Path.Combine(str(self.app_data), "geoip6")
         tor_data = Os.Path.Combine(str(self.app_data), "tor_data")
-        torrc_content = f"""
-SocksPort {socks_port}
-CookieAuthentication 1
-GeoIPFile {geoip}
-GeoIPv6File {geoip6}
-DataDirectory {tor_data}
-"""
+        torrc_content = f""""""
+        torrc_content += f"SocksPort {socks_port}\n"
+        torrc_content += f"CookieAuthentication 1\n"
+        torrc_content += f"GeoIPFile {geoip}\n"
+        torrc_content += f"GeoIPv6File {geoip6}\n"
+        torrc_content += f"DataDirectory {tor_data}\n"
         if tor_service:
             torrc_content += f"HiddenServiceDir {tor_service}\n"
             torrc_content += f"HiddenServicePort {service_port} 127.0.0.1:{service_port}\n"
         
         if market_service:
             torrc_content += f"HiddenServiceDir {market_service}\n"
-            torrc_content += f"HiddenServicePort 80 127.0.0.1:{market_port}"
+            torrc_content += f"HiddenServicePort 80 127.0.0.1:{market_port}\n"
 
         torrc_path = Os.Path.Combine(str(self.app_data), "torrc")
         with open(torrc_path, "w") as f:

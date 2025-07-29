@@ -2,7 +2,7 @@
 from toga import (
     App, Window, Box, ImageView, Label
 )
-from .framework import CustomFont, ToolTip
+from .framework import CustomFont, ToolTip, Color
 from toga.colors import rgb, WHITE, YELLOW
 from toga.style.pack import Pack
 from toga.constants import RIGHT, COLUMN, ROW, LEFT
@@ -27,6 +27,7 @@ class BitcoinZGUI(Window):
         self.tooltip = ToolTip()
 
         self.title = self.tr.title("main_window")
+        self._impl.native.BackColor = Color.rgb(30,33,36)
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
 
