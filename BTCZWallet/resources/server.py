@@ -45,7 +45,9 @@ class MarketServerThread(Thread):
     def shutdown(self):
         if self.http_server:
             try:
+                self.event.clear()
                 self.http_server.shutdown()
+                self.http_server.server_close()
             except Exception as e:
                 print(f"Error while shutting down the server: {e}")
 
@@ -216,6 +218,13 @@ class MarketServer():
         
         item_id = get_params.get("id")
         contact_id = get_params.get("contact_id")
+        contacts_order = self.market_storage.get_orders_by_contact_id(contact_id)
+        for order in contacts_order:
+            order_item_id = order[1]
+            order_status = order[6]
+            if order_status == "pending" and order_item_id == item_id:
+                return jsonify({"failed": "Pending order with this item already exists."}), 400
+            
         total_price = get_params.get("total_price")
         quantity = get_params.get("quantity")
         comment = get_params.get("comment")
