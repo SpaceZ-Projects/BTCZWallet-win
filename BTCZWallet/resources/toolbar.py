@@ -1,7 +1,7 @@
 
 from toga import App, Box, Window
 from ..framework import (
-    Toolbar, Command, Color, Keys
+    Toolbar, Command, Color, Keys, Sys
 )
 from toga.style.pack import Pack
 from toga.constants import ROW, TOP
@@ -62,6 +62,14 @@ class AppToolBar(Box):
             font=self.font.get(9),
             rtl = self.rtl
         )
+        self.app_data_cmd = Command(
+            title="App data",
+            color=Color.WHITE,
+            background_color=Color.rgb(40,43,48),
+            action=self.open_app_data,
+            font=self.font.get(9),
+            rtl=self.rtl
+        )
         self.restart_cmd = Command(
             title="Restart",
             color=Color.YELLOW,
@@ -96,6 +104,7 @@ class AppToolBar(Box):
             title=self.tr.text("app_menu"),
             sub_commands=[
                 self.about_cmd,
+                self.app_data_cmd,
                 self.restart_cmd,
                 self.exit_cmd,
                 self.stop_exit_cmd
@@ -844,6 +853,14 @@ class AppToolBar(Box):
 
     def display_about_dialog(self):
         self.app.about()
+
+    def open_app_data(self):
+        app_data = str(self.app.paths.data)
+        psi = Sys.Diagnostics.ProcessStartInfo()
+        psi.FileName = "explorer.exe"
+        psi.Arguments = app_data
+        psi.UseShellExecute = True
+        Sys.Diagnostics.Process.Start(psi)
 
     def exit_app(self):
         def on_result(widget, result):
