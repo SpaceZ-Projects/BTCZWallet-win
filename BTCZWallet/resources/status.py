@@ -202,6 +202,7 @@ class AppStatusBar(Box):
 
                 info = json.loads(blockchaininfo)
                 blocks = info.get('blocks')
+                self.main.home_page.current_block = blocks
                 sync = info.get('verificationprogress')
                 sync_percentage = float(sync) * 100
                 sync_str = f"{sync_percentage:.2f}"
@@ -282,6 +283,7 @@ class AppStatusBar(Box):
                 info = json.loads(deprecationinfo)
             if info is not None:
                 deprecation = info.get('deprecationheight')
+                self.main.home_page.deprecation = deprecation
                 if self.rtl:
                     deprecation = self.units.arabic_digits(str(deprecation))
                 else:

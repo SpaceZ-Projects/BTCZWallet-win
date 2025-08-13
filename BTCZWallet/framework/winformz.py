@@ -15,6 +15,7 @@ import System.IO as Os
 import System.Drawing as Drawing
 import System.Windows.Forms as Forms
 import System.Threading.Tasks as Tasks
+import Microsoft.Win32 as Win32
 
 
 

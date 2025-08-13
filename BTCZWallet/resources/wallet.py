@@ -342,6 +342,11 @@ class ImportKey(Window):
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
 
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
+
         self.main_box = Box(
             style=Pack(
                 direction = COLUMN,
@@ -536,6 +541,11 @@ class ImportWallet(Window):
         self.title = self.tr.title("importwallet_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
 
         self.main_box = Box(
             style=Pack(

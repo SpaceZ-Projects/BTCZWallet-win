@@ -5,5 +5,5 @@ from .winformz import (
     AlignTable, BorderStyle, SelectMode, Keys, run_async,
     Drawing, StatusBar, StatusLabel, AlignContent, RichLabel,
     ScrollBars, RightToLeft, AlignRichLabel, Cursors, FormState,
-    FlatStyle, MenuStrip, Relation, TextBox, CustomFont
+    FlatStyle, MenuStrip, Relation, TextBox, CustomFont, Win32
 )

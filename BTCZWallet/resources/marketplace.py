@@ -55,6 +55,11 @@ class DisplayImage(Window):
         self.position = position_center
         self._impl.native.ControlBox = False
 
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
+
         self.main_box = Box(
             style=Pack(
                 direction = COLUMN,
@@ -127,6 +132,11 @@ class PlaceOrder(Window):
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
         self._impl.native.ControlBox = False
+
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
 
         self.item_id = item.get('id')
         self.item_title = item.get('title')
@@ -1186,6 +1196,11 @@ class MarketView(Window):
         self._impl.native.Resize += self._handle_on_resize
         self.on_close = self.close_market_window
 
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
+
         self.storage = StorageMessages(self.app)
         self.tooltip = ToolTip()
         self.market_status = None
@@ -1556,6 +1571,11 @@ class AddItem(Window):
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
         self._impl.native.ControlBox = False
+
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
 
         self.main_box = Box(
             style=Pack(
@@ -2022,6 +2042,11 @@ class AddQuantity(Window):
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
         self._impl.native.ControlBox = False
+
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
 
         self.item_id = item_id
 
@@ -2659,6 +2684,11 @@ class MarketPlace(Window):
         self.position = position_center
         self._impl.native.Resize += self._handle_on_resize
         self.on_close = self.close_market_window
+
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
 
         self.items_data = {}
         self.orders_data = {}

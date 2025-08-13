@@ -40,6 +40,11 @@ class AddNode(Window):
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
 
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
+
         self.main_box = Box(
             style=Pack(
                 direction = COLUMN,
@@ -258,6 +263,11 @@ class TorConfig(Window):
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
         self._impl.native.ControlBox = False
+
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
 
         self.main_box = Box(
             style=Pack(
@@ -730,6 +740,11 @@ class NodeInfo(Window):
         self.position = position_center
         self._impl.native.ControlBox = False
 
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
+
         self.address = self.node.get('addr')
         self.address_local = self.node.get('addrlocal')
         address = self.utils.shorten_address(self.address)
@@ -1098,9 +1113,15 @@ class Peer(Window):
         self.on_close = self.close_peers_window
         self._impl.native.Resize += self._handle_on_resize
 
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
+
         self.main_scroll = ScrollContainer(
             style=Pack(
-                background_color = rgb(30,33,36)
+                background_color = rgb(30,33,36),
+                flex = 1
             )
         )
 
@@ -1113,13 +1134,6 @@ class Peer(Window):
             )
         )
 
-        self.titles_box = Box(
-            style=Pack(
-                direction = ROW,
-                background_color = rgb(30,33,36),
-                height = 40
-            )
-        )
         self.address_title = Label(
             text=self.tr.text("address_title"),
             style=Pack(
@@ -1192,9 +1206,23 @@ class Peer(Window):
         )
         self.conntime_title._impl.native.Font = self.font.get(10, True)
 
-        self.content = self.main_scroll
+        self.titles_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(30,33,36),
+                height = 40
+            )
+        )
 
-        self.main_scroll.content = self.main_box
+        self.peers_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(30,33,36),
+                flex = 1
+            )
+        )
+
+        self.content = self.main_box
 
         self.main_box.add(
             self.titles_box
@@ -1207,11 +1235,32 @@ class Peer(Window):
             self.subversion_title,
             self.conntime_title
         )
+        self.main_scroll.content = self.peers_box
 
-        self.app.add_background_task(self.get_peers_info)
+        self.app.add_background_task(self.get_peers_list)
 
 
-    async def get_peers_info(self, widget):
+    async def get_peers_list(self, widget):
+        peerinfo, _ = await self.commands.getPeerinfo()
+        if peerinfo:
+            peerinfo = json.loads(peerinfo)
+            current_addresses = set()
+            node_by_address = {}
+
+            for node in peerinfo:
+                address = node.get('addr')
+                current_addresses.add(address)
+                node_by_address[address] = node
+
+                if address not in self.peers_list:
+                    self.peers_list.append(address)
+                    self.add_peer(node)
+        self.main_box.add(self.main_scroll)
+        self.show()
+        self.app.add_background_task(self.updating_peers_list)
+
+
+    async def updating_peers_list(self, widget):
         while True:
             if not self.main.peer_toggle:
                 return
@@ -1257,7 +1306,7 @@ class Peer(Window):
                 height = 2
             )
         )
-        self.main_box.add(node_box, box_divider)
+        self.peers_box.add(node_box, box_divider)
         self.node_map[node.get('addr')] = (node_box, box_divider)
 
     
@@ -1293,8 +1342,8 @@ class Peer(Window):
         widgets = self.node_map.get(address)
         if widgets:
             node_box, box_divider = widgets
-            self.main_box.remove(node_box)
-            self.main_box.remove(box_divider)
+            self.peers_box.remove(node_box)
+            self.peers_box.remove(box_divider)
             del self.node_map[address]
 
 

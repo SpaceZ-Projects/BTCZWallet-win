@@ -15,10 +15,11 @@ import aiohttp
 from aiohttp.client_exceptions import ClientConnectionError, ServerDisconnectedError
 from aiohttp_socks import ProxyConnector, ProxyConnectionError, ProxyError
 import ipaddress
+import ctypes
 
 from toga import App
 from ..framework import (
-    Os, Sys, ProgressStyle, Forms, run_async
+    Os, Sys, ProgressStyle, Forms, run_async, Win32
 )
 
 
@@ -251,6 +252,28 @@ class Utils():
         x = (screen_width - window_width) // 2
         y = (screen_height - window_height) // 2
         return (x, y)
+    
+
+    def get_app_theme(self):
+        key = Win32.Registry.CurrentUser.OpenSubKey(
+            r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+        )
+        value = key.GetValue("AppsUseLightTheme", 1)
+        return "light" if value == 1 else "dark"
+
+    
+    def apply_title_bar_mode(self, window, ui_mode:int):
+        try:
+            hwnd = window._impl.native.Handle.ToInt32()
+            value = ctypes.c_int(ui_mode)
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                ctypes.wintypes.HWND(hwnd),
+                ctypes.c_int(20),
+                ctypes.byref(value),
+                ctypes.sizeof(value)
+            )
+        except Exception as e:
+            print(f"Failed to apply title bar mode: {e}")
     
     def get_bitcoinz_size(self):
         bitcoinz_path = self.get_bitcoinz_path()

@@ -82,6 +82,11 @@ class Menu(Window):
         self._impl.native.Activated += self._handle_on_activated
         self._impl.native.Deactivate += self._handle_on_deactivated
 
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
+
         self.rtl = None
         lang = self.settings.language()
         if lang:
@@ -380,7 +385,6 @@ class Menu(Window):
             peer_window = Peer(
                 self, self.settings, self.utils, self.units, self.commands, self.tr, self.font
             )
-            peer_window.show()
             self.peer_window = peer_window
             self.peer_toggle = True
         else:
