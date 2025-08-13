@@ -29,3 +29,5 @@ test_requires = [
 [tool.briefcase.app.BTCZWallet.windows]
 requires = ["-r", "requirements.txt"]
 
+template = "./template"
+

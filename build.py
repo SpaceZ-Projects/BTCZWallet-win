@@ -8,16 +8,6 @@ import zipfile
 import shutil
 
 
-def check_git_installed():
-    """Check if Git is installed."""
-    try:
-        subprocess.check_call(["git", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print("[ERROR] Git is not installed.")
-        print("Please install Git from: https://git-scm.com/download/win")
-        sys.exit(1)
-
-
 def compare_versions(version1, version2):
     v1_parts = [int(x) for x in version1.split('.')]
     v2_parts = [int(x) for x in version2.split('.')]
@@ -115,7 +105,7 @@ def upgrade_pip(env_path):
 def install_briefcase(env_path):
     """Install Briefcase into the virtual environment."""
     print("[INFO] Installing Briefcase...")
-    subprocess.check_call([os.path.join(env_path, 'Scripts', 'pip'), "install", "briefcase"])
+    subprocess.check_call([os.path.join(env_path, 'Scripts', 'pip'), "install", "briefcase==0.3.24"])
 
 
 def ensure_briefcase_installed(env_path):
@@ -186,8 +176,7 @@ def build_portable(env_path):
 
 
 def main():
-    check_git_installed()
-
+    
     env_dir = "env"
     if not os.path.exists(env_dir):
         python_version = select_python_version()

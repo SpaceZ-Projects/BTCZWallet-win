@@ -34,12 +34,9 @@ By using this software, you support the decentralized mission of BitcoinZ and ta
 
 ## 🛠 Requirements to Build the App
 
-To build the BitcoinZ Wallet from source, you will need the following tools:
-
-- [Git](https://git-scm.com/downloads)
 - [Python 3.9 or higher](https://www.python.org/downloads/)
 
-Once the necessary tools are installed, run the `build.py` script.
+- run the `build.py` script.
 
 ---
 
