@@ -17,6 +17,7 @@ This application manages a locally installed BitcoinZ full node, meaning it down
 - **Encrypted Memos**: Communicate securely via BitcoinZ’s shielded memo feature for private messages attached to transactions.
 - **Built-in Mining**: Mine BTCZ directly from the wallet using your computer’s GPU, and view mining statistics in real-time.
 - **Live Market & Network Stats**: Connects to public APIs such as CoinGecko and pool operators to display live price, hash rate, and other metrics.
+- **Local Marketplace via Tor Service**: Create and host your own private market locally, accessible through a Tor hidden service. List items and services, and invite your contacts to visit your market securely. All data is stored and served locally, with no central server involved.
 
 ---
 
