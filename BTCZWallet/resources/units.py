@@ -97,6 +97,18 @@ class Units():
         return remaining_days
     
     
+    def remaining_blocks_until_deprecation(self, deprecation, current_block):
+        remaining_blocks = max(deprecation - current_block, 0)
+        return remaining_blocks
+    
+
+    def remaining_days_until_deprecation(self, deprecation, current_block, block_time_minutes=2.5):
+        remaining_blocks = max(deprecation - current_block, 0)
+        remaining_minutes = remaining_blocks * block_time_minutes
+        remaining_time = timedelta(minutes=remaining_minutes)
+        return remaining_time.days
+    
+    
     async def estimated_earn(self, period, hashrate):
         blockchaininfo, _ = await self.commands.getBlockchainInfo()
         if blockchaininfo is not None:

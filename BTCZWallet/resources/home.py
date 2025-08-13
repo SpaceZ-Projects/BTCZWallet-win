@@ -38,6 +38,11 @@ class Languages(Window):
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
 
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
+
         self.rtl = None
         lang = self.settings.language()
         if lang:
@@ -62,7 +67,8 @@ class Languages(Window):
             items=[
                 {"language": "English"},
                 {"language": "Français"},
-                {"language": "العربية"}
+                {"language": "العربية"},
+                {"language": "русский"}
             ],
             accessor="language"
         )
@@ -102,7 +108,8 @@ class Languages(Window):
         lang = self.settings.language()
         language_map = {
             "French": "Français",
-            "Arabic": "العربية"
+            "Arabic": "العربية",
+            "Russian": "русский"
         }
         language = language_map.get(lang, "English")
         self.languages_selection.value = self.languages_selection.items.find(language)
@@ -119,6 +126,8 @@ class Languages(Window):
             value = "French"
         elif value == "العربية":
             value = "Arabic"
+        elif value == "русский":
+            value = "Russian"
         self.settings.update_settings("lang", value)
         self.info_dialog(
             title=self.tr.title("language_dialog"),
@@ -157,6 +166,11 @@ class Currency(Window):
         self.title = self.tr.title("currency_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
 
         self.rtl = None
         lang = self.settings.language()
@@ -305,6 +319,8 @@ class Home(Box):
         self.circulating_toggle = None
         self.curve_image = None
         self.circulating = None
+        self.current_block = None
+        self.deprecation = None
 
         self.rtl = None
         lang = self.settings.language()
@@ -541,21 +557,32 @@ class Home(Box):
                 text_align = CENTER,
                 background_color = rgb(40,43,48),
                 color = WHITE,
-                padding_top = 10
+                flex = 1,
+                padding = (0,0,15,0)
             )
         )
         self.halving_label._impl.native.Font = self.font.get(self.tr.size("halving_label"), True)
 
-        self.remaining_label = Label(
+        self.deprecation_label = Label(
             text="",
             style=Pack(
                 text_align = CENTER,
                 background_color = rgb(40,43,48),
                 color = WHITE,
-                padding_bottom = 10
+                flex = 1,
+                padding_bottom = 15
             )
         )
-        self.remaining_label._impl.native.Font = self.font.get(self.tr.size("remaining_label"), True)
+        self.deprecation_label._impl.native.Font = self.font.get(self.tr.size("halving_label"), True)
+
+
+        self.info_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(40,43,48),
+                alignment = CENTER
+            )
+        )
 
 
     async def insert_widgets(self, widget):
@@ -564,8 +591,11 @@ class Home(Box):
                 self.coingecko_box, 
                 self.market_box,
                 self.bitcoinz_curve,
+                self.info_box
+            )
+            self.info_box.add(
                 self.halving_label,
-                self.remaining_label
+                self.deprecation_label
             )
             if self.rtl:
                 self.coingecko_box.add(
@@ -610,6 +640,7 @@ class Home(Box):
             self.app.add_background_task(self.update_marketchart)
             self.app.add_background_task(self.update_marketcap)
             self.app.add_background_task(self.update_circulating_supply)
+            self.app.add_background_task(self.update_remaining_deprecation)
 
 
     async def fetch_marketcap(self):
@@ -634,30 +665,36 @@ class Home(Box):
             return None
         except Exception as e:
             return None
+        
 
     async def update_circulating_supply(self, widget):
         while True:
-            if self.main.import_key_toggle:
-                await asyncio.sleep(1)
-                continue
-            current_block,_ = await self.commands.getBlockCount()
-            if current_block:
-                self.circulating = self.units.calculate_circulating(int(current_block))
-                remaining_blocks = self.units.remaining_blocks_until_halving(int(current_block))
-                remaining_days = self.units.remaining_days_until_halving(int(current_block))
-                circulating = int(self.circulating)
-                if self.rtl:
-                    circulating = self.units.arabic_digits(str(circulating))
-                    remaining_blocks = self.units.arabic_digits(str(remaining_blocks))
-                    remaining_days = self.units.arabic_digits(str(remaining_days))
-                if not self.circulating_toggle:
-                    self.circulating_value.text = circulating
-                halving_text = self.tr.text("halving_label")
-                remaining_text = self.tr.text("remaining_label")
-                blocks_text = self.tr.text("blocks_label")
-                days_text = self.tr.text("days_label")
-                self.halving_label.text = f"{halving_text} {remaining_blocks} {blocks_text}"
-                self.remaining_label.text = f"{remaining_text} {remaining_days} {days_text}"
+            self.circulating = self.units.calculate_circulating(int(self.current_block))
+            remaining_blocks = self.units.remaining_blocks_until_halving(int(self.current_block))
+            remaining_days = self.units.remaining_days_until_halving(int(self.current_block))
+            circulating = int(self.circulating)
+            if self.rtl:
+                circulating = self.units.arabic_digits(str(circulating))
+                remaining_blocks = self.units.arabic_digits(str(remaining_blocks))
+                remaining_days = self.units.arabic_digits(str(remaining_days))
+            if not self.circulating_toggle:
+                self.circulating_value.text = circulating
+            halving_text = self.tr.text("halving_label")
+            remaining_text = self.tr.text("remaining_label")
+            blocks_text = self.tr.text("blocks_label")
+            days_text = self.tr.text("days_label")
+            self.halving_label.text = f"{halving_text} {remaining_blocks} {blocks_text}\n{remaining_text} {remaining_days} {days_text}"
+            await asyncio.sleep(10)
+
+
+    async def update_remaining_deprecation(self, widget):
+        while True:
+            remaining_blocks = self.units.remaining_blocks_until_deprecation(int(self.deprecation), int(self.current_block))
+            remaining_days = self.units.remaining_days_until_deprecation(int(self.deprecation), int(self.current_block))
+            if self.rtl:
+                remaining_blocks = self.units.arabic_digits(str(remaining_blocks))
+                remaining_days = self.units.arabic_digits(str(remaining_days))
+            self.deprecation_label.text = f"Deprecation in {remaining_blocks} blocks\nRemaining {remaining_days} days"
             await asyncio.sleep(10)
 
 
