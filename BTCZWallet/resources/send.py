@@ -171,6 +171,7 @@ class Send(Box):
                 color = GRAY,
                 background_color = rgb(30,33,36)
             ),
+            value=True,
             on_change=self.single_option_on_change
         )
         self.single_option._impl.native.Font = self.font.get(self.tr.size("single_option"), True)
@@ -541,6 +542,7 @@ class Send(Box):
                 )
                 self.destination_box.add(
                     self.is_valid_box,
+                    self.destination_input_single,
                     self.destination_label
                 )
             else:
@@ -550,6 +552,7 @@ class Send(Box):
                 )
                 self.destination_box.add(
                     self.destination_label,
+                    self.destination_input_single,
                     self.is_valid_box
                 )
             self.is_valid_box.add(
@@ -823,13 +826,6 @@ class Send(Box):
 
 
     def set_destination_messages_address(self):
-        selected_address = self.address_selection.value.select_address
-        if selected_address == self.tr.text("main_account"):
-            self.main.error_dialog(
-                title="Error",
-                message="You can't send amount from Main Account to messages (z) address."
-            )
-            return
         address = self.storagemsgs.get_identity("address")
         if address:
             value = address[0]
@@ -840,68 +836,41 @@ class Send(Box):
 
     def set_25_amount(self):
         if self.address_selection.value.select_address:
-            selected_address = self.address_selection.value.select_address
             balance = self.format_balance
-            if selected_address == self.tr.text("main_account"):
-                if float(balance) > 0.0002:
-                    balance_after_fee = float(balance) - 0.0001
-                    amount = balance_after_fee * 0.25
-                    self.amount_input.value = f"{amount:.8f}"
-            else:
-                if float(balance) > 0:
-                    fee = self.fee_input.value
-                    balance_after_fee = float(balance) - float(fee)
-                    amount = balance_after_fee * 0.25
-                    self.amount_input.value = f"{amount:.8f}"
+            if float(balance) > 0:
+                fee = self.fee_input.value
+                balance_after_fee = float(balance) - float(fee)
+                amount = balance_after_fee * 0.25
+                self.amount_input.value = f"{amount:.8f}"
 
 
     def set_50_amount(self):
         if self.address_selection.value.select_address:
-            selected_address = self.address_selection.value.select_address
             balance = self.format_balance
-            if selected_address == self.tr.text("main_account"):
-                if float(balance) > 0.0002:
-                    balance_after_fee = float(balance) - 0.0001
-                    amount = balance_after_fee * 0.50
-                    self.amount_input.value = f"{amount:.8f}"
-            else:
-                if float(balance) > 0:
-                    fee = self.fee_input.value
-                    balance_after_fee = float(balance) - float(fee)
-                    amount = balance_after_fee * 0.50
-                    self.amount_input.value = f"{amount:.8f}"
+            if float(balance) > 0:
+                fee = self.fee_input.value
+                balance_after_fee = float(balance) - float(fee)
+                amount = balance_after_fee * 0.50
+                self.amount_input.value = f"{amount:.8f}"
 
 
     def set_75_amount(self):
         if self.address_selection.value.select_address:
-            selected_address = self.address_selection.value.select_address
             balance = self.format_balance
-            if selected_address == self.tr.text("main_account"):
-                if float(balance) > 0.0002:
-                    balance_after_fee = float(balance) - 0.0001
-                    amount = balance_after_fee * 0.75
-                    self.amount_input.value = f"{amount:.8f}"
-            else:
-                if float(balance) > 0:
-                    fee = self.fee_input.value
-                    balance_after_fee = float(balance) - float(fee)
-                    amount = balance_after_fee * 0.75
-                    self.amount_input.value = f"{amount:.8f}"
+            if float(balance) > 0:
+                fee = self.fee_input.value
+                balance_after_fee = float(balance) - float(fee)
+                amount = balance_after_fee * 0.75
+                self.amount_input.value = f"{amount:.8f}"
 
 
     def set_max_amount(self):
         if self.address_selection.value.select_address:
-            selected_address = self.address_selection.value.select_address
             balance = self.format_balance
-            if selected_address == self.tr.text("main_account"):
-                if float(balance) > 0.0002:
-                    amount = float(balance) - 0.0001
-                    self.amount_input.value = f"{amount:.8f}"
-            else:
-                if float(balance) > 0:
-                    fee = self.fee_input.value
-                    amount = float(balance) - float(fee)
-                    self.amount_input.value = f"{amount:.8f}"
+            if float(balance) > 0:
+                fee = self.fee_input.value
+                amount = float(balance) - float(fee)
+                self.amount_input.value = f"{amount:.8f}"
 
 
     def set_slow_fee(self):
@@ -922,15 +891,17 @@ class Send(Box):
             addresses_data = []
             
         if addresses_data is not None:
-            address_items = [("Main Account")] + [(address_info, address_info) for address_info in addresses_data]
+            address_items = [(address_info, address_info) for address_info in addresses_data]
         else:
-            address_items = [("Main Account")]
+            address_items = []
         return address_items
     
     
     async def get_private_addresses(self):
         addresses_data, _ = await self.commands.z_listAddresses()
-        addresses_data = json.loads(addresses_data)
+        if addresses_data:
+            addresses_data = json.loads(addresses_data)
+            
         if addresses_data is not None:
             address_items = [(address, address) for address in addresses_data]
         else:
@@ -946,7 +917,7 @@ class Send(Box):
         self.amount_input.value = ""
         selected_address = selection.value.select_address
         self.tooltip.insert(self.address_selection._impl.native, selected_address)
-        if selected_address != self.tr.text("main_account"):
+        if selected_address:
             self.single_option.enabled = True
             self.many_option.enabled =True
             if self.many_option.value is False:
@@ -963,25 +934,6 @@ class Send(Box):
                 else:
                     format_balance = self.format_balance
                 self.address_balance.text = format_balance
-        elif selected_address == self.tr.text("main_account"):
-            self.single_option.value = True
-            self.single_option.enabled = False
-            self.many_option.enabled =False
-            self.update_fees_option(False)
-            total_balances, _ = await self.commands.z_getTotalBalance()
-            if total_balances:
-                balances = json.loads(total_balances)
-                transparent = balances.get('transparent')
-                if float(transparent) <= 0:
-                    self.address_balance.style.color = GRAY
-                else:
-                    self.address_balance.style.color = WHITE
-                self.format_balance = self.units.format_balance(float(transparent))
-                if self.rtl:
-                    format_balance = self.units.arabic_digits(str(self.format_balance))
-                else:
-                    format_balance = self.format_balance
-                self.address_balance.text = format_balance
         else:
             self.format_balance = 0
             self.address_balance.text = self.tr.text("address_balance_value")
@@ -992,7 +944,7 @@ class Send(Box):
             self.many_option.value = False
             self.single_option.style.color = YELLOW
             selected_address = self.address_selection.value.select_address
-            if selected_address != self.tr.text("main_account"):
+            if selected_address:
                 self.update_fees_option(True)
             self.destination_box.insert(1, self.destination_input_single)
             self.destination_input_single.readonly = False
@@ -1213,88 +1165,68 @@ class Send(Box):
 
     async def send_single(self, selected_address, destination_address, amount, txfee, balance):
         try:
-            if selected_address == self.tr.text("main_account") and destination_address.startswith("t"):
-                operation, _= await self.commands.sendToAddress(destination_address, amount)
-                if operation is not None:
-                    self.main.info_dialog(
-                        title=self.tr.title("sendsuccess_dialog"),
-                        message=self.tr.message("sendsuccess_dialog")
-                    )
-                    await self.clear_inputs()
-                else:
-                    self.main.error_dialog(
-                        title=self.tr.title("sendfailed_dialog"),
-                        message=self.tr.message("sendfailed_dialog")
-                    )
-                self.enable_send()
-
-            elif selected_address == self.tr.text("main_account") and destination_address.startswith("z"):
+            if (float(amount)+float(txfee)) > float(balance):
+                self.main.error_dialog(
+                    title=self.tr.title("insufficientbalance_dialog"),
+                    message=self.tr.message("insufficientbalance_dialog")
+                )
                 self.enable_send()
                 return
-
-            elif selected_address != self.tr.text("main_account"):
-                if (float(amount)+float(txfee)) > float(balance):
-                    self.main.error_dialog(
-                        title=self.tr.title("insufficientbalance_dialog"),
-                        message=self.tr.message("insufficientbalance_dialog")
-                    )
-                    self.enable_send()
-                    return
-                operation, _= await self.commands.z_sendMany(selected_address, destination_address, amount, txfee)
-                if operation:
-                    transaction_status, _= await self.commands.z_getOperationStatus(operation)
-                    transaction_status = json.loads(transaction_status)
-                    if isinstance(transaction_status, list) and transaction_status:
-                        status = transaction_status[0].get('status')
-                        if status == "failed":
-                            self.operation_status.text = self.tr.text("send_failed")
-                        elif status == "executing":
-                            self.operation_status.text = self.tr.text("send_executing")
-                        elif status == "success":
-                            self.operation_status.text = self.tr.text("send_success")
-                        if status == "executing" or status =="success":
-                            await asyncio.sleep(1)
-                            while True:
-                                transaction_result, _= await self.commands.z_getOperationResult(operation)
-                                transaction_result = json.loads(transaction_result)
-                                if isinstance(transaction_result, list) and transaction_result:
-                                    status = transaction_result[0].get('status')
-                                    result = transaction_result[0].get('result', {})
-                                    txid = result.get('txid')
-                                    if status == "failed":
-                                        self.operation_status.text = self.tr.text("send_failed")
-                                        self.enable_send()
-                                        self.main.error_dialog(
-                                            title=self.tr.title("sendfailed_dialog"),
-                                            message=self.tr.message("sendfailed_dialog")
-                                        )
-                                        return
-                                    elif status == "executing":
-                                        self.operation_status.text = self.tr.text("send_executing")
-                                    elif status == "success":
-                                        self.operation_status.text = self.tr.text("send_success")
-                                    if selected_address.startswith('z'):
-                                        self.store_private_transaction(destination_address, txid, amount)
+            operation, _= await self.commands.z_sendMany(selected_address, destination_address, amount, txfee)
+            if operation:
+                transaction_status, _= await self.commands.z_getOperationStatus(operation)
+                transaction_status = json.loads(transaction_status)
+                if isinstance(transaction_status, list) and transaction_status:
+                    status = transaction_status[0].get('status')
+                    if status == "failed":
+                        self.operation_status.text = self.tr.text("send_failed")
+                    elif status == "executing":
+                        self.operation_status.text = self.tr.text("send_executing")
+                    elif status == "success":
+                        self.operation_status.text = self.tr.text("send_success")
+                    if status == "executing" or status =="success":
+                        await asyncio.sleep(1)
+                        while True:
+                            transaction_result, _= await self.commands.z_getOperationResult(operation)
+                            transaction_result = json.loads(transaction_result)
+                            if isinstance(transaction_result, list) and transaction_result:
+                                status = transaction_result[0].get('status')
+                                result = transaction_result[0].get('result', {})
+                                txid = result.get('txid')
+                                if status == "failed":
+                                    self.operation_status.text = self.tr.text("send_failed")
                                     self.enable_send()
-                                    self.main.info_dialog(
-                                        title=self.tr.title("sendsuccess_dialog"),
-                                        message=self.tr.message("sendsuccess_dialog")
+                                    self.main.error_dialog(
+                                        title=self.tr.title("sendfailed_dialog"),
+                                        message=self.tr.message("sendfailed_dialog")
                                     )
-                                    await self.clear_inputs()
                                     return
-                                await asyncio.sleep(3)
-                        else:
-                            self.enable_send()
-                            self.main.error_dialog(
-                                title=self.tr.title("sendfailed_dialog"),
-                                message=self.tr.message("sendfailed_dialog")
-                            )
-                else:
-                    self.enable_send()
-                    self.main.error_dialog(
-                        title=self.tr.title("sendfailed_dialog"),
-                        message=self.tr.message("sendfailed_dialog")
-                    )
+                                elif status == "executing":
+                                    self.operation_status.text = self.tr.text("send_executing")
+                                elif status == "success":
+                                    self.operation_status.text = self.tr.text("send_success")
+                                if selected_address.startswith('z'):
+                                    self.store_private_transaction(destination_address, txid, amount)
+                                self.enable_send()
+                                self.main.info_dialog(
+                                    title=self.tr.title("sendsuccess_dialog"),
+                                    message=self.tr.message("sendsuccess_dialog")
+                                )
+                                await self.clear_inputs()
+                                return
+                            await asyncio.sleep(3)
+                    else:
+                        self.enable_send()
+                        self.main.error_dialog(
+                            title=self.tr.title("sendfailed_dialog"),
+                            message=self.tr.message("sendfailed_dialog")
+                        )
+            else:
+                self.enable_send()
+                self.main.error_dialog(
+                    title=self.tr.title("sendfailed_dialog"),
+                    message=self.tr.message("sendfailed_dialog")
+                )
         except Exception as e:
             self.enable_send()
             print(f"An error occurred: {e}")
