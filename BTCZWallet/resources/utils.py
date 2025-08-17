@@ -360,8 +360,8 @@ class Utils():
     
 
     async def fetch_tor_files(self, label, progress_bar):
-        file_name = "tor-expert-bundle-windows-x86_64-14.5.2.tar.gz"
-        url = "https://archive.torproject.org/tor-package-archive/torbrowser/14.5.2/"
+        file_name = "tor-expert-bundle-windows-x86_64-14.5.5.tar.gz"
+        url = "https://archive.torproject.org/tor-package-archive/torbrowser/14.5.5/"
         destination = Os.Path.Combine(str(self.app_data), file_name)
         text = self.tr.text("download_tor")
         try:
