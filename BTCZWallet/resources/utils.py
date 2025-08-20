@@ -12,7 +12,7 @@ import py7zr
 import qrcode
 import winreg as reg
 import aiohttp
-from aiohttp.client_exceptions import ClientConnectionError, ServerDisconnectedError
+from aiohttp.client_exceptions import ClientConnectionError, ServerDisconnectedError, ClientError
 from aiohttp_socks import ProxyConnector, ProxyConnectionError, ProxyError
 import ipaddress
 import ctypes
@@ -89,9 +89,7 @@ class Utils():
                 async with session.get('http://check.torproject.org', timeout=10) as response:
                     await response.text()
                     return True
-        except (ProxyConnectionError, ClientConnectionError, ServerDisconnectedError) as e:
-            return None
-        except Exception as e:
+        except (ProxyConnectionError, ClientConnectionError, ServerDisconnectedError):
             return None
         
 
@@ -104,7 +102,7 @@ class Utils():
             pass
         
 
-    async def make_request(self, key, url, params = None, return_bytes = None):
+    async def make_request(self, key, secret, url, params = None, return_bytes = None):
         if params is None:
             params = {}
         torrc = self.read_torrc()
@@ -113,7 +111,7 @@ class Utils():
         timestamp = datetime.now(timezone.utc).isoformat()
         message = f"{timestamp}.{json.dumps(params, separators=(',', ':'), sort_keys=True)}"
         signature = hmac.new(
-            key.encode(),
+            secret.encode(),
             message.encode(),
             hashlib.sha512
         ).hexdigest()
@@ -131,7 +129,7 @@ class Utils():
                         data = await response.json()
                     await session.close()
                     return data
-        except (ProxyConnectionError, ProxyError, aiohttp.ClientError, aiohttp.ClientConnectionError):
+        except (ProxyConnectionError, ProxyError, ClientError, ClientConnectionError):
             return None
         
 

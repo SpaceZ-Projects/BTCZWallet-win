@@ -288,8 +288,7 @@ class PlaceOrder(Window):
             "quantity": str(self.order_quantity),
             "comment": str(self.comment_input.value.strip())
         }
-        result = await self.utils.make_request(self.contact_id, url, params)
-        print(result)
+        result = await self.utils.make_request(self.contact_id, self.market[1], url, params)
         if not result or "error" in result:
             self.cancel_button.enabled = True
             self.place_order_button.enabled = True
@@ -628,7 +627,7 @@ class ItemView(Box):
         self.view_button.enabled = False
         params = {"get": "quantity"}
         url = f"http://{self.market[0]}/item/{self.item_id}"
-        result = await self.utils.make_request(self.contact_id, url, params)
+        result = await self.utils.make_request(self.contact_id, self.market[1], url, params)
         if "error" in result:
             self.view_button.enabled = True
             return
@@ -649,7 +648,7 @@ class ItemView(Box):
             self.calculated_price = self.item_price
         else:
             url = f"http://{self.market[0]}/price"
-            result = await self.utils.make_request(self.contact_id, url)
+            result = await self.utils.make_request(self.contact_id, self.market[1], url)
             btcz_price = result.get('price')
             item_price = self.item_price / float(btcz_price)
             self.total_value.text =  self.units.format_balance(item_price)
@@ -1093,10 +1092,10 @@ class OrderView(Box):
                 self.main.operation_toggle = True
                 self.cancel_button.enabled = False
                 self.pay_button.enabled = False
-                market = self.storage.get_hostname(self.contact_id)
+                market, secret = self.storage.get_hostname(self.contact_id)
                 params = {"order_id": self.order_id}
-                url = f'http://{market[0]}/cancel_order'
-                response = await self.utils.make_request(self.contact_id, url, params)
+                url = f'http://{market}/cancel_order'
+                response = await self.utils.make_request(self.contact_id, secret, url, params)
                 self.main.operation_toggle = None
                 if not response or "error" in response:
                     self.cancel_button.enabled = True
@@ -1326,9 +1325,9 @@ class MarketView(Window):
 
 
     async def get_status(self, widget):
-        market = self.storage.get_hostname(self.contact_id)
-        url = f'http://{market[0]}/status'
-        result = await self.utils.make_request(self.contact_id, url)
+        market, secret = self.storage.get_hostname(self.contact_id)
+        url = f'http://{market}/status'
+        result = await self.utils.make_request(self.contact_id, secret, url)
         if not result or "error" in result:
             self.menu_box.insert(0, self.refresh_button)
             self.status_label.text = "Status : Offline"
@@ -1344,12 +1343,12 @@ class MarketView(Window):
 
 
     async def update_status(self, widget):
-        market = self.storage.get_hostname(self.contact_id)
-        url = f'http://{market[0]}/status'
+        market, secret = self.storage.get_hostname(self.contact_id)
+        url = f'http://{market}/status'
         while True:
             if not self.marketplace_toggle:
                 return
-            result = await self.utils.make_request(self.contact_id, url)
+            result = await self.utils.make_request(self.contact_id, secret, url)
             if not result or "error" in result:
                 self.market_status = None
                 self.status_label.text = "Status : Offline"
@@ -1372,7 +1371,7 @@ class MarketView(Window):
     async def get_market_items(self, widget):
         market = self.storage.get_hostname(self.contact_id)
         url = f'http://{market[0]}/items'
-        result = await self.utils.make_request(self.contact_id, url)
+        result = await self.utils.make_request(self.contact_id, market[1], url)
         if not result:
             self.items_toggle = True
             self.orders_button.enabled = True
@@ -1390,15 +1389,15 @@ class MarketView(Window):
 
 
     async def update_items_list(self, widget):
-        market = self.storage.get_hostname(self.contact_id)
-        url = f'http://{market[0]}/items'
+        market, secret = self.storage.get_hostname(self.contact_id)
+        url = f'http://{market}/items'
         while True:
             if not self.marketplace_toggle:
                 return
             if not self.items_toggle:
                 await asyncio.sleep(1)
                 continue
-            result = await self.utils.make_request(self.contact_id, url)
+            result = await self.utils.make_request(self.contact_id, secret, url)
             if not result:
                 pass
             else:
@@ -1422,10 +1421,10 @@ class MarketView(Window):
 
 
     async def get_market_orders(self, widget):
-        market = self.storage.get_hostname(self.contact_id)
-        url = f'http://{market[0]}/orders'
+        market, secret = self.storage.get_hostname(self.contact_id)
+        url = f'http://{market}/orders'
         param = {"contact_id": self.contact_id}
-        result = await self.utils.make_request(self.contact_id, url, param)
+        result = await self.utils.make_request(self.contact_id, secret, url, param)
         if not result or "error" in result:
             self.orders_toggle = True
             self.orders_button.enabled = True
@@ -1444,8 +1443,8 @@ class MarketView(Window):
 
 
     async def update_orders_list(self, widget):
-        market = self.storage.get_hostname(self.contact_id)
-        url = f'http://{market[0]}/orders'
+        market, secret = self.storage.get_hostname(self.contact_id)
+        url = f'http://{market}/orders'
         param = {"contact_id": self.contact_id}
         while True:
             if not self.marketplace_toggle:
@@ -1453,7 +1452,7 @@ class MarketView(Window):
             if not self.orders_toggle:
                 await asyncio.sleep(1)
                 continue
-            result = await self.utils.make_request(self.contact_id, url, param)
+            result = await self.utils.make_request(self.contact_id, secret, url, param)
             if "error" in result:
                 pass
             else:
@@ -1556,7 +1555,9 @@ class MarketView(Window):
 
 class AddItem(Window):
     def __init__(self, main:Window, settings, utils, tr, font):
-        super().__init__()
+        super().__init__(
+            resizable=False
+        )
 
         self.main = main
         self.settings = settings

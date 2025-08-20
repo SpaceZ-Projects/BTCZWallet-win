@@ -5,7 +5,6 @@ from toga import App
 from ..framework import Os
 
 
-
 class StorageMarket:
     def __init__(self, app:App):
         super().__init__()
@@ -64,6 +63,21 @@ class StorageMarket:
         conn.close()
 
 
+    def create_secret_keys_table(self):
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS secret_keys (
+                contact_id TEXT,
+                secret_key TEXT
+            )
+            '''
+        )
+        conn.commit()
+        conn.close()
+
+
     def insert_item(self, id, title, image, description, price, currency, quantity, timestamp):
         self.create_items_table()
         conn = sqlite3.connect(self.data)
@@ -92,6 +106,36 @@ class StorageMarket:
         )
         conn.commit()
         conn.close()
+
+
+    def insert_secret(self, contact_id, secret):
+        self.create_secret_keys_table()
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            INSERT INTO secret_keys (contact_id, secret_key)
+            VALUES (?, ?)
+            ''', 
+            (contact_id, secret)
+        )
+        conn.commit()
+        conn.close()
+
+
+    def get_secret(self, contact_id):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT secret_key FROM secret_keys WHERE contact_id = ?',
+                (contact_id,)
+            )
+            data = cursor.fetchone()
+            conn.close()
+            return data
+        except sqlite3.OperationalError:
+            return None
 
 
     def delete_item(self, item_id):
@@ -572,16 +616,17 @@ class StorageMessages:
         conn.close()
 
 
-    def insert_market(self, contact_id, hostname):
-        self.create_market_tabel()
+    def insert_market(self, contact_id, hostname, secret):
+        self.create_market_table()
+        self.add_column('market', 'secret_key', 'TEXT')
         conn = sqlite3.connect(self.data)
         cursor = conn.cursor()
         cursor.execute(
             '''
-            INSERT INTO market (contact_id, hostname)
-            VALUES (?, ?)
+            INSERT INTO market (contact_id, hostname, secret_key)
+            VALUES (?, ?, ?)
             ''', 
-            (contact_id, hostname)
+            (contact_id, hostname, secret)
         )
         conn.commit()
         conn.close()
@@ -589,10 +634,11 @@ class StorageMessages:
 
     def get_hostname(self, contact_id):
         try:
+            self.add_column('market', 'secret_key', 'TEXT')
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
             cursor.execute(
-                'SELECT hostname FROM market WHERE contact_id = ?',
+                'SELECT hostname, secret_key FROM market WHERE contact_id = ?',
                 (contact_id,)
             )
             data = cursor.fetchone()
@@ -899,15 +945,15 @@ class StorageMessages:
         conn.commit()
         conn.close()
 
-    def update_market(self, contact_id, hostname):
+    def update_market(self, contact_id, hostname, secret):
         conn = sqlite3.connect(self.data)
         cursor = conn.cursor()
         cursor.execute(
             '''
             UPDATE market
-            SET hostname = ?
+            SET hostname = ?, secret_key = ?
             WHERE contact_id = ?
-            ''', (hostname, contact_id)
+            ''', (hostname, secret, contact_id)
         )
         conn.commit()
         conn.close()
@@ -1016,16 +1062,31 @@ class StorageMessages:
         conn.close()
 
 
-    def create_market_tabel(self):
+    def create_market_table(self):
         conn = sqlite3.connect(self.data)
         cursor = conn.cursor()
         cursor.execute(
             '''
             CREATE TABLE IF NOT EXISTS market (
                 contact_id TEXT,
-                hostname TEXT
+                hostname TEXT,
+                secret_key TEXT
             )
             '''
         )
         conn.commit()
+        conn.close()
+
+
+    def add_column(self, table_name, column_name, column_type):
+
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(f"PRAGMA table_info({table_name})")
+        columns = [row[1] for row in cursor.fetchall()]
+
+        if column_name not in columns:
+            cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
+            conn.commit()
+
         conn.close()

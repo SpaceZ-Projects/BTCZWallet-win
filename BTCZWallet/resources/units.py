@@ -4,6 +4,7 @@ import secrets
 from decimal import Decimal
 from datetime import datetime, timedelta, timezone
 import json
+import base64
 
 from toga import App
 
@@ -23,6 +24,12 @@ class Units():
         random_bytes = secrets.token_bytes(length)
         address_id = ''.join(alphabet[b % 62] for b in random_bytes)
         return address_id
+    
+
+    def generate_secret_key(self):
+        key_bytes = secrets.token_bytes(32)
+        secret_key = base64.urlsafe_b64encode(key_bytes).decode('utf-8')
+        return secret_key
     
 
     def generate_random_string(self, length=16):

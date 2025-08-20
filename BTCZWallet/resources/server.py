@@ -12,11 +12,61 @@ import socket
 from toga import App
 from ..framework import Sys, Os
 
-from .client import Client
+
+
+def get_secret(id, storage):
+    secret = storage.get_secret(id)
+    if secret:
+        return secret[0]
+    return None
+
+
+def verify_signature(list_ids, storage):
+    id = request.headers.get('Authorization')
+    timestamp = request.headers.get('X-Timestamp')
+    signature = request.headers.get('X-Signature')
+
+    if not id or not timestamp or not signature:
+        return False, (jsonify({'error': 'Missing headers'}), 400)
+
+    if id not in list_ids:
+        return False, (jsonify({'error': 'Unauthorized'}), 401)
+
+    try:
+        request_time = datetime.fromisoformat(timestamp)
+        if request_time.tzinfo is None:
+            request_time = request_time.replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        if abs(now - request_time) > timedelta(seconds=60):
+            return False, (jsonify({'error': 'Request expired'}), 403)
+    except ValueError:
+        return False, (jsonify({'error': 'Invalid timestamp'}), 400)
+
+    try:
+        if request.method == 'GET':
+            body = request.args.to_dict(flat=True)
+        else:
+            body = {}
+        secret = get_secret(id, storage)
+        message = f"{timestamp}.{json.dumps(body, separators=(',', ':'), sort_keys=True)}"
+        expected_signature = hmac.new(
+            secret.encode(),
+            message.encode(),
+            hashlib.sha512
+        ).hexdigest()
+
+        if not hmac.compare_digest(expected_signature, signature):
+            return False, (jsonify({'error': 'Invalid signature'}), 403)
+
+    except Exception as e:
+        print(f"Signature verification error: {e}")
+        return False, (jsonify({'error': 'Signature verification failed'}), 500)
+
+    return True, None
 
 
 
-class MarketServerThread(Thread):
+class ServerThread(Thread):
     def __init__(self, flask, host, port, event):
         Thread.__init__(self, daemon=True)
         self.flask = flask
@@ -71,7 +121,6 @@ class MarketServer():
         self.notify = notify
 
         self.app = app
-        self.commands = Client(self.app)
         self.server_status = None
         
         self.flask = Flask(
@@ -97,66 +146,22 @@ class MarketServer():
 
 
     def log_request(self):
-        print(f"Request Path: {request.path}")
         if request.method == 'GET':
             if request.form:
                 print(f"Request Form Data: {dict(request.form)}")
 
 
-    def verify_signature(self):
-        contact_id = request.headers.get('Authorization')
-        timestamp = request.headers.get('X-Timestamp')
-        signature = request.headers.get('X-Signature')
-
-        if not contact_id or not timestamp or not signature:
-            return False, (jsonify({'error': 'Missing headers'}), 400)
-
-        contacts_ids = self.messages_storage.get_ids_contacts()
-        if contact_id not in contacts_ids:
-            return False, (jsonify({'error': 'Unauthorized'}), 401)
-
-        try:
-            request_time = datetime.fromisoformat(timestamp)
-            if request_time.tzinfo is None:
-                request_time = request_time.replace(tzinfo=timezone.utc)
-            now = datetime.now(timezone.utc)
-            if abs(now - request_time) > timedelta(seconds=60):
-                return False, (jsonify({'error': 'Request expired'}), 403)
-        except ValueError:
-            return False, (jsonify({'error': 'Invalid timestamp'}), 400)
-
-        try:
-            if request.method == 'GET':
-                body = request.args.to_dict(flat=True)
-            else:
-                body = {}
-
-            message = f"{timestamp}.{json.dumps(body, separators=(',', ':'), sort_keys=True)}"
-            expected_signature = hmac.new(
-                contact_id.encode(),
-                message.encode(),
-                hashlib.sha512
-            ).hexdigest()
-
-            if not hmac.compare_digest(expected_signature, signature):
-                return False, (jsonify({'error': 'Invalid signature'}), 403)
-
-        except Exception as e:
-            print(f"Signature verification error: {e}")
-            return False, (jsonify({'error': 'Signature verification failed'}), 500)
-
-        return True, None
-
-
     def handle_status(self):
-        valid, response = self.verify_signature()
+        contacts_ids = self.messages_storage.get_ids_contacts()
+        valid, response = verify_signature(contacts_ids, self.market_storage)
         if not valid:
             return response
         return jsonify({'status': 'online'}), 200
     
 
     def handle_items_list(self):
-        valid, response = self.verify_signature()
+        contacts_ids = self.messages_storage.get_ids_contacts()
+        valid, response = verify_signature(contacts_ids, self.market_storage)
         if not valid:
             return response
         market_items = self.market_storage.get_market_items()
@@ -185,7 +190,8 @@ class MarketServer():
     
 
     def handle_item_id(self, item_id):
-        valid, response = self.verify_signature()
+        contacts_ids = self.messages_storage.get_ids_contacts()
+        valid, response = verify_signature(contacts_ids, self.market_storage)
         if not valid:
             return response
         item = self.market_storage.get_item(item_id)
@@ -198,7 +204,8 @@ class MarketServer():
         
 
     def handle_price(self):
-        valid, response = self.verify_signature()
+        contacts_ids = self.messages_storage.get_ids_contacts()
+        valid, response = verify_signature(contacts_ids, self.market_storage)
         if not valid:
             return response
         btcz_price = self.settings.price()
@@ -206,7 +213,8 @@ class MarketServer():
     
 
     def handle_place_order(self):
-        valid, response = self.verify_signature()
+        contacts_ids = self.messages_storage.get_ids_contacts()
+        valid, response = verify_signature(contacts_ids, self.market_storage)
         if not valid:
             return response
         
@@ -250,7 +258,8 @@ class MarketServer():
     
 
     def handle_orders_list(self):
-        valid, response = self.verify_signature()
+        contacts_ids = self.messages_storage.get_ids_contacts()
+        valid, response = verify_signature(contacts_ids, self.market_storage)
         if not valid:
             return response
         contact_id = request.args.get("contact_id")
@@ -288,7 +297,8 @@ class MarketServer():
     
 
     def handle_cancel_order(self):
-        valid, response = self.verify_signature()
+        contacts_ids = self.messages_storage.get_ids_contacts()
+        valid, response = verify_signature(contacts_ids, self.market_storage)
         if not valid:
             return response
         
@@ -322,7 +332,7 @@ class MarketServer():
     
     def start(self):
         event = Event()
-        self.server_thread = MarketServerThread(self.flask, self.host, self.port, event)
+        self.server_thread = ServerThread(self.flask, self.host, self.port, event)
         self.server_thread.start()
         if event.wait(timeout=5):
             self.server_status = True

@@ -123,8 +123,6 @@ class EditUser(Window):
             text=self.tr.text("confirm_button"),
             style=Pack(
                 color = GRAY,
-                font_size=10,
-                font_weight = BOLD,
                 background_color = rgb(30,33,36),
                 alignment = CENTER,
                 padding = (0,0,10,20),
@@ -2111,13 +2109,14 @@ class Chat(Box):
     async def get_marketplace(self, form):
         contact_id = form.get('id')
         hostname = form.get('hostname')
+        secret = form.get('key')
         contact_username = self.storage.get_contact_username(contact_id)
         if not contact_username:
             return
         if not self.storage.get_hostname(contact_id):
-            self.storage.insert_market(contact_id, hostname)
+            self.storage.insert_market(contact_id, hostname, secret)
             return
-        self.storage.update_market(contact_id, hostname)
+        self.storage.update_market(contact_id, hostname, secret)
 
 
     
@@ -2532,10 +2531,16 @@ class Chat(Box):
         hostname = self.utils.get_onion_hostname("market")
         _, _, address = self.storage.get_identity()
         id = self.storage.get_id_contact(self.contact_id)
+        secret = self.market_storage.get_secret(self.contact_id)
+        if not secret:
+            key = self.units.generate_secret_key()
+            self.market_storage.insert_secret(id[0], key)
+        else:
+            key = secret[0]
         fee = self.fee_input.value
         amount = float(fee) - 0.0001
         txfee = 0.0001
-        memo = {"type":"market","id":id[0],"hostname":hostname}
+        memo = {"type":"market","id":id[0],"hostname":hostname,"key":key}
         memo_str = json.dumps(memo)
         self.disable_send_button()
         await self.send_command(address, amount, txfee, memo_str)
