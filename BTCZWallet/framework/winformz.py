@@ -158,6 +158,7 @@ class Keys:
     Q = Forms.Keys.Q
     N = Forms.Keys.N
     L = Forms.Keys.L
+    R = Forms.Keys.R
 
 
 

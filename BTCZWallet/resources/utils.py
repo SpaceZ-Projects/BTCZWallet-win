@@ -89,7 +89,9 @@ class Utils():
                 async with session.get('http://check.torproject.org', timeout=10) as response:
                     await response.text()
                     return True
-        except (ProxyConnectionError, ClientConnectionError, ServerDisconnectedError):
+        except (ProxyConnectionError, ProxyError, ClientConnectionError, ServerDisconnectedError):
+            return None
+        except Exception:
             return None
         
 
@@ -130,6 +132,8 @@ class Utils():
                     await session.close()
                     return data
         except (ProxyConnectionError, ProxyError, ClientError, ClientConnectionError):
+            return None
+        except Exception:
             return None
         
 

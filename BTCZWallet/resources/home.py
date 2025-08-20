@@ -108,8 +108,7 @@ class Languages(Window):
         lang = self.settings.language()
         language_map = {
             "French": "Français",
-            "Arabic": "العربية",
-            "Russian": "русский"
+            "Arabic": "العربية"
         }
         language = language_map.get(lang, "English")
         self.languages_selection.value = self.languages_selection.items.find(language)

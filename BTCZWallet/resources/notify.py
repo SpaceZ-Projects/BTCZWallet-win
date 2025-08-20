@@ -4,11 +4,10 @@ from ..framework import NotifyIcon, Command, FormState, TextBox
 
 
 class Notify(NotifyIcon):
-    def __init__(self, app:App, main:Window, notifymarket, home_page, mining_page, settings, utils, commands, tr, font):
+    def __init__(self, app:App, main:Window, home_page, mining_page, settings, utils, commands, tr, font):
 
         self.app = app
         self.main = main
-        self.notifymarket = notifymarket
         self.home_page = home_page
         self.mining_page = mining_page
         
@@ -26,6 +25,7 @@ class Notify(NotifyIcon):
         self.restart_cmd = Command(
             title="Restart",
             action=self.restart_app,
+            icon="images/restart_a.ico",
             font=font.get(9),
             rtl = self.rtl
         )
@@ -74,9 +74,9 @@ class Notify(NotifyIcon):
                 self.home_page.clear_cache()
                 self.hide()
                 self.dispose()
-                if self.main.server.server_status:
-                    self.notifymarket.hide()
-                    self.notifymarket.dispose()
+                if self.main.market_server.server_status:
+                    self.main.notifymarket.hide()
+                    self.main.notifymarket.dispose()
                 self.app.exit()
         if self.mining_page.mining_status:
             return
@@ -118,9 +118,9 @@ class Notify(NotifyIcon):
                     self.home_page.clear_cache()
                     self.hide()
                     self.dispose()
-                    if self.main.server.server_status:
-                        self.notifymarket.hide()
-                        self.notifymarket.dispose()
+                    if self.main.market_server.server_status:
+                        self.main.notifymarket.hide()
+                        self.main.notifymarket.dispose()
                     self.app.exit()
         if self.mining_page.mining_status:
             return

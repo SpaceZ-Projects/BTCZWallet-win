@@ -68,9 +68,9 @@ class Menu(Window):
         self.mining_page = Mining(self.app, self, settings, utils, units, commands, tr, font)
         self.notifymining = NotifyMining(font)
         self.notifymarket = NotifyMarket()
-        self.notify = Notify(self.app, self, self.notifymarket, self.home_page, self.mining_page, settings, utils, commands, tr, font)
-        self.toolbar = AppToolBar(self.app, self, self.notify, self.notifymarket, self.home_page, self.mining_page, settings, utils, commands, tr, font)
-        self.server = MarketServer(self.app, settings=self.settings, notify=self.notifymarket)
+        self.notify = Notify(self.app, self, self.home_page, self.mining_page, settings, utils, commands, tr, font)
+        self.toolbar = AppToolBar(self.app, self, self.notify, self.home_page, self.mining_page, settings, utils, commands, tr, font)
+        self.market_server = MarketServer(self.app, settings=self.settings, notify=self.notifymarket)
 
         opacity = self.settings.opacity()
         if opacity:
@@ -463,7 +463,7 @@ class Menu(Window):
         if self.settings.market_service():
             if not self.marketplace_toggle:
                 marketplace_window = MarketPlace(
-                    self, self.notifymarket, self.settings, self.utils, self.units, self.commands, self.tr, self.font, self.server
+                    self, self.notifymarket, self.settings, self.utils, self.units, self.commands, self.tr, self.font, self.market_server
                 )
                 marketplace_window.show()
                 self.marketplace_window = marketplace_window

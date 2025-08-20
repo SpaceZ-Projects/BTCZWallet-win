@@ -42,6 +42,11 @@ class Txid(Window):
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
 
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
+
         self.rtl = None
         lang = self.settings.language()
         if lang:

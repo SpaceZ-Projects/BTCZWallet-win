@@ -1,14 +1,14 @@
 
 from toga import App, Box, Window
 from ..framework import (
-    Toolbar, Command, Color, Keys, Sys
+    Toolbar, Command, Color, Keys, Sys, Separator
 )
 from toga.style.pack import Pack
 from toga.constants import ROW, TOP
 
 
 class AppToolBar(Box):
-    def __init__(self, app:App, main:Window, notify, notifymarket, home_page ,mining_page, settings, utils, commands, tr, font):
+    def __init__(self, app:App, main:Window, notify, home_page ,mining_page, settings, utils, commands, tr, font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -19,7 +19,6 @@ class AppToolBar(Box):
         self.app = app
         self.main = main
         self.notify = notify
-        self.notifymarket = notifymarket
         self.home_page = home_page
         self.mining_page = mining_page
 
@@ -66,6 +65,8 @@ class AppToolBar(Box):
             title="App data",
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
+            mouse_enter=self.app_data_cmd_mouse_enter,
+            mouse_leave=self.app_data_cmd_mouse_leave,
             action=self.open_app_data,
             font=self.font.get(9),
             rtl=self.rtl
@@ -74,6 +75,10 @@ class AppToolBar(Box):
             title="Restart",
             color=Color.YELLOW,
             background_color=Color.rgb(40,43,48),
+            icon="images/restart_i.ico",
+            mouse_enter=self.restart_cmd_mouse_enter,
+            mouse_leave=self.restart_cmd_mouse_leave,
+            shortcut_key=Keys.Control | Keys.R,
             action=self.restart_app,
             font=self.font.get(9),
             rtl = self.rtl
@@ -105,6 +110,7 @@ class AppToolBar(Box):
             sub_commands=[
                 self.about_cmd,
                 self.app_data_cmd,
+                Separator(),
                 self.restart_cmd,
                 self.exit_cmd,
                 self.stop_exit_cmd
@@ -809,6 +815,20 @@ class AppToolBar(Box):
         self.about_cmd.icon = "images/about_i.ico"
         self.about_cmd.color = Color.WHITE
 
+    def app_data_cmd_mouse_enter(self):
+        self.app_data_cmd.color = Color.BLACK
+    
+    def app_data_cmd_mouse_leave(self):
+        self.app_data_cmd.color = Color.WHITE
+
+    def restart_cmd_mouse_enter(self):
+        self.restart_cmd.icon = "images/restart_a.ico"
+        self.restart_cmd.color = Color.BLACK
+
+    def restart_cmd_mouse_leave(self):
+        self.restart_cmd.icon = "images/restart_i.ico"
+        self.restart_cmd.color = Color.YELLOW
+
     def import_key_cmd_mouse_enter(self):
         self.import_key_cmd.icon = "images/importkey_a.ico"
         self.import_key_cmd.color = Color.BLACK
@@ -869,9 +889,9 @@ class AppToolBar(Box):
                 self.home_page.clear_cache()
                 self.notify.hide()
                 self.notify.dispose()
-                if self.main.server.server_status:
-                    self.notifymarket.hide()
-                    self.notifymarket.dispose()
+                if self.main.market_server.server_status:
+                    self.main.notifymarket.hide()
+                    self.main.notifymarket.dispose()
                 self.app.exit()
         if self.mining_page.mining_status:
             return
@@ -891,9 +911,9 @@ class AppToolBar(Box):
                 self.home_page.clear_cache()
                 self.notify.hide()
                 self.notify.dispose()
-                if self.main.server.server_status:
-                    self.notifymarket.hide()
-                    self.notifymarket.dispose()
+                if self.main.market_server.server_status:
+                    self.main.notifymarket.hide()
+                    self.main.notifymarket.dispose()
                 self.app.exit()
 
         if self.mining_page.mining_status:
@@ -915,9 +935,9 @@ class AppToolBar(Box):
                     self.home_page.clear_cache()
                     self.notify.hide()
                     self.notify.dispose()
-                    if self.main.server.server_status:
-                        self.notifymarket.hide()
-                        self.notifymarket.dispose()
+                    if self.main.market_server.server_status:
+                        self.main.notifymarket.hide()
+                        self.main.notifymarket.dispose()
                     self.app.exit()
         if self.mining_page.mining_status:
             return

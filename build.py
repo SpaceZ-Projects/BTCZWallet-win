@@ -190,8 +190,10 @@ def main():
         build_app(env_dir)
         download_nsis()
         build_installer()
+        input("\n[INFO] Process complete. Press Enter to exit...")
     elif operation == 2:
         build_portable(env_dir)
+        input("\n[INFO] Process complete. Press Enter to exit...")
     elif operation == 3:
         run_app(env_dir)
 

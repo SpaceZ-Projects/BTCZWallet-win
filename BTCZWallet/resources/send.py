@@ -168,7 +168,7 @@ class Send(Box):
         self.single_option = Switch(
             text=self.tr.text("single_option"),
             style=Pack(
-                color = GRAY,
+                color = YELLOW,
                 background_color = rgb(30,33,36)
             ),
             value=True,

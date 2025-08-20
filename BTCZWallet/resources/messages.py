@@ -2531,7 +2531,7 @@ class Chat(Box):
         hostname = self.utils.get_onion_hostname("market")
         _, _, address = self.storage.get_identity()
         id = self.storage.get_id_contact(self.contact_id)
-        secret = self.market_storage.get_secret(self.contact_id)
+        secret = self.market_storage.get_secret(id[0])
         if not secret:
             key = self.units.generate_secret_key()
             self.market_storage.insert_secret(id[0], key)
@@ -2549,6 +2549,7 @@ class Chat(Box):
     async def send_command(self, address, amount, txfee, memo):
         async def on_result(widget, result):
             if result is None:
+                self.enable_send_button()
                 self.send_button._impl.native.Focus()
                 self.fee_input.value = "0.00020000"
                 self.character_count.style.color = GRAY

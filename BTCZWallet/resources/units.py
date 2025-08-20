@@ -27,7 +27,7 @@ class Units():
     
 
     def generate_secret_key(self):
-        key_bytes = secrets.token_bytes(32)
+        key_bytes = secrets.token_bytes(256)
         secret_key = base64.urlsafe_b64encode(key_bytes).decode('utf-8')
         return secret_key
     
