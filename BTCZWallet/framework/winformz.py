@@ -69,6 +69,8 @@ class Color:
     DARK_GRAY = Drawing.Color.DarkGray
     YELLOW = Drawing.Color.Yellow
     GRAY = Drawing.Color.Gray
+    GREENYELLO = Drawing.Color.GreenYellow
+    CYAN = Drawing.Color.Cyan
 
     @staticmethod
     def rgb(r, g, b):
@@ -88,6 +90,11 @@ class CopyMode:
 class FormState:
     NORMAL = Forms.FormWindowState.Normal
     MINIMIZED = Forms.FormWindowState.Minimized
+    MAXIMIZED = Forms.FormWindowState.Maximized
+
+class FormBorderStyle:
+    NONE = Forms.FormBorderStyle(0)
+    SIZABLE = Forms.FormBorderStyle.Sizable
 
 class BorderStyle:
     NONE = Forms.BorderStyle(0)
@@ -150,9 +157,12 @@ class Keys:
     PageUp = Forms.Keys.PageUp
     PageDown = Forms.Keys.PageDown
     End = Forms.Keys.End
+    Up = Forms.Keys.Up
+    Down = Forms.Keys.Down
 
     F1 = Forms.Keys.F1
     F4 = Forms.Keys.F4
+    F12 = Forms.Keys.F12
     A = Forms.Keys.A
     C = Forms.Keys.C
     Q = Forms.Keys.Q
@@ -1285,7 +1295,13 @@ class RichLabel(Forms.RichTextBox):
 
         if self._text:
             self.Text = self._text
-        self.Font = self._font
+        if self._font is None:
+            try:
+                self.Font = Drawing.Font("Segoe UI Emoji", 10.5)
+            except:
+                self.Font = Drawing.Font("Segoe UI Symbol", 10.5)
+        else:
+            self.Font = self._font
         if self._color:
             self.ForeColor = self._color
         if self._background_color:
@@ -1313,6 +1329,7 @@ class RichLabel(Forms.RichTextBox):
             self.LinkClicked += self.on_link_clicked
         if self._mouse_move:
             self.MouseMove += self.on_mouse_move
+            self.MouseLeave += self.on_mouse_leave
         if self._mouse_wheel:
             self.MouseWheel += self.on_mouse_wheel
 
@@ -1435,20 +1452,32 @@ class RichLabel(Forms.RichTextBox):
 
     
     def on_link_clicked(self, sender, event):
-        if self._urls_click:
-            self._urls_click(event.LinkText)
+        if Forms.Control.ModifierKeys == Keys.Control:
+            if self._urls_click:
+                self._urls_click(event.LinkText)
 
     
     def on_mouse_move(self, sender, event):
         pos = event.Location
         link_pos = self.GetCharIndexFromPosition(pos)
         link_text = self.get_url_at_position(link_pos)
-        if link_text and not self.tooltip_visible:
-            self.tooltip.Show(link_text, self, pos.X, pos.Y + 20, 2000)
-            self.tooltip_visible = True
-        elif not link_text and self.tooltip_visible:
+        if link_text:
+            if not self.tooltip_visible:
+                self.tooltip.Show(f"Open link (ctrl + click)", self, pos.X, pos.Y + 20)
+                self.tooltip_visible = True
+            else:
+                self.tooltip.Show(f"Open link (ctrl + click)", self, pos.X, pos.Y + 20)
+            self.LinkCursor = Cursors.DEFAULT
+        else:
+            if self.tooltip_visible:
+                self.tooltip.Hide(self)
+                self.tooltip_visible = False
+
+    
+    def on_mouse_leave(self, sender, event):
+        if self.tooltip_visible:
             self.tooltip.Hide(self)
-            self.tooltip_visible = None
+            self.tooltip_visible = False
             
 
     def get_url_at_position(self, position: int) -> str:
