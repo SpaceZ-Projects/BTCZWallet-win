@@ -6,7 +6,7 @@ import json
 import re
 from PIL import Image
 
-from toga import Window, Box, TextInput, Label, ImageView
+from toga import App, Window, Box, TextInput, Label, ImageView
 from ..framework import (
     FormBorderStyle, RichLabel, DockStyle, Color,
     BorderStyle, Sys, Forms, Keys, ToolTip, MenuStrip,
@@ -15,6 +15,50 @@ from ..framework import (
 from toga.style.pack import Pack
 from toga.colors import rgb, GRAY
 from toga.constants import COLUMN, CENTER, ROW, YELLOW, BLACK
+
+
+
+class ShellHistory:
+    def __init__(self, app:App, limit=1000):
+
+        self.app = app
+        self.file_path = Os.Path.Combine(str(self.app.paths.data), 'shell_history.txt')
+        Os.FileStream(
+            self.file_path,
+            Os.FileMode.OpenOrCreate,
+            Os.FileAccess.ReadWrite,
+            Os.FileShare.ReadWrite
+        )
+        self.limit = limit
+        self.commands = []
+        self.load_history()
+
+    def load_history(self):
+        if Os.File.Exists(self.file_path):
+            with open(self.file_path, "r", encoding="utf-8") as f:
+                self.commands = [line.strip() for line in f.readlines()]
+        else:
+            self.commands = []
+
+    def add(self, command: str):
+        command = command.strip()
+        if not command:
+            return
+        if self.commands and self.commands[-1] == command:
+            return
+        self.commands.append(command)
+        if len(self.commands) > self.limit:
+            self.commands = self.commands[-self.limit:]
+        self.save_history()
+
+    def save_history(self):
+        with open(self.file_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(self.commands))
+
+    def all(self):
+        return self.commands[:]
+
+
 
 
 class Console(Window):
@@ -29,6 +73,7 @@ class Console(Window):
 
         self.tooltip = ToolTip()
         self.clipboard = ClipBoard()
+        self.history = ShellHistory(self.app)
 
         self.title = "Console"
         self._impl.native.BackColor = Color.rgb(30,30,30)
@@ -212,11 +257,16 @@ class Console(Window):
         )
 
         self.insert_menustrip()
+        self.load_shell_history()
 
 
     def insert_menustrip(self):
         context_menu = MenuStrip(self.rtl)
         self.console_input._impl.native.ContextMenuStrip = context_menu
+
+    def load_shell_history(self):
+        for cmd in self.history.all():
+            self.shell_cmds.append(cmd)
 
 
     def show_console(self, startup:bool = None):
@@ -411,6 +461,7 @@ class Console(Window):
         self.invoke(lambda: self.shell(f"{text}", Color.rgb(114,137,218)))
 
     def command_shell(self, text):
+        self.history.add(text)
         self.shell_cmds.append(text)
         self.shell_history_index = None
         self.invoke(lambda: self.shell(f"{self.timestamp()} - {text}", Color.GREENYELLO))
