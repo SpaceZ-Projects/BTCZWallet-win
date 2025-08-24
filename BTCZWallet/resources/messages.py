@@ -1010,20 +1010,20 @@ class Message(Box):
             borderstyle=BorderStyle.NONE,
             background_color=Color.rgb(30,33,36),
             color=Color.WHITE,
-            font = self.font.get(10),
             wrap=True,
             readonly=True,
             urls=True,
             text_align=message_align,
             dockstyle=DockStyle.FILL,
             scrollbars=ScrollBars.NONE,
-            urls_click=self.show_url_dialog,
-            mouse_wheel=self.on_scroll
+            urls_click=self.open_url,
+            mouse_wheel=self.on_scroll,
+            mouse_move=True
         )
 
         self.message_box = Box(
             style=Pack(
-                direction = ROW,
+                direction = COLUMN,
                 background_color=rgb(40,43,48),
                 height = 90,
                 padding = self.tr.padding("message_box")
@@ -1065,16 +1065,8 @@ class Message(Box):
         self.message_box._impl.native.Controls.Add(self.message_value)
 
 
-    def show_url_dialog(self, url):
-        self.url = url
-        def on_result(widget, result):
-            if result is True:
-                webbrowser.open(self.url)
-        self.app.main_window.question_dialog(
-            title="Confirm URL Redirect",
-            message=f"Are you sure you want to visit the following URL?\n\n{self.url}\n\nPlease confirm to proceed.",
-            on_result=on_result
-        )
+    def open_url(self, url):
+        webbrowser.open(url)
 
     
     def on_scroll(self, value):
