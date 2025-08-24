@@ -32,6 +32,8 @@ class AppStatusBar(Box):
         self.tr = tr
         self.font = font
 
+        self.latest_blocks = None
+
         self.style.height = self.tr.size("appstatusbar")
 
         self.rtl = None
@@ -199,7 +201,6 @@ class AppStatusBar(Box):
             blockchaininfo,_ = await self.commands.getBlockchainInfo()
             if blockchaininfo is not None:
                 self.node_status = True
-
                 info = json.loads(blockchaininfo)
                 blocks = info.get('blocks')
                 self.main.home_page.current_block = blocks
@@ -209,7 +210,9 @@ class AppStatusBar(Box):
                 mediantime = info.get('mediantime')
                 mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
                 status_icon = "images/on.png"
-                
+                if self.latest_blocks and blocks > self.latest_blocks:
+                    self.app.console.info_log(f"New Block : {blocks}")
+                self.latest_blocks = blocks
             else:
                 self.node_status = None
                 status_icon = "images/off.png"
@@ -274,6 +277,7 @@ class AppStatusBar(Box):
                 if self.rtl:
                     connection_count = self.units.arabic_digits(connection_count)
                 self.connections_value.text = connection_count
+            await asyncio.sleep(5)
 
 
     async def update_deprecationinfo(self, widget):

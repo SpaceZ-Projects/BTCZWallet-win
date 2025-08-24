@@ -8,7 +8,7 @@ from toga import (
 )
 from ..framework import (
     Drawing, Color, Sys, FormState, Os, FlatStyle,
-    Relation, AlignContent
+    Relation, AlignContent, Forms
 )
 
 from toga.style.pack import Pack
@@ -39,10 +39,15 @@ class Menu(Window):
 
         self.tor_enabled = tor_enabled
         self._is_minimized = None
+        self._is_maximized = None
+        self._is_snapped_left = None
+        self._is_snapped_right = None
         self._is_hidden = None
+        self._is_active = False
         self.import_key_toggle = None
         self.peer_toggle = None
         self.marketplace_toggle = None
+        self.console_toggle = None
 
         self.commands = commands
         self.units = units
@@ -52,8 +57,10 @@ class Menu(Window):
         self.font = font
 
         self.title = self.tr.title("main_window")
-        self.size = (900,607)
+        self._impl.native.Size = Drawing.Size(916,646)
         self._impl.native.BackColor = Color.rgb(30,33,36)
+
+        self.app.console.main = self
 
         self.storage = StorageMessages(self.app)
         self.market_storage = StorageMarket(self.app)
@@ -81,6 +88,8 @@ class Menu(Window):
         self._impl.native.Resize += self._handle_on_resize
         self._impl.native.Activated += self._handle_on_activated
         self._impl.native.Deactivate += self._handle_on_deactivated
+        self._impl.native.Move += self._hadler_on_move
+        self._impl.native.Shown += self._handler_on_show
 
         mode = 0
         if self.utils.get_app_theme() == "dark":
@@ -114,7 +123,7 @@ class Menu(Window):
         self.pages = Box(
             style=Pack(
                 direction = COLUMN,
-                flex = 1,
+                flex = 2,
                 background_color = rgb(30,33,36)
             )
         )
@@ -320,6 +329,7 @@ class Menu(Window):
         self.toolbar.import_key_cmd.action = self.show_import_key
         self.toolbar.export_wallet_cmd.action = self.export_wallet
         self.toolbar.import_wallet_cmd.action = self.show_import_wallet
+        self.toolbar.app_console_cmd.action = self.app_console
         self.toolbar.edit_username_cmd.action = self.edit_messages_username
         self.toolbar.market_place_cmd.action = self.show_marketplace
         self.toolbar.backup_messages_cmd.action = self.backup_messages
@@ -619,6 +629,23 @@ class Menu(Window):
         self.import_window._impl.native.ShowDialog(self._impl.native)
 
 
+    def app_console(self, sender, event):
+        self.show_app_console()
+
+    def show_app_console(self):
+        if not self.console_toggle:
+            self.settings.update_settings("console", True)
+            self.app.console.show_console()
+            self.console_toggle = True
+        else:
+            self.settings.update_settings("console", False)
+            if self._is_maximized or self._is_snapped_left or self._is_snapped_right:
+                self.main_box.remove(self.app.console.console_box)
+            else:
+                self.app.console.hide()
+            self.console_toggle = None
+
+
     def join_us(self, sender, event):
         discord = "https://discord.com/invite/aAU2WeJ"
         webbrowser.open(discord)
@@ -823,22 +850,80 @@ class Menu(Window):
         return Os.Path.Combine(str(self.app.paths.app), path)
 
     
-    def _handle_on_resize(self, sender, event:Sys.EventArgs):
-        min_width = 916
-        min_height = 646
-        self._impl.native.MinimumSize = Drawing.Size(min_width, min_height)
+    def _handle_on_resize(self, sender, event: Sys.EventArgs):
+        state = self._impl.native.WindowState
+        bounds = self._impl.native.Bounds
+        screen = Forms.Screen.FromControl(self._impl.native)
+        wa = screen.WorkingArea
 
-        if self._impl.native.WindowState == FormState.NORMAL:
-            self._is_minimized = False
-        elif self._impl.native.WindowState == FormState.MINIMIZED:
+        if state == FormState.NORMAL:
+            if Forms.Control.MouseButtons & Forms.MouseButtons.Left:
+                min_width = 916
+                min_height = 646
+                self._impl.native.MinimumSize = Drawing.Size(min_width, min_height)
+            if (bounds.X < wa.X and
+                bounds.Y == wa.Y and
+                bounds.Height >= wa.Height):
+                self._is_snapped_left = True
+
+            elif (bounds.X > wa.X and
+                bounds.Y == wa.Y and
+                bounds.Height >= wa.Height):
+                self._is_snapped_right = True
+            else:
+                self._is_snapped_left = None
+                self._is_snapped_right = None
+
+            self._is_minimized = None
+            self._is_maximized = None
+
+            if self.console_toggle:
+                if self._is_snapped_left or self._is_snapped_right:
+                    self.app.console.move_inside()
+                else:
+                    self.app.console.move_outside()
+                self.app.console.resize()
+            return
+
+        elif state == FormState.MINIMIZED:
             self._is_minimized = True
+            self._is_maximized = False
 
+        elif state == FormState.MAXIMIZED:
+            self._is_minimized = False
+            self._is_maximized = True
+            if self.console_toggle:
+                self.app.console.move_inside()
+
+
+
+    def _hadler_on_move(self, sender, event):
+        if self.console_toggle:
+            self.app.console.move()
 
     def _handle_on_activated(self, sender, event):
+        if not self._is_active and not self.app.console._is_active:
+            self.app.add_background_task(self._bring_console)
+
+    async def _bring_console(self, widget):
+        if self._is_active:
+            return
+        self.app.console._impl.native.TopMost = True
+        self.app.console._impl.native.TopMost = False
+        self._impl.native.Activate()
         self._is_active = True
+
 
     def _handle_on_deactivated(self, sender, event):
         self._is_active = False
+
+
+    def _handler_on_show(self, sender, event):
+        if self.settings.console():
+            self.show_app_console()
+        self.app.console.info_log(f"Show app notifcation...")
+        self.notify.show()
+        self._impl.native.TopMost = False
             
 
     def on_close_menu(self, widget):

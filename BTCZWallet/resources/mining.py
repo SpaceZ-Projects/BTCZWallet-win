@@ -9,8 +9,7 @@ from aiohttp_socks import ProxyConnector, ProxyConnectionError
 
 from toga import (
     App, Box, Label, Selection, TextInput,
-    ProgressBar, Window, ScrollContainer,
-    Button, ImageView, Switch
+    ProgressBar, Window, Button, ImageView, Switch
 )
 from ..framework import FlatStyle, Os, ToolTip, RightToLeft
 from toga.style.pack import Pack
@@ -280,23 +279,13 @@ class Mining(Box):
             ) 
         )
 
-        self.output_box = Box(
+        self.divider_box = Box(
            style=Pack(
                 direction = COLUMN,
                 background_color = rgb(40,43,48),
                 flex = 1,
                 padding = (5,10,0,10)
             ) 
-        )
-        self.output_box._impl.native.Resize += self.output_box_on_resize
-
-        self.output_scroll = ScrollContainer(
-            content=self.output_box,
-            style=Pack(
-                background_color = rgb(40,43,48),
-                flex = 1,
-                padding_right = 6
-            )
         )
 
         self.totalshares_icon = ImageView(
@@ -485,7 +474,7 @@ class Mining(Box):
                 self.selection_address_box,
                 self.selection_pool_box,
                 self.worker_box,
-                self.output_scroll,
+                self.divider_box,
                 self.start_mining_box
             )
             if self.rtl:
@@ -805,8 +794,9 @@ class Mining(Box):
 
     async def start_mining_command(self, widget):
         self.update_mining_button("stop")
-        self.output_box.clear()
         command = [self.miner_command]
+        self.app.console.info_log(f"Starting mining...")
+        self.app.console.mining_log(command)
         try:
             self.process = await asyncio.create_subprocess_shell(
                 *command,
@@ -821,20 +811,19 @@ class Mining(Box):
                     decoded_line = stdout_line.decode().strip()
                     cleaned_line = clean_regex.sub('', decoded_line)
                     if cleaned_line.strip():
-                        self.print_output(cleaned_line)
-                        self.clear_output()
+                        self.app.console.mining_log(cleaned_line)
                 else:
                     break
             await self.process.wait()
             remaining_stdout = await self.process.stdout.read()
             remaining_stderr = await self.process.stderr.read()
             if remaining_stdout:
-                print(remaining_stdout.decode().strip())
+                self.app.console.mining_log(remaining_stdout.decode().strip())
             if remaining_stderr:
-                print(remaining_stderr.decode().strip())
+                self.app.console.mining_log(remaining_stderr.decode().strip())
 
         except Exception as e:
-            print(f"Exception occurred: {e}")
+            self.app.console.mining_log(f"{e}")
         finally:
             self.update_mining_button("start")
             self.enable_mining_inputs()
@@ -842,34 +831,11 @@ class Mining(Box):
             self.miner_command = None
 
 
-    def print_output(self, line):
-        output_value = Label(
-            text=line,
-            style=Pack(
-                color = WHITE,
-                background_color = rgb(40,43,48),
-                padding = (0,2,0,2)
-            )
-        )
-        output_value._impl.native.Font = self.font.get(9.5)
-        self.output_box.add(
-            output_value
-        )
-        if self.output_scroll.vertical_position == self.output_scroll.max_vertical_position:
-            return
-        self.output_scroll.vertical_position = self.output_scroll.max_vertical_position
-
-
-    def clear_output(self):
-        if len(self.output_box.children) >= 80:
-            box = self.output_box.children[0]
-            self.output_box.remove(box)
-
-
 
     async def fetch_miner_stats(self):
         self.reset_miner_notify_stats()
         api = self.pool_api + self.selected_address
+        self.app.console.info_log(f"Fetch miner stats : {api}")
         if self.tor_enabled:
             torrc = self.utils.read_torrc()
             socks_port = torrc.get("SocksPort")
@@ -946,13 +912,13 @@ class Mining(Box):
                             self.main.notifymining.paid.text = f"💸 {paid_text} {self.units.format_balance(paid)}"
 
                 except ProxyConnectionError:
-                    print("Proxy connection failed.")
+                    self.app.console.error_log("Proxy connection failed")
                 except aiohttp.ClientError as e:
-                    print(f"Error while fetching data: {e}")
+                    self.app.console.error_log(f"Error while fetching data: {e}")
                 except asyncio.TimeoutError:
-                    print("Request timed out.")
+                    self.app.console.warning_log("Request timed out")
                 except Exception as e:
-                    print(f"An unexpected error occurred: {e}")
+                    self.app.console.error_log(f"{e}")
 
                 await asyncio.sleep(60)
 
@@ -962,13 +928,6 @@ class Mining(Box):
         self.main.notifymining.balance.text = f"💰 Balance : 0.0000000"
         self.main.notifymining.immature.text = f"🔃 Immature : 0.0000000"
         self.main.notifymining.paid.text = f"💸 Paid : 0.0000000"
-
-
-    def output_box_on_resize(self, sender, event):
-        if self.mining_toggle:
-            if self.output_scroll.vertical_position == self.output_scroll.max_vertical_position:
-                return
-            self.output_scroll.vertical_position = self.output_scroll.max_vertical_position
 
 
     async def reload_addresses(self):
@@ -994,8 +953,7 @@ class Mining(Box):
                     proc.kill()
             self.process.terminate()
             await asyncio.sleep(0.5)
-            self.output_box.clear()
-            self.print_output(self.tr.text("miner_stopped"))
+            self.app.console.info_log(self.tr.text("miner_stopped"))
             self.totalshares_value.text = "0.00"
             self.balance_value.text = "0.00"
             self.immature_value.text = "0.00"
@@ -1005,14 +963,15 @@ class Mining(Box):
             self.estimated_value.text = f"0.00 {text}"
             self.estimated_earn_value.text = f"0.00 {self.settings.symbol()}"
         except Exception as e:
-            print(f"Exception occurred while killing process: {e}")
+            self.app.console.error_log(f"Exception occurred while killing miner process: {e}")
 
         if self.fetch_stats_task and not self.fetch_stats_task.done():
+            self.app.console.info_log(f"Cancel miner stats task...")
             self.fetch_stats_task.cancel()
             try:
                 await self.fetch_stats_task
             except asyncio.CancelledError:
-                pass
+                self.app.console.info_log(f"Task was cancelled")
 
 
     def update_mining_button(self, option):

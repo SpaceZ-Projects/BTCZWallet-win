@@ -19,7 +19,13 @@ class Settings():
         if not Os.File.Exists(self.settings_path):
             with open(self.settings_path, 'w') as file:
                 json.dump({}, file)
-
+                
+        Os.FileStream(
+            self.settings_path,
+            Os.FileMode.OpenOrCreate,
+            Os.FileAccess.ReadWrite,
+            Os.FileShare.ReadWrite
+        )
         
         self.miningoptions_path = Os.Path.Combine(str(self.app_config), 'mining.json')
         if not Os.File.Exists(self.miningoptions_path):
@@ -138,6 +144,15 @@ class Settings():
                 return None
             else:
                 return settings['only_onion']
+            
+
+    def console(self):
+        with open(self.settings_path, 'r') as f:
+            settings = json.load(f)
+            if 'console' not in settings:
+                return None
+            else:
+                return settings['console']
             
 
     def save_mining_options(self, miner, address, pool_server, pool_region, ssl, worker):

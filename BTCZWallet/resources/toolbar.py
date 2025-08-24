@@ -1,7 +1,7 @@
 
 from toga import App, Box, Window
 from ..framework import (
-    Toolbar, Command, Color, Keys, Sys, Separator
+    Toolbar, Command, Color, Keys, Separator
 )
 from toga.style.pack import Pack
 from toga.constants import ROW, TOP
@@ -61,13 +61,14 @@ class AppToolBar(Box):
             font=self.font.get(9),
             rtl = self.rtl
         )
-        self.app_data_cmd = Command(
-            title="App data",
+        self.app_console_cmd = Command(
+            title="Console",
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
-            mouse_enter=self.app_data_cmd_mouse_enter,
-            mouse_leave=self.app_data_cmd_mouse_leave,
-            action=self.open_app_data,
+            icon="images/console_i.ico",
+            mouse_enter=self.app_console_cmd_mouse_enter,
+            mouse_leave=self.app_console_cmd_mouse_leave,
+            shortcut_key=Keys.F12,
             font=self.font.get(9),
             rtl=self.rtl
         )
@@ -109,7 +110,7 @@ class AppToolBar(Box):
             title=self.tr.text("app_menu"),
             sub_commands=[
                 self.about_cmd,
-                self.app_data_cmd,
+                self.app_console_cmd,
                 Separator(),
                 self.restart_cmd,
                 self.exit_cmd,
@@ -671,6 +672,14 @@ class AppToolBar(Box):
     def opacity_100_cmd_mouse_leave(self):
         self.opacity_100_cmd.color = Color.WHITE
 
+    def app_console_cmd_mouse_enter(self):
+        self.app_console_cmd.icon = "images/console_a.ico"
+        self.app_console_cmd.color = Color.BLACK
+
+    def app_console_cmd_mouse_leave(self):
+        self.app_console_cmd.icon = "images/console_i.ico"
+        self.app_console_cmd.color = Color.WHITE
+
     def wallet_menu_opened(self):
         self.wallet_menu_active = True
         self.wallet_menu.icon = "images/wallet_a.ico"
@@ -815,12 +824,6 @@ class AppToolBar(Box):
         self.about_cmd.icon = "images/about_i.ico"
         self.about_cmd.color = Color.WHITE
 
-    def app_data_cmd_mouse_enter(self):
-        self.app_data_cmd.color = Color.BLACK
-    
-    def app_data_cmd_mouse_leave(self):
-        self.app_data_cmd.color = Color.WHITE
-
     def restart_cmd_mouse_enter(self):
         self.restart_cmd.icon = "images/restart_a.ico"
         self.restart_cmd.color = Color.BLACK
@@ -873,14 +876,6 @@ class AppToolBar(Box):
 
     def display_about_dialog(self):
         self.app.about()
-
-    def open_app_data(self):
-        app_data = str(self.app.paths.data)
-        psi = Sys.Diagnostics.ProcessStartInfo()
-        psi.FileName = "explorer.exe"
-        psi.Arguments = app_data
-        psi.UseShellExecute = True
-        Sys.Diagnostics.Process.Start(psi)
 
     def exit_app(self):
         def on_result(widget, result):
@@ -939,6 +934,7 @@ class AppToolBar(Box):
                         self.main.notifymarket.hide()
                         self.main.notifymarket.dispose()
                     self.app.exit()
+                    
         if self.mining_page.mining_status:
             return
         self.main.question_dialog(

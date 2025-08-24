@@ -1,12 +1,16 @@
 
+import asyncio
 from datetime import datetime
 import webbrowser
+import json
+import re
+from PIL import Image
 
 from toga import Window, Box, TextInput, Label, ImageView
 from ..framework import (
     FormBorderStyle, RichLabel, DockStyle, Color,
     BorderStyle, Sys, Forms, Keys, ToolTip, MenuStrip,
-    ClipBoard
+    ClipBoard, Os, run_async
 )
 from toga.style.pack import Pack
 from toga.colors import rgb, GRAY
@@ -15,9 +19,7 @@ from toga.constants import COLUMN, CENTER, ROW, YELLOW, BLACK
 
 class Console(Window):
     def __init__(self, main:Window, settings, utils, commands, font):
-        super().__init__(
-            closable=False
-        )
+        super().__init__()
 
         self.main = main
         self.settings = settings
@@ -35,13 +37,23 @@ class Console(Window):
         self._impl.native.ShowInTaskbar = False
         self._impl.native.Move += self._on_console_move
         self._impl.native.KeyDown += Forms.KeyEventHandler(self.on_key_down)
+        self._impl.native.Activated += self._handle_on_activated
+        self._impl.native.Deactivate += self._handle_on_deactivated
+        self.on_close = self.on_close_console
 
+        self._is_active = False
         self.log_toggle = None
         self.shell_toggle = None
         self.detach_toggle = None
+        self.inside_toggle = None
 
         self.shell_cmds = []
         self.shell_history_index = None
+
+        self.recording = None
+        self.recording_path = None
+        self.recording_temp = None
+        self.frame_index = 0
 
         self.rtl = None
         lang = self.settings.language()
@@ -109,7 +121,7 @@ class Console(Window):
         )
         self.console_input._impl.native.Font = self.font.get(10)
         self.console_input._impl.native.BorderStyle = BorderStyle.NONE
-        self.console_input._impl.native.KeyDown += Forms.KeyEventHandler(self.on_key_down)
+        self.console_input._impl.native.KeyDown += Forms.KeyEventHandler(self.on_shell_key_down)
         self.console_input._impl.native.MouseUp += self.on_mouse_up
         self.console_input_box = Box(
             style=Pack(
@@ -222,7 +234,8 @@ class Console(Window):
                 self.shell_button
             )
             if self.detach_toggle:
-                self._impl.native.Top = self.main._impl.native.Bottom + 5
+                self._impl.native.Top = self.main._impl.native.Bottom + 15
+                self._impl.native.Left = self.main._impl.native.Left - 30
             else:
                 self.tabs_box.insert(0, self.detach_button)
                 self._impl.native.Top = self.main._impl.native.Bottom - 8
@@ -256,7 +269,8 @@ class Console(Window):
             mode = 1
         self.utils.apply_title_bar_mode(self, mode)
         self._impl.native.FormBorderStyle = FormBorderStyle.SIZABLE
-        self._impl.native.Top = self.main._impl.native.Bottom + 10
+        self._impl.native.Top = self.main._impl.native.Bottom + 15
+        self._impl.native.Left = self.main._impl.native.Left - 30
         self.show()
         self.detach_toggle = True
 
@@ -273,15 +287,20 @@ class Console(Window):
 
     def _on_console_move(self, sender, event):
         if self.detach_toggle:
-            side = self.detect_touch(self.main._impl.native, self._impl.native, tolerance=0)
+            side = self.detect_touch(self.main._impl.native, self._impl.native)
             if side:
                 self.attach_console()
 
-    def detect_touch(self, main, console, tolerance: int = 0):
+
+    def detect_touch(self, main, console, tolerance: int = 5, side_tolerance: int = 25):
         m = main.Bounds
         o = console.Bounds
-        overlap_x = (o.Right > m.Left) and (o.Left < m.Right)
-        if abs(o.Top - m.Bottom) <= tolerance and overlap_x:
+        vertical_touch = abs(o.Top - m.Bottom) <= tolerance
+        within_horizontal_bounds = (
+            (o.Left >= m.Left - side_tolerance) and
+            (o.Right <= m.Right + side_tolerance)
+        )
+        if vertical_touch and within_horizontal_bounds:
             return True
         return None
 
@@ -347,6 +366,7 @@ class Console(Window):
             else:
                 self.console_output_shell.ScrollToCaret()
             self.hide()
+            self.inside_toggle = True
 
     def move_outside(self):
         if not self.detach_toggle:
@@ -358,6 +378,7 @@ class Console(Window):
                 self.console_output_logs.ScrollToCaret()
             else:
                 self.console_output_shell.ScrollToCaret()
+            self.inside_toggle = None
 
 
     def log(self, text, color):
@@ -380,29 +401,35 @@ class Console(Window):
 
     def timestamp(self):
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    def invoke(self, func):
+        self._impl.native.Invoke(Forms.MethodInvoker(func))
 
     def info_log(self, text):
-        self.log(f"{self.timestamp()} - {text}", Color.WHITE)
+        self.invoke(lambda: self.log(f"{self.timestamp()} - {text}", Color.WHITE))
+
+    def info_shell(self, text):
+        self.invoke(lambda: self.shell(f"{text}", Color.rgb(114,137,218)))
 
     def command_shell(self, text):
         self.shell_cmds.append(text)
         self.shell_history_index = None
-        self.shell(f"{self.timestamp()} - {text}", Color.GREENYELLO)
-
-    def result_shell(self, text):
-        self.shell(f"{self.timestamp()} - {text}", Color.rgb(114,137,218), False)
+        self.invoke(lambda: self.shell(f"{self.timestamp()} - {text}", Color.GREENYELLO))
     
     def error_log(self, text):
-        self.log(f"{self.timestamp()} - {text}", Color.RED)
+        self.invoke(lambda: self.log(f"{self.timestamp()} - {text}", Color.RED))
     
     def error_shell(self, text):
-        self.shell(f"{self.timestamp()} - {text}", Color.RED)
+        self.invoke(lambda: self.shell(f"{self.timestamp()} - {text}", Color.RED))
 
     def warning_log(self, text):
-        self.log(f"{self.timestamp()} - {text}", Color.YELLOW)
+        self.invoke(lambda: self.log(f"{self.timestamp()} - {text}", Color.YELLOW))
 
     def server_log(self, text):
-        self.log(f"{self.timestamp()} - {text}", Color.GREEN)
+        self.invoke(lambda: self.log(f"{self.timestamp()} - {text}", Color.GREEN))
+
+    def mining_log(self, text):
+        self.invoke(lambda: self.log(f"{self.timestamp()} - {text}", Color.CYAN))
 
 
     async def verify_command(self, input):
@@ -416,8 +443,8 @@ class Console(Window):
             self.console_output_shell.Text = ""
 
         elif value in ["h", "help"]:
-            self.result_shell(
-                "📜 Usage :\n"
+            self.info_shell(
+                "\n📜 Usage :\n"
                 "================================================\n"
                 " → h or help :   Show this help message with available commands\n"
                 " → c or clear :   Clear the console output window\n"
@@ -425,9 +452,16 @@ class Console(Window):
                 " → appdata :   Open the general application data directory\n"
                 " → appconfig :   Open the application configuration directory\n"
                 " → appcache :   Open the application cache directory\n"
+                " → applogs :   Open the application logs directory\n"
+                " → capture :   captures the application current visual state\n"
+                " → record start/stop :   Record the current application window as an animated GIF (16 FPS)\n"
+                "================================================\n"
+                " → merge <address>: ! Merge all transparent balances from your wallet into a single address\n"
+                "                     Usage: merge <address>\n"
+                "                     Example: merge t1abc123def...\n\n"
                 "================================================\n"
                 " 👉 Slash commands (RPC calls):\n\n"
-                "     Any input that starts with '/' will be\n"
+                "     Any input that starts with ' / ' will be\n"
                 "     treated as a direct RPC command sent to\n"
                 "     the BitcoinZ node.\n\n"
                 " 👉 Examples:\n"
@@ -438,18 +472,92 @@ class Console(Window):
                 "================================================"
             )
 
-        elif value in ["appdata", "appconfig", "appcache", "data"]:
-            self.result_shell(f"open directory...")
+        elif value in ["appdata", "appconfig", "appcache", "applogs", "data"]:
+            self.info_shell(f"open directory...")
             self.exlporer_dir(value)
+
+        elif value == "capture":
+            self.create_app_screenshot()
+
+        elif value.startswith("record"):
+            parts = value.split()
+            if len(parts) < 2:
+                self.error_shell("Usage: record start/stop")
+            elif len(parts) > 2:
+                self.error_shell("Too many arguments")
+            else:
+                option = parts[1]
+                if option == "start":
+                    if self.recording:
+                        self.error_shell(f"Already recoding")
+                        return
+                    await self.record_app_window()
+                elif option == "stop":
+                    if not self.recording:
+                        self.error_shell(f"Already stopped")
+                        return
+                    run_async(self.save_record())
+                else:
+                    self.error_shell(f"Invalid argument")
+
+        elif value.startswith("merge"):
+            parts = value.split()
+            if len(parts) < 2:
+                self.error_shell("Usage: merge <address>")
+            elif len(parts) > 2:
+                self.error_shell("Too many arguments")
+            else:
+                address = parts[1]
+                if await self.is_valid(address):
+                    self.info_shell(f"Merging to address : {address}")
+                    await self.start_merging(address)
+                else:
+                    self.error_shell(f"Invalid address")
 
         elif value.startswith("/"):
             command_line = value[1:]
             command = f'{self.commands.bitcoinz_cli_file} {command_line}'
             result, error_message = await self.commands._run_command(command)
             if error_message:
-                self.error_shell(error_message)
+                self.error_shell(float(error_message))
             else:
-                self.result_shell(result)
+                self.info_shell(result)
+
+
+    async def start_merging(self, address):
+        balance = await self.get_transparent_balance()
+        operation, error_message = await self.commands.sendToAddress(address, balance)
+        if error_message:
+            match = re.search(r"at least (\d+\.\d+)", error_message)
+            if match:
+                min_fee = float(match.group(1)) + 0.00000001
+                self.info_shell(f"Merging fee : {min_fee:.8f}")
+                balance = float(balance) - min_fee
+                self.info_shell(balance)
+                operation, error_message = await self.commands.sendToAddress(address, f"{balance:.8f}")
+                if error_message:
+                    self.error_shell(error_message)
+                    return
+        if operation:
+            self.info_shell(f"Operation Result : {operation}")
+
+
+    async def is_valid(self, address):
+        result,_ = await self.commands.validateAddress(address)
+        if result is not None:
+            result = json.loads(result)
+            is_valid = result.get('isvalid')
+            if is_valid is True:
+                return True
+            return None
+
+
+    async def get_transparent_balance(self):
+        total_balances, _ = await self.commands.z_getTotalBalance()
+        if total_balances:
+            balances = json.loads(total_balances)
+            transparent = balances.get('transparent')
+            return transparent
 
 
     def exlporer_dir(self, value):
@@ -459,6 +567,8 @@ class Console(Window):
             dir = str(self.app.paths.config)
         elif value == "appcache":
             dir = str(self.app.paths.cache)
+        elif value == "applogs":
+            dir = str(self.app.paths.logs)
         elif value == "data":
             dir = self.utils.get_bitcoinz_path()
 
@@ -468,7 +578,86 @@ class Console(Window):
         psi.UseShellExecute = True
         Sys.Diagnostics.Process.Start(psi)
 
-    
+
+    def create_app_screenshot(self):
+        async def on_result(widget, result):
+            if result:
+                await asyncio.sleep(1)
+                size = self.main._impl.native.Size
+                if self.main.console_toggle and not self.detach_toggle and not self.inside_toggle:
+                    size.Height += self._impl.native.Size.Height
+                left = self.main._impl.native.Left
+                top = self.main._impl.native.Top
+                self.utils.capture_screenshot(size, left, top, str(result))
+                self.info_shell(f"Secrenshot saved : {result}")
+        self.save_file_dialog(
+            title="Save screenshot",
+            suggested_filename="BTCZWallet",
+            file_types=["png"],
+            on_result=on_result
+        )
+
+
+    async def record_app_window(self):
+        async def on_result(widget, result):
+            if result:
+                self.info_shell(f"Start Recording")
+                self.recording_path = str(result)
+                self.recording_temp = Os.Path.Combine(str(self.app.paths.cache), "btcz_record")
+                if not Os.Directory.Exists(self.recording_path):
+                    Os.Directory.CreateDirectory(self.recording_temp)
+                self.frame_index = 0
+                self.recording = True
+                await asyncio.sleep(0.2)
+                run_async(self.start_recording())
+        if not self.recording:
+            self.save_file_dialog(
+                title="Save record",
+                suggested_filename="BTCZWallet",
+                file_types=["gif"],
+                on_result=on_result
+            )
+
+
+    async def start_recording(self):
+        while self.recording:
+            size = self.main._impl.native.Size
+            if self.main.console_toggle and not self.detach_toggle and not self.inside_toggle:
+                size.Height += self._impl.native.Size.Height
+            left = self.main._impl.native.Left
+            top = self.main._impl.native.Top
+            frame = self.utils.record_screen(size, left, top)
+            frame_path = Os.Path.Combine(self.recording_temp, f"frame_{self.frame_index:05d}.png")
+            frame.save(frame_path, "PNG")
+            self.frame_index += 1
+            await asyncio.sleep(0.1)
+
+
+    async def save_record(self):
+        self.recording = None
+        if not self.recording_temp:
+            return
+        files = list(Os.Directory.GetFiles(self.recording_temp, "frame_*.png"))
+        files.sort()
+        if not files:
+            return
+        self.info_shell(f"Saving record...")
+        frames = [Image.open(f) for f in files]
+        frames[0].save(
+            self.recording_path,
+            save_all=True,
+            append_images=frames[1:],
+            duration=160,
+            loop=0
+        )
+        frames.clear()
+        for f in files:
+            Os.File.Delete(f)
+        Os.Directory.Delete(self.recording_temp)
+        self.info_shell(f"Record saved : {self.recording_path}")
+        self.recording_temp = None
+
+
     def open_url(self, url):
         webbrowser.open(url)
 
@@ -476,22 +665,34 @@ class Console(Window):
         if e.KeyCode == Keys.F12:
             self.main.show_app_console()
 
-        elif e.KeyCode == Keys.Up:
+    def on_shell_key_down(self, sender, e):
+        self.event = e
+        if e.KeyCode == Keys.F12:
+            self.main.show_app_console()
+
+        if e.KeyCode == Keys.Up:
             if self.shell_cmds:
                 if self.shell_history_index is None:
                     self.shell_history_index = len(self.shell_cmds) - 1
                 elif self.shell_history_index > 0:
                     self.shell_history_index -= 1
                 self.console_input._impl.native.Text = self.shell_cmds[self.shell_history_index]
+                asyncio.ensure_future(self.selection_to_end())
 
         elif e.KeyCode == Keys.Down:
             if self.shell_cmds and self.shell_history_index is not None:
                 if self.shell_history_index < len(self.shell_cmds) - 1:
                     self.shell_history_index += 1
                     self.console_input._impl.native.Text = self.shell_cmds[self.shell_history_index]
+                    asyncio.ensure_future(self.selection_to_end())
                 else:
                     self.shell_history_index = None
                     self.console_input._impl.native.Text = ""
+
+
+    async def selection_to_end(self):
+        await asyncio.sleep(0.0)
+        self.console_input._impl.native.SelectionStart = self.console_input._impl.native.TextLength
 
     
     def on_mouse_up(self, sender, e):
@@ -523,3 +724,13 @@ class Console(Window):
     def shell_button_mouse_leave(self, sender, event):
         if not self.shell_toggle:
             self.shell_button.style.background_color = rgb(30,30,30)
+
+    def _handle_on_activated(self, sender, event):
+        self._is_active = True
+
+    def _handle_on_deactivated(self, sender, event):
+        self._is_active = False
+
+
+    def on_close_console(self, widget):
+        self.attach_console()

@@ -13,7 +13,6 @@ from toga import App
 from ..framework import Sys, Os
 
 
-
 def get_secret(id, storage):
     secret = storage.get_secret(id)
     if secret:
@@ -67,8 +66,10 @@ def verify_signature(list_ids, storage):
 
 
 class ServerThread(Thread):
-    def __init__(self, flask, host, port, event):
+    def __init__(self, app:App, flask, host, port, event):
         Thread.__init__(self, daemon=True)
+
+        self.app = app
         self.flask = flask
         self.host = host
         self.port = port
@@ -82,15 +83,12 @@ class ServerThread(Thread):
                 self.flask,
                 threaded=True
             )
-            print(f"Server started successfully, and listening to {self.host}:{self.port}")
             self.event.set()
             self.http_server.serve_forever()
         except socket.gaierror as e:
-            print(f"Error: DNS resolution failed for host {self.host}. Error: {e}")
+            self.app.console.error_log(f"Error: DNS resolution failed for host {self.host}. Error: {e}")
         except Exception as e:
-            print(f"Error in server thread: {e}")
-        finally:
-            print("Shutdown complete.")
+            self.app.console.error_log(e)
 
     def shutdown(self):
         if self.http_server:
@@ -99,7 +97,7 @@ class ServerThread(Thread):
                 self.http_server.shutdown()
                 self.http_server.server_close()
             except Exception as e:
-                print(f"Error while shutting down the server: {e}")
+                self.app.console.error_log(e)
 
 
 class MarketServer():
@@ -148,7 +146,11 @@ class MarketServer():
     def log_request(self):
         if request.method == 'GET':
             if request.form:
-                print(f"Request Form Data: {dict(request.form)}")
+                self.app.console.server_log(f"[MARKET]Request Data: {dict(request.form)}")
+
+            self.app.console.server_log(
+                f"[MARKET]{request.remote_addr} {request.method} {request.path}"
+            )
 
 
     def handle_status(self):
@@ -332,15 +334,17 @@ class MarketServer():
     
     def start(self):
         event = Event()
-        self.server_thread = ServerThread(self.flask, self.host, self.port, event)
+        self.server_thread = ServerThread(self.app, self.flask, self.host, self.port, event)
         self.server_thread.start()
         if event.wait(timeout=5):
+            self.app.console.server_log(f"Server started and listening to {self.host}:{self.port}")
             self.server_status = True
             return True
         else:
-            print("Server failed to start within the timeout period.")
+            self.app.console.error_log("Server failed to start within the timeout period.")
             return None
 
     def stop(self):
+        self.app.console.warning_log("Shutdown server")
         self.server_status = None
         self.server_thread.shutdown()

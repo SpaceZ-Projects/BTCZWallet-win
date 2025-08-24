@@ -14,7 +14,7 @@ from ..framework import (
 )
 from toga.colors import rgb, WHITE, GRAY
 from toga.style.pack import Pack
-from toga.constants import CENTER, COLUMN, ROW, BOTTOM, LEFT, RIGHT
+from toga.constants import CENTER, COLUMN, ROW, BOTTOM
 
 from .menu import Menu
 from .network import TorConfig
@@ -109,12 +109,8 @@ class BTCZSetup(Box):
     def update_info_box(self):
         if self.rtl:
             padding = 0
-            left = RIGHT
-            right = LEFT
         else:
             padding = 3
-            left = LEFT
-            right = RIGHT
         self.progress_bar._impl.native.Style = ProgressStyle.BLOCKS
         self.status_box.remove(self.status_label)
         self.status_box.style.direction = COLUMN
@@ -262,10 +258,12 @@ class BTCZSetup(Box):
 
     
     async def check_network(self, widget):
+        self.app.console.info_log(f"Check Network...")
         async def on_result(widget, result):
             if result is True:
                 self.show_tor_config()
             if result is False:
+                self.app.console.info_log(f"Skip tor config")
                 self.settings.update_settings("tor_network", False)
                 if self.node_status:
                     await self.open_main_menu()
@@ -274,8 +272,11 @@ class BTCZSetup(Box):
             
         await asyncio.sleep(1)
         self.node_status = await self.is_bitcoinz_running()
+        self.app.console.info_log(f"Node status : {self.node_status}")
         self.tor_enabled = self.settings.tor_network()
+        self.app.console.info_log(f"Tor network enabled : {self.tor_enabled}")
         if self.tor_enabled is None:
+            self.app.console.info_log(f"Config tor network...")
             self.main.network_status.style.color = GRAY
             self.main.network_status.text = self.tr.text("tor_disabled")
             self.main.question_dialog(
@@ -289,6 +290,7 @@ class BTCZSetup(Box):
                 self.main.network_status.style.color = rgb(114,137,218)
                 self.main.network_status.text = self.tr.text("tor_enabled")
                 tor_running = await self.utils.is_tor_alive()
+                self.app.console.info_log(f"Tor status : {tor_running}")
                 await asyncio.sleep(1)
                 if self.node_status and tor_running:
                     await self.check_sync_progress()
@@ -312,6 +314,7 @@ class BTCZSetup(Box):
             
 
     async def check_tor_files(self):
+        self.app.console.info_log(f"Check tor bundle files...")
         self.status_label.text = self.tr.text("checktor_files")
         await asyncio.sleep(1)
         missing_files = self.utils.get_tor_files()
@@ -326,6 +329,7 @@ class BTCZSetup(Box):
 
 
     async def execute_tor(self, widget):
+        self.app.console.info_log(f"Execute tor...")
         async def on_result(widget, result):
             if result is True:
                 self.show_tor_config()
@@ -340,6 +344,7 @@ class BTCZSetup(Box):
         tor_exe = Os.Path.Combine(str(self.app_data), "tor.exe")
         torrc_path = Os.Path.Combine(str(self.app_data), "torrc")
         if not Os.File.Exists(torrc_path):
+            self.app.console.warning_log(f"Missing torrc file")
             self.main.question_dialog(
                 title=self.tr.title("missingtorrc_dialog"),
                 message=self.tr.message("missingtorrc_dialog"),
@@ -348,8 +353,10 @@ class BTCZSetup(Box):
             return
         try:
             tor_running = await self.utils.is_tor_alive()
+            self.app.console.info_log(f"Tor status : {tor_running}")
             if not tor_running:
                 self.status_label.text = self.tr.text("execute_tor")
+                self.utils.stop_tor()
                 await asyncio.sleep(1)
                 command = [tor_exe, '-f', torrc_path]
                 self.tor_process = await asyncio.create_subprocess_exec(
@@ -364,18 +371,24 @@ class BTCZSetup(Box):
                     result = await self.wait_tor_bootstrap()
                     if result:
                         tor_running = await self.utils.is_tor_alive()
+                        self.app.console.info_log(f"Tor status : {tor_running}")
                         if tor_running:
                             self.status_label.text = self.tr.text("tor_success")
                             await asyncio.sleep(1)
                             await self.check_binary_files()
                         else:
                             self.status_label.text = self.tr.text("tor_failed")
-                except asyncio.TimeoutError:
+                            self.utils.stop_tor()
+                            await asyncio.sleep(1)
+                            self.app.add_background_task(self.execute_tor)
+                except asyncio.TimeoutError as e:
+                    self.app.console.error_log(e)
                     self.status_label.text = self.tr.text("tor_timeout")
             else:
                 await self.check_binary_files()
 
         except Exception as e:
+            self.app.console.error_log(f"{e}")
             self.status_label.text = self.tr.text("tor_failed")
 
 
@@ -387,6 +400,7 @@ class BTCZSetup(Box):
 
 
     async def wait_tor_bootstrap(self):
+        self.app.console.info_log(f"Waiting tor bootstrap...")
         self.progress_bar._impl.native.Style = ProgressStyle.BLOCKS
         self.progress_bar.value = 0
         percentage_pattern = re.compile(r'Bootstrapped (\d+)%')
@@ -410,6 +424,7 @@ class BTCZSetup(Box):
 
 
     async def check_binary_files(self):
+        self.app.console.info_log(f"Check BitcoinZ binary files...")
         self.status_label.text = self.tr.text("checkbinary_files")
         self.progress_bar._impl.native.Style = ProgressStyle.MARQUEE
         await asyncio.sleep(1)
@@ -427,6 +442,7 @@ class BTCZSetup(Box):
 
 
     async def check_params_files(self):
+        self.app.console.info_log(f"Check Zk params files...")
         self.status_label.text = self.tr.text("checkparams_files")
         self.progress_bar._impl.native.Style = ProgressStyle.MARQUEE
         await asyncio.sleep(1)
@@ -444,6 +460,7 @@ class BTCZSetup(Box):
 
 
     async def check_config_file(self):
+        self.app.console.info_log(f"Check bitcoinz config file...")
         self.status_label.text = self.tr.text("checkconf_file")
         self.progress_bar._impl.native.Style = ProgressStyle.MARQUEE
         await asyncio.sleep(1)
@@ -479,6 +496,7 @@ class BTCZSetup(Box):
 
 
     async def download_bitcoinz_bootstrap(self, widget):
+        self.app.console.info_log(f"Download bitcoinz bootstrap...")
         self.status_label.text = self.tr.text("download_bootstrap")
         self.progress_bar._impl.native.Style = ProgressStyle.BLOCKS
         self.progress_bar.value = 0
@@ -491,6 +509,7 @@ class BTCZSetup(Box):
 
 
     async def extract_bootstrap_file(self):
+        self.app.console.info_log(f"Extract bootstrap file...")
         self.status_label.text = self.tr.text("extract_bootstarp")
         style = ProgressStyle.MARQUEE
         self.progress_bar._impl.native.Invoke(Forms.MethodInvoker(lambda:self.utils.update_progress_style(self.progress_bar, style)))
@@ -502,6 +521,7 @@ class BTCZSetup(Box):
 
 
     async def execute_bitcoinz_node(self, widget):
+        self.app.console.info_log(f"Execute Bitcoinz node...")
         self.status_label.text = self.tr.text("start_node")
         bitcoinzd = "bitcoinzd.exe"
         node_file = Os.Path.Combine(str(self.app_data), bitcoinzd)
@@ -520,13 +540,16 @@ class BTCZSetup(Box):
             for dir_path, port_line in zip(hs_dirs, hs_ports):
                 if dir_path.endswith("tor_service"):
                     service_port = port_line.split()[0] if port_line else ""
+                    self.app.console.info_log(f"Tor service port : {service_port}")
                     found_tor_service = True
                     break
             if socks_port:
                 command += [f'-proxy=127.0.0.1:{socks_port}']
             if self.settings.only_onion():
                 command += ['-onlynet=onion']
+                self.app.console.info_log(f"Only onion : True")
             if found_tor_service and service_port:
+                self.app.console.info_log(f"Tor service : True")
                 command += ['-listen=1', '-discover=1']
         try:
             self.process = await asyncio.create_subprocess_exec(
@@ -535,7 +558,7 @@ class BTCZSetup(Box):
             )
             await self.waiting_node_status()
         except Exception as e:
-            print(f"Error starting bitcoinzd: {e}")
+            self.app.console.error_log(f"{e}")
         finally:
             if self.process:
                 await self.process.wait()
@@ -543,6 +566,7 @@ class BTCZSetup(Box):
                 
 
     async def waiting_node_status(self):
+        self.app.console.info_log(f"Waiting node status...")
         await asyncio.sleep(1)
         result, error_message = await self.commands.getInfo()
         if result:
@@ -557,6 +581,7 @@ class BTCZSetup(Box):
                     await self.check_sync_progress()
                     return
                 elif error_message and result is None:
+                    self.app.console.info_log(error_message)
                     if error_message == "Loading block index...":
                         message = self.tr.text("loading_blocks")
                     elif error_message == "Activating best chain...":
@@ -577,6 +602,7 @@ class BTCZSetup(Box):
 
 
     async def check_sync_progress(self):
+        self.app.console.info_log(f"Check synchronization progress...")
         tooltip_text = f"Seeds :"
         await asyncio.sleep(1)
         blockchaininfo, _ = await self.commands.getBlockchainInfo()
@@ -588,7 +614,7 @@ class BTCZSetup(Box):
                 if sync_percentage <= 99.95:
                     self.update_info_box()
                     while True:
-                        blockchaininfo, _ = await self.commands.getBlockchainInfo()
+                        blockchaininfo, error_message = await self.commands.getBlockchainInfo()
                         if blockchaininfo:
                             info = json.loads(blockchaininfo)
                             if info is not None:
@@ -599,7 +625,7 @@ class BTCZSetup(Box):
                                     mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
                                 else:
                                     mediantime_date = "N/A"
-                            else:
+                            if error_message:
                                 self.app.exit()
                                 return
 
@@ -612,7 +638,6 @@ class BTCZSetup(Box):
                                 tooltip_text += f"\n{address} - {self.units.format_bytes(bytesrecv)}"
                                 
                         bitcoinz_size = int(self.utils.get_bitcoinz_size())
-                        sync_percentage = sync * 100
                         sync_percentage_str = f"%{float(sync_percentage):.2f}"
                         if self.rtl:
                             blocks = self.units.arabic_digits(str(blocks))
@@ -626,6 +651,7 @@ class BTCZSetup(Box):
                         self.progress_bar.value = int(sync_percentage)
                         self.tooltip.insert(self.progress_bar._impl.native, tooltip_text)
                         tooltip_text = f"Seeds :"
+                        self.app.console.info_log(f"Blocks : {blocks} - Synchronization : {sync_percentage:.2f}")
                         if sync_percentage > 99.95:
                             await self.open_main_menu()
                             return
@@ -635,17 +661,13 @@ class BTCZSetup(Box):
 
 
     async def open_main_menu(self):
+        self.app.console.info_log(f"Show main menu...")
         self.main_menu = Menu(
             self.tor_enabled, self.settings, self.utils, self.units, self.commands, self.tr, self.font
         )
         self.main_menu._impl.native.TopMost = True
-        self.main_menu._impl.native.Shown += self.on_show
+        if self.main.console_toggle:
+            self.app.console.hide()
         self.main.hide()
         await asyncio.sleep(1)
         self.main_menu.show()
-        self.main_menu.notify.show()
-
-    
-    def on_show(self, sender, event):
-        self.main_menu._impl.native.TopMost = False
-        self.main_menu._impl.native.Activate()

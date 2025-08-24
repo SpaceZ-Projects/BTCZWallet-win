@@ -2,7 +2,7 @@
 from toga import (
     App, Window, Box, ImageView, Label
 )
-from .framework import CustomFont, ToolTip, Color
+from .framework import CustomFont, ToolTip, Color, Forms, Keys
 from toga.colors import rgb, WHITE, YELLOW
 from toga.style.pack import Pack
 from toga.constants import RIGHT, COLUMN, ROW, LEFT
@@ -26,19 +26,29 @@ class BitcoinZGUI(Window):
         self.font = CustomFont(self.settings)
         self.tooltip = ToolTip()
 
+        self.app.console = Console(self, self.settings, self.utils, self.commands, self.font)
+        self.console_toggle = None
+
         self.title = self.tr.title("main_window")
         self._impl.native.BackColor = Color.rgb(30,33,36)
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
+        self._impl.native.Move += self._hadler_on_move
+        self._impl.native.KeyPreview = True
+        self._impl.native.Shown += self.on_show
+        self._impl.native.KeyDown += Forms.KeyEventHandler(self.on_key_down)
 
         mode = 0
-        if self.utils.get_app_theme() == "dark":
+        ui = self.utils.get_app_theme()
+        if ui == "dark":
             mode = 1
+        self.app.console.info_log(f"UI Mode : {ui.capitalize()}")
         self.utils.apply_title_bar_mode(self, mode)
 
         self.rtl = None
         lang = self.settings.language()
         if lang:
+            self.app.console.info_log(f"Language : {lang}")
             if lang == "Arabic":
                 self.rtl = True
 
@@ -118,6 +128,34 @@ class BitcoinZGUI(Window):
         self.app_version._impl.native.MouseEnter += self.app_version_mouse_enter
         self.app_version._impl.native.MouseLeave += self.app_version_mouse_leave
 
+
+    def on_show(self, sender, event):
+        if self.settings.console():
+            self.app.console.show_console(True)
+            self.console_toggle = True
+        self._impl.native.TopMost = False
+        self._impl.native.Activate()
+
+
+    def on_key_down(self, sender, e):
+        if e.KeyCode == Keys.F12:
+            self.show_app_console()
+
+
+    def show_app_console(self):
+        if not self.console_toggle:
+            self.settings.update_settings("console", True)
+            self.app.console.show_console(True)
+            self.console_toggle = True
+        else:
+            self.settings.update_settings("console", False)
+            self.app.console.hide()
+            self.console_toggle = None
+
+
+    def _hadler_on_move(self, sender, event):
+        self.app.console.move(True)
+
     def app_version_mouse_enter(self, mouse, event):
         self.app_version.style.color = YELLOW
 
@@ -128,14 +166,9 @@ class BitcoinZGUI(Window):
 class BitcoinZWallet(App):
     
     def startup(self):
+        self.console = None
         self.main_window = BitcoinZGUI()
-        self.main_window._impl.native.TopMost = True
-        self.main_window._impl.native.Shown += self.on_show
         self.main_window.show()
-
-    def on_show(self, sender, event):
-        self.main_window._impl.native.TopMost = False
-        self.main_window._impl.native.Activate()
 
 
 def main():

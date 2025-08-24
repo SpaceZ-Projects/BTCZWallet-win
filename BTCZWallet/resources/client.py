@@ -17,7 +17,7 @@ class Client():
         self.bitcoinz_cli_file = Os.Path.Combine(str(self.app_data), "bitcoinz-cli.exe")
         
         if Os.File.Exists(self.bitcoinz_cli_file):
-            self.file_stream = Os.FileStream(
+            Os.FileStream(
                 self.bitcoinz_cli_file,
                 Os.FileMode.Open,
                 Os.FileAccess.Read,
@@ -46,7 +46,12 @@ class Client():
                     return None, None
             else:
                 error_message = stderr.decode()
-                if "error message:" in error_message:
+                if "error" in error_message:
+                    if process.returncode != 28:
+                        if process.returncode == 1:
+                            self.app.console.warning_log(error_message)
+                        else:
+                            self.app.console.error_log(error_message)
                     index = error_message.index("error message:")+len("error message:")
                     return None, error_message[index:].strip()
                 else:
@@ -207,6 +212,13 @@ class Client():
         Return information about the given z address.
         """
         command = f'{self.bitcoinz_cli_file} z_validateaddress {address}'
+        return await self._run_command(command)
+    
+    async def sendToAddress(self, address:str, amount):
+        """
+        Send an amount to a given address.
+        """
+        command = f'{self.bitcoinz_cli_file} sendtoaddress "{address}" {amount}'
         return await self._run_command(command)
     
     async def z_sendMany(self, uaddress:str, toaddress:str, amount, txfee):

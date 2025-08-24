@@ -16,10 +16,12 @@ from aiohttp.client_exceptions import ClientConnectionError, ServerDisconnectedE
 from aiohttp_socks import ProxyConnector, ProxyConnectionError, ProxyError
 import ipaddress
 import ctypes
+import io
+from PIL import Image
 
 from toga import App
 from ..framework import (
-    Os, Sys, ProgressStyle, Forms, run_async, Win32
+    Os, Sys, ProgressStyle, Forms, run_async, Win32, Drawing
 )
 
 
@@ -31,10 +33,7 @@ class Utils():
         self.app_path = self.app.paths.app
         self.app_data = self.app.paths.data
         self.app_cache = self.app.paths.cache
-        if not Os.Directory.Exists(str(self.app_data)):
-            Os.Directory.CreateDirectory(str(self.app_data))
-        if not Os.Directory.Exists(str(self.app_cache)):
-            Os.Directory.CreateDirectory(str(self.app_cache))
+        self.app_logs = self.app.paths.logs
 
         self.settings = settings
         self.units = units
@@ -45,6 +44,13 @@ class Utils():
         if lang:
             if lang == "Arabic":
                 self.rtl = True
+
+        if not Os.Directory.Exists(str(self.app_data)):
+            Os.Directory.CreateDirectory(str(self.app_data))
+        if not Os.Directory.Exists(str(self.app_cache)):
+            Os.Directory.CreateDirectory(str(self.app_cache))
+        if not Os.Directory.Exists(str(self.app_logs)):
+            Os.Directory.CreateDirectory(str(self.app_logs))
 
     
     async def get_repo_info(self, tor_enabled):
@@ -66,16 +72,20 @@ class Utils():
                             latest_tag = latest_tag[1:]
                         return latest_tag, releases_url
                     else:
-                        print(f"Failed to fetch tags: {response.status}")
+                        self.app.console.error_log(f"Failed to fetch tags: {response.status}")
                         return None, None
         except ProxyConnectionError:
-            print("Proxy connection failed.")
+            self.app.console.error_log("Proxy connection failed")
+            return None, None
         except RuntimeError as e:
-            print(f"RuntimeError caught: {e}")
+            self.app.console.error_log(f"RuntimeError caught: {e}")
+            return None, None
         except aiohttp.ClientError as e:
-            print(f"HTTP Error: {e}")
+            self.app.console.error_log(f"HTTP Error: {e}")
+            return None, None
         except Exception as e:
-            print(f"An error occurred: {e}")
+            self.app.console.error_log(f"{e}")
+            return None, None
 
 
     async def is_tor_alive(self):
@@ -89,9 +99,17 @@ class Utils():
                 async with session.get('http://check.torproject.org', timeout=10) as response:
                     await response.text()
                     return True
-        except (ProxyConnectionError, ProxyError, ClientConnectionError, ServerDisconnectedError):
+        except ProxyConnectionError:
+            self.app.console.error_log("Proxy connection failed")
             return None
-        except Exception:
+        except ClientConnectionError as e:
+            self.app.console.warning_log(f"Connection to server failed: {e}")
+            return None
+        except ServerDisconnectedError as e:
+            self.app.console.error_log(f"Server disconnected: {e}")
+            return None
+        except Exception as e:
+            self.app.console.error_log(f"{e}")
             return None
         
 
@@ -101,6 +119,7 @@ class Utils():
                 if proc.info['name'] == "tor.exe":
                     proc.kill()
         except Exception as e:
+            self.app.console.error_log(f"{e}")
             pass
         
 
@@ -131,9 +150,17 @@ class Utils():
                         data = await response.json()
                     await session.close()
                     return data
-        except (ProxyConnectionError, ProxyError, ClientError, ClientConnectionError):
+        except ProxyConnectionError:
+            self.app.console.error_log("Proxy connection failed")
             return None
-        except Exception:
+        except ClientConnectionError as e:
+            self.app.console.error_log(f"Client socket errors: {e}")
+            return None
+        except (ProxyError, ClientError) as e:
+            self.app.console.error_log(f"{e}")
+            return None
+        except Exception as e:
+            self.app.console.error_log(f"{e}")
             return None
         
 
@@ -174,6 +201,34 @@ class Utils():
             return address[:8] + "...IPv6"
         else:
             return address
+        
+
+    def capture_screenshot(self, size, left, top, path):
+        try:
+            bmp = Drawing.Bitmap(size.Width - 14, size.Height - 7)
+            g = Drawing.Graphics.FromImage(bmp)
+            g.CopyFromScreen(Drawing.Point(left + 7, top), Drawing.Point(0, 0), size)
+            bmp.Save(path, Drawing.Imaging.ImageFormat.Png)
+        finally:
+            g.Dispose()
+            bmp.Dispose()
+
+
+    def record_screen(self, size, left, top):
+        bmp = Drawing.Bitmap(size.Width - 14, size.Height - 7)
+        g = Drawing.Graphics.FromImage(bmp)
+        g.CopyFromScreen(Drawing.Point(left + 7, top), Drawing.Point(0, 0), bmp.Size)
+        try:
+            stream = Os.MemoryStream()
+            bmp.Save(stream, Drawing.Imaging.ImageFormat.Png)
+            data = stream.ToArray()
+            py_stream = io.BytesIO(data)
+            img = Image.open(py_stream).copy()
+            return img
+        finally:
+            g.Dispose()
+            bmp.Dispose()
+            stream.Dispose()
             
 
     def qr_generate(self, address):  
@@ -264,7 +319,7 @@ class Utils():
         return "light" if value == 1 else "dark"
 
     
-    def apply_title_bar_mode(self, window, ui_mode:int):
+    def apply_title_bar_mode(self, window, ui_mode:int): 
         try:
             hwnd = window._impl.native.Handle.ToInt32()
             value = ctypes.c_int(ui_mode)
@@ -364,6 +419,7 @@ class Utils():
     async def fetch_tor_files(self, label, progress_bar):
         file_name = "tor-expert-bundle-windows-x86_64-14.5.5.tar.gz"
         url = "https://archive.torproject.org/tor-package-archive/torbrowser/14.5.5/"
+        self.app.console.info_log(f"Downloading tor bundle... {url}")
         destination = Os.Path.Combine(str(self.app_data), file_name)
         text = self.tr.text("download_tor")
         try:
@@ -371,6 +427,7 @@ class Utils():
                 async with session.get(url + file_name, timeout=None) as response:
                     if response.status == 200:
                         total_size = int(response.headers.get('content-length', 0))
+                        self.app.console.info_log(f"File size : {self.units.format_bytes(total_size)}")
                         chunk_size = 512
                         downloaded_size = 0
                         self.file_handle = open(destination, 'wb')
@@ -385,6 +442,7 @@ class Utils():
                         self.file_handle.close()
                         self.file_handle = None
                         await session.close()
+                        self.app.console.info_log(f"Download complete")
                         with tarfile.open(destination, "r:gz") as tar:
                             tar.extractall(path=self.app_data)
 
@@ -416,17 +474,18 @@ class Utils():
                         if Os.File.Exists(destination):
                             Os.File.Delete(destination)
         except RuntimeError as e:
-            print(f"RuntimeError caught: {e}")
+            self.app.console.error_log(f"RuntimeError caught: {e}")
         except aiohttp.ClientError as e:
-            print(f"HTTP Error: {e}")
+            self.app.console.error_log(f"HTTP Error: {e}")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            self.app.console.error_log(f"{e}")
 
     
 
     async def fetch_binary_files(self, label, progress_bar, tor_enabled):
         file_name = "bitcoinz-45802c9f29b4-win64.zip"
         url = "https://github.com/btcz/bitcoinz/releases/download/2.1.1/"
+        self.app.console.info_log(f"Downloading BitcoinZ... {url}")
         text = self.tr.text("download_binary")
         destination = Os.Path.Combine(str(self.app_data), file_name)
         if tor_enabled:
@@ -440,6 +499,7 @@ class Utils():
                 async with session.get(url + file_name, timeout=None) as response:
                     if response.status == 200:
                         total_size = int(response.headers.get('content-length', 0))
+                        self.app.console.info_log(f"File size : {self.units.format_bytes(total_size)}")
                         chunk_size = 512
                         downloaded_size = 0
                         self.file_handle = open(destination, 'wb')
@@ -454,6 +514,7 @@ class Utils():
                         self.file_handle.close()
                         self.file_handle = None
                         await session.close()
+                        self.app.console.info_log(f"Download complete")
                         with zipfile.ZipFile(destination, 'r') as zip_ref:
                             zip_ref.extractall(self.app_data)
                         extracted_folder = Os.Path.Combine(str(self.app_data), "bitcoinz-45802c9f29b4")
@@ -467,17 +528,18 @@ class Utils():
                         Os.Directory.Delete(extracted_folder, True)
                         Os.File.Delete(destination)
         except ProxyConnectionError:
-            print("Proxy connection failed.")
+            self.app.console.error_log("Proxy connection failed")
         except RuntimeError as e:
-            print(f"RuntimeError caught: {e}")
+            self.app.console.error_log(f"RuntimeError caught: {e}")
         except aiohttp.ClientError as e:
-            print(f"HTTP Error: {e}")
+            self.app.console.error_log(f"HTTP Error: {e}")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            self.app.console.error_log(f"{e}")
 
 
     async def fetch_params_files(self, missing_files, zk_params_path, label, progress_bar, tor_enabled):
         base_url = "https://d.btcz.rocks/"
+        self.app.console.info_log(f"Downloading Zk params... {base_url}")
         total_files = len(missing_files)
         text = self.tr.text("download_params")
         if tor_enabled:
@@ -495,6 +557,7 @@ class Utils():
                     async with session.get(url, timeout=None) as response:
                         if response.status == 200:
                             total_size = int(response.headers.get('content-length', 0))
+                            self.app.console.info_log(f"File name : {file_name} | File size : {self.units.format_bytes(total_size)}")
                             chunk_size = 512
                             downloaded_size = 0
                             self.file_handle = open(file_path, 'wb')
@@ -510,18 +573,20 @@ class Utils():
                             self.file_handle = None
                     self.current_download_file = None
                 await session.close()
+                self.app.console.info_log(f"Download complete")
         except ProxyConnectionError:
-            print("Proxy connection failed.")
+            self.app.console.error_log("Proxy connection failed")
         except RuntimeError as e:
-            print(f"RuntimeError caught: {e}")
+            self.app.console.error_log(f"RuntimeError caught: {e}")
         except aiohttp.ClientError as e:
-            print(f"HTTP Error: {e}")
+            self.app.console.error_log(f"HTTP Error: {e}")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            self.app.console.error_log(f"{e}")
 
 
     async def fetch_bootstrap_files(self, label, progress_bar, tor_enabled):
         base_url = "https://github.com/btcz/bootstrap/releases/download/2024-09-04/"
+        self.app.console.info_log(f"Downloading BitcoinZ bootstrap... {base_url}")
         bootstrap_files = [
             'bootstrap.dat.7z.001',
             'bootstrap.dat.7z.002',
@@ -548,6 +613,7 @@ class Utils():
                     async with session.get(url, timeout=None) as response:
                         if response.status == 200:
                             total_size = int(response.headers.get('content-length', 0))
+                            self.app.console.info_log(f"File name : {file_name} | File size : {self.units.format_bytes(total_size)}")
                             chunk_size = 512
                             downloaded_size = 0
                             self.file_handle = open(file_path, 'wb')
@@ -563,17 +629,19 @@ class Utils():
                             self.file_handle = None
                     self.current_download_file = None
                 await session.close()
+                self.app.console.info_log(f"Download complete")
         except ProxyConnectionError:
-            print("Proxy connection failed.")
+            self.app.console.error_log("Proxy connection failed")
         except RuntimeError as e:
-            print(f"RuntimeError caught: {e}")
+            self.app.console.error_log(f"RuntimeError caught: {e}")
         except aiohttp.ClientError as e:
-            print(f"HTTP Error: {e}")
+            self.app.console.error_log(f"HTTP Error: {e}")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            self.app.console.error_log(f"{e}")
 
 
     async def fetch_miner(self, miner_selection, setup_miner_box, progress_bar, miner_folder, file_name, url, tor_enabled):
+        self.app.console.info_log(f"Downloading {miner_folder}... {url}")
         destination = Os.Path.Combine(str(self.app_data), file_name)
         miner_dir = Os.Path.Combine(str(self.app_data), miner_folder)
         if tor_enabled:
@@ -587,6 +655,7 @@ class Utils():
                 async with session.get(url + file_name, timeout=None) as response:
                     if response.status == 200:
                         total_size = int(response.headers.get('content-length', 0))
+                        self.app.console.info_log(f"File size : {self.units.format_bytes(total_size)}")
                         chunk_size = 512
                         downloaded_size = 0
                         self.file_handle = open(destination, 'wb')
@@ -600,6 +669,7 @@ class Utils():
                         self.file_handle.close()
                         self.file_handle = None
                         await session.close()
+                        self.app.console.info_log(f"Download complete")
                         if miner_folder == "MiniZ":
                             miner_name = "miniZ.exe"
                         elif miner_folder =="Gminer":
@@ -632,13 +702,13 @@ class Utils():
                                 progress_bar
                             )
         except ProxyConnectionError:
-            print("Proxy connection failed.")
+            self.app.console.error_log("Proxy connection failed")
         except RuntimeError as e:
-            print(f"RuntimeError caught: {e}")
+            self.app.console.error_log(f"RuntimeError caught: {e}")
         except aiohttp.ClientError as e:
-            print(f"HTTP Error: {e}")
+            self.app.console.error_log(f"HTTP Error: {e}")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            self.app.console.error_log(f"{e}")
         
 
 
@@ -666,7 +736,7 @@ class Utils():
                 archive.extractall(path=bitcoinz_path)
                 self.extract_progress_status = False
         except Exception as e:
-            print(f"Error extracting file: {e}")
+            self.app.console.error_log(e)
 
         Os.File.Delete(combined_file)
 
@@ -729,7 +799,7 @@ sendchangeback=1
 """
                 config_file.write(config_content)
         except Exception as e:
-            print(f"Error creating config file: {e}")
+            self.app.console.error_log(f"{e}")
 
 
     def create_torrc(
@@ -798,6 +868,7 @@ sendchangeback=1
             reg.CloseKey(registry_key)
             return True
         except Exception as e:
+            self.app.console.error_log(f"{e}")
             return None
 
     def remove_from_startup(self):
@@ -808,6 +879,7 @@ sendchangeback=1
             reg.CloseKey(registry_key)
             return True
         except Exception as e:
+            self.app.console.error_log(f"{e}")
             return None
         
 
