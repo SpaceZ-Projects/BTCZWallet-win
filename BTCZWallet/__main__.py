@@ -1,4 +1,7 @@
 
+import ctypes
+import sys
+
 from toga import (
     App, Window, Box, ImageView, Label
 )
@@ -172,6 +175,15 @@ class BitcoinZWallet(App):
 
 
 def main():
+    mutex_name = "Global\\BTCZWalletMutex"
+    kernel32 = ctypes.windll.kernel32
+    kernel32.CreateMutexW(None, False, ctypes.c_wchar_p(mutex_name))
+    last_error = kernel32.GetLastError()
+
+    if last_error == 183:
+        print("Another instance is already running.")
+        sys.exit(0)
+
     app = BitcoinZWallet(
         icon="images/BitcoinZ",
         formal_name = "BTCZWallet",
