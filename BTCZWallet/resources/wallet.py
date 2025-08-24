@@ -341,6 +341,7 @@ class ImportKey(Window):
         self.title = self.tr.title("importkey_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
 
         mode = 0
         if self.utils.get_app_theme() == "dark":
@@ -541,6 +542,7 @@ class ImportWallet(Window):
         self.title = self.tr.title("importwallet_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
 
         mode = 0
         if self.utils.get_app_theme() == "dark":

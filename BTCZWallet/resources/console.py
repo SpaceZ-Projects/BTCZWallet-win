@@ -389,14 +389,13 @@ class Console(Window):
         self.console_output_logs.SelectionColor = Color.WHITE
         self.console_output_logs.ScrollToCaret()
 
-    def shell(self, text, color, bottom:bool = True):
+    def shell(self, text, color):
         self.console_output_shell.SelectionStart = self.console_output_shell.TextLength
         self.console_output_shell.SelectionLength = 0
         self.console_output_shell.SelectionColor = color
         self.console_output_shell.AppendText(text + "\n")
         self.console_output_shell.SelectionColor = Color.WHITE
-        if bottom:
-            self.console_output_shell.ScrollToCaret()
+        self.console_output_shell.ScrollToCaret()
 
 
     def timestamp(self):

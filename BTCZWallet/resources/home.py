@@ -37,6 +37,7 @@ class Languages(Window):
         self.title = self.tr.title("language_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
 
         mode = 0
         if self.utils.get_app_theme() == "dark":
@@ -165,6 +166,7 @@ class Currency(Window):
         self.title = self.tr.title("currency_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
 
         mode = 0
         if self.utils.get_app_theme() == "dark":
@@ -557,7 +559,7 @@ class Home(Box):
                 background_color = rgb(40,43,48),
                 color = WHITE,
                 flex = 1,
-                padding = (0,0,15,0)
+                padding = (15,0,15,0)
             )
         )
         self.halving_label._impl.native.Font = self.font.get(self.tr.size("halving_label"), True)
@@ -569,7 +571,7 @@ class Home(Box):
                 background_color = rgb(40,43,48),
                 color = WHITE,
                 flex = 1,
-                padding_bottom = 15
+                padding = (15,0,15,0)
             )
         )
         self.deprecation_label._impl.native.Font = self.font.get(self.tr.size("halving_label"), True)

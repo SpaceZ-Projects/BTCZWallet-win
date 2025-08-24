@@ -12,8 +12,7 @@ class StorageMarket:
         self.app = app
         self.app_data = self.app.paths.data
         self.data = Os.Path.Combine(str(self.app_data), 'marketplace.dat')
-
-        self.file_stream = Os.FileStream(
+        Os.FileStream(
             self.data,
             Os.FileMode.OpenOrCreate,
             Os.FileAccess.ReadWrite,
@@ -292,8 +291,7 @@ class StorageTxs:
         self.app = app
         self.app_data = self.app.paths.data
         self.data = Os.Path.Combine(str(self.app_data), 'transactions.dat')
-
-        self.file_stream = Os.FileStream(
+        Os.FileStream(
             self.data,
             Os.FileMode.OpenOrCreate,
             Os.FileAccess.ReadWrite,
@@ -439,8 +437,7 @@ class StorageMessages:
         self.app = app
         self.app_data = self.app.paths.data
         self.data = Os.Path.Combine(str(self.app_data), 'messages.dat')
-
-        self.file_stream = Os.FileStream(
+        Os.FileStream(
             self.data,
             Os.FileMode.OpenOrCreate,
             Os.FileAccess.ReadWrite,

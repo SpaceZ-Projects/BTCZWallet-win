@@ -26,8 +26,8 @@ class Units():
         return address_id
     
 
-    def generate_secret_key(self):
-        key_bytes = secrets.token_bytes(256)
+    def generate_secret_key(self, length=256):
+        key_bytes = secrets.token_bytes(length)
         secret_key = base64.urlsafe_b64encode(key_bytes).decode('utf-8')
         return secret_key
     
