@@ -639,7 +639,7 @@ class Console(Window):
                 left = self.main._impl.native.Left
                 top = self.main._impl.native.Top
                 self.utils.capture_screenshot(size, left, top, str(result))
-                self.info_shell(f"Secrenshot saved : {result}")
+                self.info_shell(f"Screenshot saved : {result}")
         self.save_file_dialog(
             title="Save screenshot",
             suggested_filename="BTCZWallet",
