@@ -4,6 +4,8 @@ from datetime import datetime
 import webbrowser
 import json
 import re
+import sys
+import logging
 from PIL import Image
 
 from toga import App, Window, Box, TextInput, Label, ImageView
@@ -15,6 +17,61 @@ from ..framework import (
 from toga.style.pack import Pack
 from toga.colors import rgb, GRAY
 from toga.constants import COLUMN, CENTER, ROW, YELLOW, BLACK
+
+
+SERVER_LEVEL = 25
+logging.addLevelName(SERVER_LEVEL, "SERVER")
+
+
+class Logging:
+    def __init__(self, app:App):
+        self.app = app
+        log_file = Os.Path.Combine(str(self.app.paths.logs), f'log-{self.timestamp()}.log')
+        Os.FileStream(
+            log_file,
+            Os.FileMode.OpenOrCreate,
+            Os.FileAccess.ReadWrite,
+            Os.FileShare.ReadWrite
+        )
+
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
+        self.logger.propagate = False
+
+        if self.logger.hasHandlers():
+            self.logger.handlers.clear()
+
+        stream_handler = logging.StreamHandler(sys.stdout)
+        file_handler = logging.FileHandler(log_file, encoding='utf-8')
+
+        formatter = logging.Formatter(
+            "%(asctime)s | %(levelname)s | %(message)s",
+            "%Y-%m-%d %H:%M:%S"
+        )
+        stream_handler.setFormatter(formatter)
+        file_handler.setFormatter(formatter)
+        self.logger.addHandler(stream_handler)
+        self.logger.addHandler(file_handler)
+        setattr(self.logger, "server", self._server)
+
+    def timestamp(self):
+        return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    def _server(self, message, *args, **kwargs):
+        if self.logger.isEnabledFor(SERVER_LEVEL):
+            self.logger._log(SERVER_LEVEL, message, args, **kwargs)
+
+    def info_log(self, message):
+        self.logger.info(message)
+
+    def error_log(self, message):
+        self.logger.error(message)
+
+    def warning_log(self, message):
+        self.logger.warning(message)
+
+    def server_log(self, message):
+        self.logger.server(message)
 
 
 
@@ -73,6 +130,7 @@ class Console(Window):
 
         self.tooltip = ToolTip()
         self.clipboard = ClipBoard()
+        self.logger = Logging(self.app)
         self.history = ShellHistory(self.app)
 
         self.title = "Console"
@@ -456,6 +514,7 @@ class Console(Window):
 
     def info_log(self, text):
         self.invoke(lambda: self.log(f"{self.timestamp()} - {text}", Color.WHITE))
+        self.logger.info_log(text)
 
     def info_shell(self, text):
         self.invoke(lambda: self.shell(f"{text}", Color.rgb(114,137,218)))
@@ -468,15 +527,18 @@ class Console(Window):
     
     def error_log(self, text):
         self.invoke(lambda: self.log(f"{self.timestamp()} - {text}", Color.RED))
+        self.logger.error_log(text)
     
     def error_shell(self, text):
         self.invoke(lambda: self.shell(f"{self.timestamp()} - {text}", Color.RED))
 
     def warning_log(self, text):
         self.invoke(lambda: self.log(f"{self.timestamp()} - {text}", Color.YELLOW))
+        self.logger.warning_log(text)
 
     def server_log(self, text):
         self.invoke(lambda: self.log(f"{self.timestamp()} - {text}", Color.GREEN))
+        self.logger.server_log(text)
 
     def mining_log(self, text):
         self.invoke(lambda: self.log(f"{self.timestamp()} - {text}", Color.CYAN))
