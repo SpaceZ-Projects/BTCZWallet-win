@@ -418,6 +418,7 @@ class BTCZSetup(Box):
                     self.status_label.text = f"%{percent_ar}{text}"
                 else:
                     self.status_label.text = f"{text}{percent}%"
+                self.app.console.info_log(f"{text}{percent}%")
                 self.progress_bar.value = percent
                 if percent == 100:
                     return True
@@ -638,6 +639,7 @@ class BTCZSetup(Box):
                                 tooltip_text += f"\n{address} - {self.units.format_bytes(bytesrecv)}"
                                 
                         bitcoinz_size = int(self.utils.get_bitcoinz_size())
+                        sync_percentage = sync * 100
                         sync_percentage_str = f"%{float(sync_percentage):.2f}"
                         if self.rtl:
                             blocks = self.units.arabic_digits(str(blocks))
@@ -651,7 +653,7 @@ class BTCZSetup(Box):
                         self.progress_bar.value = int(sync_percentage)
                         self.tooltip.insert(self.progress_bar._impl.native, tooltip_text)
                         tooltip_text = f"Seeds :"
-                        self.app.console.info_log(f"Blocks : {blocks} - Synchronization : {sync_percentage:.2f}")
+                        self.app.console.info_log(f"Blocks : {blocks} - Synchronization : {sync_percentage:.2f}%")
                         if sync_percentage > 99.95:
                             await self.open_main_menu()
                             return

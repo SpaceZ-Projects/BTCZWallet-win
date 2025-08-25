@@ -855,12 +855,15 @@ class Menu(Window):
         bounds = self._impl.native.Bounds
         screen = Forms.Screen.FromControl(self._impl.native)
         wa = screen.WorkingArea
-
+        self.stored_size = self._impl.native.Size
         if state == FormState.NORMAL:
             if Forms.Control.MouseButtons & Forms.MouseButtons.Left:
-                min_width = 916
-                min_height = 646
-                self._impl.native.MinimumSize = Drawing.Size(min_width, min_height)
+                if self._is_minimized:
+                    self._impl.native.Size = self.stored_size
+                else:
+                    min_width = 916
+                    min_height = 646
+                    self._impl.native.MinimumSize = Drawing.Size(min_width, min_height)
             if (bounds.X < wa.X and
                 bounds.Y == wa.Y and
                 bounds.Height >= wa.Height):
@@ -873,7 +876,7 @@ class Menu(Window):
             else:
                 self._is_snapped_left = None
                 self._is_snapped_right = None
-
+            
             self._is_minimized = None
             self._is_maximized = None
 
@@ -886,15 +889,15 @@ class Menu(Window):
             return
 
         elif state == FormState.MINIMIZED:
+            self.stored_size = self._impl.native.Size
             self._is_minimized = True
-            self._is_maximized = False
+            self._is_maximized = None
 
         elif state == FormState.MAXIMIZED:
-            self._is_minimized = False
+            self._is_minimized = None
             self._is_maximized = True
             if self.console_toggle:
                 self.app.console.move_inside()
-
 
 
     def _hadler_on_move(self, sender, event):

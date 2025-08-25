@@ -391,6 +391,7 @@ class Console(Window):
         self.detach_toggle = None
         self.resize()
         self.move()
+        self.main._impl.native.Activate()
 
 
     def _on_console_move(self, sender, event):
@@ -845,4 +846,5 @@ class Console(Window):
 
 
     def on_close_console(self, widget):
-        self.attach_console()
+        self.hide()
+        self.main.console_toggle = None
