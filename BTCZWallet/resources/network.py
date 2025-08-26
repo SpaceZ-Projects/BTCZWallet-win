@@ -39,6 +39,7 @@ class AddNode(Window):
         self.size = (550, 120)
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
 
         mode = 0
         if self.utils.get_app_theme() == "dark":
@@ -263,6 +264,7 @@ class TorConfig(Window):
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
         self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
 
         mode = 0
         if self.utils.get_app_theme() == "dark":
@@ -739,6 +741,7 @@ class NodeInfo(Window):
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
         self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
 
         mode = 0
         if self.utils.get_app_theme() == "dark":

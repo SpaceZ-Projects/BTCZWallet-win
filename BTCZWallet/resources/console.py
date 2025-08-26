@@ -345,6 +345,7 @@ class Console(Window):
                 self._impl.native.Top = self.main._impl.native.Bottom + 15
                 self._impl.native.Left = self.main._impl.native.Left - 30
             else:
+                self.main._impl.native.Owner = self._impl.native
                 self.tabs_box.insert(0, self.detach_button)
                 self._impl.native.Top = self.main._impl.native.Bottom - 8
             if self.main._is_maximized or self.main._is_snapped_left or self.main._is_snapped_right:
@@ -377,18 +378,20 @@ class Console(Window):
             mode = 1
         self.utils.apply_title_bar_mode(self, mode)
         self._impl.native.FormBorderStyle = FormBorderStyle.SIZABLE
+        self.main._impl.native.Owner = None
         self._impl.native.Top = self.main._impl.native.Bottom + 15
         self._impl.native.Left = self.main._impl.native.Left - 30
         self.show()
         self.detach_toggle = True
 
     def attach_console(self):
-        self.tabs_box.insert(0, self.detach_button)
+        self.detach_toggle = None
         self.hide()
+        self.tabs_box.insert(0, self.detach_button)
         self._impl.native.ShowInTaskbar = False
         self._impl.native.FormBorderStyle = FormBorderStyle.NONE
+        self.main._impl.native.Owner = self._impl.native
         self.show()
-        self.detach_toggle = None
         self.resize()
         self.move()
         self.main._impl.native.Activate()
@@ -397,7 +400,7 @@ class Console(Window):
     def _on_console_move(self, sender, event):
         if self.detach_toggle:
             side = self.detect_touch(self.main._impl.native, self._impl.native)
-            if side:
+            if side and not self.main._is_maximized:
                 self.attach_console()
 
 
@@ -468,6 +471,7 @@ class Console(Window):
 
     def move_inside(self):
         if not self.detach_toggle:
+            self.tabs_box.remove(self.detach_button)
             self.main_box.remove(self.console_box)
             self.main.main_box.insert(4, self.console_box)
             if self.log_toggle:
@@ -482,6 +486,7 @@ class Console(Window):
             self.size = (self.main.size.width + 2, int(self.main.size.height / 3))
             self.main.main_box.remove(self.console_box)
             self.main_box.add(self.console_box)
+            self.tabs_box.insert(0, self.detach_button)
             self.show()
             if self.log_toggle:
                 self.console_output_logs.ScrollToCaret()
@@ -567,9 +572,9 @@ class Console(Window):
                 " → appcache :   Open the application cache directory\n"
                 " → applogs :   Open the application logs directory\n"
                 " → capture :   captures the application current visual state\n"
-                " → record start/stop :   Record the current application window as an animated GIF (16 FPS)\n"
+                " → record start/stop :   Record the current application window as an animated GIF (10 FPS)\n"
                 "================================================\n"
-                " → merge <address>: ! Merge all transparent balances from your wallet into a single address\n"
+                " → merge <address> : ! Merge all transparent balances from your wallet into a single address\n"
                 "                     Usage: merge <address>\n"
                 "                     Example: merge t1abc123def...\n\n"
                 "================================================\n"
@@ -703,6 +708,9 @@ class Console(Window):
                 top = self.main._impl.native.Top
                 self.utils.capture_screenshot(size, left, top, str(result))
                 self.info_shell(f"Screenshot saved : {result}")
+        if self.recording:
+            self.error_shell("Cannot take a screenshot while recording is active.")
+            return
         self.save_file_dialog(
             title="Save screenshot",
             suggested_filename="BTCZWallet",
@@ -750,24 +758,25 @@ class Console(Window):
         self.recording = None
         if not self.recording_temp:
             return
-        files = list(Os.Directory.GetFiles(self.recording_temp, "frame_*.png"))
-        files.sort()
-        if not files:
-            return
-        self.info_shell(f"Saving record...")
-        frames = [Image.open(f) for f in files]
-        frames[0].save(
-            self.recording_path,
-            save_all=True,
-            append_images=frames[1:],
-            duration=160,
-            loop=0
-        )
-        frames.clear()
-        for f in files:
-            Os.File.Delete(f)
-        Os.Directory.Delete(self.recording_temp)
-        self.info_shell(f"Record saved : {self.recording_path}")
+        try:
+            files = list(Os.Directory.GetFiles(self.recording_temp, "frame_*.png"))
+            files.sort()
+            if not files:
+                return
+            self.info_shell(f"Saving record...")
+            frames = [Image.open(f) for f in files]
+            frames[0].save(
+                self.recording_path,
+                save_all=True,
+                append_images=frames[1:],
+                duration=100,
+                loop=0
+            )
+            frames.clear()
+            Os.Directory.Delete(self.recording_temp, True)
+            self.info_shell(f"Record saved : {self.recording_path}")
+        except Exception as e:
+            self.error_shell(f"{e}")
         self.recording_temp = None
 
 

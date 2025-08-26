@@ -17,7 +17,7 @@ from aiohttp_socks import ProxyConnector, ProxyConnectionError, ProxyError
 import ipaddress
 import ctypes
 import io
-from PIL import Image
+from PIL import Image, ImageFilter
 
 from toga import App
 from ..framework import (
@@ -205,19 +205,45 @@ class Utils():
 
     def capture_screenshot(self, size, left, top, path):
         try:
-            bmp = Drawing.Bitmap(size.Width - 14, size.Height - 7)
+            bmp = Drawing.Bitmap(size.Width - 15, size.Height - 8)
             g = Drawing.Graphics.FromImage(bmp)
-            g.CopyFromScreen(Drawing.Point(left + 7, top), Drawing.Point(0, 0), size)
-            bmp.Save(path, Drawing.Imaging.ImageFormat.Png)
+            g.CopyFromScreen(Drawing.Point(left + 8, top + 1), Drawing.Point(1, 1), bmp.Size)
+            stream = Os.MemoryStream()
+            bmp.Save(stream, Drawing.Imaging.ImageFormat.Png)
+            data = stream.ToArray()
+            img = Image.open(io.BytesIO(data)).convert("RGBA")
+            shadow_offset = (18, 18)
+            shadow = Image.new("RGBA", (img.width + shadow_offset[0]*2, img.height + shadow_offset[1]*2), (0, 0, 0, 0))
+            base = Image.new("RGBA", img.size, (0, 0, 0, 210))
+            shadow.paste(base, shadow_offset)
+            shadow = shadow.filter(ImageFilter.GaussianBlur(11))
+            final_img = Image.new("RGBA", shadow.size, (0, 0, 0, 0))
+            final_img.alpha_composite(shadow, (0, 0))
+            final_img.alpha_composite(img, (shadow_offset[0], shadow_offset[1]))
+            final_img.save(path, "PNG")
         finally:
             g.Dispose()
             bmp.Dispose()
+            stream.Dispose()
 
 
     def record_screen(self, size, left, top):
-        bmp = Drawing.Bitmap(size.Width - 14, size.Height - 7)
+        bmp = Drawing.Bitmap(size.Width - 15, size.Height - 8)
         g = Drawing.Graphics.FromImage(bmp)
-        g.CopyFromScreen(Drawing.Point(left + 7, top), Drawing.Point(0, 0), bmp.Size)
+        g.CopyFromScreen(Drawing.Point(left + 8, top + 1), Drawing.Point(1, 1), bmp.Size)
+        cursor_pos = Forms.Cursor.Position
+        rel_x = cursor_pos.X - (left + 7)
+        rel_y = cursor_pos.Y - top
+
+        if 0 <= rel_x < bmp.Width and 0 <= rel_y < bmp.Height:
+            Forms.Cursors.Default.Draw(
+                g,
+                Drawing.Rectangle(
+                    rel_x, rel_y,
+                    Forms.Cursors.Default.Size.Width,
+                    Forms.Cursors.Default.Size.Height
+                )
+            )
         try:
             stream = Os.MemoryStream()
             bmp.Save(stream, Drawing.Imaging.ImageFormat.Png)

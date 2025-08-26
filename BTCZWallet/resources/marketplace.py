@@ -54,6 +54,7 @@ class DisplayImage(Window):
         position_center = utils.windows_screen_center(self.size)
         self.position = position_center
         self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
 
         mode = 0
         if self.utils.get_app_theme() == "dark":
@@ -132,6 +133,7 @@ class PlaceOrder(Window):
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
         self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
 
         mode = 0
         if self.utils.get_app_theme() == "dark":
@@ -1572,6 +1574,7 @@ class AddItem(Window):
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
         self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
 
         mode = 0
         if self.utils.get_app_theme() == "dark":
@@ -2043,6 +2046,7 @@ class AddQuantity(Window):
         position_center = self.utils.windows_screen_center(self.size)
         self.position = position_center
         self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
 
         mode = 0
         if self.utils.get_app_theme() == "dark":

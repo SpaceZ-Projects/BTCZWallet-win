@@ -8,7 +8,7 @@ from toga import (
 )
 from ..framework import (
     Drawing, Color, Sys, FormState, Os, FlatStyle,
-    Relation, AlignContent, Forms
+    Relation, AlignContent, Forms, FormBorderStyle
 )
 
 from toga.style.pack import Pack
@@ -48,6 +48,7 @@ class Menu(Window):
         self.peer_toggle = None
         self.marketplace_toggle = None
         self.console_toggle = None
+        self.stored_size = None
 
         self.commands = commands
         self.units = units
@@ -61,6 +62,7 @@ class Menu(Window):
         self._impl.native.BackColor = Color.rgb(30,33,36)
 
         self.app.console.main = self
+        self._impl.native.Owner = self.app.console._impl.native
 
         self.storage = StorageMessages(self.app)
         self.market_storage = StorageMarket(self.app)
@@ -882,7 +884,15 @@ class Menu(Window):
 
             if self.console_toggle:
                 if self._is_snapped_left or self._is_snapped_right:
-                    self.app.console.move_inside()
+                    if self.app.console.detach_toggle:
+                        self.app.console.hide()
+                        self.app.console._impl.native.ShowInTaskbar = False
+                        self.app.console._impl.native.FormBorderStyle = FormBorderStyle.NONE
+                        self._impl.native.Owner = None
+                        self.console_toggle = None
+                        self.app.console.detach_toggle = None
+                    else:
+                        self.app.console.move_inside()
                 else:
                     self.app.console.move_outside()
                 self.app.console.resize()
@@ -896,6 +906,14 @@ class Menu(Window):
         elif state == FormState.MAXIMIZED:
             self._is_minimized = None
             self._is_maximized = True
+            if self.app.console.detach_toggle:
+                self.app.console.hide()
+                self.app.console._impl.native.ShowInTaskbar = False
+                self.app.console._impl.native.FormBorderStyle = FormBorderStyle.NONE
+                self._impl.native.Owner = None
+                self.console_toggle = None
+                self.app.console.detach_toggle = None
+                return
             if self.console_toggle:
                 self.app.console.move_inside()
 
@@ -905,15 +923,6 @@ class Menu(Window):
             self.app.console.move()
 
     def _handle_on_activated(self, sender, event):
-        if not self._is_active and not self.app.console._is_active:
-            self.app.add_background_task(self._bring_console)
-
-    async def _bring_console(self, widget):
-        if self._is_active:
-            return
-        self.app.console._impl.native.TopMost = True
-        self.app.console._impl.native.TopMost = False
-        self._impl.native.Activate()
         self._is_active = True
 
 

@@ -52,6 +52,7 @@ class EditUser(Window):
         self.title = self.tr.title("edituser_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
 
         mode = 0
         if self.utils.get_app_theme() == "dark":
@@ -230,6 +231,7 @@ class Indentifier(Window):
         self.title = self.tr.title("newmessenger_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
 
         mode = 0
         if self.utils.get_app_theme() == "dark":
@@ -1097,6 +1099,7 @@ class NewContact(Window):
         self.title = self.tr.title("addcontact_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
 
         mode = 0
         if self.utils.get_app_theme() == "dark":
@@ -1356,6 +1359,7 @@ class PendingList(Window):
         self.title = self.tr.title("pendinglist_window")
         self.position = self.utils.windows_screen_center(self.size)
         self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
 
         mode = 0
         if self.utils.get_app_theme() == "dark":
