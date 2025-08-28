@@ -5,10 +5,18 @@ from pathlib import Path
 from typing import Optional, Union, List, Callable
 import re
 import inspect
+import math
+
+clr.AddReference(r"C:\Windows\Microsoft.NET\Framework64\v4.0.30319\WPF\PresentationFramework.dll")
+clr.AddReference(r"C:\Windows\Microsoft.NET\Framework64\v4.0.30319\WPF\WindowsFormsIntegration.dll")
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Drawing')
 clr.AddReference('System.Threading')
+clr.AddReference("WindowsFormsIntegration")
+clr.AddReference('PresentationCore')
+clr.AddReference("PresentationFramework")
+clr.AddReference("WindowsBase")
 
 import System as Sys
 import System.IO as Os
@@ -16,6 +24,16 @@ import System.Drawing as Drawing
 import System.Windows.Forms as Forms
 import System.Threading.Tasks as Tasks
 import Microsoft.Win32 as Win32
+
+from System.Windows.Media.Media3D import (
+    PerspectiveCamera, DirectionalLight, Model3DGroup, GeometryModel3D, MeshGeometry3D,
+    Point3D, Vector3D, DiffuseMaterial, ModelVisual3D, AxisAngleRotation3D, RotateTransform3D
+)
+from System.Windows import Point
+from System.Windows.Media import Colors, SolidColorBrush, ImageBrush, Stretch
+from System.Windows.Media.Imaging import BitmapImage
+from System.Windows.Controls import Viewport3D, UserControl
+from System.Windows.Threading import DispatcherTimer
 
 
 
@@ -195,6 +213,138 @@ class CustomFont:
         if key not in self.font_cache:
             self.font_cache[key] = Drawing.Font(self.font_family, size, style)
         return self.font_cache[key]
+    
+
+
+class BTCZControl(UserControl):
+    def __init__(self, face_image, back_image):
+
+        UserControl.__init__(self)
+        self.viewport = Viewport3D()
+        self.Content = self.viewport
+
+        radius = 1.0
+        thickness = 0.2
+        segments = 64
+
+        camera = PerspectiveCamera()
+        camera.Position = Point3D(0, 3, 0)
+        camera.LookDirection = Vector3D(0, -1, 0)
+        camera.UpDirection = Vector3D(0, 0, -1)
+        camera.FieldOfView = 60
+        self.viewport.Camera = camera
+
+        light1 = DirectionalLight(Colors.White, Vector3D(-1, -2, 1))
+        light2 = DirectionalLight(Colors.White, Vector3D(1, 2, -1))
+
+        mesh = self.create_coin_mesh(radius, thickness, segments)
+        body_material = DiffuseMaterial(SolidColorBrush(Colors.Gold))
+        self.coin_model = GeometryModel3D(mesh, body_material)
+
+        face_path = Os.Path.Combine(get_app_path(), face_image)
+        top_uri = Sys.Uri(face_path, Sys.UriKind.Absolute)
+        top_brush = ImageBrush(BitmapImage(top_uri))
+        top_brush.Stretch = Stretch.Fill
+        self.top_face_model = self.create_face(radius, thickness/2, segments, top_brush, is_top=True)
+
+        back_path = Os.Path.Combine(get_app_path(), back_image)
+        bottom_uri = Sys.Uri(back_path, Sys.UriKind.Absolute)
+        bottom_brush = ImageBrush(BitmapImage(bottom_uri))
+        bottom_brush.Stretch = Stretch.Fill
+        self.bottom_face_model = self.create_face(radius, -thickness/2, segments, bottom_brush, is_top=False)
+
+        self.group = Model3DGroup()
+        self.group.Children.Add(light1)
+        self.group.Children.Add(light2)
+        self.group.Children.Add(self.coin_model)
+        self.group.Children.Add(self.top_face_model)
+        self.group.Children.Add(self.bottom_face_model)
+
+        self.rotation = AxisAngleRotation3D(Vector3D(0, 0, 1), 0)
+        rotate_transform = RotateTransform3D(self.rotation)
+        self.group.Transform = rotate_transform
+
+        visual = ModelVisual3D()
+        visual.Content = self.group
+        self.viewport.Children.Add(visual)
+
+        self.timer = DispatcherTimer()
+        self.timer.Interval = Sys.TimeSpan.FromMilliseconds(20)
+        self.timer.Tick += self.update_rotation
+        self.timer.Start()
+
+    
+    def create_coin_mesh(self, radius=1.0, thickness=0.2, segments=64):
+        mesh = MeshGeometry3D()
+        top_center = Point3D(0, thickness/2, 0)
+        bottom_center = Point3D(0, -thickness/2, 0)
+        mesh.Positions.Add(top_center)
+        mesh.Positions.Add(bottom_center)
+
+        for i in range(segments):
+            angle = 2 * math.pi * i / segments
+            x = radius * math.cos(angle)
+            z = radius * math.sin(angle)
+            mesh.Positions.Add(Point3D(x, thickness/2, z))
+            mesh.Positions.Add(Point3D(x, -thickness/2, z))
+
+        for i in range(segments):
+            next_i = (i + 1) % segments
+            top_i = 2 + i*2
+            bottom_i = top_i + 1
+            next_top_i = 2 + next_i*2
+            next_bottom_i = next_top_i + 1
+
+            mesh.TriangleIndices.Add(0)
+            mesh.TriangleIndices.Add(next_top_i)
+            mesh.TriangleIndices.Add(top_i)
+
+            mesh.TriangleIndices.Add(1)
+            mesh.TriangleIndices.Add(bottom_i)
+            mesh.TriangleIndices.Add(next_bottom_i)
+
+            mesh.TriangleIndices.Add(top_i)
+            mesh.TriangleIndices.Add(next_top_i)
+            mesh.TriangleIndices.Add(bottom_i)
+
+            mesh.TriangleIndices.Add(next_top_i)
+            mesh.TriangleIndices.Add(next_bottom_i)
+            mesh.TriangleIndices.Add(bottom_i)
+
+        return mesh
+    
+    def create_face(self, radius, y_pos, segments, brush, is_top=True):
+        mesh = MeshGeometry3D()
+        mesh.Positions.Add(Point3D(0, y_pos, 0))
+        mesh.TextureCoordinates.Add(Point(0.5, 0.5))
+        for i in range(segments):
+            angle = 2 * math.pi * i / segments
+            x = radius * math.cos(angle)
+            z = radius * math.sin(angle)
+            mesh.Positions.Add(Point3D(x, y_pos, z))
+            u = 0.5 + (x / (2 * radius))
+            v = 0.5 + (z / (2 * radius))
+            mesh.TextureCoordinates.Add(Point(u, v))
+
+        for i in range(segments):
+            next_i = (i + 1) % segments
+            if is_top:
+                mesh.TriangleIndices.Add(0)
+                mesh.TriangleIndices.Add(next_i + 1)
+                mesh.TriangleIndices.Add(i + 1)
+            else:
+                mesh.TriangleIndices.Add(0)
+                mesh.TriangleIndices.Add(i + 1)
+                mesh.TriangleIndices.Add(next_i + 1)
+
+        material = DiffuseMaterial(brush)
+        return GeometryModel3D(mesh, material)
+    
+
+    def update_rotation(self, sender, e):
+        self.rotation.Angle += 3
+        if self.rotation.Angle >= 360:
+            self.rotation.Angle = 0
 
 
 class Separator(Forms.ToolStripSeparator):

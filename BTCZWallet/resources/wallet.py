@@ -3,11 +3,12 @@ import asyncio
 import json
 
 from toga import (
-    App, Box, Label, ImageView, Window, TextInput,
+    App, Box, Label, Window, TextInput,
     Button, ProgressBar
 )
 from ..framework import (
-    Cursors, FlatStyle, Forms, ProgressStyle, Os
+    Cursors, FlatStyle, Forms, ProgressStyle, Os, DockStyle,
+    BTCZControl
 )
 from toga.style.pack import Pack
 from toga.colors import (
@@ -47,8 +48,14 @@ class Wallet(Box):
             if lang == "Arabic":
                 self.rtl = True
 
-        self.bitcoinz_logo = ImageView(
-            image="images/BitcoinZ.png",
+        face_image = "images/bitcoinz_face.png"
+        back_image = "images/bitcoinz_back.png"
+        host = Forms.Integration.ElementHost()
+        host.Dock = DockStyle.FILL
+        btcz_control = BTCZControl(face_image, back_image)
+        host.Child = btcz_control
+
+        self.bitcoinz_logo = Box(
             style=Pack(
                 width=100,
                 height=100,
@@ -56,6 +63,8 @@ class Wallet(Box):
                 padding = self.tr.padding("bitcoinz_logo"),
             )
         )
+        self.bitcoinz_logo._impl.native.Controls.Add(host)
+
         self.bitcoinz_title = Label(
             text=self.tr.text("bitcoinz_title"),
             style=Pack(
