@@ -20,7 +20,7 @@ from toga.colors import (
     rgb, GRAY, WHITE, YELLOW, BLACK, RED
 )
 
-from .storage import StorageMessages, StorageTxs
+from .storage import StorageMessages, StorageTxs, StorageAddresses
 
 
 class Send(Box):
@@ -36,7 +36,7 @@ class Send(Box):
 
         self.send_toggle = None
         self.transparent_toggle = None
-        self.private_toggle = None
+        self.shielded_toggle = None
         self.is_valid_toggle = None
         self.z_addresses_limit_toggle = None
 
@@ -50,6 +50,7 @@ class Send(Box):
 
         self.storagemsgs = StorageMessages(self.app)
         self.storagetxs = StorageTxs(self.app)
+        self.addresses_storage = StorageAddresses(self.app)
         self.tooltip = ToolTip()
 
         self.rtl = None
@@ -71,7 +72,7 @@ class Send(Box):
 
         self.transparent_button = Box(
             style=Pack(
-                direction = ROW,
+                direction = COLUMN,
                 background_color = rgb(30,33,36),
                 flex = 1,
                 alignment = CENTER
@@ -83,7 +84,8 @@ class Send(Box):
                 color = GRAY,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                flex = 1
+                flex = 1,
+                padding = (0,0,3,0)
             )
         )
         self.transparent_label._impl.native.Font = self.font.get(self.tr.size("transparent_label"), True)
@@ -93,30 +95,46 @@ class Send(Box):
         self.transparent_label._impl.native.MouseLeave += self.transparent_button_mouse_leave
         self.transparent_button._impl.native.Click += self.transparent_button_click
         self.transparent_label._impl.native.Click += self.transparent_button_click
-        self.private_button = Box(
+
+        self.transparent_line = Box(
             style=Pack(
-                direction = ROW,
+                background_color = rgb(30,33,36),
+                height = 2
+            )
+        )
+
+        self.shielded_button = Box(
+            style=Pack(
+                direction = COLUMN,
                 background_color = rgb(30,33,36),
                 flex = 1,
                 alignment = CENTER
             )
         )
-        self.private_label = Label(
-            text=self.tr.text("private_label"),
+        self.shielded_label = Label(
+            text=self.tr.text("shielded_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                flex = 1
+                flex = 1,
+                padding = (0,0,3,0)
             )
         )
-        self.private_label._impl.native.Font = self.font.get(self.tr.size("private_label"), True)
-        self.private_button._impl.native.MouseEnter += self.private_button_mouse_enter
-        self.private_label._impl.native.MouseEnter += self.private_button_mouse_enter
-        self.private_button._impl.native.MouseLeave += self.private_button_mouse_leave
-        self.private_label._impl.native.MouseLeave += self.private_button_mouse_leave
-        self.private_button._impl.native.Click += self.private_button_click
-        self.private_label._impl.native.Click += self.private_button_click
+        self.shielded_label._impl.native.Font = self.font.get(self.tr.size("shielded_label"), True)
+        self.shielded_button._impl.native.MouseEnter += self.shielded_button_mouse_enter
+        self.shielded_label._impl.native.MouseEnter += self.shielded_button_mouse_enter
+        self.shielded_button._impl.native.MouseLeave += self.shielded_button_mouse_leave
+        self.shielded_label._impl.native.MouseLeave += self.shielded_button_mouse_leave
+        self.shielded_button._impl.native.Click += self.shielded_button_click
+        self.shielded_label._impl.native.Click += self.shielded_button_click
+
+        self.shielded_line = Box(
+            style=Pack(
+                background_color = rgb(30,33,36),
+                height = 2
+            )
+        )
 
         self.from_address_label = Label(
             text=self.tr.text("from_address_label"),
@@ -506,19 +524,21 @@ class Send(Box):
             )
             if self.rtl:
                 self.switch_box.add(
-                    self.private_button,
+                    self.shielded_button,
                     self.transparent_button
                 )
             else:
                 self.switch_box.add(
                     self.transparent_button,
-                    self.private_button
+                    self.shielded_button
                 )
             self.transparent_button.add(
-                self.transparent_label
+                self.transparent_label,
+                self.transparent_line
             )
-            self.private_button.add(
-                self.private_label
+            self.shielded_button.add(
+                self.shielded_label,
+                self.shielded_line
             )
             if self.rtl:
                 self.selection_address_box.add(
@@ -617,6 +637,7 @@ class Send(Box):
             self.send_toggle = True
             self.insert_menustrip()
             self.transparent_button_click(None, None)
+            self.app.add_background_task(self.update_address_balance)
         
 
     def insert_menustrip(self):
@@ -744,7 +765,8 @@ class Send(Box):
         self.transparent_label.style.color = YELLOW
         self.transparent_label.style.background_color = rgb(66,69,73)
         self.transparent_button.style.background_color = rgb(66,69,73)
-        self.app.add_background_task(self.update_send_options)
+        self.transparent_line.style.background_color = YELLOW
+        self.update_send_options()
 
     
     def transparent_button_mouse_enter(self, sender, event):
@@ -762,62 +784,70 @@ class Send(Box):
         self.transparent_button.style.background_color = rgb(30,33,36)
 
     
-    def private_button_click(self, sender, event):
+    def shielded_button_click(self, sender, event):
         self.clear_buttons()
-        self.private_toggle = True
-        self.private_button._impl.native.Click -= self.private_button_click
-        self.private_label._impl.native.Click -= self.private_button_click
-        self.private_label.style.color = rgb(114,137,218)
-        self.private_label.style.background_color = rgb(66,69,73)
-        self.private_button.style.background_color = rgb(66,69,73)
-        self.app.add_background_task(self.update_send_options)
+        self.shielded_toggle = True
+        self.shielded_button._impl.native.Click -= self.shielded_button_click
+        self.shielded_label._impl.native.Click -= self.shielded_button_click
+        self.shielded_label.style.color = rgb(114,137,218)
+        self.shielded_label.style.background_color = rgb(66,69,73)
+        self.shielded_button.style.background_color = rgb(66,69,73)
+        self.shielded_line.style.background_color = rgb(114,137,218)
+        self.update_send_options()
 
     
-    def private_button_mouse_enter(self, sender, event):
-        if self.private_toggle:
+    def shielded_button_mouse_enter(self, sender, event):
+        if self.shielded_toggle:
             return
-        self.private_label.style.color = WHITE
-        self.private_label.style.background_color = rgb(66,69,73)
-        self.private_button.style.background_color = rgb(66,69,73)
+        self.shielded_label.style.color = WHITE
+        self.shielded_label.style.background_color = rgb(66,69,73)
+        self.shielded_button.style.background_color = rgb(66,69,73)
 
-    def private_button_mouse_leave(self, sender, event):
-        if self.private_toggle:
+    def shielded_button_mouse_leave(self, sender, event):
+        if self.shielded_toggle:
             return
-        self.private_label.style.color = GRAY
-        self.private_label.style.background_color = rgb(30,33,36)
-        self.private_button.style.background_color = rgb(30,33,36)
+        self.shielded_label.style.color = GRAY
+        self.shielded_label.style.background_color = rgb(30,33,36)
+        self.shielded_button.style.background_color = rgb(30,33,36)
 
-    async def update_send_options(self, widegt):
-        if self.transparent_toggle:
-            selection_items = await self.get_transparent_addresses()
-        if self.private_toggle:
-            selection_items = await self.get_private_addresses()
-
-        self.address_selection.items.clear()
-        self.address_selection.items = selection_items
+    def update_send_options(self):
+        if self.send_toggle:
+            if self.transparent_toggle:
+                address_type = "transparent"
+            if self.shielded_toggle:
+                address_type = "shielded"
+            selection_items = self.addresses_storage.get_addresses(address_type=address_type)
+            selection_items.sort(key=lambda x: x[3], reverse=True)
+            self.address_selection.items.clear()
+            for item in selection_items:
+                address = item[2]
+                self.address_selection.items.append(address)
+            self.set_slow_fee()
 
     def clear_buttons(self):
         if self.transparent_toggle:
             self.transparent_label.style.color = GRAY
             self.transparent_label.style.background_color = rgb(30,33,36)
             self.transparent_button.style.background_color = rgb(30,33,36)
+            self.transparent_line.style.background_color = rgb(30,33,36)
             self.transparent_button._impl.native.Click += self.transparent_button_click
             self.transparent_label._impl.native.Click += self.transparent_button_click
             self.transparent_toggle = None
 
-        elif self.private_toggle:
-            self.private_label.style.color = GRAY
-            self.private_label.style.background_color = rgb(30,33,36)
-            self.private_button.style.background_color = rgb(30,33,36)
-            self.private_button._impl.native.Click += self.private_button_click
-            self.private_label._impl.native.Click += self.private_button_click
-            self.private_toggle = None
+        elif self.shielded_toggle:
+            self.shielded_label.style.color = GRAY
+            self.shielded_label.style.background_color = rgb(30,33,36)
+            self.shielded_button.style.background_color = rgb(30,33,36)
+            self.shielded_line.style.background_color = rgb(30,33,36)
+            self.shielded_button._impl.native.Click += self.shielded_button_click
+            self.shielded_label._impl.native.Click += self.shielded_button_click
+            self.shielded_toggle = None
 
     def send_button_mouse_enter(self, sender, event):
         self.send_button.style.color = BLACK
         if self.transparent_toggle:
             self.send_button.style.background_color = YELLOW
-        elif self.private_toggle:
+        elif self.shielded_toggle:
             self.send_button.style.background_color = rgb(114,137,218)
 
     def send_button_mouse_leave(self, sender, event):
@@ -881,62 +911,58 @@ class Send(Box):
 
     def set_fast_fee(self):
         self.fee_input.value = "0.00010000"
-
-
-    async def get_transparent_addresses(self):
-        addresses_data, _ = await self.commands.ListAddresses()
-        if addresses_data:
-            addresses_data = json.loads(addresses_data)
-        else:
-            addresses_data = []
-            
-        if addresses_data is not None:
-            address_items = [(address_info, address_info) for address_info in addresses_data]
-        else:
-            address_items = []
-        return address_items
-    
-    
-    async def get_private_addresses(self):
-        addresses_data, _ = await self.commands.z_listAddresses()
-        if addresses_data:
-            addresses_data = json.loads(addresses_data)
-            
-        if addresses_data is not None:
-            address_items = [(address, address) for address in addresses_data]
-        else:
-            address_items = []
-        return address_items
     
     
     async def display_address_balance(self, selection):
         self.format_balance = 0
         if selection.value is None:
-            self.address_balance.text = "0.00000000"
+            self.address_balance.text = self.tr.text("address_balance_value")
             return
         self.amount_input.value = ""
         selected_address = selection.value.select_address
         self.tooltip.insert(self.address_selection._impl.native, selected_address)
-        if selected_address:
-            self.single_option.enabled = True
-            self.many_option.enabled =True
-            if self.many_option.value is False:
-                self.update_fees_option(True)
-            balance, _ = await self.commands.z_getBalance(selected_address)
-            if balance:
-                if float(balance) <= 0:
-                    self.address_balance.style.color = GRAY
-                else:
-                    self.address_balance.style.color = WHITE
+        self.single_option.enabled = True
+        self.many_option.enabled =True
+        if self.many_option.value is False:
+            self.update_fees_option(True)
+        balance = self.addresses_storage.get_address_balance(selected_address)
+        if float(balance) > 0:
+            self.address_balance.style.color = WHITE
+            self.format_balance = self.units.format_balance(float(balance))
+            if self.rtl:
+                format_balance = self.units.arabic_digits(str(self.format_balance))
+            else:
+                format_balance = self.format_balance
+            self.address_balance.text = format_balance    
+        else:
+            self.address_balance.style.color = GRAY
+            self.address_balance.text = self.tr.text("address_balance_value")
+
+
+    async def update_address_balance(self, widget):
+        self.format_balance = 0
+        while True:
+            if not self.send_toggle:
+                await asyncio.sleep(1)
+                continue
+            if self.address_selection.value is None:
+                self.address_balance.text = self.tr.text("address_balance_value")
+                await asyncio.sleep(1)
+                continue
+            selected_address = self.address_selection.value.select_address
+            balance = self.addresses_storage.get_address_balance(selected_address)
+            if float(balance) > 0:
+                self.address_balance.style.color = WHITE
                 self.format_balance = self.units.format_balance(float(balance))
                 if self.rtl:
                     format_balance = self.units.arabic_digits(str(self.format_balance))
                 else:
                     format_balance = self.format_balance
-                self.address_balance.text = format_balance
-        else:
-            self.format_balance = 0
-            self.address_balance.text = self.tr.text("address_balance_value")
+                self.address_balance.text = format_balance    
+            else:
+                self.address_balance.style.color = GRAY
+                self.address_balance.text = self.tr.text("address_balance_value")
+            await asyncio.sleep(3)
 
 
     async def single_option_on_change(self, switch):
@@ -999,12 +1025,6 @@ class Send(Box):
 
 
     async def clear_inputs(self):
-        if self.transparent_toggle:
-            selection_items = await self.get_transparent_addresses()
-        if self.private_toggle:
-            selection_items = await self.get_private_addresses()
-        self.address_selection.items.clear()
-        self.address_selection.items = selection_items
         if self.many_option.value is True:
             self.destination_input_many.value = ""
         elif self.single_option.value is True:
@@ -1014,20 +1034,8 @@ class Send(Box):
     def update_fees_option(self, option):
         if option:
             self.fees_box.style.visibility = VISIBLE
-            self.app.add_background_task(self.set_default_fee)
         else:
             self.fees_box.style.visibility = HIDDEN
-
-    async def set_default_fee(self, widget):
-        result, _= await self.commands.getInfo()
-        result = json.loads(result)
-        if result is not None:
-            paytxfee = result.get('paytxfee')
-            relayfee = result.get('relayfee')
-        if paytxfee == 0.0:
-            self.fee_input.value = f"{relayfee:.8f}"
-        else:
-            self.fee_input.value = f"{paytxfee:.8f}"
 
 
     async def is_valid_address(self, input):
@@ -1086,11 +1094,12 @@ class Send(Box):
             self.fee_input.value = ""
 
 
-    def store_private_transaction(self, address, txid, amount):
+    def store_shielded_transaction(self, address, txid, amount, fee):
         tx_type = "private"
         category = "send"
+        blocks = self.main.home_page.current_blocks
         timesent = int(datetime.now().timestamp())
-        self.storagetxs.private_transaction(tx_type, category, address, txid, amount, timesent)
+        self.storagetxs.insert_transaction(tx_type, category, address, txid, amount, blocks, fee, timesent)
 
 
     def send_button_click(self, button):
@@ -1174,6 +1183,7 @@ class Send(Box):
                 return
             operation, _= await self.commands.z_sendMany(selected_address, destination_address, amount, txfee)
             if operation:
+                self.app.console.info_log(f"Operation: {operation}")
                 transaction_status, _= await self.commands.z_getOperationStatus(operation)
                 transaction_status = json.loads(transaction_status)
                 if isinstance(transaction_status, list) and transaction_status:
@@ -1205,8 +1215,9 @@ class Send(Box):
                                     self.operation_status.text = self.tr.text("send_executing")
                                 elif status == "success":
                                     self.operation_status.text = self.tr.text("send_success")
+                                    self.app.console.info_log(f"TX: {txid}")
                                 if selected_address.startswith('z'):
-                                    self.store_private_transaction(destination_address, txid, amount)
+                                    self.store_shielded_transaction(destination_address, txid, amount, txfee)
                                 self.enable_send()
                                 self.main.info_dialog(
                                     title=self.tr.title("sendsuccess_dialog"),
@@ -1260,6 +1271,7 @@ class Send(Box):
         try:
             operation, _= await self.commands.z_sendToManyAddresses(selected_address, destination_addresses)
             if operation:
+                self.app.console.info_log(f"Operation: {operation}")
                 transaction_status, _= await self.commands.z_getOperationStatus(operation)
                 transaction_status = json.loads(transaction_status)
                 if isinstance(transaction_status, list) and transaction_status:
@@ -1292,8 +1304,9 @@ class Send(Box):
                                     self.operation_status.text = self.tr.text("send_executing")
                                 elif status == "success":
                                     self.operation_status.text = self.tr.text("send_success")
+                                    self.app.console.info_log(f"TX: {txid}")
                                 if selected_address.startswith('z'):
-                                    self.store_private_transaction("To Many", txid, self.amount_input.value)
+                                    self.store_shielded_transaction("To Many", txid, self.amount_input.value, self.fee_input.value)
                                 self.enable_send()
                                 self.main.info_dialog(
                                     title=self.tr.title("sendsuccess_dialog"),

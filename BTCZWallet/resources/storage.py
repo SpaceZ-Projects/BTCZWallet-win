@@ -284,6 +284,105 @@ class StorageMarket:
 
 
 
+class StorageAddresses:
+    def __init__(self, app:App):
+        super().__init__()
+
+        self.app = app
+        self.app_data = self.app.paths.data
+        self.data = Os.Path.Combine(str(self.app_data), 'addresses.dat')
+        Os.FileStream(
+            self.data,
+            Os.FileMode.OpenOrCreate,
+            Os.FileAccess.ReadWrite,
+            Os.FileShare.ReadWrite
+        )
+
+    
+    def create_addresses_table(self):
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS addresses (
+                type TEXT,
+                change TEXT,
+                address TEXT,
+                balance REAL
+            )
+            '''
+        )
+        conn.commit()
+        conn.close()
+
+
+    def insert_address(self, address_type, change, address, balance):
+        self.create_addresses_table()
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            INSERT INTO addresses (type, change, address, balance)
+            VALUES (?, ?, ?, ?)
+            ''', 
+            (address_type, change, address, balance)
+        )
+        conn.commit()
+        conn.close()
+
+
+    def get_addresses(self, full = None ,address_type = None):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            if address_type:
+                cursor.execute(
+                    'SELECT * FROM addresses WHERE type = ?',
+                    (address_type,)
+                )
+                addresses = cursor.fetchall()
+            elif full:
+                cursor.execute('SELECT * FROM addresses')
+                addresses = cursor.fetchall()
+            else:
+                cursor.execute('SELECT address FROM addresses')
+                addresses = [row[0] for row in cursor.fetchall()]
+            conn.close()
+            return addresses
+        except sqlite3.OperationalError:
+            return []
+        
+
+    def get_address_balance(self, address):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT balance FROM addresses WHERE address = ?',
+                (address,)
+            )
+            data = cursor.fetchone()
+            conn.close()
+            return data[0]
+        except sqlite3.OperationalError:
+            return None
+
+
+    def update_balance(self, address, balance):
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            UPDATE addresses
+            SET balance = ?
+            WHERE address = ?
+            ''', (balance, address)
+        )
+        conn.commit()
+        conn.close()
+
+
+
 class StorageTxs:
     def __init__(self, app:App):
         super().__init__()
@@ -298,58 +397,49 @@ class StorageTxs:
             Os.FileShare.ReadWrite
         )
 
-
-    def transparent_transaction(self, tx_type, category, address, txid, amount, timestamp):
-        self.create_transparent_transactions_table()
+    
+    def create_transactions_table(self):
         conn = sqlite3.connect(self.data)
         cursor = conn.cursor()
         cursor.execute(
             '''
-            INSERT INTO transparent_transactions (type, category, address, txid, amount, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ''', 
-            (tx_type, category, address, txid, amount, timestamp)
-        )
-        conn.commit()
-        conn.close()
-
-
-    def private_transaction(self, tx_type, category, address, txid, amount, timestamp):
-        self.create_private_transactions_table()
-        conn = sqlite3.connect(self.data)
-        cursor = conn.cursor()
-        cursor.execute(
-            '''
-            INSERT INTO private_transactions (type, category, address, txid, amount, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ''', 
-            (tx_type, category, address, txid, amount, timestamp)
-        )
-        conn.commit()
-        conn.close()
-
-
-    def get_transparent_transaction(self, txid):
-        try:
-            conn = sqlite3.connect(self.data)
-            cursor = conn.cursor()
-            cursor.execute(
-                'SELECT * FROM transparent_transactions WHERE txid = ?',
-                (txid,)
+            CREATE TABLE IF NOT EXISTS transactions (
+                type TEXT,
+                category TEXT,
+                address TEXT,
+                txid TEXT,
+                amount REAL,
+                blocks INTEGER,
+                fee INTEGER,
+                timestamp INTEGER
             )
-            transaction = cursor.fetchone()
-            conn.close()
-            return transaction
-        except sqlite3.OperationalError:
-            return []
-        
+            '''
+        )
+        conn.commit()
+        conn.close()
 
-    def get_private_transaction(self, txid):
+
+    def insert_transaction(self, tx_type, category, address, txid, amount, blocks, fee, timestamp):
+        self.create_transactions_table()
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            INSERT INTO transactions (type, category, address, txid, amount, blocks, fee, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', 
+            (tx_type, category, address, txid, amount, blocks, fee, timestamp)
+        )
+        conn.commit()
+        conn.close()
+
+
+    def get_transaction(self, txid):
         try:
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
             cursor.execute(
-                'SELECT * FROM private_transactions WHERE txid = ?',
+                'SELECT * FROM transactions WHERE txid = ?',
                 (txid,)
             )
             transaction = cursor.fetchone()
@@ -359,15 +449,18 @@ class StorageTxs:
             return []
 
 
-    def get_transparent_transactions(self, option = None):
+    def get_transactions(self, option = None, tx_type = None):
         try:
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
-            if option == "txid":
-                cursor.execute('SELECT txid FROM transparent_transactions')
+            if option:
+                cursor.execute(
+                    'SELECT txid FROM transactions WHERE type = ?',
+                    (tx_type,)
+                )
                 transactions = [row[0] for row in cursor.fetchall()]
             else:
-                cursor.execute('SELECT * FROM transparent_transactions')
+                cursor.execute('SELECT * FROM transactions')
                 transactions = cursor.fetchall()
             conn.close()
             return transactions
@@ -375,58 +468,47 @@ class StorageTxs:
             return []
         
 
-    def get_private_transactions(self, option = None):
+    def get_mobile_transactions(self, address):
         try:
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
-            if option == "txid":
-                cursor.execute('SELECT txid FROM private_transactions')
-                transactions = [row[0] for row in cursor.fetchall()]
-            else:
-                cursor.execute('SELECT * FROM private_transactions')
-                transactions = cursor.fetchall()
+            cursor.execute(
+                'SELECT * FROM transactions WHERE category = mobile AND address = ?',
+                (address,)
+            )
+            transactions = cursor.fetchall()
             conn.close()
             return transactions
         except sqlite3.OperationalError:
             return []
+        
+
+    def get_unconfirmed_transactions(self):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute('SELECT txid FROM transactions WHERE blocks = 0')
+            transactions = [row[0] for row in cursor.fetchall()]
+            conn.close()
+            return transactions
+        except sqlite3.OperationalError:
+            return []
+        
+
+    def update_transaction(self, txid, blocks):
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            UPDATE transactions
+            SET blocks = ?
+            WHERE txid = ?
+            ''', (blocks, txid)
+        )
+        conn.commit()
+        conn.close()
 
     
-    def create_transparent_transactions_table(self):
-        conn = sqlite3.connect(self.data)
-        cursor = conn.cursor()
-        cursor.execute(
-            '''
-            CREATE TABLE IF NOT EXISTS transparent_transactions (
-                type TEXT,
-                category TEXT,
-                address TEXT,
-                txid TEXT,
-                amount REAL,
-                timestamp INTEGER
-            )
-            '''
-        )
-        conn.commit()
-        conn.close()
-
-
-    def create_private_transactions_table(self):
-        conn = sqlite3.connect(self.data)
-        cursor = conn.cursor()
-        cursor.execute(
-            '''
-            CREATE TABLE IF NOT EXISTS private_transactions (
-                type TEXT,
-                category TEXT,
-                address TEXT,
-                txid TEXT,
-                amount REAL,
-                timestamp INTEGER
-            )
-            '''
-        )
-        conn.commit()
-        conn.close()
 
 
 

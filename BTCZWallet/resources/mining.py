@@ -16,7 +16,7 @@ from toga.style.pack import Pack
 from toga.constants import COLUMN, CENTER, BOLD, ROW
 from toga.colors import rgb, GRAY, WHITE, GREENYELLOW, BLACK, RED
 
-from .storage import StorageMessages
+from .storage import StorageMessages, StorageAddresses
 
 
 class Mining(Box):
@@ -53,6 +53,7 @@ class Mining(Box):
         self.font = font
 
         self.storage = StorageMessages(self.app)
+        self.addresses_storage = StorageAddresses(self.app)
         self.tooltip = ToolTip()
 
         self.rtl = None
@@ -572,12 +573,9 @@ class Mining(Box):
 
 
     async def update_mining_options(self, widget):
-        transparent_addresses = await self.get_transparent_addresses()
-        private_addresses = await self.get_private_addresses()
+        addresses = self.addresses_storage.get_addresses()
         self.address_selection.items.clear()
-        self.address_selection.items = transparent_addresses
-        for address in  private_addresses:
-            self.address_selection.items.append(address)
+        self.address_selection.items = addresses
         pools_list = self.get_pools_list()
         for pool in pools_list:
             self.pool_selection.items.insert(1, pool)
@@ -613,40 +611,13 @@ class Mining(Box):
 
     async def display_address_balance(self, selection):
         self.selected_address = self.address_selection.value.select_address
-        balance, _ = await self.commands.z_getBalance(self.selected_address)
-        if balance:
-            if float(balance) <= 0:
-                self.address_balance.style.color = GRAY
-            else:
-                self.address_balance.style.color = WHITE
-            format_balance = self.units.format_balance(float(balance))
-            self.address_balance.text = format_balance
-
-    
-    async def get_transparent_addresses(self):
-        addresses_data, _ = await self.commands.ListAddresses()
-        if addresses_data:
-            addresses_data = json.loads(addresses_data)
+        balance = self.addresses_storage.get_address_balance(self.selected_address)
+        if float(balance) <= 0:
+            self.address_balance.style.color = GRAY
         else:
-            addresses_data = []
-        if addresses_data is not None:
-            address_items = [(address_info, address_info) for address_info in addresses_data]
-
-        return address_items
-    
-
-    async def get_private_addresses(self):
-        addresses_data, _ = await self.commands.z_listAddresses()
-        addresses_data = json.loads(addresses_data)
-        if addresses_data is not None:
-            message_address = self.storage.get_identity("address")
-            if message_address:
-                address_items = [address_info for address_info in addresses_data if address_info != message_address[0]]
-            else:
-                address_items = [(address, address) for address in addresses_data]
-        else:
-            address_items = []
-        return address_items
+            self.address_balance.style.color = WHITE
+        format_balance = self.units.format_balance(float(balance))
+        self.address_balance.text = format_balance
     
 
     def update_server_selection(self, selection):
@@ -930,14 +901,11 @@ class Mining(Box):
         self.main.notifymining.paid.text = f"💸 Paid : 0.0000000"
 
 
-    async def reload_addresses(self):
+    def reload_addresses(self):
         if self.mining_toggle:
-            transparent_addresses = await self.get_transparent_addresses()
-            private_addresses = await self.get_private_addresses()
+            addresses = self.addresses_storage.get_addresses()
             self.address_selection.items.clear()
-            self.address_selection.items = transparent_addresses
-            for address in  private_addresses:
-                self.address_selection.items.append(address)
+            self.address_selection.items = addresses
 
 
     async def stop_mining_button_click(self, button):

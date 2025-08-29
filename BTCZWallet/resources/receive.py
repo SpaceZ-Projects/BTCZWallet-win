@@ -1,22 +1,114 @@
 
-import json
 import webbrowser
 
 from toga import (
-    App, Box, Label, ImageView, Window
+    App, Box, Label, ImageView, Window, Button
 )
 from ..framework import (
     Table, DockStyle, BorderStyle, AlignTable,
-    Color, Command, ClipBoard, RichLabel,
-    ScrollBars, AlignRichLabel
+    Color, Command, ClipBoard, SelectMode, FlatStyle
 )
 from toga.style.pack import Pack
 from toga.constants import COLUMN, ROW, CENTER, TOP
 from toga.colors import (
-    rgb, WHITE, GRAY, YELLOW
+    rgb, WHITE, GRAY, YELLOW, RED, BLACK
 )
 
-from .storage import StorageMessages
+from .storage import StorageAddresses, StorageMessages
+
+
+class QRView(Window):
+    def __init__(self, main:Window, utils, font, address):
+        super().__init__(
+            resizable=False
+        )
+
+        self.main= main
+        self.utils = utils
+        self.font = font
+        self.address = address
+        
+        self.title = "QRCode"
+        self.size = (450,400)
+        position_center = self.utils.windows_screen_center(self.main, self)
+        self.position = position_center
+        self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
+
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
+
+        self.main_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(30,33,36),
+                alignment = CENTER
+            )
+        )
+
+        self.qr_view = ImageView(
+            style=Pack(
+                background_color = rgb(30,33,36),
+                width = 275,
+                height = 275,
+                padding = (30,0,0,0)
+            )
+        )
+
+        self.qr_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                alignment = CENTER
+            )
+        )
+
+        self.close_button = Button(
+            text="Close",
+            style=Pack(
+                color = RED,
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                padding_bottom = 10,
+                width = 100
+            ),
+            on_press=self.close_qr_view
+        )
+        self.close_button._impl.native.Font = self.font.get(9, True)
+        self.close_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
+        self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
+
+        self.content = self.main_box
+
+        self.main_box.add(
+            self.qr_box,
+            self.close_button
+        )
+        self.qr_box.add(
+            self.qr_view
+        )
+        
+        qr_image = self.utils.qr_generate(self.address)
+        if qr_image:
+            self.qr_view.image = qr_image
+
+    
+    def close_button_mouse_enter(self, sender, event):
+        self.close_button.style.color = BLACK
+        self.close_button.style.background_color = RED
+
+    def close_button_mouse_leave(self, sender, event):
+        self.close_button.style.color = RED
+        self.close_button.style.background_color = rgb(30,33,36)
+
+    def close_qr_view(self, button):
+        self.close()
+        self.app.current_window = self.main
+
 
 
 class Receive(Box):
@@ -32,7 +124,8 @@ class Receive(Box):
 
         self.receive_toggle = None
         self.transparent_toggle = None
-        self.private_toggle = None
+        self.shielded_toggle = None
+        self.selected_address = None
 
         self.app = app
         self.main = main
@@ -44,6 +137,7 @@ class Receive(Box):
         self.font = font
 
         self.storage = StorageMessages(self.app)
+        self.addresses_storage = StorageAddresses(self.app)
         self.clipboard = ClipBoard()
 
         self.rtl = None
@@ -79,7 +173,7 @@ class Receive(Box):
 
         self.transparent_button = Box(
             style=Pack(
-                direction = ROW,
+                direction = COLUMN,
                 background_color = rgb(30,33,36),
                 flex = 1,
                 alignment = CENTER
@@ -91,7 +185,8 @@ class Receive(Box):
                 color = GRAY,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                flex = 1
+                flex = 1,
+                padding = (0,0,3,0)
             )
         )
         self.transparent_label._impl.native.Font = self.font.get(11, True)
@@ -101,34 +196,51 @@ class Receive(Box):
         self.transparent_label._impl.native.MouseLeave += self.transparent_button_mouse_leave
         self.transparent_button._impl.native.Click += self.transparent_button_click
         self.transparent_label._impl.native.Click += self.transparent_button_click
-        self.private_button = Box(
+
+        self.transparent_line = Box(
             style=Pack(
-                direction = ROW,
+                background_color = rgb(30,33,36),
+                height = 2
+            )
+        )
+
+        self.shielded_button = Box(
+            style=Pack(
+                direction = COLUMN,
                 background_color = rgb(30,33,36),
                 flex = 1,
                 alignment = CENTER
             )
         )
-        self.private_label = Label(
-            text=self.tr.text("private_label"),
+        self.shielded_label = Label(
+            text=self.tr.text("shielded_label"),
             style=Pack(
                 color = GRAY,
                 background_color = rgb(30,33,36),
                 text_align = CENTER,
-                flex = 1
+                flex = 1,
+                padding = (0,0,3,0)
             )
         )
-        self.private_label._impl.native.Font = self.font.get(11, True)
-        self.private_button._impl.native.MouseEnter += self.private_button_mouse_enter
-        self.private_label._impl.native.MouseEnter += self.private_button_mouse_enter
-        self.private_button._impl.native.MouseLeave += self.private_button_mouse_leave
-        self.private_label._impl.native.MouseLeave += self.private_button_mouse_leave
-        self.private_button._impl.native.Click += self.private_button_click
-        self.private_label._impl.native.Click += self.private_button_click
+        self.shielded_label._impl.native.Font = self.font.get(11, True)
+        self.shielded_button._impl.native.MouseEnter += self.shielded_button_mouse_enter
+        self.shielded_label._impl.native.MouseEnter += self.shielded_button_mouse_enter
+        self.shielded_button._impl.native.MouseLeave += self.shielded_button_mouse_leave
+        self.shielded_label._impl.native.MouseLeave += self.shielded_button_mouse_leave
+        self.shielded_button._impl.native.Click += self.shielded_button_click
+        self.shielded_label._impl.native.Click += self.shielded_button_click
+
+        self.shielded_line = Box(
+            style=Pack(
+                background_color = rgb(30,33,36),
+                height = 2
+            )
+        )
 
         self.addresses_list = Box(
             style=Pack(
                 direction=COLUMN,
+                background_color = rgb(30,33,36),
                 flex = 1
             )
         )
@@ -169,21 +281,25 @@ class Receive(Box):
 
         self.addresses_table = Table(
             dockstyle=DockStyle.FILL,
-            column_count=1,
+            select_mode=SelectMode.FULLROWSELECT,
+            column_count=3,
             row_visible=False,
             borderstyle=BorderStyle.NONE,
             align=AlignTable.MIDCENTER,
             readonly=True,
-            column_widths={0:442},
+            column_widths={0:400,1:150},
             background_color=Color.rgb(30,33,36),
             text_color=Color.WHITE,
             selection_backcolors={
-                0:Color.rgb(40,43,48)
+                0:Color.rgb(40,43,48),
+                1:Color.rgb(66,69,73),
+                2:Color.rgb(40,43,48),
             },
             cell_color=Color.rgb(30,33,36),
             gird_color=Color.rgb(30,33,36),
             row_heights=50,
             on_select=self._on_selected_address,
+            on_double_click=self.show_qr_code,
             commands=[
                 self.copy_address_cmd,
                 self.copy_key_cmd,
@@ -194,110 +310,35 @@ class Receive(Box):
             rtl=self.rtl
         )
 
-        self.address_info = Box(
-            style=Pack(
-                direction = COLUMN,
-                flex = 1,
-                background_color = rgb(40,43,48),
-                alignment = CENTER
-            )
-        )
-        self.address_qr = ImageView(
-            style=Pack(
-                padding_top = 40,
-                width = 217,
-                height = 217,
-                background_color = rgb(30,33,36),
-                flex =1
-            )
-        )
-        self.address_value = RichLabel(
-            text="",
-            borderstyle=BorderStyle.NONE,
-            background_color=Color.rgb(40,43,48),
-            color=Color.WHITE,
-            wrap=True,
-            readonly=True,
-            urls=False,
-            dockstyle=DockStyle.TOP,
-            text_align=AlignRichLabel.CENTER,
-            scrollbars=ScrollBars.NONE,
-            maxsize=(0, 65),
-            minsize=(0, 65),
-            font=self.font.get(10)
-        )
-        self.address_value_box = Box(
-            style=Pack(
-                direction = COLUMN,
-                height = 65,
-                padding = (5,50,0,50),
-                background_color=rgb(40,43,48)
-            )
-        )
-
-        self.address_balance = Label(
-            text="",
-            style=Pack(
-                direction = COLUMN,
-                background_color = rgb(30,33,36),
-                color = WHITE,
-                text_align = CENTER,
-                padding = (20,50,0,50) ,
-                flex =1,
-                alignment = TOP
-            )
-        )
-        self.address_balance._impl.native.Font = self.font.get(12, True)
-
-        self.address_panel = Box(
-            style=Pack(
-                direction = COLUMN,
-                flex = 1,
-                background_color = rgb(40,43,48)
-            )
-        )
-
         
     async def insert_widgets(self, widget):
         if not self.receive_toggle:
             self.addresses_list._impl.native.Controls.Add(self.addresses_table)
-            if self.rtl:
-                self.addresses_box.add(
-                    self.address_info,
-                    self.addresses_list_box
-                )
-            else:
-                self.addresses_box.add(
-                    self.addresses_list_box,
-                    self.address_info
-                )
+            self.addresses_box.add(
+                self.addresses_list_box
+            )
             self.addresses_list_box.add(
                 self.switch_address_box,
                 self.addresses_list
             )
             if self.rtl:
                 self.switch_address_box.add(
-                    self.private_button,
+                    self.shielded_button,
                     self.transparent_button
                 )
             else:
                 self.switch_address_box.add(
                     self.transparent_button,
-                    self.private_button
+                    self.shielded_button
                 )
             self.transparent_button.add(
-                self.transparent_label
+                self.transparent_label,
+                self.transparent_line
             )
-            self.private_button.add(
-                self.private_label
+            self.shielded_button.add(
+                self.shielded_label,
+                self.shielded_line
             )
-            self.address_info.add(
-                self.address_qr,
-                self.address_value_box,
-                self.address_balance,
-                self.address_panel
-            )
-            self.address_value_box._impl.native.Controls.Add(self.address_value)
             self.add(
                 self.addresses_box
             )
@@ -313,14 +354,23 @@ class Receive(Box):
         self.transparent_label.style.color = YELLOW
         self.transparent_label.style.background_color = rgb(66,69,73)
         self.transparent_button.style.background_color = rgb(66,69,73)
-        self.app.add_background_task(self.display_transparent_addresses)
+        self.transparent_line.style.background_color = YELLOW
+        self.display_transparent_addresses()
 
-    async def display_transparent_addresses(self, widget):
+    def display_transparent_addresses(self):
         addresses = []
-        transparent_addresses = await self.get_transparent_addresses()
-        for address in transparent_addresses:
+        transparent_addresses = self.addresses_storage.get_addresses(address_type="transparent")
+        transparent_addresses.sort(key=lambda x: x[3], reverse=True)
+        for data in transparent_addresses:
+            address = data[2]
+            balance = data[3]
+            change = data[1]
+            if change:
+                change = "✔"
             row = {
-                self.tr.text("columnt_addresses"): address
+                self.tr.text("columnt_addresses"): address,
+                "Balances": self.units.format_balance(balance),
+                "Change": change
             }
             addresses.append(row)
         self.addresses_table.data_source = addresses
@@ -339,179 +389,118 @@ class Receive(Box):
         self.transparent_label.style.background_color = rgb(30,33,36)
         self.transparent_button.style.background_color = rgb(30,33,36)
 
-    def private_button_click(self, sender, event):
+    def shielded_button_click(self, sender, event):
         self.clear_buttons()
-        self.private_toggle = True
-        self.private_button._impl.native.Click -= self.private_button_click
-        self.private_label._impl.native.Click -= self.private_button_click
-        self.private_label.style.color = rgb(114,137,218)
-        self.private_label.style.background_color = rgb(66,69,73)
-        self.private_button.style.background_color = rgb(66,69,73)
-        self.app.add_background_task(self.display_private_addresses)
+        self.shielded_toggle = True
+        self.shielded_button._impl.native.Click -= self.shielded_button_click
+        self.shielded_label._impl.native.Click -= self.shielded_button_click
+        self.shielded_label.style.color = rgb(114,137,218)
+        self.shielded_label.style.background_color = rgb(66,69,73)
+        self.shielded_button.style.background_color = rgb(66,69,73)
+        self.shielded_line.style.background_color = rgb(114,137,218)
+        self.display_shielded_addresses()
 
-    async def display_private_addresses(self, widget):
+    def display_shielded_addresses(self):
         addresses = []
-        private_addresses = await self.get_private_addresses()
-        if private_addresses:
-            for address in private_addresses:
-                row = {
-                    self.tr.text("columnz_addresses"): address
-                }
-                addresses.append(row)
-        else:
-            addresses = [{
-                self.tr.text("columnz_addresses"): ''
-            }]
+        transparent_addresses = self.addresses_storage.get_addresses(address_type="shielded")
+        transparent_addresses.sort(key=lambda x: x[3], reverse=True)
+        for data in transparent_addresses:
+            address = data[2]
+            balance = data[3]
+            row = {
+                self.tr.text("columnt_addresses"): address,
+                "Balances": self.units.format_balance(balance)
+            }
+            addresses.append(row)
         self.addresses_table.data_source = addresses
 
-    def private_button_mouse_enter(self, sender, event):
-        if self.private_toggle:
+    def shielded_button_mouse_enter(self, sender, event):
+        if self.shielded_toggle:
             return
-        self.private_label.style.color = WHITE
-        self.private_label.style.background_color = rgb(66,69,73)
-        self.private_button.style.background_color = rgb(66,69,73)
+        self.shielded_label.style.color = WHITE
+        self.shielded_label.style.background_color = rgb(66,69,73)
+        self.shielded_button.style.background_color = rgb(66,69,73)
 
-    def private_button_mouse_leave(self, sender, event):
-        if self.private_toggle:
+    def shielded_button_mouse_leave(self, sender, event):
+        if self.shielded_toggle:
             return
-        self.private_label.style.color = GRAY
-        self.private_label.style.background_color = rgb(30,33,36)
-        self.private_button.style.background_color = rgb(30,33,36)
+        self.shielded_label.style.color = GRAY
+        self.shielded_label.style.background_color = rgb(30,33,36)
+        self.shielded_button.style.background_color = rgb(30,33,36)
 
     def clear_buttons(self):
         if self.transparent_toggle:
             self.transparent_label.style.color = GRAY
             self.transparent_label.style.background_color = rgb(30,33,36)
             self.transparent_button.style.background_color = rgb(30,33,36)
+            self.transparent_line.style.background_color = rgb(30,33,36)
             self.transparent_button._impl.native.Click += self.transparent_button_click
             self.transparent_label._impl.native.Click += self.transparent_button_click
             self.transparent_toggle = None
 
-        elif self.private_toggle:
-            self.private_label.style.color = GRAY
-            self.private_label.style.background_color = rgb(30,33,36)
-            self.private_button.style.background_color = rgb(30,33,36)
-            self.private_button._impl.native.Click += self.private_button_click
-            self.private_label._impl.native.Click += self.private_button_click
-            self.private_toggle = None
+        elif self.shielded_toggle:
+            self.shielded_label.style.color = GRAY
+            self.shielded_label.style.background_color = rgb(30,33,36)
+            self.shielded_button.style.background_color = rgb(30,33,36)
+            self.shielded_line.style.background_color = rgb(30,33,36)
+            self.shielded_button._impl.native.Click += self.shielded_button_click
+            self.shielded_label._impl.native.Click += self.shielded_button_click
+            self.shielded_toggle = None
+
 
     def _on_selected_address(self, rows):
-        for row in rows:
-            self.selected_address = row.Value
-            self.app.add_background_task(self.get_address_balance)
+        for cell in rows:
+            row = cell.OwningRow
+            self.selected_address = row.Cells[0].Value
 
 
-    async def get_address_balance(self, widget):
-        balance, _ = await self.commands.z_getBalance(self.selected_address)
-        if balance is None:
-            self.address_qr.image = None
-            self.address_value.text = None
-            return
-        qr_image = self.utils.qr_generate(self.selected_address)
-        balance = self.units.format_balance(balance)
-        if self.rtl:
-            balance = self.units.arabic_digits(balance)
-        self.address_qr.image = qr_image
-        self.address_value.text = self.selected_address
-        text = self.tr.text("address_balance")
-        self.address_balance.text = f"{text} {balance}"
+    def show_qr_code(self, sender, event):
+        qr_view = QRView(self.main, self.utils, self.font, self.selected_address)
+        qr_view._impl.native.ShowDialog(self.main._impl.native)
 
     
     def copy_address(self):
-        selected_cells = self.addresses_table.selected_cells
-        for cell in selected_cells:
-            if cell.ColumnIndex == 0:
-                address = cell.Value
-                self.clipboard.copy(address)
-                self.main.info_dialog(
-                    title=self.tr.title("copyaddress_dialog"),
-                    message=self.tr.message("copyaddress_dialog"),
-                )
+        if self.selected_address:
+            self.clipboard.copy(self.selected_address)
+            self.main.info_dialog(
+                title=self.tr.title("copyaddress_dialog"),
+                message=self.tr.message("copyaddress_dialog"),
+            )
 
     def open_address_in_explorer(self):
+        if self.selected_address:
+            if self.selected_address.startswith("z"):
+                return
         url = "https://explorer.btcz.rocks/address/"
-        selected_cells = self.addresses_table.selected_cells
-        for cell in selected_cells:
-            if cell.ColumnIndex == 0:
-                txid = cell.Value
-                if txid.startswith("z"):
-                    return
-                transaction_url = url + txid
-                webbrowser.open(transaction_url)
+        transaction_url = url + self.selected_address
+        webbrowser.open(transaction_url)
 
 
     def copy_key(self):
-        selected_cells = self.addresses_table.selected_cells
-        for cell in selected_cells:
-            if cell.ColumnIndex == 0:
-                self.address_key = cell.Value
-        self.app.add_background_task(self.get_private_key)
+        if self.selected_address:
+            self.app.add_background_task(self.get_private_key)
 
 
     async def get_private_key(self, widget):
         if self.transparent_toggle:
-            result, _= await self.commands.DumpPrivKey(self.address_key)
-        elif self.private_toggle:
-            result, _= await self.commands.z_ExportKey(self.address_key)
+            result, _= await self.commands.DumpPrivKey(self.selected_address)
+        elif self.shielded_toggle:
+            result, _= await self.commands.z_ExportKey(self.selected_address)
         if result is not None:
             self.clipboard.copy(result)
             self.main.info_dialog(
                 title=self.tr.title("copykey_dialog"),
                 message=self.tr.message("copykey_dialog"),
             )
-
-
-    async def get_transparent_addresses(self):
-        addresses_data,_ = await self.commands.ListAddresses()
-        addresses_data = json.loads(addresses_data)
-        if addresses_data is not None:
-            address_items = {address_info for address_info in addresses_data}
-        else:
-            address_items = []
-        return address_items
-    
-
-    async def get_private_addresses(self):
-        addresses_data,_ = await self.commands.z_listAddresses()
-        addresses_data = json.loads(addresses_data)
-        if addresses_data:
-            message_address = self.storage.get_identity("address")
-            if message_address:
-                address_items = {address_info for address_info in addresses_data if address_info != message_address[0]}
-            else:
-                address_items = {address_info for address_info in addresses_data}
-        else:
-            address_items = []
-        return address_items
     
     
-    async def reload_addresses(self):
+    def reload_addresses(self):
         if self.receive_toggle:
             self.addresses_table.data_source.clear()
             if self.transparent_toggle:
-                addresses = []
-                transparent_addresses = await self.get_transparent_addresses()
-                for address in transparent_addresses:
-                    row = {
-                        self.tr.text("columnt_addresses"): address
-                    }
-                    addresses.append(row)
-                self.addresses_table.data_source = addresses
-            elif self.private_toggle:
-                addresses = []
-                private_addresses = await self.get_private_addresses()
-                if private_addresses:
-                    for address in private_addresses:
-                        row = {
-                            self.tr.text("columnz_addresses"): address
-                        }
-                        addresses.append(row)
-                else:
-                    addresses = [{
-                        self.tr.text("columnz_addresses"): ''
-                    }]
-                self.addresses_table.data_source = addresses
-
+                self.display_transparent_addresses()
+            elif self.shielded_toggle:
+                self.display_shielded_addresses()
     
 
     def copy_address_cmd_mouse_enter(self):
