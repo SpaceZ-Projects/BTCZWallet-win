@@ -4,12 +4,10 @@ from ..framework import NotifyIcon, Command, FormState, TextBox
 
 
 class Notify(NotifyIcon):
-    def __init__(self, app:App, main:Window, home_page, mining_page, settings, utils, commands, tr, font):
+    def __init__(self, app:App, main:Window, settings, utils, commands, tr, font):
 
         self.app = app
         self.main = main
-        self.home_page = home_page
-        self.mining_page = mining_page
         
         self.settings = settings
         self.utils = utils
@@ -56,11 +54,13 @@ class Notify(NotifyIcon):
         )
 
     def show_menu(self):
-        if self.mining_page.mining_status:
+        if self.main.mining_page.mining_status:
             self.main.notifymining.hide()
         if self.main._is_hidden:
             self.main.show()
             self.main._is_hidden = None
+            if self.main.console_toggle:
+                self.app.console.show()
         if self.main._is_minimized:
             self.main._impl.native.WindowState = FormState.NORMAL
         if self.app.current_window is not self.main:
@@ -70,15 +70,18 @@ class Notify(NotifyIcon):
     def exit_app(self):
         def on_result(widget, result):
             if result is True:
-                self.home_page.bitcoinz_curve.image = None
-                self.home_page.clear_cache()
+                self.main.home_page.bitcoinz_curve.image = None
+                self.main.home_page.clear_cache()
                 self.hide()
                 self.dispose()
                 if self.main.market_server.server_status:
                     self.main.notifymarket.hide()
                     self.main.notifymarket.dispose()
+                if self.main.mobile_server.server_status:
+                    self.main.notifymobile.hide()
+                    self.main.notifymobile.dispose()
                 self.app.exit()
-        if self.mining_page.mining_status:
+        if self.main.mining_page.mining_status:
             return
         self.main.question_dialog(
             title=self.tr.title("exit_dialog"),
@@ -121,6 +124,9 @@ class Notify(NotifyIcon):
                     if self.main.market_server.server_status:
                         self.main.notifymarket.hide()
                         self.main.notifymarket.dispose()
+                    if self.main.mobile_server.server_status:
+                        self.main.notifymobile.hide()
+                        self.main.notifymobile.dispose()
                     self.app.exit()
         if self.mining_page.mining_status:
             return
@@ -159,12 +165,11 @@ class NotifyMarket(NotifyIcon):
         )
 
 
-
-class NotifyTx(NotifyIcon):
-    def __init__(self, icon = None):
+class NotifyMobile(NotifyIcon):
+    def __init__(self):
         super().__init__(
-            icon=icon,
-            text = "New Transaction"
+            icon="images/mobile_notify.ico",
+            text = "Mobile Server"
         )
 
 

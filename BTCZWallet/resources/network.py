@@ -37,7 +37,8 @@ class AddNode(Window):
 
         self.title = self.tr.title("addnode_window")
         self.size = (550, 120)
-        self.position = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
+        self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
 
@@ -252,19 +253,18 @@ class TorConfig(Window):
 
         if self.main:
             if self.rtl:
-                self.size = (350, 405)
+                self.size = (350, 495)
             else:
-                self.size = (350, 400)
+                self.size = (350, 490)
         if self.startup:
             if self.rtl:
-                self.size = (350, 370)
+                self.size = (350, 460)
             else:
-                self.size = (350, 360)
+                self.size = (350, 450)
         self.title = self.tr.title("torconfig_window")
-        position_center = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
-        self._impl.native.ShowInTaskbar = False
 
         mode = 0
         if self.utils.get_app_theme() == "dark":
@@ -367,6 +367,28 @@ class TorConfig(Window):
         )
         self.market_port_label._impl.native.Font = self.font.get(11, True)
 
+        self.mobile_label = Label(
+            text="Mobile Server :",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                text_align = CENTER,
+                padding_top = 19
+            )
+        )
+        self.mobile_label._impl.native.Font = self.font.get(11, True)
+
+        self.mobile_port_label = Label(
+            text="Mobile Port :",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                text_align = CENTER,
+                padding_top = 19
+            )
+        )
+        self.mobile_port_label._impl.native.Font = self.font.get(11, True)
+
         self.labels_box = Box(
             style=Pack(
                 direction = COLUMN,
@@ -463,6 +485,28 @@ class TorConfig(Window):
         self.market_port_input.enabled = False
         self.market_port_input._impl.native.Font = self.font.get(11, True)
 
+
+        self.mobile_switch = Switch(
+            "",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                padding = (20,0,0,65)
+            ),
+            on_change=self.update_mobile_input
+        )
+
+        self.mobile_port_input = TextInput(
+            placeholder="Default 9053",
+            style=Pack(
+                color = WHITE,
+                text_align= CENTER,
+                background_color = rgb(30,33,36),
+                padding_top = 15
+            )
+        )
+        self.mobile_port_input.enabled = False
+        self.mobile_port_input._impl.native.Font = self.font.get(11, True)
+
         self.inputs_box = Box(
             style=Pack(
                 direction = COLUMN,
@@ -551,7 +595,9 @@ class TorConfig(Window):
             )
         self.labels_box.add(
             self.market_label,
-            self.market_port_label
+            self.market_port_label,
+            self.mobile_label,
+            self.mobile_port_label
         )
         self.inputs_box.add(
             self.enabled_switch,
@@ -566,7 +612,9 @@ class TorConfig(Window):
             )
         self.inputs_box.add(
             self.market_switch,
-            self.market_port_input
+            self.market_port_input,
+            self.mobile_switch,
+            self.mobile_port_input
         )
         self.buttons_box.add(
             self.cancel_button,
@@ -596,6 +644,11 @@ class TorConfig(Window):
                     self.market_port_input.enabled = True
                     market_port = port_line.split()[1].split(":")[1] if port_line else ""
                     self.market_port_input.value = market_port
+                if dir_path.endswith("mobile_service"):
+                    self.mobile_switch.value = True
+                    self.mobile_port_input.enabled = True
+                    mobile_port = port_line.split()[1].split(":")[1] if port_line else ""
+                    self.mobile_port_input.value = mobile_port
 
             self.socks_input.value = socks_port
 
@@ -642,6 +695,12 @@ class TorConfig(Window):
         else:
             market_service = None
             self.settings.update_settings("market_service", False)
+        if self.mobile_switch.value is True:
+            mobile_service = Os.Path.Combine(str(self.app_data), "mobile_service")
+            self.settings.update_settings("mobile_service", True)
+        else:
+            mobile_service = None
+            self.settings.update_settings("mobile_service", False)
         if tor_service and not self.service_input.value:
             service_port = "1989"
         else:
@@ -650,8 +709,12 @@ class TorConfig(Window):
             market_port = "9052"
         else:
             market_port = self.market_port_input.value.strip()
+        if mobile_service and not self.mobile_port_input.value:
+            mobile_port = "9053"
+        else:
+            mobile_port = self.mobile_port_input.value.strip()
         self.settings.update_settings("tor_network", True)
-        self.utils.create_torrc(socks_port, tor_service, service_port, market_service, market_port)
+        self.utils.create_torrc(socks_port, tor_service, service_port, market_service, market_port, mobile_service, mobile_port)
         self.close()
         self.app.current_window = self.main
 
@@ -688,6 +751,14 @@ class TorConfig(Window):
         else:
             self.market_port_input.value = ""
             self.market_port_input.enabled = False
+
+
+    def update_mobile_input(self, switch):
+        if switch.value is True:
+            self.mobile_port_input.enabled = True
+        else:
+            self.mobile_port_input.value = ""
+            self.mobile_port_input.enabled = False
 
 
     def save_button_mouse_enter(self, sender, event):
@@ -738,7 +809,7 @@ class NodeInfo(Window):
 
         self.size = (350, 510)
         self.title = self.tr.title("nodeinfo_window")
-        position_center = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -1111,7 +1182,7 @@ class Peer(Window):
         self.title = self.tr.title("peer_window")
         self.size = (900,607)
         self._impl.native.Opacity = self.main._impl.native.Opacity
-        position_center = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
         self.position = position_center
         self.on_close = self.close_peers_window
         self._impl.native.Resize += self._handle_on_resize

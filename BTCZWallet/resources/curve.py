@@ -73,12 +73,16 @@ class Curve():
             return margin_top + (max_price - price) / (max_price - min_price) * plot_height
         draw.line([(margin_left, margin_top), (margin_left, height - margin_bottom)], fill="white", width=2)
         draw.line([(margin_left, height - margin_bottom), (width - margin_right, height - margin_bottom)], fill="white", width=2)
+        if df['price'].iloc[-1] >= df['price'].iloc[0]:
+            color = "green"
+        else:
+            color = "red"
         for i in range(1, len(df)):
             x1 = scale_x(df['timestamp'].iloc[i-1])
             y1 = scale_y(df['price'].iloc[i-1])
             x2 = scale_x(df['timestamp'].iloc[i])
             y2 = scale_y(df['price'].iloc[i])
-            draw.line([(x1, y1), (x2, y2)], fill="green", width=3)
+            draw.line([(x1, y1), (x2, y2)], fill=color, width=3)
         font = ImageFont.load_default(size=18)
         for i in range(0, len(df), len(df) // 10):
             timestamp = df['timestamp'].iloc[i]

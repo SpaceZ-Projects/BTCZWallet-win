@@ -136,7 +136,7 @@ translations = {
     "total_balances_label": {"text": "Total Balances", "size": 14},
     "total_value": {"size": 14},
     "transparent_label": {"text": "Transparent", "size": 11},
-    "private_label": {"text": "Private", "size": 11},
+    "shielded_label": {"text": "Shielded", "size": 11},
     "unconfirmed_box": {"padding": (82,0,0,0)},
     "unconfirmed_label": {"text": "Unconfirmed Balance"},
     "importkey_window" : {"title": "Import Key"},
@@ -182,7 +182,7 @@ translations = {
 
     #transactions :
     "txinfo_window": {"title": "Transaction Info"},
-    "txid_label": {"text": "Transaction ID :", "padding": (0,0,0,20)},
+    "txid_label": {"text": "Transaction ID :", "padding": (0,0,0,10)},
     "confirmations_label": {"text": "Confirmations :"},
     "confirmations_value": {"align": LEFT},
     "category_label": {"text": "Category :"},
@@ -253,7 +253,7 @@ translations = {
     "copy_key_cmd": {"text": "Copy private key"},
     "exploreraddress_cmd": {"text": "View address in explorer"},
     "columnt_addresses": {"text": "Transparent Addresses"},
-    "columnz_addresses": {"text": "Private Addresses"},
+    "columnz_addresses": {"text": "Shielded Addresses"},
     "address_balance": {"text": "Balance :", "align": RIGHT},
     "copykey_dialog": {"title": "Copied", "message": "The private key has been copied to the clipboard."},
 

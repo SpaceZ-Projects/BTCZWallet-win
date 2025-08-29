@@ -136,7 +136,7 @@ translations = {
     "total_balances_label": {"text": "الرصيد الجملي", "size": 10},
     "total_value": {"size": 12},
     "transparent_label": {"text": "شفاف", "size": 10},
-    "private_label": {"text": "محمي", "size": 10},
+    "shielded_label": {"text": "محمي", "size": 10},
     "unconfirmed_box": {"padding": (76,0,0,0)},
     "unconfirmed_label": {"text": "غير مؤكد"},
     "importkey_window" : {"title": "استراد المفتاح"},

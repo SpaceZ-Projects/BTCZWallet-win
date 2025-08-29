@@ -217,7 +217,7 @@ class CustomFont:
 
 
 class BTCZControl(UserControl):
-    def __init__(self, face_image, back_image):
+    def __init__(self, face_image, back_image, speed):
 
         UserControl.__init__(self)
         self.viewport = Viewport3D()
@@ -226,6 +226,8 @@ class BTCZControl(UserControl):
         radius = 1.0
         thickness = 0.2
         segments = 64
+
+        self._speed = speed
 
         camera = PerspectiveCamera()
         camera.Position = Point3D(0, 3, 0)
@@ -342,7 +344,7 @@ class BTCZControl(UserControl):
     
 
     def update_rotation(self, sender, e):
-        self.rotation.Angle += 3
+        self.rotation.Angle += self._speed
         if self.rotation.Angle >= 360:
             self.rotation.Angle = 0
 

@@ -50,7 +50,8 @@ class EditUser(Window):
         self.storage = StorageMessages(self.app)
 
         self.title = self.tr.title("edituser_window")
-        self.position = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
+        self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
 
@@ -229,7 +230,8 @@ class Indentifier(Window):
         self.storage = StorageMessages(self.app)
 
         self.title = self.tr.title("newmessenger_window")
-        self.position = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
+        self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
 
@@ -1097,7 +1099,8 @@ class NewContact(Window):
         self.storage = StorageMessages(self.app)
 
         self.title = self.tr.title("addcontact_window")
-        self.position = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
+        self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
 
@@ -1340,12 +1343,13 @@ class NewContact(Window):
 
 
 class PendingList(Window):
-    def __init__(self, chat:Box, utils, units, commands, tr, font):
+    def __init__(self, main:Window, chat:Box, utils, units, commands, tr, font):
         super().__init__(
             size = (500, 400),
             resizable= False
         )
 
+        self.main = main
         self.chat = chat
 
         self.utils = utils
@@ -1357,7 +1361,8 @@ class PendingList(Window):
         self.storage = StorageMessages(self.app)
 
         self.title = self.tr.title("pendinglist_window")
-        self.position = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
+        self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
 
@@ -1905,6 +1910,7 @@ class Chat(Box):
 
 
     async def update_messages_balance(self, widget):
+        self.app.console.event_log(f"✔: Update messages balance")
         while True:
             if not self.main.message_button_toggle:
                 await asyncio.sleep(1)
@@ -1926,6 +1932,7 @@ class Chat(Box):
             
 
     async def waiting_new_memos(self, widget):
+        self.app.console.event_log(f"✔: Gather memos")
         while True:
             if self.main.import_key_toggle:
                 await asyncio.sleep(1)
@@ -2128,6 +2135,7 @@ class Chat(Box):
             
 
     async def update_contacts_list(self, widget):
+        self.app.console.event_log(f"✔: Contacts list")
         self.contacts = []
         while True:
             if not self.main.message_button_toggle:
@@ -2459,7 +2467,7 @@ class Chat(Box):
             self.pending_contacts._impl.native.MouseLeave += self.pending_contacts_mouse_leave
             self.pending_contacts.image = "images/pending_i.png"
             self.new_pending_toggle = None
-        self.pending_list = PendingList(self, self.utils, self.units, self.commands, self.tr, self.font)
+        self.pending_list = PendingList(self.main, self, self.utils, self.units, self.commands, self.tr, self.font)
         self.pending_list.close_button.on_press = self.close_pending_list
         self.pending_list._impl.native.ShowDialog(self.main._impl.native)
         self.pending_toggle = True
@@ -2524,6 +2532,7 @@ class Chat(Box):
                 message="Your marketplace service is disabled"
             )
             return
+        self.app.console.info_log(f"Execute market command...")
         hostname = self.utils.get_onion_hostname("market")
         _, _, address = self.storage.get_identity()
         id = self.storage.get_id_contact(self.contact_id)
@@ -2533,16 +2542,14 @@ class Chat(Box):
             self.market_storage.insert_secret(id[0], key)
         else:
             key = secret[0]
-        fee = self.fee_input.value
-        amount = float(fee) - 0.0001
         txfee = 0.0001
         memo = {"type":"market","id":id[0],"hostname":hostname,"key":key}
         memo_str = json.dumps(memo)
         self.disable_send_button()
-        await self.send_command(address, amount, txfee, memo_str)
+        await self.send_command(address, txfee, memo_str)
 
 
-    async def send_command(self, address, amount, txfee, memo):
+    async def send_command(self, address, txfee, memo):
         async def on_result(widget, result):
             if result is None:
                 self.enable_send_button()
@@ -2552,8 +2559,9 @@ class Chat(Box):
                 await asyncio.sleep(0.2)
                 self.message_input.focus()
 
-        operation, _= await self.commands.SendMemo(address, self.user_address, amount, txfee, memo)
+        operation, _= await self.commands.SendMemo(address, self.user_address, txfee, txfee, memo)
         if operation:
+            self.app.console.info_log(f"Operation : {operation}")
             transaction_status, _= await self.commands.z_getOperationStatus(operation)
             transaction_status = json.loads(transaction_status)
             if isinstance(transaction_status, list) and transaction_status:
@@ -2591,6 +2599,7 @@ class Chat(Box):
         txfee = 0.0001
         timestamp = await self.get_message_timestamp()
         if timestamp is not None:
+            self.app.console.info_log(f"Sending message...")
             memo = {"type":"message","id":id[0],"username":username,"text":message, "timestamp":timestamp}
             memo_str = json.dumps(memo)
             self.disable_send_button()
@@ -2608,6 +2617,7 @@ class Chat(Box):
     async def send_memo(self, address, amount, txfee, memo, author, text, timestamp):
         operation, _= await self.commands.SendMemo(address, self.user_address, amount, txfee, memo)
         if operation:
+            self.app.console.info_log(f"Operation : {operation}")
             transaction_status, _= await self.commands.z_getOperationStatus(operation)
             transaction_status = json.loads(transaction_status)
             if isinstance(transaction_status, list) and transaction_status:

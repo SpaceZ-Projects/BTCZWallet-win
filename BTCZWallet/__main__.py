@@ -34,7 +34,7 @@ class BitcoinZGUI(Window):
 
         self.title = self.tr.title("main_window")
         self._impl.native.BackColor = Color.rgb(30,33,36)
-        position_center = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self, self)
         self.position = position_center
         self._impl.native.Move += self._hadler_on_move
         self._impl.native.KeyPreview = True

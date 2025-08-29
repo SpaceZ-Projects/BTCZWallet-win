@@ -51,7 +51,7 @@ class DisplayImage(Window):
         self.title = "Image View"
         self.size = (width, height)
         self._impl.native.BackColor = Color.rgb(30,33,36)
-        position_center = utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -130,7 +130,7 @@ class PlaceOrder(Window):
 
         self.title = "Confirm Order"
         self.size = (550,250)
-        position_center = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -1192,7 +1192,7 @@ class MarketView(Window):
 
         self.title = f"{username}'s Market"
         self.size = (900,607)
-        position_center = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
         self.position = position_center
         self._impl.native.Resize += self._handle_on_resize
         self.on_close = self.close_market_window
@@ -1571,7 +1571,7 @@ class AddItem(Window):
 
         self.title = "Add Item"
         self.size = (500, 450)
-        position_center = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -2043,7 +2043,7 @@ class AddQuantity(Window):
 
         self.title = "Add Quantity"
         self.size = (200, 100)
-        position_center = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -2685,7 +2685,7 @@ class MarketPlace(Window):
         self.title = "Market Place"
         self.size = (900,607)
         self._impl.native.Opacity = self.main._impl.native.Opacity
-        position_center = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
         self.position = position_center
         self._impl.native.Resize += self._handle_on_resize
         self.on_close = self.close_market_window

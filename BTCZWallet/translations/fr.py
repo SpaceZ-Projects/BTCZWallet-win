@@ -136,7 +136,7 @@ translations = {
     "total_balances_label": {"text": "Solde Totaux", "size": 14},
     "total_value": {"size": 14},
     "transparent_label": {"text": "Transparent", "size": 11},
-    "private_label": {"text": "Privé", "size": 11},
+    "shielded_label": {"text": "Protégé", "size": 11},
     "unconfirmed_box": {"padding": (82,0,0,0)},
     "unconfirmed_label": {"text": "Non Confirmé"},
     "importkey_window" : {"title": "Importation de Clé"},
@@ -253,7 +253,7 @@ translations = {
     "copy_key_cmd": {"text": "Copy private key"},
     "exploreraddress_cmd": {"text": "Afficher l'adresse dans l'explorateur"},
     "columnt_addresses": {"text": "Adresses Transparentes"},
-    "columnz_addresses": {"text": "Adresses Privées"},
+    "columnz_addresses": {"text": "Adresses Protégées"},
     "address_balance": {"text": "Montant :", "align": RIGHT},
     "copykey_dialog": {"title": "Copié", "message": "La clé privée a été copiée dans le presse-papiers."},
 

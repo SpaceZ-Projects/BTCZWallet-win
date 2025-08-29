@@ -8,7 +8,7 @@ from toga.style.pack import Pack
 from toga.constants import COLUMN, ROW, CENTER, BOLD
 from toga.colors import rgb, GRAY, GREENYELLOW, BLACK, WHITE, RED
 
-from .storage import StorageMobile
+from .storage import StorageMobile, StorageTxs, StorageAddresses
 
 
 
@@ -31,7 +31,7 @@ class AuthQR(Window):
 
         self.title = f"Device : {device_name}"
         self.size = (450,450)
-        position_center = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -353,7 +353,7 @@ class AddDevice(Window):
 
         self.title = "Add Device"
         self.size = (450,120)
-        position_center = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -690,11 +690,13 @@ class Mobile(Window):
 
         self.server = server
         self.mobile_storage = StorageMobile(self.app)
+        self.txs_storage = StorageTxs(self.app)
+        self.addresses_storage = StorageAddresses(self.app)
         self.tooltip = ToolTip()
 
         self.title = "Mobile Server"
         self.size = (500,600)
-        position_center = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
         self.position = position_center
         self.on_close = self.close_mobile_window
 
@@ -912,6 +914,8 @@ class Mobile(Window):
         self.server.host = host
         self.server.port = port
         self.server.mobile_storage = self.mobile_storage
+        self.server.txs_storage = self.txs_storage
+        self.server.addresses_storage = self.addresses_storage
 
         result = self.server.start()
         if result is True:

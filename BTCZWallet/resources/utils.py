@@ -164,6 +164,33 @@ class Utils():
             return None
         
 
+    async def fetch_marketcap(self):
+        api = "https://api.coingecko.com/api/v3/coins/bitcoinz"
+        tor_enabled = self.settings.tor_network()
+        if tor_enabled:
+            torrc = self.read_torrc()
+            socks_port = torrc.get("SocksPort")
+            connector = ProxyConnector.from_url(f'socks5://127.0.0.1:{socks_port}')
+        else:
+            connector = None
+        try:
+            async with aiohttp.ClientSession(connector=connector) as session:
+                headers={'User-Agent': 'Mozilla/5.0'}
+                async with session.get(api, headers=headers, timeout=10) as response:
+                    response.raise_for_status()
+                    data = await response.json()
+                    return data
+        except ProxyConnectionError:
+            self.app.console.error_log("Proxy connection failed")
+            return None
+        except asyncio.TimeoutError:
+            self.app.console.error_log("Request timed out")
+            return None
+        except Exception as e:
+            self.app.console.error_log(f"{e}")
+            return None
+        
+
     def get_onion_hostname(self, service):
         if service == "node":
             tor_service = Os.Path.Combine(str(self.app_data), "tor_service")
@@ -177,6 +204,14 @@ class Utils():
             market_service = Os.Path.Combine(str(self.app_data), "market_service")
             if Os.Directory.Exists(market_service):
                 hostname_file = Os.Path.Combine(market_service, "hostname")
+                with open(hostname_file, 'r') as file:
+                    hostname = file.read().strip()
+                    return hostname
+                
+        elif service == "mobile":
+            mobile_service = Os.Path.Combine(str(self.app_data), "mobile_service")
+            if Os.Directory.Exists(mobile_service):
+                hostname_file = Os.Path.Combine(mobile_service, "hostname")
                 with open(hostname_file, 'r') as file:
                     hostname = file.read().strip()
                     return hostname
@@ -257,8 +292,13 @@ class Utils():
             stream.Dispose()
             
 
-    def qr_generate(self, address):  
-        qr_filename = f"qr_{address}.png"
+    def qr_generate(self, address, secret = None):
+        if secret:
+            safe_part = address[:40]
+            qr_filename = f"qr_{safe_part}.png"
+        else:
+            qr_filename = f"qr_{address}.png"
+            
         qr_path = Os.Path.Combine(str(self.app_cache), qr_filename)
         if Os.File.Exists(qr_path):
             return qr_path
@@ -328,13 +368,12 @@ class Utils():
         with open(config_file_path, 'w') as file:
             file.writelines(updated_lines)
     
-    def windows_screen_center(self, size):
-        screen_size = self.app.screens[0].size
-        screen_width, screen_height = screen_size
-        window_width, window_height = size
-        x = (screen_width - window_width) // 2
-        y = (screen_height - window_height) // 2
-        return (x, y)
+    def windows_screen_center(self, main, window):
+        screen = Forms.Screen.FromControl(main._impl.native)
+        left = screen.Bounds.Left + (screen.Bounds.Width - window._impl.native.Width) // 2
+        top = screen.Bounds.Top + (screen.Bounds.Height - window._impl.native.Height) // 2
+
+        return left, top
     
 
     def get_app_theme(self):
@@ -834,7 +873,9 @@ sendchangeback=1
             tor_service=None,
             service_port=None,
             market_service=None,
-            market_port=None
+            market_port=None,
+            mobile_service =None,
+            mobile_port = None
         ):
         if not socks_port:
             socks_port = "9050"
@@ -854,6 +895,10 @@ sendchangeback=1
         if market_service:
             torrc_content += f"HiddenServiceDir {market_service}\n"
             torrc_content += f"HiddenServicePort 80 127.0.0.1:{market_port}\n"
+        
+        if mobile_service:
+            torrc_content += f"HiddenServiceDir {mobile_service}\n"
+            torrc_content += f"HiddenServicePort 80 127.0.0.1:{mobile_port}\n"
 
         torrc_path = Os.Path.Combine(str(self.app_data), "torrc")
         with open(torrc_path, "w") as f:
@@ -912,6 +957,7 @@ sendchangeback=1
     def restart_app(self):
         excutable_file = Os.Path.Combine(str(self.app_path.parents[1]), 'BTCZWallet.exe')
         if not Os.File.Exists(excutable_file):
+            self.app.console.warning_log("Restart is not available in development mode")
             return None
         batch_script = f"""
 @echo off

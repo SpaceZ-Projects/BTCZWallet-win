@@ -194,6 +194,7 @@ class AppStatusBar(Box):
 
 
     async def update_blockchaininfo(self, widget):
+        self.app.console.event_log(f"✔: Blockchain info")
         while True:
             if self.main.import_key_toggle:
                 await asyncio.sleep(1)
@@ -203,7 +204,7 @@ class AppStatusBar(Box):
                 self.node_status = True
                 info = json.loads(blockchaininfo)
                 blocks = info.get('blocks')
-                self.main.home_page.current_block = blocks
+                self.main.home_page.current_blocks = blocks
                 sync = info.get('verificationprogress')
                 sync_percentage = float(sync) * 100
                 sync_str = f"{sync_percentage:.2f}"
@@ -211,7 +212,7 @@ class AppStatusBar(Box):
                 mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
                 status_icon = "images/on.png"
                 if self.latest_blocks and blocks > self.latest_blocks:
-                    self.app.console.info_log(f"New Block : {blocks}")
+                    self.app.console.info_log(f"🧊: New Block {blocks}")
                 self.latest_blocks = blocks
             else:
                 self.node_status = None
@@ -248,6 +249,7 @@ class AppStatusBar(Box):
 
 
     async def update_networkhash(self, widget):
+        self.app.console.event_log(f"✔: Network Hash")
         while True:
             if self.main.import_key_toggle:
                 await asyncio.sleep(1)
@@ -268,6 +270,7 @@ class AppStatusBar(Box):
 
     
     async def update_connections_count(self, widget):
+        self.app.console.event_log(f"✔: Peer count")
         while True:
             if self.main.import_key_toggle:
                 await asyncio.sleep(1)
@@ -277,6 +280,7 @@ class AppStatusBar(Box):
                 if self.rtl:
                     connection_count = self.units.arabic_digits(connection_count)
                 self.connections_value.text = connection_count
+
             await asyncio.sleep(5)
 
 

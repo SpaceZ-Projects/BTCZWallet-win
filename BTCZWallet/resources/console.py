@@ -19,7 +19,9 @@ from toga.colors import rgb, GRAY
 from toga.constants import COLUMN, CENTER, ROW, YELLOW, BLACK
 
 
-SERVER_LEVEL = 25
+TASK_LEVEL = 25
+SERVER_LEVEL = 26
+logging.addLevelName(TASK_LEVEL, "TASK")
 logging.addLevelName(SERVER_LEVEL, "SERVER")
 
 
@@ -52,10 +54,15 @@ class Logging:
         file_handler.setFormatter(formatter)
         self.logger.addHandler(stream_handler)
         self.logger.addHandler(file_handler)
+        setattr(self.logger, "task", self._task)
         setattr(self.logger, "server", self._server)
 
     def timestamp(self):
         return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    
+    def _task(self, message, *args, **kwargs):
+        if self.logger.isEnabledFor(TASK_LEVEL):
+            self.logger._log(TASK_LEVEL, message, args, **kwargs)
 
     def _server(self, message, *args, **kwargs):
         if self.logger.isEnabledFor(SERVER_LEVEL):
@@ -69,6 +76,9 @@ class Logging:
 
     def warning_log(self, message):
         self.logger.warning(message)
+
+    def task_log(self, message):
+        self.logger.task(message)
 
     def server_log(self, message):
         self.logger.server(message)
@@ -463,11 +473,14 @@ class Console(Window):
                 self._impl.native.Left = self.main._impl.native.Left + 7
                 self._impl.native.Top = self.main._impl.native.Bottom - 8
 
+    def _resize(self):
+        self.size = (self.main.size.width + 2, int(self.main.size.height / 3))
+        self._impl.native.Width = self.main._impl.native.Width - 15
+        self._impl.native.Top = self.main._impl.native.Bottom - 8
+
     def resize(self):
         if not self.detach_toggle:
-            self.size = (self.main.size.width + 2, int(self.main.size.height / 3))
-            self._impl.native.Width = self.main._impl.native.Width - 15
-            self._impl.native.Top = self.main._impl.native.Bottom - 8
+            self.invoke(self._resize())
 
     def move_inside(self):
         if not self.detach_toggle:
@@ -516,38 +529,42 @@ class Console(Window):
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     def invoke(self, func):
-        self._impl.native.Invoke(Forms.MethodInvoker(func))
+        self._impl.native.Invoke(Forms.MethodInvoker(lambda: func))
 
     def info_log(self, text):
-        self.invoke(lambda: self.log(f"{self.timestamp()} - {text}", Color.WHITE))
+        self.invoke(self.log(f"{self.timestamp()} - {text}", Color.WHITE))
         self.logger.info_log(text)
 
+    def event_log(self, text):
+        self.invoke(self.log(f"{self.timestamp()} - {text}", Color.BLUEVIOLET))
+        self.logger.task_log(text)
+
     def info_shell(self, text):
-        self.invoke(lambda: self.shell(f"{text}", Color.rgb(114,137,218)))
+        self.invoke(self.shell(f"{text}", Color.rgb(114,137,218)))
 
     def command_shell(self, text):
         self.history.add(text)
         self.shell_cmds.append(text)
         self.shell_history_index = None
-        self.invoke(lambda: self.shell(f"{self.timestamp()} - {text}", Color.GREENYELLO))
+        self.invoke(self.shell(f"{self.timestamp()} - {text}", Color.GREENYELLO))
     
     def error_log(self, text):
-        self.invoke(lambda: self.log(f"{self.timestamp()} - {text}", Color.RED))
+        self.invoke(self.log(f"{self.timestamp()} - {text}", Color.RED))
         self.logger.error_log(text)
     
     def error_shell(self, text):
-        self.invoke(lambda: self.shell(f"{self.timestamp()} - {text}", Color.RED))
+        self.invoke(self.shell(f"{self.timestamp()} - {text}", Color.RED))
 
     def warning_log(self, text):
-        self.invoke(lambda: self.log(f"{self.timestamp()} - {text}", Color.YELLOW))
+        self.invoke(self.log(f"{self.timestamp()} - {text}", Color.YELLOW))
         self.logger.warning_log(text)
 
     def server_log(self, text):
-        self.invoke(lambda: self.log(f"{self.timestamp()} - {text}", Color.GREEN))
+        self.invoke(self.log(f"{self.timestamp()} - {text}", Color.GREEN))
         self.logger.server_log(text)
 
     def mining_log(self, text):
-        self.invoke(lambda: self.log(f"{self.timestamp()} - {text}", Color.CYAN))
+        self.invoke(self.log(f"{self.timestamp()} - {text}", Color.CYAN))
 
 
     async def verify_command(self, input):

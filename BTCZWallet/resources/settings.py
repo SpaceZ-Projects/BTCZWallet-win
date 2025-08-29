@@ -137,6 +137,15 @@ class Settings():
                 return settings['market_service']
             
 
+    def mobile_service(self):
+        with open(self.settings_path, 'r') as f:
+            settings = json.load(f)
+            if 'mobile_service' not in settings:
+                return None
+            else:
+                return settings['mobile_service']
+            
+
     def only_onion(self):
         with open(self.settings_path, 'r') as f:
             settings = json.load(f)

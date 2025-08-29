@@ -665,7 +665,7 @@ class BTCZSetup(Box):
     async def open_main_menu(self):
         self.app.console.info_log(f"Show main menu...")
         self.main_menu = Menu(
-            self.tor_enabled, self.settings, self.utils, self.units, self.commands, self.tr, self.font
+            self.main, self.tor_enabled, self.settings, self.utils, self.units, self.commands, self.tr, self.font
         )
         self.main_menu._impl.native.TopMost = True
         if self.main.console_toggle:

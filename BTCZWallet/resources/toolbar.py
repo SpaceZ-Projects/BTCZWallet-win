@@ -8,7 +8,7 @@ from toga.constants import ROW, TOP
 
 
 class AppToolBar(Box):
-    def __init__(self, app:App, main:Window, notify, home_page ,mining_page, settings, utils, commands, tr, font):
+    def __init__(self, app:App, main:Window, settings, utils, commands, tr, font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -18,9 +18,6 @@ class AppToolBar(Box):
         )
         self.app = app
         self.main = main
-        self.notify = notify
-        self.home_page = home_page
-        self.mining_page = mining_page
 
         self.commands = commands
         self.settings = settings
@@ -72,6 +69,16 @@ class AppToolBar(Box):
             font=self.font.get(9),
             rtl=self.rtl
         )
+        self.mobile_wallet_cmd = Command(
+            title="Mobile server",
+            background_color=Color.rgb(40,43,48),
+            icon="images/mobile_i.ico",
+            color=Color.WHITE,
+            mouse_enter=self.mobile_wallet_cmd_mouse_enter,
+            mouse_leave=self.mobile_wallet_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl = self.rtl
+        )
         self.restart_cmd = Command(
             title="Restart",
             color=Color.YELLOW,
@@ -80,7 +87,7 @@ class AppToolBar(Box):
             mouse_enter=self.restart_cmd_mouse_enter,
             mouse_leave=self.restart_cmd_mouse_leave,
             shortcut_key=Keys.Control | Keys.R,
-            action=self.restart_app,
+            action=lambda : self.exit_app("restart"),
             font=self.font.get(9),
             rtl = self.rtl
         )
@@ -89,7 +96,7 @@ class AppToolBar(Box):
             color=Color.RED,
             background_color=Color.rgb(40,43,48),
             icon="images/exit.ico",
-            action=self.exit_app,
+            action=lambda : self.exit_app("default"),
             shortcut_key=Keys.Alt | Keys.F4,
             tooltip=self.tr.tooltip("exit_cmd"),
             font=self.font.get(9),
@@ -100,7 +107,7 @@ class AppToolBar(Box):
             color=Color.RED,
             background_color=Color.rgb(40,43,48),
             icon="images/stop.ico",
-            action=self.stop_node_exit,
+            action=lambda : self.exit_app("full"),
             shortcut_key=Keys.Control | Keys.Q,
             tooltip=self.tr.tooltip("stop_exit_cmd"),
             font=self.font.get(9),
@@ -111,6 +118,7 @@ class AppToolBar(Box):
             sub_commands=[
                 self.about_cmd,
                 self.app_console_cmd,
+                self.mobile_wallet_cmd,
                 Separator(),
                 self.restart_cmd,
                 self.exit_cmd,
@@ -336,7 +344,7 @@ class AppToolBar(Box):
             color=Color.WHITE,
             mouse_enter=self.generate_z_cmd_mouse_enter,
             mouse_leave=self.generate_z_cmd_mouse_leave,
-            icon="images/private_i.ico",
+            icon="images/shielded_i.ico",
             tooltip=self.tr.tooltip("generate_z_cmd"),
             font=self.font.get(9),
             rtl = self.rtl
@@ -680,6 +688,14 @@ class AppToolBar(Box):
         self.app_console_cmd.icon = "images/console_i.ico"
         self.app_console_cmd.color = Color.WHITE
 
+    def mobile_wallet_cmd_mouse_enter(self):
+        self.mobile_wallet_cmd.icon = "images/mobile_a.ico"
+        self.mobile_wallet_cmd.color = Color.BLACK
+
+    def mobile_wallet_cmd_mouse_leave(self):
+        self.mobile_wallet_cmd.icon = "images/mobile_i.ico"
+        self.mobile_wallet_cmd.color = Color.WHITE
+
     def wallet_menu_opened(self):
         self.wallet_menu_active = True
         self.wallet_menu.icon = "images/wallet_a.ico"
@@ -749,11 +765,11 @@ class AppToolBar(Box):
         self.generate_t_cmd.color = Color.WHITE
 
     def generate_z_cmd_mouse_enter(self):
-        self.generate_z_cmd.icon = "images/private_a.ico"
+        self.generate_z_cmd.icon = "images/shielded_a.ico"
         self.generate_z_cmd.color = Color.BLACK
 
     def generate_z_cmd_mouse_leave(self):
-        self.generate_z_cmd.icon = "images/private_i.ico"
+        self.generate_z_cmd.icon = "images/shielded_i.ico"
         self.generate_z_cmd.color = Color.WHITE
 
     def edit_username_cmd_mouse_enter(self):
@@ -877,68 +893,50 @@ class AppToolBar(Box):
     def display_about_dialog(self):
         self.app.about()
 
-    def exit_app(self):
-        def on_result(widget, result):
-            if result is True:
-                self.home_page.bitcoinz_curve.image = None
-                self.home_page.clear_cache()
-                self.notify.hide()
-                self.notify.dispose()
-                if self.main.market_server.server_status:
-                    self.main.notifymarket.hide()
-                    self.main.notifymarket.dispose()
-                self.app.exit()
-        if self.mining_page.mining_status:
-            return
-        self.main.question_dialog(
-            title=self.tr.title("exit_dialog"),
-            message=self.tr.message("exit_dialog"),
-            on_result=on_result
-        )
-        
-
-    def stop_node_exit(self):
+    def exit_app(self, option):
         async def on_result(widget, result):
             if result is True:
-                self.utils.stop_tor()
-                await self.commands.stopNode()
-                self.home_page.bitcoinz_curve.image = None
-                self.home_page.clear_cache()
-                self.notify.hide()
-                self.notify.dispose()
-                if self.main.market_server.server_status:
-                    self.main.notifymarket.hide()
-                    self.main.notifymarket.dispose()
-                self.app.exit()
-
-        if self.mining_page.mining_status:
-            return
-        self.main.question_dialog(
-            title=self.tr.title("stopexit_dialog"),
-            message=self.tr.message("stopexit_dialog"),
-            on_result=on_result
-        )
-
-    def restart_app(self):
-        async def on_result(widget, result):
-            if result is True:
-                restart = self.utils.restart_app()
-                if restart:
+                if option == "full":
                     self.utils.stop_tor()
                     await self.commands.stopNode()
-                    self.home_page.bitcoinz_curve.image = None
-                    self.home_page.clear_cache()
-                    self.notify.hide()
-                    self.notify.dispose()
-                    if self.main.market_server.server_status:
-                        self.main.notifymarket.hide()
-                        self.main.notifymarket.dispose()
-                    self.app.exit()
-                    
-        if self.mining_page.mining_status:
+
+                elif option == "restart":
+                    result = self.utils.restart_app()
+                    if not result:
+                        return
+                    self.utils.stop_tor()
+                    await self.commands.stopNode()
+
+                self.main.home_page.bitcoinz_curve.image = None
+                if self.main.console_toggle:
+                    self.app.console._impl.native.Close()
+                self.main.home_page.clear_cache()
+                self.main.notify.hide()
+                self.main.notify.dispose()
+                if self.main.market_server.server_status:
+                    self.main.notifymarket.hide()
+                    self.main.notifymarket.dispose()
+                if self.main.mobile_server.server_status:
+                    self.main.notifymobile.hide()
+                    self.main.notifymobile.dispose()
+                self.app.exit()
+
+        if self.main.mining_page.mining_status:
             return
+        if option == "full":
+            title=self.tr.title("stopexit_dialog")
+            message=self.tr.message("stopexit_dialog")
+
+        elif option == "restart":
+            title="Restart App"
+            message="Are you sure you want to restart the application ?"
+
+        else:
+            title=self.tr.title("exit_dialog")
+            message=self.tr.message("exit_dialog")
+
         self.main.question_dialog(
-            title="Restart App",
-            message="Are you sure you want to restart the application ?",
+            title=title,
+            message=message,
             on_result=on_result
         )

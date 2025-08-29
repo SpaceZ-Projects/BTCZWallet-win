@@ -19,7 +19,7 @@ from toga.constants import (
 
 from .toolbar import AppToolBar
 from .status import AppStatusBar
-from .notify import Notify, NotifyMining, NotifyMarket
+from .notify import Notify, NotifyMining, NotifyMarket, NotifyMobile
 from .wallet import Wallet, ImportKey, ImportWallet
 from .home import Home, Currency, Languages
 from .txs import Transactions
@@ -30,12 +30,15 @@ from .mining import Mining
 from .storage import StorageMessages, StorageMarket
 from .network import Peer, AddNode, TorConfig
 from .marketplace import MarketPlace
-from .server import MarketServer
+from .mobile import Mobile
+from .server import MarketServer, MobileServer
 
 
 class Menu(Window):
-    def __init__(self, tor_enabled, settings, utils, units, commands, tr, font):
+    def __init__(self, main:Window, tor_enabled, settings, utils, units, commands, tr, font):
         super().__init__()
+
+        self.main = main
 
         self.tor_enabled = tor_enabled
         self._is_minimized = None
@@ -47,6 +50,7 @@ class Menu(Window):
         self.import_key_toggle = None
         self.peer_toggle = None
         self.marketplace_toggle = None
+        self.mobile_toggle = None
         self.console_toggle = None
         self.stored_size = None
 
@@ -68,23 +72,28 @@ class Menu(Window):
         self.market_storage = StorageMarket(self.app)
         self.statusbar = AppStatusBar(self.app, self, settings, utils, units, commands, tr, font)
         self.wallet = Wallet(self.app, self, settings, units, commands, tr, font)
-
         self.home_page = Home(self.app, self, settings, utils, units, commands, tr, font)
-        self.transactions_page = Transactions(self.app, self, settings, utils, units, commands, tr, font)
+        self.mining_page = Mining(self.app, self, settings, utils, units, commands, tr, font)
+
+        self.notify = Notify(self.app, self, settings, utils, commands, tr, font)
+        self.toolbar = AppToolBar(self.app, self, settings, utils, commands, tr, font)
+
+        self.notifymining = NotifyMining(font)
+        self.notifymarket = NotifyMarket()
+        self.notifymobile = NotifyMobile()
+
         self.receive_page = Receive(self.app, self, settings, utils, units, commands, tr, font)
         self.send_page = Send(self.app, self, settings, units, commands, tr, font)
         self.message_page = Messages(self.app, self, settings, utils, units, commands, tr, font)
-        self.mining_page = Mining(self.app, self, settings, utils, units, commands, tr, font)
-        self.notifymining = NotifyMining(font)
-        self.notifymarket = NotifyMarket()
-        self.notify = Notify(self.app, self, self.home_page, self.mining_page, settings, utils, commands, tr, font)
-        self.toolbar = AppToolBar(self.app, self, self.notify, self.home_page, self.mining_page, settings, utils, commands, tr, font)
+        self.transactions_page = Transactions(self.app, self, settings, utils, units, commands, tr, font)
+        
         self.market_server = MarketServer(self.app, settings=self.settings, notify=self.notifymarket)
+        self.mobile_server = MobileServer(self.app, settings=self.settings, notify=self.notifymobile)
 
         opacity = self.settings.opacity()
         if opacity:
             self._impl.native.Opacity = opacity
-        position_center = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
         self.position = position_center
         self.on_close = self.on_close_menu
         self._impl.native.Resize += self._handle_on_resize
@@ -141,6 +150,7 @@ class Menu(Window):
 
         self.statusbar.run_statusbar_tasks()
         self.insert_menu_buttons()
+
 
     def insert_menu_buttons(self):
         if self.rtl:
@@ -325,13 +335,14 @@ class Menu(Window):
         self.toolbar.currency_cmd.action = self.show_currencies_list
         self.toolbar.languages_cmd.action = self.show_languages
         self.toolbar.generate_t_cmd.action = self.new_transparent_address
-        self.toolbar.generate_z_cmd.action = self.new_private_address
+        self.toolbar.generate_z_cmd.action = self.new_shielded_address
         self.toolbar.check_update_cmd.action = self.check_app_version
         self.toolbar.join_us_cmd.action = self.join_us
         self.toolbar.import_key_cmd.action = self.show_import_key
         self.toolbar.export_wallet_cmd.action = self.export_wallet
         self.toolbar.import_wallet_cmd.action = self.show_import_wallet
         self.toolbar.app_console_cmd.action = self.app_console
+        self.toolbar.mobile_wallet_cmd.action = self.show_mobile_server
         self.toolbar.edit_username_cmd.action = self.edit_messages_username
         self.toolbar.market_place_cmd.action = self.show_marketplace
         self.toolbar.backup_messages_cmd.action = self.backup_messages
@@ -417,18 +428,15 @@ class Menu(Window):
     def new_transparent_address(self, sender, event):
         self.app.add_background_task(self.generate_transparent_address)
 
-    def new_private_address(self, sender, event):
-        self.app.add_background_task(self.generate_private_address)
+    def new_shielded_address(self, sender, event):
+        self.app.add_background_task(self.generate_shielded_address)
 
     async def generate_transparent_address(self, widget):
-        async def on_result(widget, result):
+        def on_result(widget, result):
             if result is None:
-                if self.receive_page.transparent_toggle:
-                    self.insert_new_address(new_address)
-                if self.send_page.transparent_toggle:
-                    await self.send_page.update_send_options(None)
-                if self.mining_page.mining_toggle:
-                    await self.mining_page.reload_addresses()
+                self.receive_page.reload_addresses()
+                self.send_page.update_send_options()
+                self.mining_page.reload_addresses()
         new_address,_ = await self.commands.getNewAddress()
         if new_address:
             message = self.tr.message("newaddress_dialog")
@@ -438,15 +446,12 @@ class Menu(Window):
                 on_result=on_result
             )
 
-    async def generate_private_address(self, widget):
-        async def on_result(widget, result):
+    async def generate_shielded_address(self, widget):
+        def on_result(widget, result):
             if result is None:
-                if self.receive_page.private_toggle:
-                    self.insert_new_address(new_address)
-                if self.send_page.private_toggle:
-                    await self.send_page.update_send_options(None)
-                if self.mining_page.mining_toggle:
-                    await self.mining_page.reload_addresses()
+                self.receive_page.reload_addresses()
+                self.send_page.update_send_options()
+                self.mining_page.reload_addresses()
         new_address,_ = await self.commands.z_getNewAddress()
         if new_address:
             message = self.tr.message("newaddress_dialog")
@@ -455,12 +460,6 @@ class Menu(Window):
                 message=f"{message} {new_address}",
                 on_result=on_result
             )
-
-    def insert_new_address(self, address):
-        self.receive_page.addresses_table.add_row(
-            index=0,
-            row_data={0: address}
-        )
 
     def edit_messages_username(self, sender, event):
         data = self.storage.is_exists()
@@ -493,7 +492,28 @@ class Menu(Window):
             )
 
 
+    def show_mobile_server(self, sender, event):
+        if self.settings.mobile_service():
+            if not self.mobile_toggle:
+                mobile_window = Mobile(self, self.notifymobile, self.utils, self.units, self.commands, self.tr, self.font, self.mobile_server)
+                mobile_window.show()
+                self.mobile_window = mobile_window
+                self.mobile_toggle = True
+            else:
+                self.mobile_window._impl.native.Activate()
+        else:
+            self.error_dialog(
+                title="Mobile Disabled",
+                message=(
+                    "To access the mobile wallet, you need to enable the mobile server\n\n"
+                    "  Network → Tor network\n"
+                    "and enable the Mobile Server option"
+                )
+            )
+
+
     async def updating_orders_status(self, widget):
+        self.app.console.event_log(f"✔: Orders status")
         while True:
             if self.settings.market_service():
                 market_orders = self.market_storage.get_market_orders()
@@ -538,6 +558,7 @@ class Menu(Window):
 
     def check_app_version(self, sender, event):
         self.app.add_background_task(self.fetch_repo_info)
+
 
     async def fetch_repo_info(self, widget):
         def on_result(widget, result):
@@ -944,5 +965,7 @@ class Menu(Window):
                 self.notifymining.show()
             self.hide()
             self._is_hidden = True
+            if self.console_toggle:
+                self.app.console.hide()
             return
-        self.toolbar.exit_app()
+        self.toolbar.exit_app("default")

@@ -8,7 +8,7 @@ from toga import (
 )
 from ..framework import (
     Cursors, FlatStyle, Forms, ProgressStyle, Os, DockStyle,
-    BTCZControl
+    BTCZControl, run_async
 )
 from toga.style.pack import Pack
 from toga.colors import (
@@ -18,6 +18,8 @@ from toga.constants import (
     TOP, ROW, COLUMN, RIGHT, CENTER,
     BOTTOM, HIDDEN, VISIBLE
 )
+
+from .storage import StorageAddresses
 
 
 
@@ -42,6 +44,8 @@ class Wallet(Box):
         self.tr = tr
         self.font = font
 
+        self.addresses_storage = StorageAddresses(self.app)
+
         self.rtl = None
         lang = self.settings.language()
         if lang:
@@ -52,7 +56,7 @@ class Wallet(Box):
         back_image = "images/bitcoinz_back.png"
         host = Forms.Integration.ElementHost()
         host.Dock = DockStyle.FILL
-        btcz_control = BTCZControl(face_image, back_image)
+        btcz_control = BTCZControl(face_image, back_image, 2)
         host.Child = btcz_control
 
         self.bitcoinz_logo = Box(
@@ -143,7 +147,7 @@ class Wallet(Box):
                 flex = 1
             )
         )
-        self.private_balance_box = Box(
+        self.shielded_balance_box = Box(
             style=Pack(
                 direction = COLUMN,
                 background_color = rgb(40,43,48),
@@ -172,17 +176,17 @@ class Wallet(Box):
         )
         self.transparent_value._impl.native.Font = self.font.get(9, True)
 
-        self.private_label = Label(
-            text=self.tr.text("private_label"),
+        self.shielded_label = Label(
+            text=self.tr.text("shielded_label"),
             style=Pack(
                 background_color = rgb(40,43,48),
                 text_align = CENTER,
                 color = GRAY
             )
         )
-        self.private_label._impl.native.Font = self.font.get(8, True)
+        self.shielded_label._impl.native.Font = self.font.get(8, True)
 
-        self.private_value = Label(
+        self.shielded_value = Label(
             text="",
             style=Pack(
                 background_color = rgb(40,43,48),
@@ -190,7 +194,7 @@ class Wallet(Box):
                 color = rgb(114,137,218)
             )
         )
-        self.private_value._impl.native.Font = self.font.get(9, True)
+        self.shielded_value._impl.native.Font = self.font.get(9, True)
 
         self.unconfirmed_label = Label(
             text=self.tr.text("unconfirmed_label"),
@@ -254,25 +258,27 @@ class Wallet(Box):
         )
         if self.rtl:
             self.balances_type_box.add(
-                self.private_balance_box,
+                self.shielded_balance_box,
                 self.transparent_balance_box
             )
         else:
             self.balances_type_box.add(
                 self.transparent_balance_box,
-                self.private_balance_box
+                self.shielded_balance_box
             )
 
         self.transparent_balance_box.add(
             self.transparent_label,
             self.transparent_value
         )
-        self.private_balance_box.add(
-            self.private_label,
-            self.private_value
+        self.shielded_balance_box.add(
+            self.shielded_label,
+            self.shielded_value
         )
         self.app.add_background_task(self.get_node_version)
-        self.app.add_background_task(self.update_balances)
+        self.app.add_background_task(self.update_total_balances)
+        self.app.add_background_task(self.update_transparent_addresses)
+        self.app.add_background_task(self.update_shielded_addresses)
 
 
     async def get_node_version(self, widget):
@@ -291,7 +297,8 @@ class Wallet(Box):
             self.bitcoinz_version.text = f"Core : {formatted_version} | Build : {build_suffix}"
 
 
-    async def update_balances(self, widget):
+    async def update_total_balances(self, widget):
+        self.app.console.event_log(f"✔: Total balances")
         while True:
             if self.main.import_key_toggle:
                 await asyncio.sleep(1)
@@ -301,18 +308,18 @@ class Wallet(Box):
                 balances = json.loads(totalbalances)
                 totalbalance = self.units.format_balance(float(balances.get('total')))
                 transparentbalance = self.units.format_balance(float(balances.get('transparent')))
-                privatebalance = self.units.format_balance(float(balances.get('private')))
+                shieldedbalance = self.units.format_balance(float(balances.get('private')))
                 if self.rtl:
                     totalbalance = self.units.arabic_digits(totalbalance)
                     transparentbalance = self.units.arabic_digits(transparentbalance)
-                    privatebalance = self.units.arabic_digits(privatebalance)
+                    shieldedbalance = self.units.arabic_digits(shieldedbalance)
                 if self.settings.hidden_balances():
                     totalbalance = "*.********"
                     transparentbalance = "*.********"
-                    privatebalance = "*.********"
+                    shieldedbalance = "*.********"
                 self.total_value.text = totalbalance
                 self.transparent_value.text = transparentbalance
-                self.private_value.text = privatebalance
+                self.shielded_value.text = shieldedbalance
             unconfirmed_balance,_ = await self.commands.getUnconfirmedBalance()
             if unconfirmed_balance is not None:
                 unconfirmed = self.units.format_balance(float(unconfirmed_balance))
@@ -332,6 +339,71 @@ class Wallet(Box):
             await asyncio.sleep(5)
 
 
+    async def update_transparent_addresses(self, widget):
+        self.app.console.event_log("✔: Sync transparent addresses")
+        address_type = "transparent"
+        while True:
+            if self.main.import_key_toggle:
+                await asyncio.sleep(1)
+                continue
+            stored_addresses = self.addresses_storage.get_addresses()
+
+            addresses_data, _ = await self.commands.ListAddresses()
+            addresses_data = json.loads(addresses_data)
+
+            addresses_group, _ = await self.commands.listAddressgroupPings()
+            addresses_group = json.loads(addresses_group)
+
+            for group in addresses_group:
+                for entry in group:
+                    address = entry[0]
+                    balance = entry[1] if len(entry) > 1 else 0.0
+                    if address not in addresses_data:
+                        change = True
+                    else:
+                        change = None
+                    if address not in stored_addresses:
+                        self.addresses_storage.insert_address(address_type, change, address, balance)
+                    else:
+                        self.addresses_storage.update_balance(address, balance)
+
+            await asyncio.sleep(10)
+
+
+    async def update_shielded_addresses(self, widget):
+        self.app.console.event_log("✔: Sync shielded addresses")
+        while True:
+            if self.main.import_key_toggle:
+                await asyncio.sleep(1)
+                continue
+            stored_addresses = self.addresses_storage.get_addresses()
+
+            addresses_data,_ = await self.commands.z_listAddresses()
+            addresses_data = json.loads(addresses_data)
+            if addresses_data:
+                for address in addresses_data:
+                    if address not in stored_addresses:
+                        option = "insert"
+                    else:
+                        option = "update"
+                    run_async(self.insert_address(address, option))
+
+                    
+            await asyncio.sleep(10)
+
+    
+    async def insert_address(self, address, option):
+        address_type = "shielded"
+        balance,_ = await self.commands.z_getBalance(address)
+        if option == "insert":
+            self.addresses_storage.insert_address(address_type, None, address, balance)
+        elif option == "update":
+            self.addresses_storage.update_balance(address, balance)
+
+            
+
+
+
 
 class ImportKey(Window):
     def __init__(self, main:Window, settings, utils, commands, tr, font):
@@ -348,7 +420,8 @@ class ImportKey(Window):
         self.font = font
 
         self.title = self.tr.title("importkey_window")
-        self.position = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
+        self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
 
@@ -483,9 +556,9 @@ class ImportKey(Window):
                 self.key_input.readonly = False
                 self.cancel_button.enabled = True
         key = self.key_input.value
-        result, error_message = await self.commands.ImportPrivKey(key)
+        _, error_message = await self.commands.ImportPrivKey(key)
         if error_message:
-            result, error_message = await self.commands.z_ImportKey(key)
+            _, error_message = await self.commands.z_ImportKey(key)
             if error_message:
                 self.error_dialog(
                     title=self.tr.title("invalidkey_dialog"),
@@ -549,7 +622,8 @@ class ImportWallet(Window):
         self.font = font
 
         self.title = self.tr.title("importwallet_window")
-        self.position = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
+        self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
 

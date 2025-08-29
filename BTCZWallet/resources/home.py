@@ -1,9 +1,7 @@
 
 import asyncio
-import aiohttp
 from datetime import datetime
 import json
-from aiohttp_socks import ProxyConnector, ProxyConnectionError
 
 from toga import (
     App, Box, Label, ImageView, Window, Button,
@@ -35,7 +33,8 @@ class Languages(Window):
         self.font = font
 
         self.title = self.tr.title("language_window")
-        self.position = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
+        self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
 
@@ -126,8 +125,6 @@ class Languages(Window):
             value = "French"
         elif value == "العربية":
             value = "Arabic"
-        elif value == "русский":
-            value = "Russian"
         self.settings.update_settings("lang", value)
         self.info_dialog(
             title=self.tr.title("language_dialog"),
@@ -164,7 +161,8 @@ class Currency(Window):
         self.font = font
 
         self.title = self.tr.title("currency_window")
-        self.position = self.utils.windows_screen_center(self.size)
+        position_center = self.utils.windows_screen_center(self.main, self)
+        self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
 
@@ -320,7 +318,7 @@ class Home(Box):
         self.circulating_toggle = None
         self.curve_image = None
         self.circulating = None
-        self.current_block = None
+        self.current_blocks = None
         self.deprecation = None
 
         self.rtl = None
@@ -644,35 +642,13 @@ class Home(Box):
             self.app.add_background_task(self.update_remaining_deprecation)
 
 
-    async def fetch_marketcap(self):
-        api = "https://api.coingecko.com/api/v3/coins/bitcoinz"
-        tor_enabled = self.settings.tor_network()
-        if tor_enabled:
-            torrc = self.utils.read_torrc()
-            socks_port = torrc.get("SocksPort")
-            connector = ProxyConnector.from_url(f'socks5://127.0.0.1:{socks_port}')
-        else:
-            connector = None
-        try:
-            async with aiohttp.ClientSession(connector=connector) as session:
-                headers={'User-Agent': 'Mozilla/5.0'}
-                async with session.get(api, headers=headers, timeout=10) as response:
-                    response.raise_for_status()
-                    data = await response.json()
-                    return data
-        except ProxyConnectionError as e:
-            return None
-        except asyncio.TimeoutError:
-            return None
-        except Exception as e:
-            return None
-        
-
+    
     async def update_circulating_supply(self, widget):
+        self.app.console.event_log(f"✔: Circulating supply")
         while True:
-            self.circulating = self.units.calculate_circulating(int(self.current_block))
-            remaining_blocks = self.units.remaining_blocks_until_halving(int(self.current_block))
-            remaining_days = self.units.remaining_days_until_halving(int(self.current_block))
+            self.circulating = self.units.calculate_circulating(int(self.current_blocks))
+            remaining_blocks = self.units.remaining_blocks_until_halving(int(self.current_blocks))
+            remaining_days = self.units.remaining_days_until_halving(int(self.current_blocks))
             circulating = int(self.circulating)
             if self.rtl:
                 circulating = self.units.arabic_digits(str(circulating))
@@ -689,9 +665,10 @@ class Home(Box):
 
 
     async def update_remaining_deprecation(self, widget):
+        self.app.console.event_log(f"✔: Remaining deprecation")
         while True:
-            remaining_blocks = self.units.remaining_blocks_until_deprecation(int(self.deprecation), int(self.current_block))
-            remaining_days = self.units.remaining_days_until_deprecation(int(self.deprecation), int(self.current_block))
+            remaining_blocks = self.units.remaining_blocks_until_deprecation(int(self.deprecation), int(self.current_blocks))
+            remaining_days = self.units.remaining_days_until_deprecation(int(self.deprecation), int(self.current_blocks))
             if self.rtl:
                 remaining_blocks = self.units.arabic_digits(str(remaining_blocks))
                 remaining_days = self.units.arabic_digits(str(remaining_days))
@@ -700,8 +677,9 @@ class Home(Box):
 
 
     async def update_marketcap(self, widget):
+        self.app.console.event_log(f"✔: Market cap")
         while True:
-            data = await self.fetch_marketcap()
+            data = await self.utils.fetch_marketcap()
             if data:
                 market_price = data["market_data"]["current_price"][self.settings.currency()]
                 market_cap = data["market_data"]["market_cap"][self.settings.currency()]
@@ -740,6 +718,7 @@ class Home(Box):
 
 
     async def update_marketchart(self, widget):
+        self.app.console.event_log(f"✔: Market curve")
         while True:
             data = await self.curve.fetch_marketchart()
             if data:

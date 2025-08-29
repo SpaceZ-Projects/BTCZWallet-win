@@ -80,6 +80,13 @@ class Client():
         command = f'{self.bitcoinz_cli_file} getblockchaininfo'
         return await self._run_command(command)
     
+    async def getBlock(self, blockhash):
+        """
+        information about the block
+        """
+        command = f'{self.bitcoinz_cli_file} getblock "{blockhash}"'
+        return await self._run_command(command)
+    
     async def getNetworkSolps(self):
         """
         Returns the estimated network solutions per second based on the last n blocks.
@@ -142,6 +149,15 @@ class Client():
         Returns the number of blocks in the best valid block chain.
         """
         command = f'{self.bitcoinz_cli_file} getblockcount'
+        return await self._run_command(command)
+    
+    async def listAddressgroupPings(self):
+        """
+        Lists groups of addresses which have had their common ownership
+        made public by common use as inputs or as the resulting change
+        in past transactions
+        """
+        command = f'{self.bitcoinz_cli_file} listaddressgroupings'
         return await self._run_command(command)
     
     async def ListAddresses(self):
