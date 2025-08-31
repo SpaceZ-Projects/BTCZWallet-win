@@ -89,6 +89,7 @@ class Color:
     GRAY = Drawing.Color.Gray
     GREENYELLO = Drawing.Color.GreenYellow
     CYAN = Drawing.Color.Cyan
+    BLUEVIOLET = Drawing.Color.BlueViolet
 
     @staticmethod
     def rgb(r, g, b):
@@ -1615,10 +1616,10 @@ class RichLabel(Forms.RichTextBox):
         link_text = self.get_url_at_position(link_pos)
         if link_text:
             if not self.tooltip_visible:
-                self.tooltip.Show(f"Open link (ctrl + click)", self, pos.X, pos.Y + 20)
+                self.tooltip.Show(f"Open link (ctrl + click)", self, pos.X, pos.Y - 25)
                 self.tooltip_visible = True
             else:
-                self.tooltip.Show(f"Open link (ctrl + click)", self, pos.X, pos.Y + 20)
+                self.tooltip.Show(f"Open link (ctrl + click)", self, pos.X, pos.Y - 25)
             self.LinkCursor = Cursors.DEFAULT
         else:
             if self.tooltip_visible:

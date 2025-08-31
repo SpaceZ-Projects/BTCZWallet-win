@@ -12,7 +12,7 @@ from toga import App, Window, Box, TextInput, Label, ImageView
 from ..framework import (
     FormBorderStyle, RichLabel, DockStyle, Color,
     BorderStyle, Sys, Forms, Keys, ToolTip, MenuStrip,
-    ClipBoard, Os, run_async
+    ClipBoard, Os, run_async, Drawing
 )
 from toga.style.pack import Pack
 from toga.colors import rgb, GRAY
@@ -144,6 +144,7 @@ class Console(Window):
         self.history = ShellHistory(self.app)
 
         self.title = "Console"
+        self._impl.native.Icon = self.window_icon("images/Console.ico")
         self._impl.native.BackColor = Color.rgb(30,30,30)
         self._impl.native.Owner = self.main._impl.native
         self._impl.native.FormBorderStyle = FormBorderStyle.NONE
@@ -190,7 +191,8 @@ class Console(Window):
             wrap=True,
             urls=True,
             borderstyle=BorderStyle.NONE,
-            urls_click=self.open_url
+            urls_click=self.open_url,
+            mouse_move=True
         )
         self.console_output_shell = RichLabel(
             readonly=True,
@@ -869,6 +871,11 @@ class Console(Window):
 
     def _handle_on_deactivated(self, sender, event):
         self._is_active = False
+
+    def window_icon(self, path):
+        icon_path = Os.Path.Combine(str(self.app.paths.app), path)
+        icon = Drawing.Icon(icon_path)
+        return icon
 
 
     def on_close_console(self, widget):

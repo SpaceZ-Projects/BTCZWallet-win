@@ -3,7 +3,7 @@ import asyncio
 from datetime import datetime, timezone
 
 from toga import App, Window, Box, ImageView, Button, Label, TextInput, ScrollContainer
-from ..framework import FlatStyle, ToolTip
+from ..framework import FlatStyle, ToolTip, Drawing, Os
 from toga.style.pack import Pack
 from toga.constants import COLUMN, ROW, CENTER, BOLD
 from toga.colors import rgb, GRAY, GREENYELLOW, BLACK, WHITE, RED
@@ -695,6 +695,7 @@ class Mobile(Window):
         self.tooltip = ToolTip()
 
         self.title = "Mobile Server"
+        self._impl.native.Icon = self.window_icon("images/Mobile.ico")
         self.size = (500,600)
         position_center = self.utils.windows_screen_center(self.main, self)
         self.position = position_center
@@ -870,11 +871,8 @@ class Mobile(Window):
                         existing_device = self.devices_data[device_id]
                         if device_status and device_status == "on":
                             existing_device.device_icon.image = "images/device_on.png"
-                            tooltip = "Online"
                         else:
                             existing_device.device_icon.image = "images/device_off.png"
-                            tooltip = "Offline"
-                        self.tooltip.insert(existing_device.device_icon._impl.native, tooltip)
                         if device_timestamp:
                             device_timestamp = datetime.fromtimestamp(device_timestamp).strftime('%Y-%m-%d %H:%M:%S')
                             existing_device.device_last_connected._impl.native.Text = f"Recent Request : {device_timestamp}"
@@ -982,6 +980,11 @@ class Mobile(Window):
     def stop_server_mouse_leave(self, sender, event):
         self.start_server.style.color = GRAY
         self.start_server.style.background_color = rgb(30,33,36)
+
+    def window_icon(self, path):
+        icon_path = Os.Path.Combine(str(self.app.paths.app), path)
+        icon = Drawing.Icon(icon_path)
+        return icon
 
 
     def close_mobile_window(self, widget):

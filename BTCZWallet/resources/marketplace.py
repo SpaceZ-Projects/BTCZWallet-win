@@ -1191,6 +1191,7 @@ class MarketView(Window):
         self.contact_id = contact_id
 
         self.title = f"{username}'s Market"
+        self._impl.native.Icon = self.window_icon("images/Market.ico")
         self.size = (900,607)
         position_center = self.utils.windows_screen_center(self.main, self)
         self.position = position_center
@@ -1546,6 +1547,11 @@ class MarketView(Window):
     def orders_button_mouse_leave(self, sender, event):
         self.orders_button.style.color = GRAY
         self.orders_button.style.background_color = rgb(30,33,36)
+
+    def window_icon(self, path):
+        icon_path = Os.Path.Combine(str(self.app.paths.app), path)
+        icon = Drawing.Icon(icon_path)
+        return icon
 
 
     def close_market_window(self, widget):
@@ -2683,6 +2689,7 @@ class MarketPlace(Window):
         self.message_storage = StorageMessages(self.app)
 
         self.title = "Market Place"
+        self._impl.native.Icon = self.window_icon("images/Market.ico")
         self.size = (900,607)
         self._impl.native.Opacity = self.main._impl.native.Opacity
         position_center = self.utils.windows_screen_center(self.main, self)
@@ -3139,6 +3146,11 @@ class MarketPlace(Window):
     def stop_server_mouse_leave(self, sender, event):
         self.start_server.style.color = GRAY
         self.start_server.style.background_color = rgb(30,33,36)
+
+    def window_icon(self, path):
+        icon_path = Os.Path.Combine(str(self.app.paths.app), path)
+        icon = Drawing.Icon(icon_path)
+        return icon
 
 
     def close_market_window(self, widget):
