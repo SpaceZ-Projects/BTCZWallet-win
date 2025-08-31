@@ -184,7 +184,7 @@ class Utils():
             self.app.console.error_log("Proxy connection failed")
             return None
         except asyncio.TimeoutError:
-            self.app.console.error_log("Request timed out")
+            self.app.console.error_log(f"Request timed out {api}")
             return None
         except Exception as e:
             self.app.console.error_log(f"{e}")
@@ -482,8 +482,8 @@ class Utils():
     
 
     async def fetch_tor_files(self, label, progress_bar):
-        file_name = "tor-expert-bundle-windows-x86_64-14.5.5.tar.gz"
-        url = "https://archive.torproject.org/tor-package-archive/torbrowser/14.5.5/"
+        file_name = "tor-expert-bundle-windows-x86_64-14.5.6.tar.gz"
+        url = "https://archive.torproject.org/tor-package-archive/torbrowser/14.5.6/"
         self.app.console.info_log(f"Downloading tor bundle... {url}")
         destination = Os.Path.Combine(str(self.app_data), file_name)
         text = self.tr.text("download_tor")
