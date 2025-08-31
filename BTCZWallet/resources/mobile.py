@@ -3,7 +3,7 @@ import asyncio
 from datetime import datetime, timezone
 
 from toga import App, Window, Box, ImageView, Button, Label, TextInput, ScrollContainer
-from ..framework import FlatStyle, ToolTip, Drawing, Os
+from ..framework import FlatStyle, Drawing, Os
 from toga.style.pack import Pack
 from toga.constants import COLUMN, ROW, CENTER, BOLD
 from toga.colors import rgb, GRAY, GREENYELLOW, BLACK, WHITE, RED
@@ -530,7 +530,6 @@ class Device(Box):
         self.utils = utils
         self.font = font
         self.storage = StorageMobile(self.app)
-        self.tooltip = ToolTip()
 
         self.device_secret = secret
         self.device_id = device[0]
@@ -544,10 +543,8 @@ class Device(Box):
 
         if device_status == "on":
             device_icon = "images/device_on.png"
-            tooltip = "Online"
         else:
             device_icon = "images/device_off.png"
-            tooltip = "Offline"
 
         self.device_icon = ImageView(
             image=device_icon,
@@ -555,7 +552,6 @@ class Device(Box):
                 background_color = rgb(40,43,48)
             )
         )
-        self.tooltip.insert(self.device_icon._impl.native, tooltip)
 
         self.device_name_label = Label(
             text=f"Name : {self.device_name}",
@@ -692,7 +688,6 @@ class Mobile(Window):
         self.mobile_storage = StorageMobile(self.app)
         self.txs_storage = StorageTxs(self.app)
         self.addresses_storage = StorageAddresses(self.app)
-        self.tooltip = ToolTip()
 
         self.title = "Mobile Server"
         self._impl.native.Icon = self.window_icon("images/Mobile.ico")
