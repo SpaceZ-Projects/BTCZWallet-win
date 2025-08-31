@@ -265,6 +265,7 @@ class TorConfig(Window):
         position_center = self.utils.windows_screen_center(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
 
         mode = 0
         if self.utils.get_app_theme() == "dark":

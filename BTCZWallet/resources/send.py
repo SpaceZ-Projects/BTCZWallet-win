@@ -1095,7 +1095,7 @@ class Send(Box):
 
 
     def store_shielded_transaction(self, address, txid, amount, fee):
-        tx_type = "private"
+        tx_type = "shielded"
         category = "send"
         blocks = self.main.home_page.current_blocks
         timesent = int(datetime.now().timestamp())

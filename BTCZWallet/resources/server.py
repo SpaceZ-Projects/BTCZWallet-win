@@ -1,4 +1,5 @@
 
+import asyncio
 import json
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -11,6 +12,8 @@ import socket
 
 from toga import App
 from ..framework import Sys, Os
+
+from .client import Client
 
 
 def get_secret(id, storage):
@@ -36,7 +39,7 @@ def verify_signature(list_ids, storage):
         if request_time.tzinfo is None:
             request_time = request_time.replace(tzinfo=timezone.utc)
         now = datetime.now(timezone.utc)
-        if abs(now - request_time) > timedelta(seconds=60):
+        if abs(now - request_time) > timedelta(seconds=30):
             return False, (jsonify({'error': 'Request expired'}), 403)
     except ValueError:
         return False, (jsonify({'error': 'Invalid timestamp'}), 400)
@@ -86,9 +89,9 @@ class ServerThread(Thread):
             self.event.set()
             self.http_server.serve_forever()
         except socket.gaierror as e:
-            self.app.console.error_log(f"Error: DNS resolution failed for host {self.host}. Error: {e}")
+            print(f"Error: DNS resolution failed for host {self.host}. Error: {e}")
         except Exception as e:
-            self.app.console.error_log(e)
+            print(e)
 
     def shutdown(self):
         if self.http_server:
@@ -97,7 +100,7 @@ class ServerThread(Thread):
                 self.http_server.shutdown()
                 self.http_server.server_close()
             except Exception as e:
-                self.app.console.error_log(e)
+                print(e)
 
 
 class MarketServer():
@@ -144,6 +147,9 @@ class MarketServer():
 
 
     def log_request(self):
+        self.app.add_background_task(self.get_request_log())
+    
+    def get_request_log(self):
         if request.method == 'GET':
             if request.form:
                 self.app.console.server_log(f"[MARKET]Request Data: {dict(request.form)}")
@@ -337,7 +343,7 @@ class MarketServer():
         self.server_thread = ServerThread(self.app, self.flask, self.host, self.port, event)
         self.server_thread.start()
         if event.wait(timeout=5):
-            self.app.console.server_log(f"Server started and listening to {self.host}:{self.port}")
+            self.app.console.server_log(f"🛒: Server started and listening to {self.host}:{self.port}")
             self.server_status = True
             return True
         else:
@@ -345,6 +351,241 @@ class MarketServer():
             return None
 
     def stop(self):
-        self.app.console.warning_log("Shutdown server")
+        self.app.console.warning_log("🛒: Shutdown server")
+        self.server_status = None
+        self.server_thread.shutdown()
+
+
+
+
+class MobileServer():
+    def __init__(
+        self,
+        app:App,
+        main,
+        host:str = None,
+        port:int = None,
+        mobile_storage = None,
+        txs_storage = None,
+        addresses_storage = None,
+        settings = None,
+        notify = None
+    ):
+        self.host = host
+        self.port = port
+        self.mobile_storage = mobile_storage
+        self.txs_storage = txs_storage
+        self.addresses_storage = addresses_storage
+        self.settings = settings
+        self.notify = notify
+
+        self.app = app
+        self.main = main
+        self.commands = Client(self.app)
+        self.server_status = None
+        
+        self.flask = Flask(__name__)
+        Sys.Environment.SetEnvironmentVariable(
+            'FLASK_ENV', 'production', Sys.EnvironmentVariableTarget.Process
+        )
+
+        self.add_rules()
+
+    def add_rules(self):
+        self.flask.add_url_rule('/status', 'status', self.handle_status, methods=['GET'])
+        self.flask.add_url_rule('/addresses', 'addresses', self.handle_addresses, methods=['GET'])
+        self.flask.add_url_rule('/balances', 'balances', self.handle_balances, methods=['GET'])
+        self.flask.add_url_rule('/transactions', 'transactions', self.handle_transactions, methods=['GET'])
+        self.flask.add_url_rule('/cashout', 'cashout', self.handle_cashout, methods=['GET'])
+        self.flask.before_request(self.log_request)
+
+
+    def log_request(self):
+        self.app.add_background_task(self.get_request_log)
+
+    def get_request_log(self, widget):
+        if request.method == 'GET':
+            if request.form:
+                self.app.console.server_log(f"[MOBILE]Request Data: {dict(request.form)}")
+
+            self.app.console.server_log(
+                f"[MOBILE]{request.remote_addr} {request.method} {request.path}"
+            )
+
+    def handle_status(self):
+        mobile_ids = self.mobile_storage.get_auth_ids()
+        valid, response = verify_signature(mobile_ids, self.mobile_storage)
+        if not valid:
+            return response
+        self.update_device_status()
+        return jsonify({'status': 'online'}), 200
+    
+
+    def handle_addresses(self):
+        mobile_ids = self.mobile_storage.get_auth_ids()
+        valid, response = verify_signature(mobile_ids, self.mobile_storage)
+        if not valid:
+            return response
+        self.update_device_status()
+        mobile_id = request.headers.get('Authorization')
+        taddress, zaddress = self.mobile_storage.get_device_addresses(mobile_id)
+        return jsonify({'transparent': taddress, "shielded": zaddress}), 200
+    
+    
+    def handle_balances(self):
+        mobile_ids = self.mobile_storage.get_auth_ids()
+        valid, response = verify_signature(mobile_ids, self.mobile_storage)
+        if not valid:
+            return response
+        self.update_device_status()
+        mobile_id = request.headers.get('Authorization')
+        taddress, zaddress = self.mobile_storage.get_device_addresses(mobile_id)
+        tbalance = self.addresses_storage.get_address_balance(taddress)
+        zbalance = self.addresses_storage.get_address_balance(zaddress)
+        return jsonify({'transparent': tbalance, "shielded": zbalance}), 200
+    
+
+    def handle_transactions(self):
+        mobile_ids = self.mobile_storage.get_auth_ids()
+        valid, response = verify_signature(mobile_ids, self.mobile_storage)
+        if not valid:
+            return response
+        self.update_device_status()
+        transactions_data = []
+        mobile_id = request.headers.get('Authorization')
+        addresses = self.mobile_storage.get_device_addresses(mobile_id)
+        for address in addresses:
+            data = self.txs_storage.get_mobile_transactions(address)
+            transactions_data.append(data)
+        if transactions_data:
+            result = []
+            for data in transactions_data:
+                tx_dict = {
+                    "type": data[0],
+                    "category": data[1],
+                    "address": data[2],
+                    "txid": data[3],
+                    "amount": data[4],
+                    "blocks": data[5],
+                    "fee": data[6],
+                    "timestamp": data[7]
+                }
+                result.append(tx_dict)
+        return jsonify(result), 200
+    
+
+    async def handle_cashout(self):
+        mobile_ids = self.mobile_storage.get_auth_ids()
+        valid, response = verify_signature(mobile_ids, self.mobile_storage)
+        if not valid:
+            return response
+        self.update_device_status()
+
+        get_params = request.args
+        required_params = ["type", "address", "amount", "fee"]
+        missing = [p for p in required_params if not get_params.get(p)]
+        if missing:
+            return jsonify({"error": f"Missing required parameters: {', '.join(missing)}"}), 400
+        
+        mobile_id = request.headers.get('Authorization')
+        
+        tx_type = get_params.get("type")
+        address = get_params.get("address")
+        amount = get_params.get("amount")
+        txfee = get_params.get("fee")
+
+        is_valid = await self.is_valid(address)
+        if not is_valid:
+            return jsonify({"error": "Invalid destination address"}), 400
+
+        taddress, zaddress = self.mobile_storage.get_device_addresses(mobile_id)
+        if tx_type == "transparent":
+            balance = self.addresses_storage.get_address_balance(taddress)
+            from_address = taddress
+        else:
+            balance = self.addresses_storage.get_address_balance(zaddress)
+            from_address = zaddress
+
+        if balance < amount + txfee:
+            return jsonify({"error": "Insufficient balance"}), 400
+        
+        await self.send_single(from_address, address, amount, txfee)
+        
+
+    async def send_single(self, from_address, address, amount, txfee):
+        try:
+            operation, _= await self.commands.z_sendMany(from_address, address, amount, txfee)
+            if not operation:
+                return jsonify({"error": "Unable to create operation. Please try again later."}), 500
+            transaction_status, _= await self.commands.z_getOperationStatus(operation)
+            transaction_status = json.loads(transaction_status)
+            if isinstance(transaction_status, list) and transaction_status:
+                status = transaction_status[0].get('status')
+                if status not in ["executing", "success"]:
+                    return jsonify({"error": f"Operation could not start. Status: {status}"}), 500
+                await asyncio.sleep(1)
+                while True:
+                    transaction_result, _= await self.commands.z_getOperationResult(operation)
+                    transaction_result = json.loads(transaction_result)
+                    if isinstance(transaction_result, list) and transaction_result:
+                        status = transaction_result[0].get('status')
+                        result = transaction_result[0].get('result', {})
+                        txid = result.get('txid')
+                        if status == "failed":
+                            return jsonify({"error": "Transaction send failed"}), 500
+                        elif status == "success":
+                            if address.startswith('z'):
+                                self.store_shielded_transaction(address, txid, amount, txfee)
+                            return jsonify({"txid": txid}), 200
+                                
+                    await asyncio.sleep(3)
+           
+        except Exception as e:
+            return jsonify({"error": f"Exception while processing transaction: {str(e)}"}), 500
+        
+
+    def store_shielded_transaction(self, address, txid, amount, fee):
+        tx_type = "shielded"
+        category = "mobile_send"
+        blocks = self.main.home_page.current_blocks
+        timesent = int(datetime.now().timestamp())
+        self.txs_storage.insert_transaction(tx_type, category, address, txid, amount, blocks, fee, timesent)
+
+
+    
+    async def is_valid(self, address):
+        if address.startswith("t"):
+            result, _ = await self.commands.validateAddress(address)
+        elif address.startswith("z"):
+            result, _ = await self.commands.z_validateAddress(address)
+        if result is not None:
+            result = json.loads(result)
+            is_valid = result.get('isvalid')
+            if is_valid is True:
+                return True
+            return None
+
+
+    def update_device_status(self):
+        mobile_id = request.headers.get('Authorization')
+        timestamp = int(datetime.now(timezone.utc).timestamp())
+        self.mobile_storage.update_device_connected(mobile_id, timestamp)
+        self.mobile_storage.update_device_status(mobile_id, "on")
+        
+    
+    def start(self):
+        event = Event()
+        self.server_thread = ServerThread(self.app, self.flask, self.host, self.port, event)
+        self.server_thread.start()
+        if event.wait(timeout=5):
+            self.app.console.server_log(f"📱: Server started and listening to {self.host}:{self.port}")
+            self.server_status = True
+            return True
+        else:
+            self.app.console.error_log("Server failed to start within the timeout period.")
+            return None
+
+    def stop(self):
+        self.app.console.warning_log("📱: Shutdown server")
         self.server_status = None
         self.server_thread.shutdown()

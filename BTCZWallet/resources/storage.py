@@ -202,7 +202,8 @@ class StorageMobile:
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
             cursor.execute(
-                'SELECT * FROM mobile_devices WHERE status = on',
+                "SELECT * FROM mobile_devices WHERE status = ?",
+                ("on",)
             )
             data = cursor.fetchall()
             conn.close()
@@ -216,7 +217,7 @@ class StorageMobile:
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
             cursor.execute(
-                'SELECT taddress, zaddess FROM mobile_devices WHERE id = ?',
+                'SELECT taddress, zaddress FROM mobile_devices WHERE id = ?',
                 (id,)
             )
             data = cursor.fetchone()
@@ -707,7 +708,7 @@ class StorageTxs:
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
             cursor.execute(
-                'SELECT * FROM transactions WHERE category = mobile AND address = ?',
+                'SELECT * FROM transactions WHERE address = ?',
                 (address,)
             )
             transactions = cursor.fetchall()

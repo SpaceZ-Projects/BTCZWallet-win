@@ -88,7 +88,7 @@ class Menu(Window):
         self.transactions_page = Transactions(self.app, self, settings, utils, units, commands, tr, font)
         
         self.market_server = MarketServer(self.app, settings=self.settings, notify=self.notifymarket)
-        self.mobile_server = MobileServer(self.app, settings=self.settings, notify=self.notifymobile)
+        self.mobile_server = MobileServer(self.app, self, settings=self.settings, notify=self.notifymobile)
 
         opacity = self.settings.opacity()
         if opacity:

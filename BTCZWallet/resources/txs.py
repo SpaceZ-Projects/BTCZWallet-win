@@ -521,7 +521,7 @@ class Transactions(Box):
             tx_type = data[0]
             category = data[1]
             address = data[2]
-            if category == "mobile":
+            if category.startswith("mobile"):
                 continue
             if category == "send":
                 if tx_type == "shielded":
@@ -595,7 +595,10 @@ class Transactions(Box):
                             if address == mining_address:
                                 category = "mining"
                         if address in mobile_addresses:
-                            category = "mobile"
+                            if category == "receive":
+                                category = "mobile_receive"
+                            else:
+                                category = "mobile_send"
                         fee = None
                         if "fee" in data:
                             fee = data["fee"]
@@ -679,7 +682,7 @@ class Transactions(Box):
                                 if address == mining_address:
                                     category = "mining"
                             if address in mobile_addresses:
-                                category = "mobile"
+                                category = "mobile_receive"
                             if confirmations > 0:
                                 blocks = self.main.home_page.current_blocks - confirmations
                             elif confirmations == 0:
@@ -735,7 +738,7 @@ class Transactions(Box):
                         data = self.storagetxs.get_transaction(txid)
                         tx_type = data[0]
                         category = data[1]
-                        if category == "mobile":
+                        if category.startswith("mobile"):
                             continue
                         if category == "send":
                             if tx_type == "shielded":
@@ -860,7 +863,7 @@ class Transactions(Box):
             for data in sorted_transactions:
                 tx_type = data[0]
                 category = data[1]
-                if category == "mobile":
+                if category.startswith("mobile"):
                     continue
                 if category == "send":
                     if tx_type == "shielded":

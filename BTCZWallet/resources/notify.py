@@ -160,7 +160,7 @@ class NotifyMining(NotifyIcon):
 class NotifyMarket(NotifyIcon):
     def __init__(self):
         super().__init__(
-            icon="images/market_notify.ico",
+            icon="images/Market.ico",
             text = "Marketplace Server"
         )
 
@@ -168,7 +168,7 @@ class NotifyMarket(NotifyIcon):
 class NotifyMobile(NotifyIcon):
     def __init__(self):
         super().__init__(
-            icon="images/mobile_notify.ico",
+            icon="images/Mobile.ico",
             text = "Mobile Server"
         )
 
