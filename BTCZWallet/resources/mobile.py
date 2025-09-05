@@ -826,15 +826,15 @@ class Mobile(Window):
                 if dir_path.endswith("mobile_service"):
                     self.mobile_port = port_line.split()[1].split(":")[1] if port_line else ""
                     self.start_server.enabled = True
-        self.app.add_background_task(self.load_devices_list)
-        self.app.add_background_task(self.updating_devices_list)
-        self.app.add_background_task(self.updating_devices_status)
+                    
+        asyncio.create_task(self.updating_devices_status())
+        asyncio.create_task(self.load_devices_list())
+        asyncio.create_task(self.updating_devices_list())
 
 
-    async def load_devices_list(self, widget):
+    async def load_devices_list(self):
         devices_list = self.mobile_storage.get_devices()
         if devices_list:
-            self.devices_label.text = f"Devices : {len(devices_list)}"
             for device in devices_list:
                 device_id = device[0]
                 device_secret = self.mobile_storage.get_secret(device_id)
@@ -845,12 +845,13 @@ class Mobile(Window):
         self.main_box.add(self.devices_scroll)
 
 
-    async def updating_devices_list(self, widget):
+    async def updating_devices_list(self):
         while True:
             if not self.main.mobile_toggle:
                 return
             devices_list = self.mobile_storage.get_devices()
             connected_devices = self.mobile_storage.get_connected_devices()
+            self.devices_label.text = f"Devices : {len(devices_list)}"
             self.connected_label.text = f"Connected : {len(connected_devices)}"
             if devices_list:
                 for device in devices_list:
@@ -875,7 +876,7 @@ class Mobile(Window):
             await asyncio.sleep(3)
 
 
-    async def updating_devices_status(self, widget):
+    async def updating_devices_status(self):
         while True:
             if not self.main.mobile_toggle:
                 return

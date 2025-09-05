@@ -35,7 +35,7 @@ from .server import MarketServer, MobileServer
 
 
 class Menu(Window):
-    def __init__(self, main:Window, tor_enabled, settings, utils, units, commands, tr, font):
+    def __init__(self, main:Window, tor_enabled, settings, utils, units, commands, rpc, tr, font):
         super().__init__()
 
         self.main = main
@@ -55,6 +55,7 @@ class Menu(Window):
         self.stored_size = None
 
         self.commands = commands
+        self.rpc = rpc
         self.units = units
         self.settings = settings
         self.tr = tr
@@ -70,9 +71,9 @@ class Menu(Window):
 
         self.storage = StorageMessages(self.app)
         self.market_storage = StorageMarket(self.app)
-        self.statusbar = AppStatusBar(self.app, self, settings, utils, units, commands, tr, font)
-        self.wallet = Wallet(self.app, self, settings, units, commands, tr, font)
-        self.home_page = Home(self.app, self, settings, utils, units, commands, tr, font)
+        self.statusbar = AppStatusBar(self.app, self, settings, utils, units, rpc, tr, font)
+        self.wallet = Wallet(self.app, self, settings, units, rpc, tr, font)
+        self.home_page = Home(self.app, self, settings, utils, units, tr, font)
         self.mining_page = Mining(self.app, self, settings, utils, units, commands, tr, font)
 
         self.notify = Notify(self.app, self, settings, utils, commands, tr, font)
@@ -85,7 +86,7 @@ class Menu(Window):
         self.receive_page = Receive(self.app, self, settings, utils, units, commands, tr, font)
         self.send_page = Send(self.app, self, settings, units, commands, tr, font)
         self.message_page = Messages(self.app, self, settings, utils, units, commands, tr, font)
-        self.transactions_page = Transactions(self.app, self, settings, utils, units, commands, tr, font)
+        self.transactions_page = Transactions(self.app, self, settings, utils, units, rpc, tr, font)
         
         self.market_server = MarketServer(self.app, settings=self.settings, notify=self.notifymarket)
         self.mobile_server = MobileServer(self.app, self, settings=self.settings, notify=self.notifymobile)
@@ -290,17 +291,17 @@ class Menu(Window):
         self.send_button_toggle = None
         self.message_button_toggle = None
         self.mining_button_toggle = None
-        self.app.add_background_task(self.set_default_page)
+        asyncio.create_task(self.set_default_page())
 
-    async def set_default_page(self, widget):
+    async def set_default_page(self):
         await asyncio.sleep(0.5)
-        self.home_button_click(None)
+        self.home_button_click(self)
         self.add_actions_cmds()
-        self.app.add_background_task(self.transactions_page.run_tasks)
+        asyncio.create_task(self.transactions_page.run_tasks())
         await asyncio.sleep(1)
-        self.app.add_background_task(self.message_page.gather_unread_memos)
+        asyncio.create_task(self.message_page.gather_unread_memos())
         await asyncio.sleep(1)
-        self.app.add_background_task(self.updating_orders_status)
+        asyncio.create_task(self.updating_orders_status())
 
     def add_actions_cmds(self):
         if self.settings.hidden_balances():
@@ -474,7 +475,7 @@ class Menu(Window):
         if self.settings.market_service():
             if not self.marketplace_toggle:
                 marketplace_window = MarketPlace(
-                    self, self.notifymarket, self.settings, self.utils, self.units, self.commands, self.tr, self.font, self.market_server
+                    self, self.notifymarket, self.settings, self.utils, self.units, self.tr, self.font, self.market_server
                 )
                 marketplace_window.show()
                 self.marketplace_window = marketplace_window
@@ -512,7 +513,7 @@ class Menu(Window):
             )
 
 
-    async def updating_orders_status(self, widget):
+    async def updating_orders_status(self):
         self.app.console.event_log(f"✔: Orders status")
         while True:
             if self.settings.market_service():
@@ -683,7 +684,7 @@ class Menu(Window):
         self.home_button.style.color = BLACK
         self.home_button.style.background_color = YELLOW
         self.pages.add(self.home_page)
-        self.app.add_background_task(self.home_page.insert_widgets)
+        self.home_page.insert_widgets()
 
 
     def home_button_mouse_enter(self, sender, event):
@@ -707,7 +708,7 @@ class Menu(Window):
         self.transactions_button.style.color= BLACK
         self.transactions_button.style.background_color = YELLOW
         self.pages.add(self.transactions_page)
-        self.app.add_background_task(self.transactions_page.insert_widgets)
+        self.transactions_page.insert_widgets()
 
     def transactions_button_mouse_enter(self, sender, event):
         if self.transactions_button_toggle:
@@ -730,7 +731,7 @@ class Menu(Window):
         self.receive_button.style.color = BLACK
         self.receive_button.style.background_color = YELLOW
         self.pages.add(self.receive_page)
-        self.app.add_background_task(self.receive_page.insert_widgets)
+        self.receive_page.insert_widgets()
 
     def receive_button_mouse_enter(self, sender, event):
         if self.receive_button_toggle:
@@ -753,7 +754,7 @@ class Menu(Window):
         self.send_button.style.color = BLACK
         self.send_button.style.background_color = YELLOW
         self.pages.add(self.send_page)
-        self.app.add_background_task(self.send_page.insert_widgets)
+        self.send_page.insert_widgets()
 
     def send_button_mouse_enter(self, sender, event):
         if self.send_button_toggle:
@@ -776,7 +777,7 @@ class Menu(Window):
         self.message_button.style.color = BLACK
         self.message_button.style.background_color = YELLOW
         self.pages.add(self.message_page)
-        self.app.add_background_task(self.message_page.insert_widgets)
+        self.message_page.insert_widgets()
     
     def message_button_mouse_enter(self, sender, event):
         if self.message_button_toggle:
@@ -799,7 +800,7 @@ class Menu(Window):
         self.mining_button.style.color = BLACK
         self.mining_button.style.background_color = YELLOW
         self.pages.add(self.mining_page)
-        self.app.add_background_task(self.mining_page.insert_widgets)
+        self.mining_page.insert_widgets()
 
     def mining_button_mouse_enter(self, sender, event):
         if self.mining_button_toggle:

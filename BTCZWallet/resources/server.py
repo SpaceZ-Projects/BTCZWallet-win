@@ -383,6 +383,7 @@ class MobileServer():
         self.main = main
         self.commands = Client(self.app)
         self.server_status = None
+        self.current_blocks = None
         
         self.flask = Flask(__name__)
         Sys.Environment.SetEnvironmentVariable(
@@ -418,7 +419,11 @@ class MobileServer():
         if not valid:
             return response
         self.update_device_status()
-        return jsonify({'status': 'online'}), 200
+        height = self.current_blocks
+        currency = self.settings.currency()
+        price = self.settings.price()
+        version = self.app.version
+        return jsonify({'version': version, 'height': height, 'currency': currency, 'price': price}), 200
     
 
     def handle_addresses(self):
@@ -429,7 +434,7 @@ class MobileServer():
         self.update_device_status()
         mobile_id = request.headers.get('Authorization')
         taddress, zaddress = self.mobile_storage.get_device_addresses(mobile_id)
-        return jsonify({'transparent': taddress, "shielded": zaddress}), 200
+        return jsonify({'transparent': taddress, 'shielded': zaddress}), 200
     
     
     def handle_balances(self):
@@ -442,7 +447,7 @@ class MobileServer():
         taddress, zaddress = self.mobile_storage.get_device_addresses(mobile_id)
         tbalance = self.addresses_storage.get_address_balance(taddress)
         zbalance = self.addresses_storage.get_address_balance(zaddress)
-        return jsonify({'transparent': tbalance, "shielded": zbalance}), 200
+        return jsonify({'transparent': tbalance, 'shielded': zbalance}), 200
     
 
     def handle_transactions(self):
@@ -452,13 +457,14 @@ class MobileServer():
             return response
         self.update_device_status()
         transactions_data = []
+        result = []
         mobile_id = request.headers.get('Authorization')
         addresses = self.mobile_storage.get_device_addresses(mobile_id)
         for address in addresses:
-            data = self.txs_storage.get_mobile_transactions(address)
-            transactions_data.append(data)
+            address_data = self.txs_storage.get_mobile_transactions(address)
+            for data in address_data:
+                transactions_data.append(data)
         if transactions_data:
-            result = []
             for data in transactions_data:
                 tx_dict = {
                     "type": data[0],
@@ -491,8 +497,8 @@ class MobileServer():
         
         tx_type = get_params.get("type")
         address = get_params.get("address")
-        amount = get_params.get("amount")
-        txfee = get_params.get("fee")
+        amount = float(get_params.get("amount"))
+        txfee = float(get_params.get("fee"))
 
         is_valid = await self.is_valid(address)
         if not is_valid:
@@ -509,47 +515,50 @@ class MobileServer():
         if balance < amount + txfee:
             return jsonify({"error": "Insufficient balance"}), 400
         
-        await self.send_single(from_address, address, amount, txfee)
+        amount_str = f"{amount:.8f}"
+        txfee_str = f"{txfee:.8f}"
+        
+        return await self.send_single(from_address, address, amount_str, txfee_str)
         
 
     async def send_single(self, from_address, address, amount, txfee):
-        try:
-            operation, _= await self.commands.z_sendMany(from_address, address, amount, txfee)
-            if not operation:
-                return jsonify({"error": "Unable to create operation. Please try again later."}), 500
-            transaction_status, _= await self.commands.z_getOperationStatus(operation)
-            transaction_status = json.loads(transaction_status)
-            if isinstance(transaction_status, list) and transaction_status:
-                status = transaction_status[0].get('status')
-                if status not in ["executing", "success"]:
-                    return jsonify({"error": f"Operation could not start. Status: {status}"}), 500
-                await asyncio.sleep(1)
-                while True:
-                    transaction_result, _= await self.commands.z_getOperationResult(operation)
-                    transaction_result = json.loads(transaction_result)
-                    if isinstance(transaction_result, list) and transaction_result:
-                        status = transaction_result[0].get('status')
-                        result = transaction_result[0].get('result', {})
-                        txid = result.get('txid')
-                        if status == "failed":
-                            return jsonify({"error": "Transaction send failed"}), 500
-                        elif status == "success":
-                            if address.startswith('z'):
-                                self.store_shielded_transaction(address, txid, amount, txfee)
-                            return jsonify({"txid": txid}), 200
+        operation, _= await self.commands.z_sendMany(from_address, address, amount, txfee)
+        if not operation:
+            return jsonify({"error": "Unable to create operation. Please try again later."}), 500
+        transaction_status, _= await self.commands.z_getOperationStatus(operation)
+        transaction_status = json.loads(transaction_status)
+        if isinstance(transaction_status, list) and transaction_status:
+            status = transaction_status[0].get('status')
+            if status not in ["executing", "success"]:
+                return jsonify({"error": f"Operation could not start. Status: {status}"}), 500
+            await asyncio.sleep(1)
+            while True:
+                transaction_result, _= await self.commands.z_getOperationResult(operation)
+                transaction_result = json.loads(transaction_result)
+                if isinstance(transaction_result, list) and transaction_result:
+                    status = transaction_result[0].get('status')
+                    result = transaction_result[0].get('result', {})
+                    txid = result.get('txid')
+                    if status == "failed":
+                        return jsonify({"error": "Transaction send failed"}), 500
+                    elif status == "success":
+                        category = "send"
+                        if address.startswith('z'):
+                            tx_type = "shielded"
+                            blocks = self.main.home_page.current_blocks
+                        elif address.startswith("t"):
+                            tx_type = "transparent"
+                            blocks = 0
+                        amount = float(amount)
+                        self.store_shielded_transaction(tx_type, category, from_address, txid, -amount, blocks, txfee)
+                        return jsonify({"txid": txid}), 200
                                 
-                    await asyncio.sleep(3)
-           
-        except Exception as e:
-            return jsonify({"error": f"Exception while processing transaction: {str(e)}"}), 500
+                await asyncio.sleep(3)
         
 
-    def store_shielded_transaction(self, address, txid, amount, fee):
-        tx_type = "shielded"
-        category = "mobile_send"
-        blocks = self.main.home_page.current_blocks
+    def store_shielded_transaction(self, tx_type, category, from_address, txid, amount, blocks, txfee):
         timesent = int(datetime.now().timestamp())
-        self.txs_storage.insert_transaction(tx_type, category, address, txid, amount, blocks, fee, timesent)
+        self.txs_storage.insert_transaction(tx_type, category, from_address, txid, amount, blocks, txfee, timesent)
 
 
     
@@ -558,6 +567,8 @@ class MobileServer():
             result, _ = await self.commands.validateAddress(address)
         elif address.startswith("z"):
             result, _ = await self.commands.z_validateAddress(address)
+        else:
+            return None
         if result is not None:
             result = json.loads(result)
             is_valid = result.get('isvalid')

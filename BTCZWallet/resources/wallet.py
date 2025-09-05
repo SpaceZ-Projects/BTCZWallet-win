@@ -1,6 +1,5 @@
 
 import asyncio
-import json
 
 from toga import (
     App, Box, Label, Window, TextInput,
@@ -8,7 +7,7 @@ from toga import (
 )
 from ..framework import (
     Cursors, FlatStyle, Forms, ProgressStyle, Os, DockStyle,
-    BTCZControl, run_async
+    BTCZControl
 )
 from toga.style.pack import Pack
 from toga.colors import (
@@ -24,7 +23,7 @@ from .storage import StorageAddresses
 
 
 class Wallet(Box):
-    def __init__(self, app:App, main:Window, settings, units, commands, tr, font):
+    def __init__(self, app:App, main:Window, settings, units, rpc, tr, font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -38,7 +37,7 @@ class Wallet(Box):
         self.app = app
         self.main = main
 
-        self.commands = commands
+        self.rpc = rpc
         self.units = units
         self.settings = settings
         self.tr = tr
@@ -275,16 +274,15 @@ class Wallet(Box):
             self.shielded_label,
             self.shielded_value
         )
-        self.app.add_background_task(self.get_node_version)
-        self.app.add_background_task(self.update_total_balances)
-        self.app.add_background_task(self.update_transparent_addresses)
-        self.app.add_background_task(self.update_shielded_addresses)
+        asyncio.create_task(self.get_node_version())
+        asyncio.create_task(self.update_total_balances())
+        asyncio.create_task(self.update_transparent_addresses())
+        asyncio.create_task(self.update_shielded_addresses())
 
 
-    async def get_node_version(self, widget):
-        result, _ = await self.commands.getInfo()
+    async def get_node_version(self):
+        result,_ = await self.rpc.getInfo()
         if result:
-            result = json.loads(result)
             subversion = result.get('subversion')
             build = result.get('build')
             clean_version = subversion.strip('/')
@@ -297,15 +295,14 @@ class Wallet(Box):
             self.bitcoinz_version.text = f"Core : {formatted_version} | Build : {build_suffix}"
 
 
-    async def update_total_balances(self, widget):
+    async def update_total_balances(self):
         self.app.console.event_log(f"✔: Total balances")
         while True:
             if self.main.import_key_toggle:
                 await asyncio.sleep(1)
                 continue
-            totalbalances,_ = await self.commands.z_getTotalBalance()
-            if totalbalances is not None:
-                balances = json.loads(totalbalances)
+            balances,_ = await self.rpc.z_getTotalBalance()
+            if balances:
                 totalbalance = self.units.format_balance(float(balances.get('total')))
                 transparentbalance = self.units.format_balance(float(balances.get('transparent')))
                 shieldedbalance = self.units.format_balance(float(balances.get('private')))
@@ -320,26 +317,25 @@ class Wallet(Box):
                 self.total_value.text = totalbalance
                 self.transparent_value.text = transparentbalance
                 self.shielded_value.text = shieldedbalance
-            unconfirmed_balance,_ = await self.commands.getUnconfirmedBalance()
-            if unconfirmed_balance is not None:
-                unconfirmed = self.units.format_balance(float(unconfirmed_balance))
-                if float(unconfirmed) > 0:
-                    self.unconfirmed_box.style.visibility = VISIBLE
-                    self.unconfirmed_label.style.visibility = VISIBLE
-                    self.unconfirmed_value.style.visibility = VISIBLE
-                    if self.rtl:
-                        unconfirmed = self.units.arabic_digits(unconfirmed)
-                    if self.settings.hidden_balances():
-                        unconfirmed = "*.********"
-                    self.unconfirmed_value.text = unconfirmed
-                else:
-                    self.unconfirmed_box.style.visibility = HIDDEN
-                    self.unconfirmed_label.style.visibility = HIDDEN
-                    self.unconfirmed_value.style.visibility = HIDDEN
+            unconfirmed_balance,_ = await self.rpc.getUnconfirmedBalance()
+            unconfirmed = self.units.format_balance(float(unconfirmed_balance))
+            if float(unconfirmed) > 0:
+                self.unconfirmed_box.style.visibility = VISIBLE
+                self.unconfirmed_label.style.visibility = VISIBLE
+                self.unconfirmed_value.style.visibility = VISIBLE
+                if self.rtl:
+                    unconfirmed = self.units.arabic_digits(unconfirmed)
+                if self.settings.hidden_balances():
+                    unconfirmed = "*.********"
+                self.unconfirmed_value.text = unconfirmed
+            else:
+                self.unconfirmed_box.style.visibility = HIDDEN
+                self.unconfirmed_label.style.visibility = HIDDEN
+                self.unconfirmed_value.style.visibility = HIDDEN
             await asyncio.sleep(5)
 
 
-    async def update_transparent_addresses(self, widget):
+    async def update_transparent_addresses(self):
         self.app.console.event_log("✔: Sync transparent addresses")
         address_type = "transparent"
         while True:
@@ -348,11 +344,9 @@ class Wallet(Box):
                 continue
             stored_addresses = self.addresses_storage.get_addresses()
 
-            addresses_data, _ = await self.commands.ListAddresses()
-            addresses_data = json.loads(addresses_data)
+            addresses_data,_ = await self.rpc.ListAddresses()
 
-            addresses_group, _ = await self.commands.listAddressgroupPings()
-            addresses_group = json.loads(addresses_group)
+            addresses_group,_ = await self.rpc.listAddressgroupPings()
 
             for group in addresses_group:
                 for entry in group:
@@ -367,10 +361,19 @@ class Wallet(Box):
                     else:
                         self.addresses_storage.update_balance(address, balance)
 
+            stored_addresses = self.addresses_storage.get_addresses()
+
+            for address in addresses_data:
+                if address not in stored_addresses:
+                    option = "insert"
+                else:
+                    option = "update"
+                await self.insert_address("transparent", address, option)
+
             await asyncio.sleep(10)
 
 
-    async def update_shielded_addresses(self, widget):
+    async def update_shielded_addresses(self):
         self.app.console.event_log("✔: Sync shielded addresses")
         while True:
             if self.main.import_key_toggle:
@@ -378,23 +381,21 @@ class Wallet(Box):
                 continue
             stored_addresses = self.addresses_storage.get_addresses()
 
-            addresses_data,_ = await self.commands.z_listAddresses()
-            addresses_data = json.loads(addresses_data)
+            addresses_data,_ = await self.rpc.z_listAddresses()
             if addresses_data:
                 for address in addresses_data:
                     if address not in stored_addresses:
                         option = "insert"
                     else:
                         option = "update"
-                    run_async(self.insert_address(address, option))
+                    await self.insert_address("shielded", address, option)
 
                     
-            await asyncio.sleep(10)
+            await asyncio.sleep(20)
 
     
-    async def insert_address(self, address, option):
-        address_type = "shielded"
-        balance,_ = await self.commands.z_getBalance(address)
+    async def insert_address(self, address_type, address, option):
+        balance,_ = await self.rpc.z_getBalance(address)
         if option == "insert":
             self.addresses_storage.insert_address(address_type, None, address, balance)
         elif option == "update":

@@ -598,7 +598,9 @@ class StorageAddresses:
             )
             data = cursor.fetchone()
             conn.close()
-            return data[0]
+            if data:
+                return data[0]
+            return None
         except sqlite3.OperationalError:
             return None
 

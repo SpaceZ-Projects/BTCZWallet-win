@@ -576,7 +576,7 @@ class Contact(Box):
                 self.unread_messages
             )
         self.insert_contact_menustrip()
-        self.app.add_background_task(self.update_contact)
+        asyncio.create_task(self.update_contact())
 
 
     def insert_contact_menustrip(self):
@@ -635,7 +635,7 @@ class Contact(Box):
         self.insert_contact_menustrip()
 
 
-    async def update_contact(self, widget):
+    async def update_contact(self):
         while True:
             if not self.main.message_button_toggle:
                 await asyncio.sleep(1)
@@ -1903,13 +1903,13 @@ class Chat(Box):
 
 
     def run_tasks(self):
-        self.app.add_background_task(self.update_messages_balance)
-        self.app.add_background_task(self.waiting_new_memos)
-        self.app.add_background_task(self.update_contacts_list)
+        asyncio.create_task(self.update_messages_balance())
+        asyncio.create_task(self.waiting_new_memos())
+        asyncio.create_task(self.update_contacts_list())
         self.load_pending_list()
 
 
-    async def update_messages_balance(self, widget):
+    async def update_messages_balance(self):
         self.app.console.event_log(f"✔: Update messages balance")
         while True:
             if not self.main.message_button_toggle:
@@ -1931,7 +1931,7 @@ class Chat(Box):
             await asyncio.sleep(5)
             
 
-    async def waiting_new_memos(self, widget):
+    async def waiting_new_memos(self):
         self.app.console.event_log(f"✔: Gather memos")
         while True:
             if self.main.import_key_toggle:
@@ -2134,7 +2134,7 @@ class Chat(Box):
 
             
 
-    async def update_contacts_list(self, widget):
+    async def update_contacts_list(self):
         self.app.console.event_log(f"✔: Contacts list")
         self.contacts = []
         while True:
@@ -2319,10 +2319,10 @@ class Chat(Box):
                     message
                 )
         self.output_box.on_scroll = self.update_messages_on_scroll
-        self.app.add_background_task(self.update_current_messages)     
+        asyncio.create_task(self.update_current_messages())     
 
 
-    async def update_current_messages(self, widget):
+    async def update_current_messages(self):
         self.messages = self.storage.get_messages(self.contact_id)
         self.unread_messages = self.storage.get_unread_messages(self.contact_id)
         while True:
@@ -2842,20 +2842,21 @@ class Messages(Box):
         self.storage = StorageMessages(self.app)
         self.chat = Chat(self.app, self.main, settings, utils, units, commands, tr, font)
 
-        
-    async def insert_widgets(self, widget):
-        if not self.messages_toggle:
-            data = self.storage.is_exists()
-            if data:
-                identity = self.storage.get_identity()
-                if identity:
-                    self.add(
-                        self.chat
-                    )
-                else:
-                    self.create_new_messenger()
+        data = self.storage.is_exists()
+        if data:
+            identity = self.storage.get_identity()
+            if identity:
+                self.add(
+                    self.chat
+                )
             else:
                 self.create_new_messenger()
+        else:
+            self.create_new_messenger()
+
+        
+    def insert_widgets(self):
+        if not self.messages_toggle:
             self.messages_toggle = True
 
 
@@ -2866,7 +2867,7 @@ class Messages(Box):
         self.add(self.new_messenger)
 
 
-    async def gather_unread_memos(self, widget):
+    async def gather_unread_memos(self):
         data = self.storage.is_exists()
         if data:
             address = self.storage.get_identity("address")

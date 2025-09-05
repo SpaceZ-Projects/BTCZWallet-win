@@ -467,112 +467,112 @@ class Mining(Box):
             )
         )
 
+        self.add(
+            self.selection_miner_box,
+            self.selection_address_box,
+            self.selection_pool_box,
+            self.worker_box,
+            self.divider_box,
+            self.start_mining_box
+        )
+        if self.rtl:
+            self.selection_miner_box.add(
+                self.setup_miner_box,
+                self.miner_selection,
+                self.miner_label
+            )
+            self.selection_address_box.add(
+                self.address_balance,
+                self.address_selection,
+                self.address_label
+            )
+            self.selection_pool_box.add(
+                self.ssl_switch,
+                self.pool_region_selection,
+                self.pool_selection,
+                self.pool_label
+            )
+            self.worker_box.add(
+                self.empty_box,
+                self.worker_input,
+                self.worker_label
+            )
+            self.start_mining_box.add(
+                self.start_mining_button,
+                self.mining_box
+            )
+            self.mining_stats_box.add(
+                self.estimated_box,
+                self.estimated_icon,
+                self.solutions_value,
+                self.solutions_icon,
+                self.paid_value,
+                self.paid_icon,
+                self.immature_value,
+                self.immature_icon,
+                self.balance_value,
+                self.balance_icon,
+                self.totalshares_value,
+                self.totalshares_icon
+            )
+        else:
+            self.selection_miner_box.add(
+                self.miner_label,
+                self.miner_selection,
+                self.setup_miner_box
+            )
+            self.selection_address_box.add(
+                self.address_label,
+                self.address_selection,
+                self.address_balance
+            )
+            self.selection_pool_box.add(
+                self.pool_label,
+                self.pool_selection,
+                self.pool_region_selection,
+                self.ssl_switch
+            )
+            self.worker_box.add(
+                self.worker_label,
+                self.worker_input,
+                self.empty_box
+            )
+            self.start_mining_box.add(
+                self.mining_box,
+                self.start_mining_button
+            )
+            self.mining_stats_box.add(
+                self.totalshares_icon,
+                self.totalshares_value,
+                self.balance_icon,
+                self.balance_value,
+                self.immature_icon,
+                self.immature_value,
+                self.paid_icon,
+                self.paid_value,
+                self.solutions_icon,
+                self.solutions_value,
+                self.estimated_icon,
+                self.estimated_box
+            )
 
-    async def insert_widgets(self, widget):
+        self.mining_box.add(
+            self.mining_stats_box
+        )
+        self.estimated_box.add(
+            self.estimated_value,
+            self.estimated_earn_value
+        )
+
+
+    def insert_widgets(self):
         if not self.mining_toggle:
-            self.add(
-                self.selection_miner_box,
-                self.selection_address_box,
-                self.selection_pool_box,
-                self.worker_box,
-                self.divider_box,
-                self.start_mining_box
-            )
-            if self.rtl:
-                self.selection_miner_box.add(
-                    self.setup_miner_box,
-                    self.miner_selection,
-                    self.miner_label
-                )
-                self.selection_address_box.add(
-                    self.address_balance,
-                    self.address_selection,
-                    self.address_label
-                )
-                self.selection_pool_box.add(
-                    self.ssl_switch,
-                    self.pool_region_selection,
-                    self.pool_selection,
-                    self.pool_label
-                )
-                self.worker_box.add(
-                    self.empty_box,
-                    self.worker_input,
-                    self.worker_label
-                )
-                self.start_mining_box.add(
-                    self.start_mining_button,
-                    self.mining_box
-                )
-                self.mining_stats_box.add(
-                    self.estimated_box,
-                    self.estimated_icon,
-                    self.solutions_value,
-                    self.solutions_icon,
-                    self.paid_value,
-                    self.paid_icon,
-                    self.immature_value,
-                    self.immature_icon,
-                    self.balance_value,
-                    self.balance_icon,
-                    self.totalshares_value,
-                    self.totalshares_icon
-                )
-            else:
-                self.selection_miner_box.add(
-                    self.miner_label,
-                    self.miner_selection,
-                    self.setup_miner_box
-                )
-                self.selection_address_box.add(
-                    self.address_label,
-                    self.address_selection,
-                    self.address_balance
-                )
-                self.selection_pool_box.add(
-                    self.pool_label,
-                    self.pool_selection,
-                    self.pool_region_selection,
-                    self.ssl_switch
-                )
-                self.worker_box.add(
-                    self.worker_label,
-                    self.worker_input,
-                    self.empty_box
-                )
-                self.start_mining_box.add(
-                    self.mining_box,
-                    self.start_mining_button
-                )
-                self.mining_stats_box.add(
-                    self.totalshares_icon,
-                    self.totalshares_value,
-                    self.balance_icon,
-                    self.balance_value,
-                    self.immature_icon,
-                    self.immature_value,
-                    self.paid_icon,
-                    self.paid_value,
-                    self.solutions_icon,
-                    self.solutions_value,
-                    self.estimated_icon,
-                    self.estimated_box
-                )
-
-                
-            self.mining_box.add(
-                self.mining_stats_box
-            )
-            self.estimated_box.add(
-                self.estimated_value,
-                self.estimated_earn_value
-            )
             self.mining_toggle = True
-            self.app.add_background_task(self.update_mining_options)
+            asyncio.create_task(self.update_mining_options())
 
 
 
-    async def update_mining_options(self, widget):
+    async def update_mining_options(self):
         addresses = self.addresses_storage.get_addresses()
         self.address_selection.items.clear()
         self.address_selection.items = addresses
@@ -750,7 +750,7 @@ class Mining(Box):
                     self.miner_command += ' --socks5 127.0.0.1:9050'
 
             self.disable_mining_inputs()
-            self.app.add_background_task(self.start_mining_command)
+            asyncio.create_task(self.start_mining_command(self.app))
             self.settings.save_mining_options(
                 self.selected_miner,
                 self.selected_address,
@@ -763,11 +763,11 @@ class Mining(Box):
             self.fetch_stats_task = asyncio.create_task(self.fetch_miner_stats())
 
 
-    async def start_mining_command(self, widget):
+    async def start_mining_command(self, app):
         self.update_mining_button("stop")
         command = [self.miner_command]
-        self.app.console.info_log(f"Starting mining...")
-        self.app.console.mining_log(command)
+        app.console.info_log(f"Starting mining...")
+        app.console.mining_log(command)
         try:
             self.process = await asyncio.create_subprocess_shell(
                 *command,
@@ -782,24 +782,20 @@ class Mining(Box):
                     decoded_line = stdout_line.decode().strip()
                     cleaned_line = clean_regex.sub('', decoded_line)
                     if cleaned_line.strip():
-                        self.app.console.mining_log(cleaned_line)
+                        app.console.mining_log(cleaned_line)
                 else:
                     break
             await self.process.wait()
             remaining_stdout = await self.process.stdout.read()
             remaining_stderr = await self.process.stderr.read()
             if remaining_stdout:
-                self.app.console.mining_log(remaining_stdout.decode().strip())
+                app.console.mining_log(remaining_stdout.decode().strip())
             if remaining_stderr:
-                self.app.console.mining_log(remaining_stderr.decode().strip())
+                app.console.mining_log(remaining_stderr.decode().strip())
 
         except Exception as e:
-            self.app.console.mining_log(f"{e}")
-        finally:
-            self.update_mining_button("start")
-            self.enable_mining_inputs()
-            self.mining_status = None
-            self.miner_command = None
+            app.console.mining_log(f"{e}")
+            
 
 
 
@@ -932,6 +928,11 @@ class Mining(Box):
             self.estimated_earn_value.text = f"0.00 {self.settings.symbol()}"
         except Exception as e:
             self.app.console.error_log(f"Exception occurred while killing miner process: {e}")
+
+        self.update_mining_button("start")
+        self.enable_mining_inputs()
+        self.mining_status = None
+        self.miner_command = None
 
         if self.fetch_stats_task and not self.fetch_stats_task.done():
             self.app.console.info_log(f"Cancel miner stats task...")

@@ -1,7 +1,6 @@
 
 import asyncio
 from datetime import datetime
-import json
 
 from toga import App, Box, Window
 from ..framework import (
@@ -13,7 +12,7 @@ from toga.constants import ROW, BOTTOM
 
 
 class AppStatusBar(Box):
-    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, font):
+    def __init__(self, app:App, main:Window, settings, utils, units, rpc, tr, font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -25,7 +24,7 @@ class AppStatusBar(Box):
         self.app = app
         self.main = main
 
-        self.commands = commands
+        self.rpc = rpc
         self.utils = utils
         self.settings = settings
         self.units = units
@@ -187,28 +186,28 @@ class AppStatusBar(Box):
 
     
     def run_statusbar_tasks(self):
-        self.app.add_background_task(self.update_blockchaininfo)
-        self.app.add_background_task(self.update_deprecationinfo)
-        self.app.add_background_task(self.update_networkhash)
-        self.app.add_background_task(self.update_connections_count)
+        asyncio.create_task(self.update_blockchaininfo())
+        asyncio.create_task(self.update_deprecationinfo())
+        asyncio.create_task(self.update_networkhash())
+        asyncio.create_task(self.update_connections_count())
 
 
-    async def update_blockchaininfo(self, widget):
+    async def update_blockchaininfo(self):
         self.app.console.event_log(f"✔: Blockchain info")
         while True:
             if self.main.import_key_toggle:
                 await asyncio.sleep(1)
                 continue
-            blockchaininfo,_ = await self.commands.getBlockchainInfo()
-            if blockchaininfo is not None:
+            blockchaininfo,_ = await self.rpc.getBlockchainInfo()
+            if blockchaininfo:
                 self.node_status = True
-                info = json.loads(blockchaininfo)
-                blocks = info.get('blocks')
+                blocks = blockchaininfo.get('blocks')
                 self.main.home_page.current_blocks = blocks
-                sync = info.get('verificationprogress')
+                self.main.mobile_server.current_blocks = blocks
+                sync = blockchaininfo.get('verificationprogress')
                 sync_percentage = float(sync) * 100
                 sync_str = f"{sync_percentage:.2f}"
-                mediantime = info.get('mediantime')
+                mediantime = blockchaininfo.get('mediantime')
                 mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
                 status_icon = "images/on.png"
                 if self.latest_blocks and blocks > self.latest_blocks:
@@ -248,52 +247,43 @@ class AppStatusBar(Box):
                 return
 
 
-    async def update_networkhash(self, widget):
+    async def update_networkhash(self):
         self.app.console.event_log(f"✔: Network Hash")
         while True:
             if self.main.import_key_toggle:
                 await asyncio.sleep(1)
                 continue
-            networksol, _ = await self.commands.getNetworkSolps()
-            if networksol is not None:
-                if isinstance(networksol, str):
-                    info = json.loads(networksol)
-                if info is not None:
-                    netsol = info
-                    if self.rtl:
-                        netsol = self.units.arabic_digits(str(netsol))
-                        netsol_text = f"{netsol} سول/ث"
-                    else:
-                        netsol_text = f"{netsol} Sol/s"
-                    self.network_value.text = netsol_text
+            networksol,_ = await self.rpc.getNetworkSolps()
+            if networksol:
+                if self.rtl:
+                    networksol = self.units.arabic_digits(str(networksol))
+                    netsol_text = f"{networksol} سول/ث"
+                else:
+                    netsol_text = f"{networksol} Sol/s"
+                self.network_value.text = netsol_text
             await asyncio.sleep(5)
 
     
-    async def update_connections_count(self, widget):
+    async def update_connections_count(self):
         self.app.console.event_log(f"✔: Peer count")
         while True:
             if self.main.import_key_toggle:
                 await asyncio.sleep(1)
                 continue
-            connection_count,_ = await self.commands.getConnectionCount()
-            if connection_count is not None:
+            connection_count,_ = await self.rpc.getConnectionCount()
+            if connection_count:
                 if self.rtl:
                     connection_count = self.units.arabic_digits(connection_count)
-                self.connections_value.text = connection_count
+                self.connections_value.text = str(connection_count)
 
             await asyncio.sleep(5)
 
 
-    async def update_deprecationinfo(self, widget):
-        deprecationinfo, _ = await self.commands.getDeprecationInfo()
-        if deprecationinfo is not None:
-            if isinstance(deprecationinfo, str):
-                info = json.loads(deprecationinfo)
-            if info is not None:
-                deprecation = info.get('deprecationheight')
-                self.main.home_page.deprecation = deprecation
-                if self.rtl:
-                    deprecation = self.units.arabic_digits(str(deprecation))
-                else:
-                    deprecation = str(deprecation)
-                self.deprecation_value.text = deprecation
+    async def update_deprecationinfo(self):
+        deprecationinfo,_ = await self.rpc.getDeprecationInfo()
+        if deprecationinfo:
+            deprecation = deprecationinfo.get('deprecationheight')
+            self.main.home_page.deprecation = deprecation
+            if self.rtl:
+                deprecation = self.units.arabic_digits(str(deprecation))
+            self.deprecation_value.text = str(deprecation)

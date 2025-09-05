@@ -11,8 +11,7 @@ from toga import (
 )
 from ..framework import (
     Sys, Drawing, FlatStyle, Forms, Cursors, Os, RichLabel,
-    ToolTip, Command, Color, ClipBoard, DockStyle, BorderStyle,
-    run_async
+    ToolTip, Command, Color, ClipBoard, DockStyle, BorderStyle
 )
 from toga.constants import COLUMN, CENTER, ROW, LEFT, RIGHT
 from toga.style import Pack
@@ -26,7 +25,7 @@ from .storage import StorageMarket, StorageMessages
 
 
 class DisplayImage(Window):
-    def __init__(self, main, utils, font, image):
+    def __init__(self, main, font, image):
         super().__init__(
             resizable=False
         )
@@ -279,7 +278,7 @@ class PlaceOrder(Window):
     def place_order(self, button):
         button.enabled = False
         self.cancel_button.enabled = False
-        run_async(self.make_request())
+        asyncio.create_task(self.make_request())
 
     async def make_request(self):
         url = f"http://{self.market[0]}/place_order"
@@ -298,9 +297,9 @@ class PlaceOrder(Window):
         self.close()
         self.app.current_window = self.main
         if "failed" in result:
-            self.app.add_background_task(self.item_view.failed_dialog)
+            asyncio.create_task(self.item_view.failed_dialog())
             return
-        self.app.add_background_task(self.item_view.result_dialog)
+        asyncio.create_task(self.item_view.result_dialog())
 
 
     def cancel_button_mouse_enter(self, sender, event):
@@ -606,10 +605,10 @@ class ItemView(Box):
             self.total_value
         )
 
-        self.app.add_background_task(self.display_image)
+        asyncio.create_task(self.display_image())
 
 
-    async def display_image(self, widget):
+    async def display_image(self):
         if not self.image_url:
             self.item_image.image = "images/image_not_found.png"
             return
@@ -622,7 +621,7 @@ class ItemView(Box):
             if not self.main.marketplace_toggle:
                 return
             await asyncio.sleep(3)
-            self.app.add_background_task(self.display_image)
+            asyncio.create_task(self.display_image())
 
 
     async def show_item(self, button):
@@ -682,14 +681,14 @@ class ItemView(Box):
         self.view_button._impl.native.MouseLeave += self.view_button_mouse_leave
 
 
-    def result_dialog(self, widget):
+    def result_dialog(self):
         self.hide_item()
         self.main.info_dialog(
             title="Order Placed",
             message="Your order was placed successfully."
         )
 
-    def failed_dialog(self, widget):
+    def failed_dialog(self):
         self.hide_item()
         self.main.error_dialog(
             title="Order Failed",
@@ -731,7 +730,7 @@ class ItemView(Box):
 
     def show_item_image(self, sender, event):
         if self.image_stream:
-            image_window = DisplayImage(self.main, self.utils, self.font, self.image_stream)
+            image_window = DisplayImage(self.main, self.font, self.image_stream)
             image_window._impl.native.ShowDialog(self.main._impl.native)
 
 
@@ -1308,11 +1307,11 @@ class MarketView(Window):
         )
         self.items_scroll.content = self.items_list
 
-        self.app.add_background_task(self.update_balance)
-        self.app.add_background_task(self.get_status)
+        asyncio.create_task(self.update_balance())
+        asyncio.create_task(self.get_status())
 
 
-    async def update_balance(self, widget):
+    async def update_balance(self):
         while True:
             if not self.marketplace_toggle:
                 return
@@ -1327,7 +1326,7 @@ class MarketView(Window):
             await asyncio.sleep(5)
 
 
-    async def get_status(self, widget):
+    async def get_status(self):
         market, secret = self.storage.get_hostname(self.contact_id)
         url = f'http://{market}/status'
         result = await self.utils.make_request(self.contact_id, secret, url)
@@ -1339,10 +1338,10 @@ class MarketView(Window):
         self.status_label.text = "Status : Online"
         self.status_label.style.color = GREENYELLOW
 
-        self.app.add_background_task(self.update_status)
-        self.app.add_background_task(self.get_market_items)
-        self.app.add_background_task(self.update_items_list)
-        self.app.add_background_task(self.update_orders_list)
+        asyncio.create_task(self.update_status())
+        asyncio.create_task(self.get_market_items())
+        asyncio.create_task(self.update_items_list())
+        asyncio.create_task(self.update_orders_list())
 
 
     async def update_status(self, widget):
@@ -1368,10 +1367,10 @@ class MarketView(Window):
         self.menu_box.remove(self.refresh_button)
         self.status_label.text = "Status : Loading..."
         self.status_label.style.color = WHITE
-        self.app.add_background_task(self.get_status)
+        asyncio.create_task(self.get_status())
 
 
-    async def get_market_items(self, widget):
+    async def get_market_items(self):
         market = self.storage.get_hostname(self.contact_id)
         url = f'http://{market[0]}/items'
         result = await self.utils.make_request(self.contact_id, market[1], url)
@@ -1391,7 +1390,7 @@ class MarketView(Window):
         self.orders_button.enabled = True
 
 
-    async def update_items_list(self, widget):
+    async def update_items_list(self):
         market, secret = self.storage.get_hostname(self.contact_id)
         url = f'http://{market}/items'
         while True:
@@ -1423,7 +1422,7 @@ class MarketView(Window):
             await asyncio.sleep(60)
 
 
-    async def get_market_orders(self, widget):
+    async def get_market_orders(self):
         market, secret = self.storage.get_hostname(self.contact_id)
         url = f'http://{market}/orders'
         param = {"contact_id": self.contact_id}
@@ -1445,7 +1444,7 @@ class MarketView(Window):
 
 
 
-    async def update_orders_list(self, widget):
+    async def update_orders_list(self):
         market, secret = self.storage.get_hostname(self.contact_id)
         url = f'http://{market}/orders'
         param = {"contact_id": self.contact_id}
@@ -2672,7 +2671,7 @@ class Order(Box):
 
 
 class MarketPlace(Window):
-    def __init__(self, main:Window, notify, settings, utils, units, commands, tr, font, server):
+    def __init__(self, main:Window, notify, settings, utils, units, tr, font, server):
         super().__init__()
 
         self.main = main
@@ -2680,7 +2679,6 @@ class MarketPlace(Window):
         self.settings = settings
         self.utils = utils
         self.units = units
-        self.commands = commands
         self.tr = tr
         self.font = font
         self.server = server
@@ -2847,13 +2845,14 @@ class MarketPlace(Window):
                 if dir_path.endswith("market_service"):
                     self.market_port = port_line.split()[1].split(":")[1] if port_line else ""
                     self.start_server.enabled = True
-        self.app.add_background_task(self.load_items_list)
-        self.app.add_background_task(self.updating_items_list)
-        self.app.add_background_task(self.updating_orders_list)
+
+        asyncio.create_task(self.load_items_list())
+        asyncio.create_task(self.updating_items_list())
+        asyncio.create_task(self.updating_orders_list())
 
 
 
-    async def load_items_list(self, widget):
+    async def load_items_list(self):
         market_items = self.market_storage.get_market_items()
         if market_items:
             sorted_items = sorted(market_items, key=lambda x: x[7], reverse=True)
@@ -2868,7 +2867,7 @@ class MarketPlace(Window):
         self.items_toggle = True
 
 
-    async def load_orders_list(self, widget):
+    async def load_orders_list(self):
         market_orders = self.market_storage.get_market_orders()
         if market_orders:
             sorted_orders = sorted(market_orders, key=lambda x: x[7], reverse=True)
@@ -2883,7 +2882,7 @@ class MarketPlace(Window):
         self.orders_toggle = True
 
 
-    async def updating_items_list(self, widget):
+    async def updating_items_list(self):
         while True:
             if not self.main.marketplace_toggle:
                 return
@@ -2911,7 +2910,7 @@ class MarketPlace(Window):
             await asyncio.sleep(3)
 
 
-    async def updating_orders_list(self, widget):
+    async def updating_orders_list(self):
         while True:
             if not self.main.marketplace_toggle:
                 return
@@ -3008,7 +3007,7 @@ class MarketPlace(Window):
             self.orders_button.on_press = self.show_items_list
             self.items_list.clear()
             self.items_data.clear()
-            self.app.add_background_task(self.load_orders_list)
+            asyncio.create_task(self.load_orders_list())
 
 
     async def show_items_list(self, button):
@@ -3023,7 +3022,7 @@ class MarketPlace(Window):
             self.orders_button.on_press = self.show_orders_list
             self.items_list.clear()
             self.orders_data.clear()
-            self.app.add_background_task(self.load_items_list)
+            asyncio.create_task(self.load_items_list())
             self.menu_box.insert(0, self.add_button)
 
 

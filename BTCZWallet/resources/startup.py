@@ -1,7 +1,6 @@
 
 import asyncio
 import subprocess
-import json
 from datetime import datetime
 import re
 
@@ -21,7 +20,7 @@ from .network import TorConfig
 
 
 class BTCZSetup(Box):
-    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, font):
+    def __init__(self, app:App, main:Window, settings, utils, units, commands, rpc, tr, font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -43,6 +42,7 @@ class BTCZSetup(Box):
         self.utils = utils
         self.units = units
         self.commands = commands
+        self.rpc = rpc
         self.settings = settings
         self.tr = tr
         self.font = font
@@ -103,7 +103,7 @@ class BTCZSetup(Box):
             self.progress_box
         )
 
-        self.app.add_background_task(self.check_network)
+        asyncio.create_task(self.check_network())
 
 
     def update_info_box(self):
@@ -257,7 +257,7 @@ class BTCZSetup(Box):
             )
 
     
-    async def check_network(self, widget):
+    async def check_network(self):
         self.app.console.info_log(f"Check Network...")
         async def on_result(widget, result):
             if result is True:
@@ -307,7 +307,7 @@ class BTCZSetup(Box):
 
 
     async def is_bitcoinz_running(self):
-        result,_ = await self.commands.getInfo()
+        result,_ = await self.rpc.getInfo()
         if result:
             return True
         return None
@@ -325,10 +325,10 @@ class BTCZSetup(Box):
                 self.status_label,
                 self.progress_bar
             )
-        self.app.add_background_task(self.execute_tor)
+        asyncio.create_task(self.execute_tor())
 
 
-    async def execute_tor(self, widget):
+    async def execute_tor(self):
         self.app.console.info_log(f"Execute tor...")
         async def on_result(widget, result):
             if result is True:
@@ -375,12 +375,14 @@ class BTCZSetup(Box):
                         if tor_running:
                             self.status_label.text = self.tr.text("tor_success")
                             await asyncio.sleep(1)
-                            await self.check_binary_files()
+                            asyncio.create_task(self.keep_tor_alive())
+                            if not self.node_status:
+                                await self.check_binary_files()
                         else:
                             self.status_label.text = self.tr.text("tor_failed")
                             self.utils.stop_tor()
                             await asyncio.sleep(1)
-                            self.app.add_background_task(self.execute_tor)
+                            asyncio.create_task(self.execute_tor())
                 except asyncio.TimeoutError as e:
                     self.app.console.error_log(e)
                     self.status_label.text = self.tr.text("tor_timeout")
@@ -390,6 +392,31 @@ class BTCZSetup(Box):
         except Exception as e:
             self.app.console.error_log(f"{e}")
             self.status_label.text = self.tr.text("tor_failed")
+
+
+    async def keep_tor_alive(self):
+        retries = 0
+        max_retries = 3
+        while True:
+            try:
+                if not await self.utils.is_tor_alive():
+                    retries += 1
+                    self.app.console.warning_log(
+                        f"Tor not alive (attempt {retries}/{max_retries})"
+                    )
+                    if retries >= max_retries:
+                        self.app.console.warning_log("Max retries reached, restarting Tor...")
+                        self.utils.stop_tor()
+                        await asyncio.sleep(1)
+                        await self.execute_tor()
+                        return
+                else:
+                    retries = 0
+            except Exception as e:
+                self.app.console.error_log(f"Keepalive error: {e}")
+
+            await asyncio.sleep(30)
+
 
 
     def show_tor_config(self):
@@ -481,7 +508,7 @@ class BTCZSetup(Box):
     
     async def check_bockchaine_index(self):
         if self.blockchaine_index:
-            self.app.add_background_task(self.execute_bitcoinz_node)
+            asyncio.create_task(self.execute_bitcoinz_node())
         else:
             self.main.question_dialog(
                 title=self.tr.title("bootstarp_dialog"),
@@ -491,12 +518,12 @@ class BTCZSetup(Box):
 
     def download_bootstrap_dialog(self, widget, result):
         if result is True:
-            self.app.add_background_task(self.download_bitcoinz_bootstrap)
+            asyncio.create_task(self.download_bitcoinz_bootstrap())
         elif result is False:
-            self.app.add_background_task(self.execute_bitcoinz_node)
+            asyncio.create_task(self.execute_bitcoinz_node())
 
 
-    async def download_bitcoinz_bootstrap(self, widget):
+    async def download_bitcoinz_bootstrap(self):
         self.app.console.info_log(f"Download bitcoinz bootstrap...")
         self.status_label.text = self.tr.text("download_bootstrap")
         self.progress_bar._impl.native.Style = ProgressStyle.BLOCKS
@@ -518,10 +545,10 @@ class BTCZSetup(Box):
             self.status_label,
             self.progress_bar
         )
-        self.app.add_background_task(self.execute_bitcoinz_node)
+        asyncio.create_task(self.execute_bitcoinz_node())
 
 
-    async def execute_bitcoinz_node(self, widget):
+    async def execute_bitcoinz_node(self):
         self.app.console.info_log(f"Execute Bitcoinz node...")
         self.status_label.text = self.tr.text("start_node")
         bitcoinzd = "bitcoinzd.exe"
@@ -569,14 +596,14 @@ class BTCZSetup(Box):
     async def waiting_node_status(self):
         self.app.console.info_log(f"Waiting node status...")
         await asyncio.sleep(1)
-        result, error_message = await self.commands.getInfo()
+        result, error_message = await self.rpc.getInfo()
         if result:
             self.node_status = True
             await self.check_sync_progress()
             return
         else:
             while True:
-                result, error_message = await self.commands.getInfo()
+                result, error_message = await self.rpc.getInfo()
                 if result and error_message is None:
                     self.node_status = True
                     await self.check_sync_progress()
@@ -597,7 +624,7 @@ class BTCZSetup(Box):
                         message = error_message
                     self.status_label.text = message
                 elif error_message is None and result is None:
-                    self.app.add_background_task(self.execute_bitcoinz_node)
+                    await self.execute_bitcoinz_node()
                     return
                 await asyncio.sleep(3)
 
@@ -606,68 +633,63 @@ class BTCZSetup(Box):
         self.app.console.info_log(f"Check synchronization progress...")
         tooltip_text = f"Seeds :"
         await asyncio.sleep(1)
-        blockchaininfo, _ = await self.commands.getBlockchainInfo()
-        if isinstance(blockchaininfo, str):
-            info = json.loads(blockchaininfo)
-            if info is not None:
-                sync = info.get('verificationprogress')
-                sync_percentage = sync * 100
-                if sync_percentage <= 99.95:
-                    self.update_info_box()
-                    while True:
-                        blockchaininfo, error_message = await self.commands.getBlockchainInfo()
-                        if blockchaininfo:
-                            info = json.loads(blockchaininfo)
-                            if info is not None:
-                                blocks = info.get('blocks')
-                                sync = info.get('verificationprogress')
-                                mediantime = info.get('mediantime')
-                                if isinstance(mediantime, int):
-                                    mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
-                                else:
-                                    mediantime_date = "N/A"
-                            if error_message:
-                                self.app.exit()
-                                return
-
-                        peerinfo, _ = await self.commands.getPeerinfo()
-                        if peerinfo:
-                            peerinfo = json.loads(peerinfo)
-                            for node in peerinfo:
-                                address = node.get('addr')
-                                bytesrecv = node.get('bytesrecv')
-                                tooltip_text += f"\n{address} - {self.units.format_bytes(bytesrecv)}"
-                                
-                        bitcoinz_size = int(self.utils.get_bitcoinz_size())
-                        sync_percentage = sync * 100
-                        sync_percentage_str = f"%{float(sync_percentage):.2f}"
-                        if self.rtl:
-                            blocks = self.units.arabic_digits(str(blocks))
-                            mediantime_date = self.units.arabic_digits(mediantime_date)
-                            sync_percentage_str = self.units.arabic_digits(str(sync_percentage_str))
-                            bitcoinz_size = self.units.arabic_digits(str(bitcoinz_size))
-                        self.blocks_value.text = f"{blocks}"
-                        self.mediantime_value.text = mediantime_date
-                        self.index_size_value.text = f"{bitcoinz_size} MB"
-                        self.sync_value.text = sync_percentage_str
-                        self.progress_bar.value = int(sync_percentage)
-                        self.tooltip.insert(self.progress_bar._impl.native, tooltip_text)
-                        tooltip_text = f"Seeds :"
-                        self.app.console.info_log(f"Blocks : {blocks} - Synchronization : {sync_percentage:.2f}%")
-                        if sync_percentage > 99.95:
-                            await self.open_main_menu()
+        blockchaininfo, _ = await self.rpc.getBlockchainInfo()
+        if blockchaininfo is not None:
+            sync = blockchaininfo.get('verificationprogress')
+            sync_percentage = sync * 100
+            if sync_percentage <= 99.95:
+                self.update_info_box()
+                while True:
+                    blockchaininfo, error_message = await self.rpc.getBlockchainInfo()
+                    if blockchaininfo:
+                        if blockchaininfo is not None:
+                            blocks = blockchaininfo.get('blocks')
+                            sync = blockchaininfo.get('verificationprogress')
+                            mediantime = blockchaininfo.get('mediantime')
+                            if isinstance(mediantime, int):
+                                mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
+                            else:
+                                mediantime_date = "N/A"
+                        if error_message:
+                            self.app.exit()
                             return
-                        await asyncio.sleep(2)
-                elif sync_percentage > 99.95:
-                    await self.open_main_menu()
+
+                    peerinfo, _ = await self.rpc.getPeerinfo()
+                    if peerinfo:
+                        for node in peerinfo:
+                            address = node.get('addr')
+                            bytesrecv = node.get('bytesrecv')
+                            tooltip_text += f"\n{address} - {self.units.format_bytes(bytesrecv)}"
+                                
+                    bitcoinz_size = int(self.utils.get_bitcoinz_size())
+                    sync_percentage = sync * 100
+                    sync_percentage_str = f"%{float(sync_percentage):.2f}"
+                    if self.rtl:
+                        blocks = self.units.arabic_digits(str(blocks))
+                        mediantime_date = self.units.arabic_digits(mediantime_date)
+                        sync_percentage_str = self.units.arabic_digits(str(sync_percentage_str))
+                        bitcoinz_size = self.units.arabic_digits(str(bitcoinz_size))
+                    self.blocks_value.text = f"{blocks}"
+                    self.mediantime_value.text = mediantime_date
+                    self.index_size_value.text = f"{bitcoinz_size} MB"
+                    self.sync_value.text = sync_percentage_str
+                    self.progress_bar.value = int(sync_percentage)
+                    self.tooltip.insert(self.progress_bar._impl.native, tooltip_text)
+                    tooltip_text = f"Seeds :"
+                    self.app.console.info_log(f"Blocks : {blocks} - Synchronization : {sync_percentage:.2f}%")
+                    if sync_percentage > 99.95:
+                        await self.open_main_menu()
+                        return
+                    await asyncio.sleep(2)
+            elif sync_percentage > 99.95:
+                await self.open_main_menu()
 
 
     async def open_main_menu(self):
         self.app.console.info_log(f"Show main menu...")
         self.main_menu = Menu(
-            self.main, self.tor_enabled, self.settings, self.utils, self.units, self.commands, self.tr, self.font
+            self.main, self.tor_enabled, self.settings, self.utils, self.units, self.commands, self.rpc, self.tr, self.font
         )
-        self.main_menu._impl.native.TopMost = True
         if self.main.console_toggle:
             self.app.console.hide()
         self.main.hide()

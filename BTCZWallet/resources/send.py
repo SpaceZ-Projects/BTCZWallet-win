@@ -509,135 +509,136 @@ class Send(Box):
             )
         )
 
+        self.add(
+            self.switch_box,
+            self.selection_address_box,
+            self.send_options_box,
+            self.destination_box,
+            self.amount_box,
+            self.fees_box,
+            self.separator_box,
+            self.confirmation_box
+        )
+        if self.rtl:
+            self.switch_box.add(
+                self.shielded_button,
+                self.transparent_button
+            )
+        else:
+            self.switch_box.add(
+                self.transparent_button,
+                self.shielded_button
+            )
+        self.transparent_button.add(
+            self.transparent_label,
+            self.transparent_line
+        )
+        self.shielded_button.add(
+            self.shielded_label,
+            self.shielded_line
+        )
+        if self.rtl:
+            self.selection_address_box.add(
+                self.address_balance,
+                self.address_selection,
+                self.from_address_label
+            )
+        else:
+            self.selection_address_box.add(
+                self.from_address_label,
+                self.address_selection,
+                self.address_balance
+            )
+        self.send_options_box.add(
+            self.send_options_switch
+        )
+        if self.rtl:
+            self.send_options_switch.add(
+                self.many_option,
+                self.single_option
+            )
+            self.destination_box.add(
+                self.is_valid_box,
+                self.destination_input_single,
+                self.destination_label
+            )
+        else:
+            self.send_options_switch.add(
+                self.single_option,
+                self.many_option
+            )
+            self.destination_box.add(
+                self.destination_label,
+                self.destination_input_single,
+                self.is_valid_box
+            )
+        self.is_valid_box.add(
+            self.is_valid
+        )
+        if self.rtl:
+            self.amount_box.add(
+                self.check_amount_label,
+                self.amount_input,
+                self.amount_label
+            )
+            self.amount_options_switch.add(
+                self.each_option,
+                self.split_option
+            )
+        else:
+            self.amount_box.add(
+                self.amount_label,
+                self.amount_input,
+                self.check_amount_label
+            )
+            self.amount_options_switch.add(
+                self.split_option,
+                self.each_option
+            )
+        self.amount_options_box.add(
+            self.amount_options_switch
+        )
+        if self.rtl:
+            self.fees_box.add(
+                self.empty_box,
+                self.fee_input,
+                self.fee_label
+            )
+            self.confirmation_box.add(
+                self.send_button,
+                self.send_box
+            )
+        else:
+            self.fees_box.add(
+                self.fee_label,
+                self.fee_input,
+                self.empty_box
+            )
+            self.confirmation_box.add(
+                self.send_box,
+                self.send_button
+            )
+        self.send_box.add(
+            self.operation_box
+        )
+        if self.rtl:
+            self.operation_box.add(
+                self.operation_status,
+                self.operation_label
+            )
+        else:
+            self.operation_box.add(
+                self.operation_label,
+                self.operation_status
+            )
 
-    async def insert_widgets(self, widget):
+
+    def insert_widgets(self):
         if not self.send_toggle:
-            self.add(
-                self.switch_box,
-                self.selection_address_box,
-                self.send_options_box,
-                self.destination_box,
-                self.amount_box,
-                self.fees_box,
-                self.separator_box,
-                self.confirmation_box
-            )
-            if self.rtl:
-                self.switch_box.add(
-                    self.shielded_button,
-                    self.transparent_button
-                )
-            else:
-                self.switch_box.add(
-                    self.transparent_button,
-                    self.shielded_button
-                )
-            self.transparent_button.add(
-                self.transparent_label,
-                self.transparent_line
-            )
-            self.shielded_button.add(
-                self.shielded_label,
-                self.shielded_line
-            )
-            if self.rtl:
-                self.selection_address_box.add(
-                    self.address_balance,
-                    self.address_selection,
-                    self.from_address_label
-                )
-            else:
-                self.selection_address_box.add(
-                    self.from_address_label,
-                    self.address_selection,
-                    self.address_balance
-                )
-            self.send_options_box.add(
-                self.send_options_switch
-            )
-            if self.rtl:
-                self.send_options_switch.add(
-                    self.many_option,
-                    self.single_option
-                )
-                self.destination_box.add(
-                    self.is_valid_box,
-                    self.destination_input_single,
-                    self.destination_label
-                )
-            else:
-                self.send_options_switch.add(
-                    self.single_option,
-                    self.many_option
-                )
-                self.destination_box.add(
-                    self.destination_label,
-                    self.destination_input_single,
-                    self.is_valid_box
-                )
-            self.is_valid_box.add(
-                self.is_valid
-            )
-            if self.rtl:
-                self.amount_box.add(
-                    self.check_amount_label,
-                    self.amount_input,
-                    self.amount_label
-                )
-                self.amount_options_switch.add(
-                    self.each_option,
-                    self.split_option
-                )
-            else:
-                self.amount_box.add(
-                    self.amount_label,
-                    self.amount_input,
-                    self.check_amount_label
-                )
-                self.amount_options_switch.add(
-                    self.split_option,
-                    self.each_option
-                )
-            self.amount_options_box.add(
-                self.amount_options_switch
-            )
-            if self.rtl:
-                self.fees_box.add(
-                    self.empty_box,
-                    self.fee_input,
-                    self.fee_label
-                )
-                self.confirmation_box.add(
-                    self.send_button,
-                    self.send_box
-                )
-            else:
-                self.fees_box.add(
-                    self.fee_label,
-                    self.fee_input,
-                    self.empty_box
-                )
-                self.confirmation_box.add(
-                    self.send_box,
-                    self.send_button
-                )
-            self.send_box.add(
-                self.operation_box
-            )
-            if self.rtl:
-                self.operation_box.add(
-                    self.operation_status,
-                    self.operation_label
-                )
-            else:
-                self.operation_box.add(
-                    self.operation_label,
-                    self.operation_status
-                )
             self.send_toggle = True
             self.insert_menustrip()
             self.transparent_button_click(None, None)
-            self.app.add_background_task(self.update_address_balance)
+            asyncio.create_task(self.update_address_balance())
         
 
     def insert_menustrip(self):
@@ -939,7 +940,7 @@ class Send(Box):
             self.address_balance.text = self.tr.text("address_balance_value")
 
 
-    async def update_address_balance(self, widget):
+    async def update_address_balance(self):
         self.format_balance = 0
         while True:
             if not self.send_toggle:
@@ -1097,9 +1098,10 @@ class Send(Box):
     def store_shielded_transaction(self, address, txid, amount, fee):
         tx_type = "shielded"
         category = "send"
+        amount = float(amount)
         blocks = self.main.home_page.current_blocks
         timesent = int(datetime.now().timestamp())
-        self.storagetxs.insert_transaction(tx_type, category, address, txid, amount, blocks, fee, timesent)
+        self.storagetxs.insert_transaction(tx_type, category, address, txid, -amount, blocks, fee, timesent)
 
 
     def send_button_click(self, button):
@@ -1154,10 +1156,10 @@ class Send(Box):
             )
             self.amount_input.focus()
             return
-        self.app.add_background_task(self.make_transaction)
+        asyncio.create_task(self.make_transaction())
 
 
-    async def make_transaction(self, widget):
+    async def make_transaction(self):
         self.disable_send()
         selected_address = self.address_selection.value.select_address
         amount = self.amount_input.value

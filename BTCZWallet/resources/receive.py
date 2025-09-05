@@ -310,38 +310,39 @@ class Receive(Box):
             rtl=self.rtl
         )
 
+        self.addresses_list._impl.native.Controls.Add(self.addresses_table)
+        self.addresses_box.add(
+            self.addresses_list_box
+        )
+        self.addresses_list_box.add(
+            self.switch_address_box,
+            self.addresses_list
+        )
+        if self.rtl:
+            self.switch_address_box.add(
+                self.shielded_button,
+                self.transparent_button
+            )
+        else:
+            self.switch_address_box.add(
+                self.transparent_button,
+                self.shielded_button
+            )
+        self.transparent_button.add(
+            self.transparent_label,
+            self.transparent_line
+        )
+        self.shielded_button.add(
+            self.shielded_label,
+            self.shielded_line
+        )
+        self.add(
+            self.addresses_box
+        )
+
         
-    async def insert_widgets(self, widget):
+    def insert_widgets(self):
         if not self.receive_toggle:
-            self.addresses_list._impl.native.Controls.Add(self.addresses_table)
-            self.addresses_box.add(
-                self.addresses_list_box
-            )
-            self.addresses_list_box.add(
-                self.switch_address_box,
-                self.addresses_list
-            )
-            if self.rtl:
-                self.switch_address_box.add(
-                    self.shielded_button,
-                    self.transparent_button
-                )
-            else:
-                self.switch_address_box.add(
-                    self.transparent_button,
-                    self.shielded_button
-                )
-            self.transparent_button.add(
-                self.transparent_label,
-                self.transparent_line
-            )
-            self.shielded_button.add(
-                self.shielded_label,
-                self.shielded_line
-            )
-            self.add(
-                self.addresses_box
-            )
             self.receive_toggle = True
             self.transparent_button_click(None, None)
     

@@ -288,7 +288,7 @@ class Currency(Window):
 
 
 class Home(Box):
-    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, font):
+    def __init__(self, app:App, main:Window, settings, utils, units, tr, font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -304,7 +304,6 @@ class Home(Box):
 
         self.utils = utils
         self.units = units
-        self.commands = commands
         self.settings = settings
         self.tr = tr
         self.font = font
@@ -582,68 +581,67 @@ class Home(Box):
                 alignment = CENTER
             )
         )
+        
+        self.add(
+            self.coingecko_box, 
+            self.market_box,
+            self.bitcoinz_curve,
+            self.info_box
+        )
+        self.info_box.add(
+            self.halving_label,
+            self.deprecation_label
+        )
+        if self.rtl:
+            self.coingecko_box.add(
+                self.last_updated_label,
+                self.coingecko_label,
+                self.coingecko_icon
+            )
+        else:
+            self.coingecko_box.add(
+                self.coingecko_icon,
+                self.coingecko_label,
+                self.last_updated_label
+            )
+        if self.rtl:
+            self.market_box.add(
+                self.circulating_box,
+                self.circulating_label,
+                self.percentage_7_value,
+                self.percentage_7_label,
+                self.percentage_24_value,
+                self.percentage_24_label,
+                self.price_value,
+                self.price_label
+            )
+        else:
+            self.market_box.add(
+                self.price_label,
+                self.price_value,
+                self.percentage_24_label,
+                self.percentage_24_value,
+                self.percentage_7_label,
+                self.percentage_7_value,
+                self.circulating_label,
+                self.circulating_box
+            )
+        self.circulating_box.add(
+            self.circulating_value
+        )
 
 
-    async def insert_widgets(self, widget):
+    def insert_widgets(self):
         if not self.home_toggle:
-            self.add(
-                self.coingecko_box, 
-                self.market_box,
-                self.bitcoinz_curve,
-                self.info_box
-            )
-            self.info_box.add(
-                self.halving_label,
-                self.deprecation_label
-            )
-            if self.rtl:
-                self.coingecko_box.add(
-                    self.last_updated_label,
-                    self.coingecko_label,
-                    self.coingecko_icon
-                )
-            else:
-                self.coingecko_box.add(
-                    self.coingecko_icon,
-                    self.coingecko_label,
-                    self.last_updated_label
-                )
-            if self.rtl:
-                self.market_box.add(
-                    self.circulating_box,
-                    self.circulating_label,
-                    self.percentage_7_value,
-                    self.percentage_7_label,
-                    self.percentage_24_value,
-                    self.percentage_24_label,
-                    self.price_value,
-                    self.price_label
-                )
-            else:
-                self.market_box.add(
-                    self.price_label,
-                    self.price_value,
-                    self.percentage_24_label,
-                    self.percentage_24_value,
-                    self.percentage_7_label,
-                    self.percentage_7_value,
-                    self.circulating_label,
-                    self.circulating_box
-                )
-            self.circulating_box.add(
-                self.circulating_value
-            )
-
             self.home_toggle = True
-
-            self.app.add_background_task(self.update_marketchart)
-            self.app.add_background_task(self.update_marketcap)
-            self.app.add_background_task(self.update_circulating_supply)
-            self.app.add_background_task(self.update_remaining_deprecation)
+            asyncio.create_task(self.update_marketchart())
+            asyncio.create_task(self.update_marketcap())
+            asyncio.create_task(self.update_circulating_supply())
+            asyncio.create_task(self.update_remaining_deprecation())
 
 
     
-    async def update_circulating_supply(self, widget):
+    async def update_circulating_supply(self):
         self.app.console.event_log(f"✔: Circulating supply")
         while True:
             self.circulating = self.units.calculate_circulating(int(self.current_blocks))
@@ -664,7 +662,7 @@ class Home(Box):
             await asyncio.sleep(10)
 
 
-    async def update_remaining_deprecation(self, widget):
+    async def update_remaining_deprecation(self):
         self.app.console.event_log(f"✔: Remaining deprecation")
         while True:
             remaining_blocks = self.units.remaining_blocks_until_deprecation(int(self.deprecation), int(self.current_blocks))
@@ -676,7 +674,7 @@ class Home(Box):
             await asyncio.sleep(10)
 
 
-    async def update_marketcap(self, widget):
+    async def update_marketcap(self):
         self.app.console.event_log(f"✔: Market cap")
         while True:
             data = await self.utils.fetch_marketcap()
@@ -717,7 +715,7 @@ class Home(Box):
             await asyncio.sleep(601)
 
 
-    async def update_marketchart(self, widget):
+    async def update_marketchart(self):
         self.app.console.event_log(f"✔: Market curve")
         while True:
             data = await self.curve.fetch_marketchart()
@@ -792,9 +790,9 @@ class Home(Box):
             return
         if not self.circulating_toggle:
             self.circulating_toggle = True
-            self.app.add_background_task(self.show_max_emissions)
+            asyncio.current_task(self.show_max_emissions())
 
-    async def show_max_emissions(self, task):
+    async def show_max_emissions(self):
         self.circulating_box.add(
             self.circulating_divider,
             self.max_emissions_value
