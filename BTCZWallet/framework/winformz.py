@@ -181,6 +181,7 @@ class Keys:
 
     F1 = Forms.Keys.F1
     F4 = Forms.Keys.F4
+    F5 = Forms.Keys.F5
     F12 = Forms.Keys.F12
     A = Forms.Keys.A
     C = Forms.Keys.C
@@ -1100,6 +1101,8 @@ class Table(Forms.DataGridView):
             self.CellDoubleClick += self._on_cell_double_click
         if self._rtl:
             self.RightToLeft = RightToLeft.YES
+        self.ScrollBars = Forms.ScrollBars(0)
+        self.MouseWheel += self.on_mouse_wheel
 
         self.AllowUserToAddRows = False
         self.AllowUserToDeleteRows = False
@@ -1399,6 +1402,20 @@ class Table(Forms.DataGridView):
     def _on_cell_double_click(self, sender, e: Forms.DataGridViewCellEventArgs):
         if self._on_double_click:
             self._on_double_click(sender, e)
+
+    def on_mouse_wheel(self, sender, e):
+        if e.Delta > 0:
+            self.scroll(-1)
+        else:
+            self.scroll(1)
+
+    def scroll(self, step):
+        try:
+            idx = self.FirstDisplayedScrollingRowIndex
+            new_idx = max(0, min(idx + step, self.RowCount - 1))
+            self.FirstDisplayedScrollingRowIndex = new_idx
+        except:
+            pass
 
 
 

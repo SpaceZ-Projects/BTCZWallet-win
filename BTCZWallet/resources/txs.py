@@ -1,7 +1,6 @@
 
 import asyncio
 import operator
-import json
 from datetime import datetime
 import webbrowser
 
@@ -9,7 +8,7 @@ from toga import App, Box, Label, Window, Button
 from ..framework import (
     Table, Command, Color, DockStyle,
     AlignTable, SelectMode, BorderStyle,
-    ClipBoard, FlatStyle, run_async
+    ClipBoard, FlatStyle, Keys
 )
 from toga.style.pack import Pack
 from toga.colors import rgb, GRAY, WHITE, GREEN, RED, ORANGE, BLACK
@@ -20,7 +19,7 @@ from .storage import StorageMessages, StorageTxs, StorageMobile
 
 
 class Txid(Window):
-    def __init__(self, main:Window, txid, settings, utils, units, commands, tr, font):
+    def __init__(self, main:Window, txid, address, settings, utils, units, rpc, tr, font):
         super().__init__(
             size =(600, 180),
             resizable= False
@@ -29,10 +28,11 @@ class Txid(Window):
         self.main = main
         self.updating_txid = None
         self.txid = txid
+        self.address = address
 
         self.utils = utils
         self.units = units
-        self.commands = commands
+        self.rpc = rpc
         self.settings = settings
         self.tr = tr
         self.font = font
@@ -285,47 +285,82 @@ class Txid(Window):
                 self.fee_value
             )
 
-        self.app.add_background_task(self.update_transaction_info)
+        asyncio.create_task(self.update_transaction_info())
 
 
-    async def update_transaction_info(self, widget):
+    async def update_transaction_info(self):
         if not self.updating_txid:
             self.updating_txid = True
             while True:
                 if not self.updating_txid:
                     return
-                transaction_info = self.storagetxs.get_transaction(self.txid)
-                tx_type, category, address, txid, amount, blocks, fee, timestamp = transaction_info
+                if self.address.startswith("z"):
+                    transaction_info = self.storagetxs.get_transaction(self.txid)
+                    tx_type, category, address, txid, amount_val, blocks, fee_val, timestamp = transaction_info
 
-                amount = self.units.format_balance(amount)
-                if self.rtl:
-                    amount = self.units.arabic_digits(amount)
-                if self.settings.hidden_balances():
-                    amount = "*.********"
+                    amount = self.units.format_balance(amount_val)
+                    fee = self.units.format_balance(fee_val) if category == "send" else "NaN"
 
-                if blocks == 0:
-                    confirmations = blocks
-                else:
-                    confirmations =  (self.main.home_page.current_blocks - blocks) + 1
-                if confirmations <= 0:
-                    color = RED
-                elif 1 <= confirmations < 6:
-                    color = ORANGE
-                else:
-                    color = GREEN
-                if category == "send":
-                    fee = self.units.format_balance(fee)
                     if self.rtl:
-                        category = self.tr.text("category_send")
-                        fee = self.units.arabic_digits(fee)
-                else:
-                    category = self.tr.text("category_receive")
-                    fee = "NaN"
+                        amount = self.units.arabic_digits(amount)
+                        if category == "send":
+                            fee = self.units.arabic_digits(fee)
+                            category = self.tr.text("category_send")
+                        else:
+                            category = self.tr.text("category_receive")
 
-                formatted_timereceived = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
-                if self.rtl:
-                    confirmations = self.units.arabic_digits(str(confirmations))
-                    formatted_timereceived = self.units.arabic_digits(formatted_timereceived)
+                    if self.settings.hidden_balances():
+                        amount = "*.********"
+
+                    confirmations = 0 if blocks == 0 else (self.main.home_page.current_blocks - blocks) + 1
+                    if confirmations <= 0:
+                        color = RED
+                    elif 1 <= confirmations < 6:
+                        color = ORANGE
+                    else:
+                        color = GREEN
+
+                    formatted_timereceived = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+                    if self.rtl:
+                        formatted_timereceived = self.units.arabic_digits(formatted_timereceived)
+                        confirmations = self.units.arabic_digits(str(confirmations))
+                else:
+                    transaction_info,_ = await self.rpc.getTransaction(self.txid)
+                    details = transaction_info.get('details', [])
+                    if details:
+                        category = details[0]['category']
+                    else:
+                        category = "unknown"
+
+                    if category == "send":
+                        fee = self.units.format_balance(float(transaction_info.get('fee', 0)))
+                        if self.rtl:
+                            category = self.tr.text("category_send")
+                            fee = self.units.arabic_digits(fee)
+                    else:
+                        category = self.tr.text("category_receive")
+                        fee = "NaN"
+
+                    amount = self.units.format_balance(float(transaction_info.get('amount', 0)))
+                    if self.rtl:
+                        amount = self.units.arabic_digits(amount)
+                    if self.settings.hidden_balances():
+                        amount = "*.********"
+
+                    confirmations = transaction_info.get('confirmations', 0)
+                    if confirmations <= 0:
+                        color = RED
+                    elif 1 <= confirmations < 6:
+                        color = ORANGE
+                    else:
+                        color = GREEN
+
+                    timereceived = transaction_info.get('timereceived', 0)
+                    formatted_timereceived = datetime.fromtimestamp(timereceived).strftime("%Y-%m-%d %H:%M:%S")
+                    if self.rtl:
+                        confirmations = self.units.arabic_digits(str(confirmations))
+                        formatted_timereceived = self.units.arabic_digits(formatted_timereceived)
+                    
 
                 self.confirmations_value.style.color = color
                 self.confirmations_value.text = confirmations
@@ -352,7 +387,7 @@ class Txid(Window):
 
 
 class Transactions(Box):
-    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, font):
+    def __init__(self, app:App, main:Window, settings, utils, units, rpc, tr, font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -364,7 +399,7 @@ class Transactions(Box):
 
         self.app = app
         self.main = main
-        self.commands = commands
+        self.rpc = rpc
         self.utils = utils
         self.units = units
         self.settings = settings
@@ -437,6 +472,7 @@ class Transactions(Box):
             align=AlignTable.MIDCENTER,
             column_count=5,
             row_visible=False,
+            column_visible=False,
             gird_color=Color.rgb(30,33,36),
             row_heights=50,
             multiselect=False,
@@ -462,6 +498,7 @@ class Transactions(Box):
             cell_font=self.font.get(9, True),
             rtl=self.rtl
         )
+        self.transactions_table.KeyDown += self.table_keydown
 
         self.no_transaction = Label(
             text="No Transactions found.",
@@ -476,17 +513,17 @@ class Transactions(Box):
         )
 
 
-    async def run_tasks(self, wigdet):
-        self.app.add_background_task(self.gather_transparent_transactions)
+    async def run_tasks(self):
+        asyncio.create_task(self.gather_transparent_transactions())
         await asyncio.sleep(0.5)
-        self.app.add_background_task(self.update_unconfirmed_transactions)
+        asyncio.create_task(self.update_unconfirmed_transactions())
         await asyncio.sleep(0.5)
-        self.app.add_background_task(self.gather_shielded_transactions)
+        asyncio.create_task(self.gather_shielded_transactions())
         await asyncio.sleep(1)
-        self.app.add_background_task(self.update_transactions_table)
+        asyncio.create_task(self.update_transactions_table())
 
 
-    async def insert_widgets(self, widget):
+    def insert_widgets(self):
         if not self.transactions_toggle:
             sorted_transactions = self.get_transactions(self.transactions_count, self.transactions_from)
             if sorted_transactions:
@@ -521,8 +558,6 @@ class Transactions(Box):
             tx_type = data[0]
             category = data[1]
             address = data[2]
-            if category.startswith("mobile"):
-                continue
             if category == "send":
                 if tx_type == "shielded":
                     icon = "images/tx_send_shielded.png"
@@ -533,8 +568,7 @@ class Transactions(Box):
                     icon = "images/tx_receive_shielded.png"
                 else:
                     icon = "images/tx_receive_transparent.png"
-            elif category == "mining":
-                icon = "images/tx_mining.png"
+
             txid = data[3]
             amount = data[4]
             if self.settings.hidden_balances():
@@ -556,6 +590,11 @@ class Transactions(Box):
         self.transactions_table.data_source = self.transactions_data
 
 
+    def table_keydown(self, sender, e):
+        if e.KeyCode == Keys.F5:
+            self.reload_transactions()
+
+
     def reload_transactions(self):
         if self.transactions_toggle:
             self.transactions_from = 0
@@ -570,7 +609,7 @@ class Transactions(Box):
                 self.create_rows(sorted_transactions)
 
 
-    async def gather_transparent_transactions(self, widget):
+    async def gather_transparent_transactions(self):
         self.app.console.event_log(f"✔: Transparent transactions")
         tx_type = "transparent"
         while True:
@@ -580,83 +619,63 @@ class Transactions(Box):
             new_transactions = await self.get_transaparent_transactions(9999, 0)
             if new_transactions:
                 stored_transactions = self.storagetxs.get_transactions(True, "transparent")
-                mining_options = self.settings.load_mining_options()
-                mobile_addresses = self.storage_mobile.get_addresses_list("taddress")
-                if mining_options:
-                    mining_address = mining_options[1]
                 for data in new_transactions:
                     txid = data["txid"]
-                    if txid not in stored_transactions:
-                        address = data.get("address", "Shielded")
-                        category = data["category"]
-                        amount = data["amount"]
-                        timereceived = data["timereceived"]
-                        if mining_address and mining_address.startswith('t'):
-                            if address == mining_address:
-                                category = "mining"
-                        if address in mobile_addresses:
-                            if category == "receive":
-                                category = "mobile_receive"
-                            else:
-                                category = "mobile_send"
-                        fee = None
-                        if "fee" in data:
-                            fee = data["fee"]
-                        blocks = None
+                    address = data.get("address", "Shielded")
+                    category = data["category"]
+                    amount = data["amount"]
+                    timereceived = data["timereceived"]
+                    vout = data["vout"]
+                    fee = 0
+                    if "fee" in data:
+                        fee = data["fee"]
+                    if txid not in stored_transactions and vout == 0:
                         if "blockhash" not in data:
                             blocks = 0
                             self.storagetxs.insert_transaction(tx_type, category, address, txid, amount, blocks, fee, timereceived)
                         else:
                             blockhash = data["blockhash"]
-                            run_async(self.get_block_height(blockhash, tx_type, category, address, txid, amount, fee, timereceived))
+                            await self.get_block_height(blockhash, tx_type, category, address, txid, amount, fee, timereceived)
                         
             await asyncio.sleep(10)
             
 
 
-    async def update_unconfirmed_transactions(self, widget):
+    async def update_unconfirmed_transactions(self):
         self.app.console.event_log(f"✔: Unconfirmed transactions")
         while True:
             unconfirmed_transactions = self.storagetxs.get_unconfirmed_transactions()
             if unconfirmed_transactions:
                 for txid in unconfirmed_transactions:
-                    result,_ = await self.commands.getTransaction(txid)
-                    if isinstance(result, str):
-                        data = json.loads(result)
-                        if "blockhash" in data:
-                            blockhash = data["blockhash"]
-                            result,_ = await self.commands.getBlock(blockhash)
-                            if isinstance(result, str):
-                                data = json.loads(result)
-                                height = data.get("height")
-                                self.storagetxs.update_transaction(txid, height)
-
+                    result,_ = await self.rpc.getTransaction(txid)
+                    if "blockhash" in result:
+                        blockhash = result["blockhash"]
+                        result,_ = await self.rpc.getBlock(blockhash)
+                        if result:
+                            height = result.get("height")
+                            self.storagetxs.update_transaction(txid, height)
 
             await asyncio.sleep(10)
 
 
 
     async def get_block_height(self, blockhash, tx_type, category, address, txid, amount, fee, timereceived):
-        result,_ = await self.commands.getBlock(blockhash)
+        result,_ = await self.rpc.getBlock(blockhash)
         if result:
-            if isinstance(result, str):
-                data = json.loads(result)
-                height = data.get("height")
-                self.storagetxs.insert_transaction(tx_type, category, address, txid, amount, height, fee, timereceived)
+            height = result.get("height")
+            self.storagetxs.insert_transaction(tx_type, category, address, txid, amount, height, fee, timereceived)
 
 
     async def get_transaparent_transactions(self, count, tx_from):
-        transactions, _ = await self.commands.listTransactions(
+        transactions,_ = await self.rpc.listTransactions(
             count, tx_from
         )
-        if transactions is not None:
-            if isinstance(transactions, str):
-                transactions_data = json.loads(transactions)
-                return transactions_data
+        if transactions:
+            return transactions
         return None
 
 
-    async def gather_shielded_transactions(self, widget):
+    async def gather_shielded_transactions(self):
         self.app.console.event_log(f"✔: Shielded transactions")
         tx_type = "shielded"
         while True:
@@ -666,45 +685,33 @@ class Transactions(Box):
             new_transactions = await self.get_shielded_transactions()
             if new_transactions:
                 stored_transactions = self.storagetxs.get_transactions(True, "shielded")
-                mining_options = self.settings.load_mining_options()
-                mobile_addresses = self.storage_mobile.get_addresses_list("zaddress")
-                if mining_options:
-                    mining_address = mining_options[1]
                 for tx_list in new_transactions:
                     for data in tx_list:
                         txid = data['txid']
+                        confirmations = data["confirmations"]
+                        address = data["address"]
+                        category = "receive"
+                        amount = data["amount"]
+                        if confirmations > 0:
+                            blocks = self.main.home_page.current_blocks - confirmations
+                        elif confirmations == 0:
+                            blocks = self.main.home_page.current_blocks
                         if txid not in stored_transactions:
-                            confirmations = data["confirmations"]
-                            address = data["address"]
-                            category = "receive"
-                            amount = data["amount"]
-                            if mining_address and mining_address.startswith('z'):
-                                if address == mining_address:
-                                    category = "mining"
-                            if address in mobile_addresses:
-                                category = "mobile_receive"
-                            if confirmations > 0:
-                                blocks = self.main.home_page.current_blocks - confirmations
-                            elif confirmations == 0:
-                                blocks = self.main.home_page.current_blocks
-                            run_async(self.get_block_timestamp(blocks, tx_type, category, address, txid, amount))
+                            await self.get_block_timestamp(blocks, tx_type, category, address, txid, amount)
 
             await asyncio.sleep(10)
 
 
     async def get_block_timestamp(self, height, tx_type, category, address, txid, amount):
-        result,_ = await self.commands.getBlock(height)
+        result,_ = await self.rpc.getBlock(height)
         if result:
-            if isinstance(result, str):
-                data = json.loads(result)
-                timereceived = data.get("time")
-                self.storagetxs.insert_transaction(tx_type, category, address, txid, amount, height, None, timereceived)
+            timereceived = result.get("time")
+            self.storagetxs.insert_transaction(tx_type, category, address, txid, amount, height, None, timereceived)
 
 
     async def get_shielded_transactions(self):
         transactions_data = []
-        addresses_data,_ = await self.commands.z_listAddresses()
-        addresses_data = json.loads(addresses_data)
+        addresses_data,_ = await self.rpc.z_listAddresses()
         if addresses_data:
             message_address = self.storagemsgs.get_identity("address")
             if message_address:
@@ -714,16 +721,15 @@ class Transactions(Box):
         else:
             address_items = []
         for address in address_items:
-            listunspent, _= await self.commands.z_listUnspent(address, 0)
+            listunspent,_ = await self.rpc.z_listUnspent(address, 0)
             if listunspent:
-                listunspent = json.loads(listunspent)
                 transactions_data.append(listunspent)
 
         return transactions_data
     
     
 
-    async def update_transactions_table(self, widget):
+    async def update_transactions_table(self):
         sorted_transactions = self.get_transactions(self.transactions_count, self.transactions_from)
         for data in sorted_transactions:
             txid = data[3]
@@ -738,8 +744,6 @@ class Transactions(Box):
                         data = self.storagetxs.get_transaction(txid)
                         tx_type = data[0]
                         category = data[1]
-                        if category.startswith("mobile"):
-                            continue
                         if category == "send":
                             if tx_type == "shielded":
                                 icon = "images/tx_send_shielded.png"
@@ -752,9 +756,7 @@ class Transactions(Box):
                             else:
                                 icon = "images/tx_receive_transparent.png"
                             notify_categoty = self.tr.text("notify_receive")
-                        elif category == "mining":
-                            icon = "images/tx_mining.png"
-                            notify_categoty = self.tr.text("notify_mining")
+
                         address = data[2]
                         amount = data[4]
                         if self.settings.hidden_balances():
@@ -782,9 +784,9 @@ class Transactions(Box):
             await asyncio.sleep(6)
 
 
-    def show_transaction_info(self, txid):
+    def show_transaction_info(self, txid, address):
         self.transactions_info = Txid(
-            self.main, txid, self.settings, self.utils, self.units, self.commands, self.tr, self.font
+            self.main, txid, address, self.settings, self.utils, self.units, self.rpc, self.tr, self.font
         )
         self.transactions_info._impl.native.ShowDialog(self.main._impl.native)
 
@@ -848,13 +850,13 @@ class Transactions(Box):
             if last_visible_row >= total_rows - 1 - threshold:
                 self.scroll_toggle = True
                 self.transactions_from += 50
-                self.app.add_background_task(self.get_transactions_archive)
+                asyncio.create_task(self.get_transactions_archive())
         except Exception as e:
             print(f"Error: {e}")
 
 
 
-    async def get_transactions_archive(self, widget):
+    async def get_transactions_archive(self):
         try:
             sorted_transactions = self.get_transactions(self.transactions_count, self.transactions_from)
             if not sorted_transactions:
@@ -863,8 +865,6 @@ class Transactions(Box):
             for data in sorted_transactions:
                 tx_type = data[0]
                 category = data[1]
-                if category.startswith("mobile"):
-                    continue
                 if category == "send":
                     if tx_type == "shielded":
                         icon = "images/tx_send_shielded.png"
@@ -875,8 +875,7 @@ class Transactions(Box):
                         icon = "images/tx_receive_shielded.png"
                     else:
                         icon = "images/tx_receive_transparent.png"
-                elif category == "mining":
-                    icon = "images/tx_mining.png"
+
                 address = data[2]
                 txid = data[3]
                 amount = data[4]
@@ -905,7 +904,8 @@ class Transactions(Box):
     def transactions_table_double_click(self, sender, event):
         row_index = event.RowIndex
         txid = sender.Rows[row_index].Cells[4].Value
-        self.show_transaction_info(txid)
+        address = sender.Rows[row_index].Cells[1].Value
+        self.show_transaction_info(txid, address)
 
     
     def copy_txid_cmd_mouse_enter(self):
