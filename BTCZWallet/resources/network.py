@@ -151,8 +151,22 @@ class AddNode(Window):
                 self.cancel_button.enabled = True
                 self.add_button.enabled = True
                 return
+            except (asyncio.TimeoutError, asyncio.CancelledError):
+                self.error_dialog(
+                    title="Connection Timeout",
+                    message="The node did not respond within the allowed time"
+                )
+                self.cancel_button.enabled = True
+                self.add_button.enabled = True
+                return
             except aiohttp.ServerDisconnectedError:
-                pass
+                self.error_dialog(
+                    title="Server Disconnected",
+                    message="The node closed the connection unexpectedly"
+                )
+                self.cancel_button.enabled = True
+                self.add_button.enabled = True
+                return
         else:
             try:
                 host, port = node_address.split(":")
