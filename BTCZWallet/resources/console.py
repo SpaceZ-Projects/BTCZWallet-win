@@ -187,6 +187,7 @@ class Console(Window):
         self.console_output_logs = RichLabel(
             readonly=True,
             dockstyle=DockStyle.FILL,
+            color=Color.WHITE,
             background_color=Color.rgb(20,20,20),
             wrap=True,
             urls=True,
@@ -197,6 +198,7 @@ class Console(Window):
         self.console_output_shell = RichLabel(
             readonly=True,
             dockstyle=DockStyle.FILL,
+            color=Color.WHITE,
             background_color=Color.rgb(20,20,20),
             wrap=True,
             urls=True,
@@ -510,19 +512,26 @@ class Console(Window):
             self.inside_toggle = None
 
 
-    def log(self, text, color):
-        self.console_output_logs.SelectionStart = self.console_output_logs.TextLength
-        self.console_output_logs.SelectionLength = 0
-        self.console_output_logs.SelectionColor = color
-        self.console_output_logs.AppendText(text + "\n")
+    def log(self, text, color, chunk_size=50):
+        lines = text.splitlines()
+        for i in range(0, len(lines), chunk_size):
+            chunk = "\n".join(lines[i:i + chunk_size])
+            self.console_output_logs.SelectionStart = self.console_output_logs.TextLength
+            self.console_output_logs.SelectionLength = 0
+            self.console_output_logs.SelectionColor = color
+            self.console_output_logs.AppendText(chunk + "\n")
         self.console_output_logs.SelectionColor = Color.WHITE
         self.console_output_logs.ScrollToCaret()
 
-    def shell(self, text, color):
-        self.console_output_shell.SelectionStart = self.console_output_shell.TextLength
-        self.console_output_shell.SelectionLength = 0
-        self.console_output_shell.SelectionColor = color
-        self.console_output_shell.AppendText(text + "\n")
+
+    def shell(self, text, color, chunk_size=50):
+        lines = text.splitlines()
+        for i in range(0, len(lines), chunk_size):
+            chunk = "\n".join(lines[i:i + chunk_size])
+            self.console_output_shell.SelectionStart = self.console_output_shell.TextLength
+            self.console_output_shell.SelectionLength = 0
+            self.console_output_shell.SelectionColor = color
+            self.console_output_shell.AppendText(chunk + "\n")
         self.console_output_shell.SelectionColor = Color.WHITE
         self.console_output_shell.ScrollToCaret()
 
