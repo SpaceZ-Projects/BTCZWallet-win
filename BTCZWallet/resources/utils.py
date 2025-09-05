@@ -11,7 +11,6 @@ import json
 import py7zr
 import qrcode
 import winreg as reg
-import aiohttp
 from aiohttp.client_exceptions import ClientConnectionError, ServerDisconnectedError, ClientError
 from aiohttp_socks import ProxyConnector, ProxyConnectionError, ProxyError
 import ipaddress
@@ -335,6 +334,29 @@ class Utils():
         bitcoinz_path = self.get_bitcoinz_path()
         config_file_path = Os.Path.Combine(bitcoinz_path, config_file)
         return config_file_path
+    
+
+    def get_rpc_config(self):
+        config_path = self.get_config_path()
+        rpcuser, rpcpassword, rpcport = None, None, None
+        if Os.File.Exists(config_path):
+            with open(config_path, "r") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if line.startswith("rpcuser="):
+                        rpcuser = line.split("=", 1)[1].strip()
+                    elif line.startswith("rpcpassword="):
+                        rpcpassword = line.split("=", 1)[1].strip()
+                    elif line.startswith("rpcport="):
+                        rpcport = line.split("=", 1)[1].strip()
+        if not rpcport:
+            rpcport = 1979
+
+        return rpcuser, rpcpassword, rpcport
+
+    
     
     def verify_export_dir(self):
         config_file_path = self.get_config_path()

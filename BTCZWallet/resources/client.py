@@ -3,9 +3,149 @@ import asyncio
 import subprocess
 import json
 import binascii
+import aiohttp
 
 from toga import App
 from ..framework import Os
+
+
+class RPC():
+    def __init__(self, app:App, utils):
+        super().__init__()
+
+        self.app = app
+        self.utils = utils
+
+    async def _rpc_call(self, method, params):
+        rpcuser, rpcpassword, rpcport = self.utils.get_rpc_config()
+        url = f"http://127.0.0.1:{rpcport}/"
+        auth = aiohttp.BasicAuth(rpcuser, rpcpassword)
+        payload = {
+            "jsonrpc": "1.0",
+            "id": "curltest",
+            "method": method,
+            "params": params,
+        }
+
+        try:
+            async with aiohttp.ClientSession(auth=auth) as session:
+                async with session.post(url, json=payload) as response:
+                    text = await response.text()
+                    try:
+                        data = json.loads(text)
+                    except json.JSONDecodeError:
+                        return None, text.strip()
+
+                    error = data.get("error")
+                    if error:
+                        code = error.get("code")
+                        message = error.get("message", "").strip()
+                        if code == -28:
+                            return None, message
+                        return None, message
+
+                    return data.get("result"), None
+
+        except Exception as e:
+            return None, str(e).strip()
+        
+    
+    async def getInfo(self):
+        return await self._rpc_call(
+            "getinfo",
+            []
+        )
+    
+    async def getBlockchainInfo(self):
+        return await self._rpc_call(
+            "getblockchaininfo",
+            []
+        )
+    
+    async def getNetworkSolps(self):
+        return await self._rpc_call(
+            "getnetworksolps",
+            []
+        )
+    
+    async def getPeerInfo(self):
+        return await self._rpc_call(
+            "getpeerinfo",
+            []
+        )
+    
+    async def getConnectionCount(self):
+        return await self._rpc_call(
+            "getconnectioncount",
+            []
+        )
+    
+    async def getDeprecationInfo(self):
+        return await self._rpc_call(
+            "getdeprecationinfo",
+            []
+        )
+    
+    async def z_getTotalBalance(self):
+        return await self._rpc_call(
+            "z_gettotalbalance",
+            []
+        )
+    
+    async def z_getBalance(self, address):
+        return await self._rpc_call(
+            "z_getbalance",
+            [f"{address}"]
+        )
+    
+    async def getUnconfirmedBalance(self):
+        return await self._rpc_call(
+            "getunconfirmedbalance",
+            []
+        )
+    
+    async def listAddressgroupPings(self):
+        return await self._rpc_call(
+            "listaddressgroupings",
+            []
+        )
+    
+    async def ListAddresses(self):
+        return await self._rpc_call(
+            "listaddresses",
+            []
+        )
+    
+    async def z_listAddresses(self):
+        return await self._rpc_call(
+            "z_listaddresses",
+            []
+        )
+    
+    async def getTransaction(self, txid):
+        return await self._rpc_call(
+            "gettransaction",
+            [f"{txid}"]
+        )
+    
+    async def getBlock(self, block):
+        return await self._rpc_call(
+            "getblock",
+            [f"{block}", 2]
+        )
+    
+    async def listTransactions(self, count, tx_from):
+        return await self._rpc_call(
+            "listtransactions",
+            ["*", count, tx_from]
+        )
+    
+    async def z_listUnspent(self, address:str, minconf:int, maxconf:int = 9999999):
+        return await self._rpc_call(
+            "z_listunspent",
+            [minconf, maxconf, True, [address]]
+        )
+
 
 
 class Client():
@@ -49,7 +189,9 @@ class Client():
                 if "error" in error_message:
                     if process.returncode != 28:
                         if process.returncode == 1:
-                            self.app.console.warning_log(error_message)
+                            self.app.console.warning_log("BitcoinZ node is not running.")
+                        elif process.returncode == 4:
+                            pass
                         else:
                             self.app.console.error_log(error_message)
                     index = error_message.index("error message:")+len("error message:")

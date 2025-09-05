@@ -26,6 +26,7 @@ class BitcoinZGUI(Window):
         self.units = Units(self.app, self.commands)
         self.tr = Translations(self.settings)
         self.utils = Utils(self.app, self.settings, self.units, self.tr)
+        self.rpc = RPC(self.app, self.utils)
         self.font = CustomFont(self.settings)
         self.tooltip = ToolTip()
 
@@ -114,7 +115,7 @@ class BitcoinZGUI(Window):
         self.network_status._impl.native.Font = self.font.get(9, True)
         
         self.startup = BTCZSetup(
-            self.app, self, self.settings, self.utils, self.units, self.commands, self.tr, self.font
+            self.app, self, self.settings, self.utils, self.units, self.commands, self.rpc, self.tr, self.font
         )
         self.startup_panel.add(
             self.bitcoinz_logo,
