@@ -256,6 +256,17 @@ class Receive(Box):
             font=self.font.get(9),
             rtl=self.rtl
         )
+        self.send_from_cmd = Command(
+            title="Send from address",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            action=self.send_from_address,
+            icon="images/send_i.ico",
+            mouse_enter=self.send_from_cmd_mouse_enter,
+            mouse_leave=self.send_from_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl=self.rtl
+        )
         self.copy_key_cmd = Command(
             title=self.tr.text("copy_key_cmd"),
             color=Color.WHITE,
@@ -302,6 +313,7 @@ class Receive(Box):
             on_double_click=self.show_qr_code,
             commands=[
                 self.copy_address_cmd,
+                self.send_from_cmd,
                 self.copy_key_cmd,
                 self.explorer_cmd,
             ],
@@ -468,6 +480,16 @@ class Receive(Box):
                 message=self.tr.message("copyaddress_dialog"),
             )
 
+    def send_from_address(self):
+        if self.selected_address and not self.main.send_page.operation_toggle:
+            address_selection = self.main.send_page.address_selection
+            self.main.send_button_click(None)
+            if self.selected_address.startswith("t"):
+                self.main.send_page.transparent_button_click(None, None)
+            elif self.selected_address.startswith("z"):
+                self.main.send_page.shielded_button_click(None, None)
+            address_selection.value = address_selection.items.find(self.selected_address)
+
     def open_address_in_explorer(self):
         if self.selected_address:
             if self.selected_address.startswith("z"):
@@ -502,7 +524,15 @@ class Receive(Box):
                 self.display_transparent_addresses()
             elif self.shielded_toggle:
                 self.display_shielded_addresses()
-    
+
+
+    def send_from_cmd_mouse_enter(self):
+        self.send_from_cmd.icon = "images/send_a.ico"
+        self.send_from_cmd.color = Color.BLACK
+
+    def send_from_cmd_mouse_leave(self):
+        self.send_from_cmd.icon = "images/send_i.ico"
+        self.send_from_cmd.color = Color.WHITE
 
     def copy_address_cmd_mouse_enter(self):
         self.copy_address_cmd.icon = "images/copy_a.ico"

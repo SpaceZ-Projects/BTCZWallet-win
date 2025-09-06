@@ -676,6 +676,8 @@ class Mining(Box):
 
 
     def start_mining_button_click(self, button):
+        if self.miner_selection.enabled is False:
+            return
         if not self.selected_miner or self.selected_miner == "Select Miner":
             self.main.error_dialog(
                 "Missing Selection",

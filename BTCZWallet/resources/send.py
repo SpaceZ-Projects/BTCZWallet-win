@@ -39,6 +39,7 @@ class Send(Box):
         self.shielded_toggle = None
         self.is_valid_toggle = None
         self.z_addresses_limit_toggle = None
+        self.operation_toggle = None
 
         self.app = app
         self.main = main
@@ -1336,6 +1337,7 @@ class Send(Box):
 
     
     def disable_send(self):
+        self.operation_toggle = True
         self.send_button.enabled = False
         if self.many_option.value is True:
             self.destination_input_many.readonly = True
@@ -1346,6 +1348,7 @@ class Send(Box):
 
 
     def enable_send(self):
+        self.operation_toggle = None
         self.send_button.enabled = True
         if self.many_option.value is True:
             self.destination_input_many.readonly = False

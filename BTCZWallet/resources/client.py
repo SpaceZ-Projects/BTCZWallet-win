@@ -17,17 +17,16 @@ class RPC():
         self.utils = utils
 
     async def _rpc_call(self, method, params):
-        rpcuser, rpcpassword, rpcport = self.utils.get_rpc_config()
-        url = f"http://127.0.0.1:{rpcport}/"
-        auth = aiohttp.BasicAuth(rpcuser, rpcpassword)
-        payload = {
-            "jsonrpc": "1.0",
-            "id": "curltest",
-            "method": method,
-            "params": params,
-        }
-
         try:
+            rpcuser, rpcpassword, rpcport = self.utils.get_rpc_config()
+            url = f"http://127.0.0.1:{rpcport}/"
+            auth = aiohttp.BasicAuth(rpcuser, rpcpassword)
+            payload = {
+                "jsonrpc": "1.0",
+                "id": "curltest",
+                "method": method,
+                "params": params,
+            }
             async with aiohttp.ClientSession(auth=auth) as session:
                 async with session.post(url, json=payload) as response:
                     text = await response.text()

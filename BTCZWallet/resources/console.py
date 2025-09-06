@@ -363,6 +363,7 @@ class Console(Window):
                 self.tabs_box.insert(0, self.detach_button)
                 self._impl.native.Top = self.main._impl.native.Bottom - 8
             if self.main._is_maximized or self.main._is_snapped_left or self.main._is_snapped_right:
+                self.tabs_box.remove(self.detach_button)
                 self.main.main_box.insert(4, self.console_box)
             else:
                 self.main_box.add(self.console_box)
