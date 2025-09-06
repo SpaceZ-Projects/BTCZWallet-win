@@ -7,7 +7,7 @@
 ;--------------------------------
 ;Variables
 
-  !define PRODUCT_VERSION "1.3.8"
+  !define PRODUCT_VERSION "1.3.9"
   !define PRODUCT_NAME "BTCZWallet"
   !define PRODUCT_WEB_SITE "https://getbtcz.com"
   !define PRODUCT_PUBLISHER "BTCZCommunity"
