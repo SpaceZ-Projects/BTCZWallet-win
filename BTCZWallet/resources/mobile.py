@@ -6,7 +6,7 @@ from toga import App, Window, Box, ImageView, Button, Label, TextInput, ScrollCo
 from ..framework import FlatStyle, Drawing, Os
 from toga.style.pack import Pack
 from toga.constants import COLUMN, ROW, CENTER, BOLD
-from toga.colors import rgb, GRAY, GREENYELLOW, BLACK, WHITE, RED
+from toga.colors import rgb, GRAY, GREENYELLOW, BLACK, WHITE, RED, YELLOW
 
 from .storage import StorageMobile, StorageTxs, StorageAddresses
 
@@ -549,7 +549,8 @@ class Device(Box):
         self.device_icon = ImageView(
             image=device_icon,
             style=Pack(
-                background_color = rgb(40,43,48)
+                background_color = rgb(40,43,48),
+                padding = (3,0,0,0)
             )
         )
 
@@ -570,6 +571,32 @@ class Device(Box):
             )
         )
         self.device_last_connected._impl.native.Font = self.font.get(9, True)
+
+        self.transparent_balance = Label(
+            text="T :",
+            style=Pack(
+                color = YELLOW,
+                background_color = rgb(40,43,48)
+            )
+        )
+        self.transparent_balance._impl.native.Font = self.font.get(9, True)
+
+        self.shielded_balance = Label(
+            text="Z :",
+            style=Pack(
+                color = rgb(114,137,218),
+                background_color = rgb(40,43,48),
+                flex = 1
+            )
+        )
+        self.shielded_balance._impl.native.Font = self.font.get(9, True)
+
+        self.device_balances_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(40,43,48)
+            )
+        )
 
         self.device_info_box = Box(
             style=Pack(
@@ -626,7 +653,12 @@ class Device(Box):
         )
         self.device_info_box.add(
             self.device_name_label,
-            self.device_last_connected
+            self.device_last_connected,
+            self.device_balances_box
+        )
+        self.device_balances_box.add(
+            self.transparent_balance,
+            self.shielded_balance
         )
         self.device_buttons_box.add(
             self.connect_button,
@@ -858,6 +890,9 @@ class Mobile(Window):
                     device_id = device[0]
                     device_status = device[4]
                     device_timestamp = device[5]
+                    taddress, zaddress = self.mobile_storage.get_device_addresses(device_id)
+                    tbalance = self.addresses_storage.get_address_balance(taddress)
+                    zbalance = self.addresses_storage.get_address_balance(zaddress)
                     if device_id not in self.devices_data:
                         device_secret = self.mobile_storage.get_secret(device_id)
                         device_info = Device(self.app, self, self.utils, self.font, device, device_secret[0])
@@ -872,6 +907,8 @@ class Mobile(Window):
                         if device_timestamp:
                             device_timestamp = datetime.fromtimestamp(device_timestamp).strftime('%Y-%m-%d %H:%M:%S')
                             existing_device.device_last_connected._impl.native.Text = f"Recent Request : {device_timestamp}"
+                        existing_device.transparent_balance.text = f"T : {self.units.format_balance(tbalance)}"
+                        existing_device.shielded_balance.text = f"Z : {self.units.format_balance(zbalance)}"
 
             await asyncio.sleep(3)
 
