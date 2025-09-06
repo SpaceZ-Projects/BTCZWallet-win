@@ -14,7 +14,7 @@ from toga.colors import (
     rgb, WHITE, GRAY, YELLOW, RED, BLACK
 )
 
-from .storage import StorageAddresses, StorageMessages
+from .storage import StorageAddresses, StorageMessages, StorageMobile
 
 
 class QRView(Window):
@@ -138,6 +138,7 @@ class Receive(Box):
 
         self.storage = StorageMessages(self.app)
         self.addresses_storage = StorageAddresses(self.app)
+        self.mobile_storage = StorageMobile(self.app)
         self.clipboard = ClipBoard()
 
         self.rtl = None
@@ -293,7 +294,7 @@ class Receive(Box):
         self.addresses_table = Table(
             dockstyle=DockStyle.FILL,
             select_mode=SelectMode.FULLROWSELECT,
-            column_count=3,
+            column_count=4,
             row_visible=False,
             borderstyle=BorderStyle.NONE,
             align=AlignTable.MIDCENTER,
@@ -305,6 +306,7 @@ class Receive(Box):
                 0:Color.rgb(40,43,48),
                 1:Color.rgb(66,69,73),
                 2:Color.rgb(40,43,48),
+                3:Color.rgb(40,43,48)
             },
             cell_color=Color.rgb(30,33,36),
             gird_color=Color.rgb(30,33,36),
@@ -372,18 +374,23 @@ class Receive(Box):
 
     def display_transparent_addresses(self):
         addresses = []
+        devices_addresses = self.mobile_storage.get_addresses_list("taddress")
         transparent_addresses = self.addresses_storage.get_addresses(address_type="transparent")
         transparent_addresses.sort(key=lambda x: x[3], reverse=True)
         for data in transparent_addresses:
             address = data[2]
             balance = data[3]
             change = data[1]
+            mobile = ""
+            if address in devices_addresses:
+                mobile = "✔"
             if change:
                 change = "✔"
             row = {
                 self.tr.text("columnt_addresses"): address,
                 "Balances": self.units.format_balance(balance),
-                "Change": change
+                "Change": change,
+                "Mobile": mobile
             }
             addresses.append(row)
         self.addresses_table.data_source = addresses
@@ -415,14 +422,19 @@ class Receive(Box):
 
     def display_shielded_addresses(self):
         addresses = []
+        devices_addresses = self.mobile_storage.get_addresses_list("zaddress")
         transparent_addresses = self.addresses_storage.get_addresses(address_type="shielded")
         transparent_addresses.sort(key=lambda x: x[3], reverse=True)
         for data in transparent_addresses:
             address = data[2]
             balance = data[3]
+            mobile = ""
+            if address in devices_addresses:
+                mobile = "✔"
             row = {
                 self.tr.text("columnt_addresses"): address,
-                "Balances": self.units.format_balance(balance)
+                "Balances": self.units.format_balance(balance),
+                "Mobile": mobile
             }
             addresses.append(row)
         self.addresses_table.data_source = addresses
