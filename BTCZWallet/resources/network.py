@@ -242,7 +242,7 @@ class AddNode(Window):
 
 
 class TorConfig(Window):
-    def __init__(self, settings, utils, commands, tr, font, main:Window = None, startup = None):
+    def __init__(self, main:Window, startup, settings, utils, commands, tr, font):
         super().__init__(
             resizable=False
         )
@@ -265,16 +265,11 @@ class TorConfig(Window):
             if lang == "Arabic":
                 self.rtl = True
 
-        if self.main:
-            if self.rtl:
-                self.size = (350, 495)
-            else:
-                self.size = (350, 490)
-        if self.startup:
-            if self.rtl:
-                self.size = (350, 460)
-            else:
-                self.size = (350, 450)
+        if self.rtl:
+            self.size = (350, 495)
+        else:
+            self.size = (350, 490)
+
         self.title = self.tr.title("torconfig_window")
         position_center = self.utils.windows_screen_center(self.main, self)
         self.position = position_center
@@ -602,13 +597,8 @@ class TorConfig(Window):
             self.socks_label,
             self.onlyonion_label,
             self.service_label,
-            self.service_port_label
-        )
-        if self.main:
-            self.labels_box.add(
-                self.hostname_label
-            )
-        self.labels_box.add(
+            self.service_port_label,
+            self.hostname_label,
             self.market_label,
             self.market_port_label,
             self.mobile_label,
@@ -619,13 +609,8 @@ class TorConfig(Window):
             self.socks_input,
             self.onlyonion_switch,
             self.service_switch,
-            self.service_input
-        )
-        if self.main:
-            self.inputs_box.add(
-                self.hostname_input
-            )
-        self.inputs_box.add(
+            self.service_input,
+            self.hostname_input,
             self.market_switch,
             self.market_port_input,
             self.mobile_switch,
@@ -667,15 +652,10 @@ class TorConfig(Window):
 
             self.socks_input.value = socks_port
 
-        if self.main:
             hostname = self.utils.get_onion_hostname("node")
             if hostname:
                 self.hostname_input.value = f"{hostname}:{service_port}"
 
-        if self.startup:
-            self.enabled_switch.value = True
-            self.onlyonion_switch.value = False
-        else:
             self.enabled_switch.value = self.settings.tor_network()
             self.onlyonion_switch.value = self.settings.only_onion()
 
@@ -751,7 +731,6 @@ class TorConfig(Window):
             )
         
 
-
     def update_service_input(self, switch):
         if switch.value is True:
             self.service_input.enabled = True
@@ -801,7 +780,7 @@ class TorConfig(Window):
             if self.startup.node_status:
                 await self.startup.open_main_menu()
             else:
-                await self.startup.verify_binary_files()
+                await self.startup.check_binary_files()
 
 
 
