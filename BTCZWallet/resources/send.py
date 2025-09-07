@@ -1220,7 +1220,7 @@ class Send(Box):
                                     self.operation_status.text = self.tr.text("send_success")
                                     self.app.console.info_log(f"TX: {txid}")
                                 if selected_address.startswith('z'):
-                                    self.store_shielded_transaction(destination_address, txid, amount, txfee)
+                                    self.store_shielded_transaction(selected_address, txid, amount, txfee)
                                 self.enable_send()
                                 self.main.info_dialog(
                                     title=self.tr.title("sendsuccess_dialog"),
@@ -1309,7 +1309,7 @@ class Send(Box):
                                     self.operation_status.text = self.tr.text("send_success")
                                     self.app.console.info_log(f"TX: {txid}")
                                 if selected_address.startswith('z'):
-                                    self.store_shielded_transaction("To Many", txid, self.amount_input.value, self.fee_input.value)
+                                    self.store_shielded_transaction(selected_address, txid, self.amount_input.value, self.fee_input.value)
                                 self.enable_send()
                                 self.main.info_dialog(
                                     title=self.tr.title("sendsuccess_dialog"),

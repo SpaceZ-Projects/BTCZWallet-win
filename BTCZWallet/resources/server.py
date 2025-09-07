@@ -543,10 +543,10 @@ class MobileServer():
                         return jsonify({"error": "Transaction send failed"}), 500
                     elif status == "success":
                         category = "send"
-                        if address.startswith('z'):
+                        if from_address.startswith('z'):
                             tx_type = "shielded"
                             blocks = self.main.home_page.current_blocks
-                        elif address.startswith("t"):
+                        elif from_address.startswith("t"):
                             tx_type = "transparent"
                             blocks = 0
                         amount = float(amount)

@@ -312,7 +312,12 @@ class Txid(Window):
                     if self.settings.hidden_balances():
                         amount = "*.********"
 
-                    confirmations = 0 if blocks == 0 else (self.main.home_page.current_blocks - blocks) + 1
+                    confirmations = 0
+                    if blocks > 0:
+                        if tx_type == "shielded":
+                            confirmations = self.main.home_page.current_blocks - blocks
+                        else:
+                            confirmations = (self.main.home_page.current_blocks - blocks) + 1
                     if confirmations <= 0:
                         color = RED
                     elif 1 <= confirmations < 6:
