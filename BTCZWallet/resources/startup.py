@@ -25,9 +25,7 @@ class BTCZSetup(Box):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
-                background_color=rgb(40,43,48),
-                flex = 1.5,
-                padding = 5
+                background_color=rgb(30,33,36)
             )
         )
 
@@ -60,10 +58,9 @@ class BTCZSetup(Box):
             text=self.tr.text("check_network"),
             style=Pack(
                 color = WHITE,
-                background_color = rgb(40,43,48),
+                background_color = rgb(30,33,36),
                 text_align = CENTER,
                 alignment = CENTER,
-                padding_top = 5,
                 flex = 1
             )
         )
@@ -72,20 +69,25 @@ class BTCZSetup(Box):
         self.status_box = Box(
             style=Pack(
                 direction=ROW,
-                flex = 7,
-                background_color = rgb(40,43,48)
+                flex = 1,
+                background_color = rgb(30,33,36),
+                padding = (10,5,0,5)
             )
         )
         self.progress_bar = ProgressBar(
-            style=Pack(height= 12, flex = 1),
+            style=Pack(
+                height= 12,
+                flex = 1,
+                padding = (0,5,0,5)
+            ),
             max=100
         )
         self.progress_box = Box(
             style=Pack(
                 direction=ROW,
-                flex = 3,
+                flex = 1,
                 alignment = BOTTOM,
-                background_color = rgb(40,43,48)
+                background_color = rgb(30,33,36)
             )
         )
         self.progress_bar._impl.native.Style = ProgressStyle.MARQUEE
@@ -108,34 +110,14 @@ class BTCZSetup(Box):
 
 
     def update_info_box(self):
-        if self.rtl:
-            padding = 0
-        else:
-            padding = 3
         self.progress_bar._impl.native.Style = ProgressStyle.BLOCKS
         self.status_box.remove(self.status_label)
-        self.status_box.style.direction = COLUMN
-        self.box1 = Box(
-            style=Pack(
-                direction = ROW,
-                flex=1,
-                background_color = rgb(40,43,48)
-            )
-        )
-        self.box2 = Box(
-            style=Pack(
-                direction = ROW,
-                flex = 1,
-                background_color = rgb(40,43,48)
-            )
-        )
+
         self.blocks_txt = Label(
             text=self.tr.text("blocks_txt"),
             style=Pack(
-                text_align = self.tr.align("blocks_txt"),
-                background_color = rgb(40,43,48),
-                color = GRAY,
-                padding_top = padding
+                background_color = rgb(30,33,36),
+                color = GRAY
             )
         )
         self.blocks_txt._impl.native.Font = self.font.get(self.tr.size("blocks_txt"), True)
@@ -143,10 +125,9 @@ class BTCZSetup(Box):
         self.blocks_value = Label(
             text="",
             style=Pack(
-                text_align = self.tr.align("blocks_value"),
-                background_color = rgb(40,43,48),
+                background_color = rgb(30,33,36),
                 color = WHITE,
-                padding_top = padding
+                flex = 1
             )
         )
         self.blocks_value._impl.native.Font = self.font.get(self.tr.size("blocks_value"), True)
@@ -154,8 +135,7 @@ class BTCZSetup(Box):
         self.mediantime_text = Label(
             text=self.tr.text("mediantime_text"),
             style=Pack(
-                text_align = self.tr.align("mediantime_text"),
-                background_color = rgb(40,43,48),
+                background_color = rgb(30,33,36),
                 color = GRAY
             )
         )
@@ -164,9 +144,9 @@ class BTCZSetup(Box):
         self.mediantime_value = Label(
             text="",
             style=Pack(
-                text_align = self.tr.align("mediantime_value"),
-                background_color = rgb(40,43,48),
-                color = WHITE
+                background_color = rgb(30,33,36),
+                color = WHITE,
+                flex = 1
             )
         )
         self.mediantime_value._impl.native.Font = self.font.get(self.tr.size("mediantime_value"), True)
@@ -174,9 +154,7 @@ class BTCZSetup(Box):
         self.sync_txt = Label(
             text=self.tr.text("sync_txt"),
             style=Pack(
-                text_align = self.tr.align("sync_txt"),
-                flex = 1,
-                background_color = rgb(40,43,48),
+                background_color = rgb(30,33,36),
                 color = GRAY
             )
         )
@@ -185,9 +163,9 @@ class BTCZSetup(Box):
         self.sync_value = Label(
             text="",
             style=Pack(
-                text_align = self.tr.align("sync_value"),
-                background_color = rgb(40,43,48),
-                color = WHITE
+                background_color = rgb(30,33,36),
+                color = WHITE,
+                flex = 1
             )
         )
         self.sync_value._impl.native.Font = self.font.get(self.tr.size("sync_value"), True)
@@ -195,11 +173,8 @@ class BTCZSetup(Box):
         self.index_size_txt = Label(
             text=self.tr.text("index_size_txt"),
             style=Pack(
-                text_align = self.tr.align("index_size_txt"),
-                flex = 1,
-                background_color = rgb(40,43,48),
-                color=GRAY,
-                padding_top = padding
+                background_color = rgb(30,33,36),
+                color=GRAY
             )
         )
         self.index_size_txt._impl.native.Font = self.font.get(self.tr.size("index_size_txt"), True)
@@ -207,55 +182,27 @@ class BTCZSetup(Box):
         self.index_size_value = Label(
             text="",
             style=Pack(
-                text_align = self.tr.align("index_size_value"),
-                background_color = rgb(40,43,48),
+                background_color = rgb(30,33,36),
                 color = WHITE,
-                padding_top = padding
+                flex = 1
             )
         )
         self.index_size_value._impl.native.Font = self.font.get(self.tr.size("index_size_value"), True)
 
         self.status_box._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_status_box()))
-        self.box1._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_box1()))
-        self.box2._impl.native.Invoke(Forms.MethodInvoker(lambda:self.update_box2()))
 
     def update_status_box(self):
         self.status_box.add(
-            self.box1,
-            self.box2
+            self.blocks_txt,
+            self.blocks_value,
+            self.mediantime_text,
+            self.mediantime_value,
+            self.sync_txt,
+            self.sync_value,
+            self.index_size_txt,
+            self.index_size_value
         )
 
-    def update_box1(self):
-        if self.rtl:
-            self.box1.add(
-                self.index_size_value,
-                self.index_size_txt,
-                self.blocks_value,
-                self.blocks_txt
-            )
-        else:
-            self.box1.add(
-                self.blocks_txt,
-                self.blocks_value,
-                self.index_size_txt,
-                self.index_size_value
-            )
-
-    def update_box2(self):
-        if self.rtl:
-            self.box2.add(
-                self.sync_value,
-                self.sync_txt,
-                self.mediantime_value,
-                self.mediantime_text
-            )
-        else:
-            self.box2.add(
-                self.mediantime_text,
-                self.mediantime_value,
-                self.sync_txt,
-                self.sync_value
-            )
 
     
     async def check_network(self):

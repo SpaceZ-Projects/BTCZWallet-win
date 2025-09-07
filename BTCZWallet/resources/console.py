@@ -343,9 +343,9 @@ class Console(Window):
 
     def show_console(self, startup:bool = None):
         if startup:
-            self.size = (self.main.size.width + 2, self.main.size.height + 32)
-            self._impl.native.Left = self.main._impl.native.Right - 7
-            self._impl.native.Top = self.main._impl.native.Top
+            self.size = (self.main.size.width, int(self.main.size.height) / 2)
+            self._impl.native.Left = self.main._impl.native.Left
+            self._impl.native.Top = self.main._impl.native.Bottom
             self.main_box.add(self.console_box)
         else:
             self.size = (self.main.size.width + 2, int(self.main.size.height / 3))
@@ -472,8 +472,8 @@ class Console(Window):
     def move(self, startup:bool = None):
         if not self.detach_toggle:
             if startup:
-                self._impl.native.Left = self.main._impl.native.Right - 7
-                self._impl.native.Top = self.main._impl.native.Top
+                self._impl.native.Left = self.main._impl.native.Left
+                self._impl.native.Top = self.main._impl.native.Bottom
             else:
                 self._impl.native.Left = self.main._impl.native.Left + 7
                 self._impl.native.Top = self.main._impl.native.Bottom - 8
