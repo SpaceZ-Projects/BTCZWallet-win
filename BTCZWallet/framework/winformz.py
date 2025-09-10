@@ -159,6 +159,9 @@ class Cursors:
     DEFAULT = Forms.Cursors.Default
     WAIT = Forms.Cursors.WaitCursor
     HAND = Forms.Cursors.Hand
+    SIZENWSE = Forms.Cursors.SizeNWSE
+    SIZEWE = Forms.Cursors.SizeWE
+    SIZENS = Forms.Cursors.SizeNS
     
     
 class Keys:
@@ -430,6 +433,7 @@ class StatusBar(Forms.StatusStrip):
         self._background_color = background_color
         self._dockstyle = dockstyle
         self._rtl = rtl
+        self.SizingGrip = True
 
         if self._color:
             self.ForeColor = self._color

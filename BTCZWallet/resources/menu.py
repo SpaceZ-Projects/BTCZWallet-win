@@ -2,13 +2,15 @@
 import asyncio
 import webbrowser
 from datetime import datetime
+import ctypes
 
 from toga import (
     Window, Box, Button
 )
 from ..framework import (
     Drawing, Color, Sys, FormState, Os, FlatStyle,
-    Relation, AlignContent, Forms, FormBorderStyle
+    Relation, AlignContent, Forms, FormBorderStyle,
+    Cursors
 )
 
 from toga.style.pack import Pack
@@ -32,6 +34,21 @@ from .network import Peer, AddNode, TorConfig
 from .marketplace import MarketPlace
 from .mobile import Mobile
 from .server import MarketServer, MobileServer
+
+
+user32 = ctypes.windll.user32
+
+WM_NCLBUTTONDOWN = 0x00A1
+RESIZE_BORDER = 6
+
+HTLEFT = 10
+HTRIGHT = 11
+HTTOP = 12
+HTTOPLEFT = 13
+HTTOPRIGHT = 14
+HTBOTTOM = 15
+HTBOTTOMLEFT = 16
+HTBOTTOMRIGHT = 17
 
 
 class Menu(Window):
@@ -63,8 +80,9 @@ class Menu(Window):
         self.font = font
 
         self.title = self.tr.title("main_window")
-        self._impl.native.Size = Drawing.Size(916,646)
+        self._impl.native.Size = Drawing.Size(1066,756)
         self._impl.native.BackColor = Color.rgb(30,33,36)
+        self._impl.native.FormBorderStyle = FormBorderStyle.NONE
 
         self.app.console.main = self
         self._impl.native.Owner = self.app.console._impl.native
@@ -78,6 +96,10 @@ class Menu(Window):
 
         self.notify = Notify(self.app, self, settings, utils, commands, tr, font)
         self.toolbar = AppToolBar(self.app, self, settings, utils, commands, tr, font)
+        self.toolbar.toolbar.MouseDown += self._on_mouse_down
+        self.wallet._impl.native.MouseDown += self._on_mouse_down
+        self.wallet.bitcoinz_title._impl.native.MouseDown += self._on_mouse_down
+        self.wallet.bitcoinz_title_box._impl.native.MouseDown += self._on_mouse_down
 
         self.notifymining = NotifyMining(font)
         self.notifymarket = NotifyMarket()
@@ -103,11 +125,6 @@ class Menu(Window):
         self._impl.native.Move += self._hadler_on_move
         self._impl.native.Shown += self._handler_on_show
 
-        mode = 0
-        if self.utils.get_app_theme() == "dark":
-            mode = 1
-        self.utils.apply_title_bar_mode(self, mode)
-
         self.rtl = None
         lang = self.settings.language()
         if lang:
@@ -117,11 +134,13 @@ class Menu(Window):
         self.main_box = Box(
             style=Pack(
                 direction = COLUMN,
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 flex = 1,
                 alignment = CENTER
             )
         )
+        self.main_box._impl.native.MouseMove += self._on_mousemove
+        self.main_box._impl.native.MouseLeave += self.main_box_mouse_leave
         self.menu_bar = Box(
             style=Pack(
                 direction = ROW,
@@ -136,7 +155,7 @@ class Menu(Window):
             style=Pack(
                 direction = COLUMN,
                 flex = 2,
-                background_color = rgb(30,33,36)
+                background_color = rgb(40,43,48)
             )
         )
 
@@ -348,6 +367,13 @@ class Menu(Window):
         self.toolbar.market_place_cmd.action = self.show_marketplace
         self.toolbar.backup_messages_cmd.action = self.backup_messages
 
+        self.toolbar.minimize_control._impl.native.Click += self._minimize_window
+        self.toolbar.minimize_icon._impl.native.Click += self._minimize_window
+        self.toolbar.resize_control._impl.native.Click += self._maximize_window
+        self.toolbar.resize_icon._impl.native.Click += self._maximize_window
+        self.toolbar.close_control._impl.native.Click += self._on_close_menu
+        self.toolbar.close_icon._impl.native.Click += self._on_close_menu
+
 
 
     def update_balances_visibility(self, sender, event):
@@ -422,7 +448,7 @@ class Menu(Window):
 
     def show_tor_config(self, sender, event):
         self.tor_config = TorConfig(
-            self.settings, self.utils, self.commands, self.tr, self.font, main=self
+            self.main, None, self.settings, self.utils, self.commands, self.tr, self.font
         )
         self.tor_config._impl.native.ShowDialog(self._impl.native)
 
@@ -663,7 +689,7 @@ class Menu(Window):
             self.console_toggle = True
         else:
             self.settings.update_settings("console", False)
-            if self._is_maximized or self._is_snapped_left or self._is_snapped_right:
+            if self._is_maximized:
                 self.main_box.remove(self.app.console.console_box)
             else:
                 self.app.console.hide()
@@ -876,47 +902,19 @@ class Menu(Window):
     
     def _handle_on_resize(self, sender, event: Sys.EventArgs):
         state = self._impl.native.WindowState
-        bounds = self._impl.native.Bounds
-        screen = Forms.Screen.FromControl(self._impl.native)
-        wa = screen.WorkingArea
         self.stored_size = self._impl.native.Size
         if state == FormState.NORMAL:
             if Forms.Control.MouseButtons & Forms.MouseButtons.Left:
                 if self._is_minimized:
                     self._impl.native.Size = self.stored_size
                 else:
-                    min_width = 916
-                    min_height = 646
-                    self._impl.native.MinimumSize = Drawing.Size(min_width, min_height)
-            if (bounds.X < wa.X and
-                bounds.Y == wa.Y and
-                bounds.Height >= wa.Height):
-                self._is_snapped_left = True
-
-            elif (bounds.X > wa.X and
-                bounds.Y == wa.Y and
-                bounds.Height >= wa.Height):
-                self._is_snapped_right = True
-            else:
-                self._is_snapped_left = None
-                self._is_snapped_right = None
+                    self._impl.native.MinimumSize = Drawing.Size(916, 646)
             
             self._is_minimized = None
             self._is_maximized = None
 
             if self.console_toggle:
-                if self._is_snapped_left or self._is_snapped_right:
-                    if self.app.console.detach_toggle:
-                        self.app.console.hide()
-                        self.app.console._impl.native.ShowInTaskbar = False
-                        self.app.console._impl.native.FormBorderStyle = FormBorderStyle.NONE
-                        self._impl.native.Owner = None
-                        self.console_toggle = None
-                        self.app.console.detach_toggle = None
-                    else:
-                        self.app.console.move_inside()
-                else:
-                    self.app.console.move_outside()
+                self.app.console.move_outside()
                 self.app.console.resize()
             return
 
@@ -924,20 +922,6 @@ class Menu(Window):
             self.stored_size = self._impl.native.Size
             self._is_minimized = True
             self._is_maximized = None
-
-        elif state == FormState.MAXIMIZED:
-            self._is_minimized = None
-            self._is_maximized = True
-            if self.app.console.detach_toggle:
-                self.app.console.hide()
-                self.app.console._impl.native.ShowInTaskbar = False
-                self.app.console._impl.native.FormBorderStyle = FormBorderStyle.NONE
-                self._impl.native.Owner = None
-                self.console_toggle = None
-                self.app.console.detach_toggle = None
-                return
-            if self.console_toggle:
-                self.app.console.move_inside()
 
 
     def _hadler_on_move(self, sender, event):
@@ -952,13 +936,109 @@ class Menu(Window):
         self._is_active = False
 
 
+    def _on_mouse_down(self, sender: object, e: Forms.MouseEventArgs):
+        if e.Button == Forms.MouseButtons.Left:
+            hwnd = int(self._impl.native.Handle.ToInt32())
+            self.drag_window(hwnd)
+
+
+    def drag_window(self, hwnd):
+        user32 = ctypes.windll.user32
+        WM_NCLBUTTONDOWN = 0xA1
+        HTCAPTION = 0x2
+        user32.ReleaseCapture()
+        user32.SendMessageW(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0)
+
+
     def _handler_on_show(self, sender, event):
         if self.settings.console():
+            self._impl.native.Top -= 100
             self.show_app_console()
         self.app.console.info_log(f"Show app notifcation...")
         self.notify.show()
         self._impl.native.TopMost = False
-            
+
+    def start_resize(self, hit_test_value):
+        user32.ReleaseCapture()
+        user32.SendMessageW(self._impl.native.Handle.ToInt32(), WM_NCLBUTTONDOWN, hit_test_value, 0)
+
+    def _on_mousemove(self, sender, e):
+        border = RESIZE_BORDER
+        w, h = self.main_box._impl.native.Width, self.main_box._impl.native.Height
+
+        if e.X > w - border and e.Y > h - border:
+            self._impl.native.Cursor = Cursors.SIZENWSE
+            if e.Button == Forms.MouseButtons.Left:
+                self.start_resize(HTBOTTOMRIGHT)
+        elif e.X < border:
+            self._impl.native.Cursor = Cursors.SIZEWE
+            if e.Button == Forms.MouseButtons.Left:
+                self.start_resize(HTLEFT)
+        elif e.Y > h - border:
+            self._impl.native.Cursor = Cursors.SIZENS
+            if e.Button == Forms.MouseButtons.Left:
+                self.start_resize(HTBOTTOM)
+        else:
+            self._impl.native.Cursor = Cursors.DEFAULT
+
+    def main_box_mouse_leave(self, sender, event):
+        self._impl.native.Cursor = Cursors.DEFAULT
+
+
+    def _minimize_window(self, sender, event):
+        self.toolbar.minimize_control.style.background_color = rgb(40,43,48)
+        self.toolbar.minimize_icon.style.background_color = rgb(40,43,48)
+        self._impl.native.WindowState = FormState.MINIMIZED
+        self._is_minimized = True
+
+
+    def _maximize_window(self, sender, event):
+        self.toolbar.resize_icon.image = "images/normal.png"
+        self.toolbar.resize_control.style.background_color = rgb(40,43,48)
+        self.toolbar.resize_icon.style.background_color = rgb(40,43,48)
+        self._old_bounds = self._impl.native.Bounds
+        work_area = Forms.Screen.FromControl(self._impl.native).WorkingArea
+        self._impl.native.Bounds = work_area
+        self._is_minimized = None
+        self._is_maximized = True
+        self.toolbar.toolbar.MouseDown -= self._on_mouse_down
+        self.wallet._impl.native.MouseDown -= self._on_mouse_down
+        self.wallet.bitcoinz_title._impl.native.MouseDown -= self._on_mouse_down
+        self.wallet.bitcoinz_title_box._impl.native.MouseDown -= self._on_mouse_down
+        self.toolbar.resize_control._impl.native.Click -= self._maximize_window
+        self.toolbar.resize_icon._impl.native.Click -= self._maximize_window
+        self.toolbar.resize_control._impl.native.Click += self._normalize_window
+        self.toolbar.resize_icon._impl.native.Click += self._normalize_window
+        if self.app.console.detach_toggle:
+            self.app.console.hide()
+            self.app.console._impl.native.ShowInTaskbar = False
+            self.app.console._impl.native.FormBorderStyle = FormBorderStyle.NONE
+            self._impl.native.Owner = None
+            self.console_toggle = None
+            self.app.console.detach_toggle = None
+            return
+        if self.console_toggle:
+            self.app.console.move_inside()
+
+    def _normalize_window(self, sender, event):
+        self.toolbar.resize_icon.image = "images/maximize.png"
+        self.toolbar.resize_control.style.background_color = rgb(40,43,48)
+        self.toolbar.resize_icon.style.background_color = rgb(40,43,48)
+        self._impl.native.Bounds = self._old_bounds
+        self._is_minimized = None
+        self._is_maximized = None
+        self.toolbar.toolbar.MouseDown += self._on_mouse_down
+        self.wallet._impl.native.MouseDown += self._on_mouse_down
+        self.wallet.bitcoinz_title._impl.native.MouseDown += self._on_mouse_down
+        self.wallet.bitcoinz_title_box._impl.native.MouseDown += self._on_mouse_down
+        if self.console_toggle:
+            self.app.console.move_outside()
+            self.app.console.resize()
+        self.toolbar.resize_control._impl.native.Click -= self._normalize_window
+        self.toolbar.resize_icon._impl.native.Click -= self._normalize_window
+        self.toolbar.resize_control._impl.native.Click += self._maximize_window
+        self.toolbar.resize_icon._impl.native.Click += self._maximize_window
+
 
     def on_close_menu(self, widget):
         if self.settings.minimize_to_tray():
@@ -970,3 +1050,17 @@ class Menu(Window):
                 self.app.console.hide()
             return
         self.toolbar.exit_app("default")
+            
+
+    def _on_close_menu(self, sender, event):
+        if self.settings.minimize_to_tray():
+            if self.mining_page.mining_status:
+                self.notifymining.show()
+            self.hide()
+            self._is_hidden = True
+            if self.console_toggle:
+                self.app.console.hide()
+            return
+        self.toolbar.exit_app("default")
+        self.toolbar.close_control.style.background_color = rgb(40,43,48)
+        self.toolbar.close_icon.style.background_color = rgb(40,43,48)

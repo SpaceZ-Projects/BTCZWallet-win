@@ -348,21 +348,21 @@ class Console(Window):
             self._impl.native.Top = self.main._impl.native.Bottom
             self.main_box.add(self.console_box)
         else:
-            self.size = (self.main.size.width + 2, int(self.main.size.height / 3))
-            self._impl.native.Left = self.main._impl.native.Left + 7
+            self.size = (self.main.size.width, int(self.main.size.height / 3))
+            self._impl.native.Left = self.main._impl.native.Left
             self.console_box.insert(0, self.tabs_box)
             self.tabs_box.add(
                 self.log_button,
                 self.shell_button
             )
             if self.detach_toggle:
-                self._impl.native.Top = self.main._impl.native.Bottom + 15
+                self._impl.native.Top = self.main._impl.native.Bottom - 50
                 self._impl.native.Left = self.main._impl.native.Left - 30
             else:
                 self.main._impl.native.Owner = self._impl.native
                 self.tabs_box.insert(0, self.detach_button)
-                self._impl.native.Top = self.main._impl.native.Bottom - 8
-            if self.main._is_maximized or self.main._is_snapped_left or self.main._is_snapped_right:
+                self._impl.native.Top = self.main._impl.native.Bottom - 2
+            if self.main._is_maximized:
                 self.tabs_box.remove(self.detach_button)
                 self.main.main_box.insert(4, self.console_box)
             else:
@@ -394,7 +394,7 @@ class Console(Window):
         self.utils.apply_title_bar_mode(self, mode)
         self._impl.native.FormBorderStyle = FormBorderStyle.SIZABLE
         self.main._impl.native.Owner = None
-        self._impl.native.Top = self.main._impl.native.Bottom + 15
+        self._impl.native.Top = self.main._impl.native.Bottom - 50
         self._impl.native.Left = self.main._impl.native.Left - 30
         self.show()
         self.detach_toggle = True
@@ -475,13 +475,13 @@ class Console(Window):
                 self._impl.native.Left = self.main._impl.native.Left
                 self._impl.native.Top = self.main._impl.native.Bottom
             else:
-                self._impl.native.Left = self.main._impl.native.Left + 7
-                self._impl.native.Top = self.main._impl.native.Bottom - 8
+                self._impl.native.Left = self.main._impl.native.Left
+                self._impl.native.Top = self.main._impl.native.Bottom - 2
 
     def _resize(self):
         self.size = (self.main.size.width + 2, int(self.main.size.height / 3))
-        self._impl.native.Width = self.main._impl.native.Width - 15
-        self._impl.native.Top = self.main._impl.native.Bottom - 8
+        self._impl.native.Width = self.main._impl.native.Width
+        self._impl.native.Top = self.main._impl.native.Bottom - 2
 
     def resize(self):
         if not self.detach_toggle:

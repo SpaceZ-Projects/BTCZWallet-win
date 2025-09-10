@@ -365,7 +365,7 @@ class Home(Box):
         self.market_box = Box(
             style=Pack(
                 direction = ROW,
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 alignment = TOP,
                 height = 45,
                 padding = (5,5,0,5)
@@ -378,7 +378,7 @@ class Home(Box):
             text=self.tr.text("price_label"),
             style=Pack(
                 text_align = self.tr.align("price_label"),
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 color = GRAY,
                 padding = 10
             )
@@ -389,7 +389,7 @@ class Home(Box):
             text="",
             style=Pack(
                 text_align = self.tr.align("price_value"),
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 color = WHITE,
                 padding_top = 13,
                 flex = 1
@@ -401,7 +401,7 @@ class Home(Box):
             text=self.tr.text("percentage_24_label"),
             style=Pack(
                 text_align = self.tr.align("percentage_24_label"),
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 color = GRAY,
                 padding = 10
             )
@@ -412,7 +412,7 @@ class Home(Box):
             text="",
             style=Pack(
                 text_align = self.tr.align("percentage_24_value"),
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 color = WHITE,
                 padding_top = 13,
                 flex = 1
@@ -424,7 +424,7 @@ class Home(Box):
             text=self.tr.text("percentage_7_label"),
             style=Pack(
                 text_align = self.tr.align("percentage_7_label"),
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 color = GRAY,
                 padding = 10
             )
@@ -435,7 +435,7 @@ class Home(Box):
             text="",
             style=Pack(
                 text_align = self.tr.align("percentage_7_value"),
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 color = WHITE,
                 padding_top = 13,
                 flex = 1
@@ -447,7 +447,7 @@ class Home(Box):
             text=self.tr.text("cap_label"),
             style=Pack(
                 text_align = self.tr.align("cap_label"),
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 color = GRAY,
                 padding = 10
             )
@@ -458,7 +458,7 @@ class Home(Box):
             text="",
             style=Pack(
                 text_align = self.tr.align("cap_value"),
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 color = WHITE,
                 padding_top = 13,
                 flex = 1
@@ -470,7 +470,7 @@ class Home(Box):
             text=self.tr.text("volume_label"),
             style=Pack(
                 text_align = self.tr.align("volume_label"),
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 color = GRAY,
                 padding = 10
             )
@@ -481,7 +481,7 @@ class Home(Box):
             text="",
             style=Pack(
                 text_align = self.tr.align("volume_value"),
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 color = WHITE,
                 padding_top = 13,
                 flex = 1
@@ -493,7 +493,7 @@ class Home(Box):
             text=self.tr.text("circulating_label"),
             style=Pack(
                 text_align = LEFT,
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 color = GRAY,
                 padding = 10
             )
@@ -504,7 +504,7 @@ class Home(Box):
             text="",
             style=Pack(
                 text_align = self.tr.align("circulating_value"),
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 color = WHITE,
                 padding_top = 13,
                 flex = 1
@@ -517,7 +517,7 @@ class Home(Box):
             text=self.tr.text("max_emissions_value"),
             style=Pack(
                 text_align = self.tr.align("max_emissions_value"),
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 color = YELLOW,
             )
         )
@@ -536,7 +536,7 @@ class Home(Box):
             style=Pack(
                 direction = COLUMN,
                 alignment = self.tr.align("circulating_box"),
-                background_color = rgb(30,33,36),
+                background_color = rgb(40,43,48),
                 flex = 1
             )
         )

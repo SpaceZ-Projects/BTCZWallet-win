@@ -239,9 +239,9 @@ class Utils():
 
     def capture_screenshot(self, size, left, top, path):
         try:
-            bmp = Drawing.Bitmap(size.Width - 15, size.Height - 8)
+            bmp = Drawing.Bitmap(size.Width, size.Height)
             g = Drawing.Graphics.FromImage(bmp)
-            g.CopyFromScreen(Drawing.Point(left + 8, top + 1), Drawing.Point(1, 1), bmp.Size)
+            g.CopyFromScreen(Drawing.Point(left, top), Drawing.Point(1, 1), bmp.Size)
             stream = Os.MemoryStream()
             bmp.Save(stream, Drawing.Imaging.ImageFormat.Png)
             data = stream.ToArray()
@@ -262,9 +262,9 @@ class Utils():
 
 
     def record_screen(self, size, left, top):
-        bmp = Drawing.Bitmap(size.Width - 15, size.Height - 8)
+        bmp = Drawing.Bitmap(size.Width, size.Height)
         g = Drawing.Graphics.FromImage(bmp)
-        g.CopyFromScreen(Drawing.Point(left + 8, top + 1), Drawing.Point(1, 1), bmp.Size)
+        g.CopyFromScreen(Drawing.Point(left, top), Drawing.Point(1, 1), bmp.Size)
         cursor_pos = Forms.Cursor.Position
         rel_x = cursor_pos.X - (left + 7)
         rel_y = cursor_pos.Y - top

@@ -55,7 +55,7 @@ class Curve():
         df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
         df['formatted_price'] = df['price'].apply(lambda x: self.units.format_price(x))
         width, height = 2400, 600
-        img = Image.new("RGB", (width, height), color="#1e2124")
+        img = Image.new("RGB", (width, height), color="#282b30")
         draw = ImageDraw.Draw(img)
         margin_left = 120
         margin_top = 50

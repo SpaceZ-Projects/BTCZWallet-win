@@ -1,10 +1,12 @@
 
-from toga import App, Box, Window
+from toga import App, Box, Window, ImageView
 from ..framework import (
-    Toolbar, Command, Color, Keys, Separator
+    Toolbar, Command, Color, Keys, Separator,
+    Forms
 )
 from toga.style.pack import Pack
-from toga.constants import ROW, TOP
+from toga.constants import ROW, TOP, CENTER, COLUMN
+from toga.colors import rgb, RED, GRAY
 
 
 class AppToolBar(Box):
@@ -12,7 +14,7 @@ class AppToolBar(Box):
         super().__init__(
             style=Pack(
                 direction = ROW,
-                height = 24,
+                height = 26,
                 alignment = TOP
             )
         )
@@ -40,10 +42,113 @@ class AppToolBar(Box):
             if lang == "Arabic":
                 self.rtl = True
 
+        self.bitcoinz_label = ImageView(
+            image="images/btcz_label.png",
+            style=Pack(
+                background_color=rgb(40,43,48),
+                width = 70,
+                height = 26,
+                padding = (3,5,0,10)
+            )
+        )
+
+        self.bitcoinz_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color=rgb(40,43,48),
+                alignment = CENTER,
+                height = 26
+            )
+        )
+
         self.toolbar = Toolbar(
             color=Color.WHITE,
             background_color=Color.rgb(40,43,48),
             rtl = self.rtl
+        )
+
+        self.toolbar_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color=rgb(40,43,48),
+                flex = 1
+            )
+        )
+
+        self.minimize_icon = ImageView(
+            image="images/minimize.png",
+            style=Pack(
+                background_color=rgb(40,43,48),
+                width = 22,
+                padding = (0,0,0,11)
+            )
+        )
+        self.minimize_icon._impl.native.MouseEnter += self.minimize_control_mouse_enter
+        self.minimize_icon._impl.native.MouseLeave += self.minimize_control_mouse_leave
+
+        self.minimize_control = Box(
+            style=Pack(
+                direction = ROW,
+                background_color=rgb(40,43,48),
+                width = 44,
+                height = 26,
+                alignment = CENTER
+            )
+        )
+        self.minimize_control._impl.native.MouseEnter += self.minimize_control_mouse_enter
+        self.minimize_control._impl.native.MouseLeave += self.minimize_control_mouse_leave
+
+        self.resize_icon = ImageView(
+            image="images/maximize.png",
+            style=Pack(
+                background_color=rgb(40,43,48),
+                width = 22,
+                padding = (0,0,0,11)
+            )
+        )
+        self.resize_icon._impl.native.MouseEnter += self.resize_control_mouse_enter
+        self.resize_icon._impl.native.MouseLeave += self.resize_control_mouse_leave
+
+        self.resize_control = Box(
+            style=Pack(
+                direction = ROW,
+                background_color=rgb(40,43,48),
+                width = 44,
+                height = 26,
+                alignment = CENTER
+            )
+        )
+        self.resize_control._impl.native.MouseEnter += self.resize_control_mouse_enter
+        self.resize_control._impl.native.MouseLeave += self.resize_control_mouse_leave
+
+        self.close_icon = ImageView(
+            image="images/exit_i.png",
+            style=Pack(
+                background_color=rgb(40,43,48),
+                width = 22,
+                padding = (0,0,0,11)
+            )
+        )
+        self.close_icon._impl.native.MouseEnter += self.close_control_mouse_enter
+        self.close_icon._impl.native.MouseLeave += self.close_control_mouse_leave
+
+        self.close_control = Box(
+            style=Pack(
+                direction = ROW,
+                background_color=rgb(40,43,48),
+                width = 44,
+                height = 26,
+                alignment = CENTER
+            )
+        )
+        self.close_control._impl.native.MouseEnter += self.close_control_mouse_enter
+        self.close_control._impl.native.MouseLeave += self.close_control_mouse_leave
+
+        self.controls_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color=rgb(40,43,48)
+            )
         )
 
         self.about_cmd = Command(
@@ -510,7 +615,68 @@ class AppToolBar(Box):
                 self.help_menu
             ]
         )
-        self._impl.native.Controls.Add(self.toolbar)
+        self.toolbar_box._impl.native.Controls.Add(self.toolbar)
+        
+        self.add(
+            self.bitcoinz_box,
+            self.toolbar_box,
+            self.controls_box
+        )
+        self.bitcoinz_box.add(
+            self.bitcoinz_label
+        )
+        self.controls_box.add(
+            self.minimize_control,
+            self.resize_control,
+            self.close_control
+        )
+        self.minimize_control.add(
+            self.minimize_icon
+        )
+        self.resize_control.add(
+            self.resize_icon
+        )
+        self.close_control.add(
+            self.close_icon
+        )
+
+
+
+    def minimize_control_mouse_enter(self, sender, event):
+        self.minimize_control.style.background_color = GRAY
+        self.minimize_icon.style.background_color = GRAY
+
+    def minimize_control_mouse_leave(self, sender, event):
+        pos = self.minimize_control._impl.native.PointToClient(Forms.Cursor.Position)
+        if self.minimize_control._impl.native.ClientRectangle.Contains(pos):
+            return
+        self.minimize_control.style.background_color = rgb(40,43,48)
+        self.minimize_icon.style.background_color = rgb(40,43,48)
+
+
+    def resize_control_mouse_enter(self, sender, event):
+        self.resize_control.style.background_color = GRAY
+        self.resize_icon.style.background_color = GRAY
+
+    def resize_control_mouse_leave(self, sender, event):
+        pos = self.resize_control._impl.native.PointToClient(Forms.Cursor.Position)
+        if self.resize_control._impl.native.ClientRectangle.Contains(pos):
+            return
+        self.resize_control.style.background_color = rgb(40,43,48)
+        self.resize_icon.style.background_color = rgb(40,43,48)
+
+    
+    def close_control_mouse_enter(self, sender, event):
+        self.close_control.style.background_color = RED
+        self.close_icon.style.background_color = RED
+
+    def close_control_mouse_leave(self, sender, event):
+        pos = self.close_control._impl.native.PointToClient(Forms.Cursor.Position)
+        if self.close_control._impl.native.ClientRectangle.Contains(pos):
+            return
+        self.close_control.style.background_color = rgb(40,43,48)
+        self.close_icon.style.background_color = rgb(40,43,48)
+
 
     def app_menu_opened(self):
         self.app_menu_active = True

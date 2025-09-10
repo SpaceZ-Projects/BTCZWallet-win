@@ -123,7 +123,7 @@ class MarketServer():
 
         self.app = app
         self.server_status = None
-        
+
         self.flask = Flask(
             __name__,
             static_folder=Os.Path.Combine(str(self.app.paths.data), "items"),
@@ -147,11 +147,11 @@ class MarketServer():
 
 
     def log_request(self):
-        self.app.add_background_task(self.get_request_log())
+        self.app.add_background_task(self.get_request_log)
     
-    def get_request_log(self):
+    def get_request_log(self, widget):
         if request.method == 'GET':
-            if request.form:
+            if request.args:
                 self.app.console.server_log(f"[MARKET]Request Data: {dict(request.form)}")
 
             self.app.console.server_log(
@@ -406,13 +406,13 @@ class MobileServer():
 
     def get_request_log(self, widget):
         if request.method == 'GET':
-            if request.form:
+            if request.args:
                 self.app.console.server_log(f"[MOBILE]Request Data: {dict(request.form)}")
 
             self.app.console.server_log(
                 f"[MOBILE]{request.remote_addr} {request.method} {request.path}"
             )
-
+    
     def handle_status(self):
         mobile_ids = self.mobile_storage.get_auth_ids()
         valid, response = verify_signature(mobile_ids, self.mobile_storage)

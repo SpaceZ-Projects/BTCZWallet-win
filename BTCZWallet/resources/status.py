@@ -16,7 +16,8 @@ class AppStatusBar(Box):
         super().__init__(
             style=Pack(
                 direction = ROW,
-                alignment = BOTTOM
+                alignment = BOTTOM,
+                padding = (0,2,2,2)
             )
         )
 
