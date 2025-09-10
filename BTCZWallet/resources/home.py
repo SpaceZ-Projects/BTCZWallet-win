@@ -790,7 +790,7 @@ class Home(Box):
             return
         if not self.circulating_toggle:
             self.circulating_toggle = True
-            asyncio.current_task(self.show_max_emissions())
+            asyncio.create_task(self.show_max_emissions())
 
     async def show_max_emissions(self):
         self.circulating_box.add(
