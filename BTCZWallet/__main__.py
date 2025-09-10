@@ -43,12 +43,8 @@ class BitcoinZGUI(Window):
         self._impl.native.Shown += self.on_show
         self._impl.native.KeyDown += Forms.KeyEventHandler(self.on_key_down)
 
-        mode = 0
         ui = self.utils.get_app_theme()
-        if ui == "dark":
-            mode = 1
         self.app.console.info_log(f"UI Mode : {ui.capitalize()}")
-        self.utils.apply_title_bar_mode(self, mode)
 
         self.rtl = None
         lang = self.settings.language()
@@ -83,8 +79,22 @@ class BitcoinZGUI(Window):
         self.exit_button._impl.native.MouseLeave += self.exit_button_mouse_leave
         self.exit_button._impl.native.Click += self.exit_app
 
+        self.btcz_logo = ImageView(
+            image="images/btcz_logo.png",
+            style=Pack(
+                background_color = TRANSPARENT
+            )
+        )
+        self.btcz_logo._impl.native.Width = 220
+        self.btcz_logo._impl.native.Height = 230
+        self.btcz_logo._impl.native.Left = 190
+        self.btcz_logo._impl.native.Top = 25
+        self.btcz_logo._impl.native.MouseDown += self._on_mouse_down
+        self.btcz_logo._impl.native.MouseEnter += self.btcz_logo_mouse_enter
+        self.btcz_logo._impl.native.MouseLeave += self.btcz_logo_mouse_leave
+
         self.startup_background = ImageView(
-            image="images/startup.png",
+            image="images/startup_y.png",
             style=Pack(
                 background_color = rgb(30,33,36),
                 width = 600,
@@ -134,6 +144,7 @@ class BitcoinZGUI(Window):
             self.startup
         )
 
+        self.startup_background._impl.native.Controls.Add(self.btcz_logo._impl.native)
         self.startup_background._impl.native.Controls.Add(self.exit_button._impl.native)
         self.startup_background._impl.native.Controls.Add(self.tor_icon._impl.native)
         self.startup_background._impl.native.Controls.Add(self.network_status._impl.native)
@@ -188,6 +199,12 @@ class BitcoinZGUI(Window):
 
     def exit_button_mouse_leave(self, sender, event):
         self.exit_button.image = "images/exit_i.png"
+
+    def btcz_logo_mouse_enter(self, sender, event):
+        self.startup_background.image = "images/startup_b.png"
+
+    def btcz_logo_mouse_leave(self, sender, event):
+        self.startup_background.image = "images/startup_y.png"
 
 
     def _hadler_on_move(self, sender, event):
