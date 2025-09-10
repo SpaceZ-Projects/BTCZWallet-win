@@ -89,7 +89,7 @@ class Menu(Window):
 
         self.storage = StorageMessages(self.app)
         self.market_storage = StorageMarket(self.app)
-        self.statusbar = AppStatusBar(self.app, self, settings, utils, units, rpc, tr, font)
+        self.statusbar = AppStatusBar(self.app, self, settings, utils, units, commands, tr, font)
         self.wallet = Wallet(self.app, self, settings, units, rpc, tr, font)
         self.home_page = Home(self.app, self, settings, utils, units, tr, font)
         self.mining_page = Mining(self.app, self, settings, utils, units, commands, tr, font)
