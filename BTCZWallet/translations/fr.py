@@ -28,18 +28,19 @@ translations = {
     "tor_bootstrap": {"text": "Progression de Tor Bootstrap..."},
     "start_node": {"text": "Démarrage du Node..."},
     "blocks_txt": {"text": "Blocs :", "size": 8, "align": LEFT},
-    "blocks_value": {"size": 8, "align": LEFT},
+    "blocks_value": {"size": 7, "align": LEFT},
     "mediantime_text": {"text": "Date :", "size": 8, "align": LEFT},
-    "mediantime_value": {"size": 8, "align": LEFT},
+    "mediantime_value": {"size": 7, "align": LEFT},
     "sync_txt": {"text": "Sync :", "size": 8, "align": RIGHT},
-    "sync_value": {"size": 8, "align": RIGHT},
+    "sync_value": {"size": 7, "align": RIGHT},
     "index_size_txt": {"text": "Taille :", "size": 8, "align": RIGHT},
-    "index_size_value": {"size": 8, "align": RIGHT},
+    "index_size_value": {"size": 7, "align": RIGHT},
     "loading_blocks": {"text": "Chargement de l'index du bloc..."},
     "activebest_chain": {"text": "Activation de la meilleure chaîne..."},
     "rewind_blocks" : {"text": "Rembobinage des blocs si nécessaire..."},
     "loading_wallet": {"text": "Chargement du portefeuille..."},
     "rescan_wallet": {"text": "Nouvelle numérisation..."},
+    "tor_icon": {"padding": (0,0,0,10)},
 
     #toolbar :
     "app_menu" : {"text": "App"},
@@ -319,7 +320,7 @@ translations = {
     "notifystopexit_cmd": {"text": "Arrêter le Node"},
 
     #status :
-    "appstatusbar": {"size": 24},
+    "appstatusbar": {"size": 23},
     "status_label": {"text": "Statut :"},
     "blocks_status": {"text": "Blocs :"},
     "deprecation_status": {"text": "Désap :"},

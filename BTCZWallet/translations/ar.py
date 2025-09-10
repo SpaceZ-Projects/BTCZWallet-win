@@ -320,7 +320,7 @@ translations = {
     "notifystopexit_cmd": {"text": "ايقاف النود"},
 
     #status :
-    "appstatusbar": {"size": 26},
+    "appstatusbar": {"size": 25},
     "status_label": {"text": "الحالة :"},
     "blocks_status": {"text": "الكتل :"},
     "deprecation_status": {"text": "الإهمال :"},

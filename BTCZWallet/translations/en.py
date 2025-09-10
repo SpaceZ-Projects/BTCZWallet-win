@@ -320,7 +320,7 @@ translations = {
     "notifystopexit_cmd": {"text": "Stop node"},
 
     #status :
-    "appstatusbar": {"size": 24},
+    "appstatusbar": {"size": 23},
     "status_label": {"text": "Status :"},
     "blocks_status": {"text": "Blocks :"},
     "deprecation_status": {"text": "Deps :"},
