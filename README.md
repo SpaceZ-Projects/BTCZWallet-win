@@ -11,13 +11,16 @@ This application manages a locally installed BitcoinZ full node, meaning it down
 
 ## 🔑 Key Features
 
-- **Full Node Management**: Installs and manages a local BitcoinZ full node, providing complete transparency, decentralization, and security.
-- **Tor Network Support**: Route wallet and node communications over the Tor network to enhance privacy and resist network-level surveillance or censorship.
-- **Shielded and Transparent Transactions**: Send and receive BTCZ using both transparent and private (shielded) addresses.
-- **Encrypted Memos**: Communicate securely via BitcoinZ’s shielded memo feature for private messages attached to transactions.
-- **Built-in Mining**: Mine BTCZ directly from the wallet using your computer’s GPU, and view mining statistics in real-time.
-- **Live Market & Network Stats**: Connects to public APIs such as CoinGecko and pool operators to display live price, hash rate, and other metrics.
-- **Local Marketplace via Tor Service**: Create and host your own private market locally, accessible through a Tor hidden service. List items and services, and invite your contacts to visit your market securely. All data is stored and served locally, with no central server involved.
+- **Full Node Management** – Installs and manages a local BitcoinZ full node for maximum decentralization and security.  
+- **Tor Network Support** – Route wallet and node communications through Tor to protect privacy and resist censorship.  
+- **Shielded & Transparent Transactions** – Send and receive BTCZ using both shielded and transparent addresses.  
+- **Encrypted Memos** – Use BitcoinZ’s shielded memo feature for secure private messages attached to transactions.  
+- **Built-in Mining** – Mine BTCZ directly from the wallet using your GPU and monitor live mining statistics.  
+- **Market & Network Stats** – Fetch live BTCZ price, network hash rate, and other metrics via public APIs (e.g., CoinGecko, pool operators).
+  
+- **Local Tor Services** – Run secure services directly from your wallet through Tor:  
+  - **Private Marketplace** – Host your own local marketplace as a Tor hidden service. List items/services and invite trusted contacts to visit. All data is stored locally, with no central servers.  
+  - **Mobile Server** – Allow your Android device to connect securely over Tor and manage both transparent (t) and shielded (z) BitcoinZ addresses through the companion app [BTCZWallet-android](https://github.com/SpaceZ-Projects/BTCZWallet-android). 
 
 ---
 
