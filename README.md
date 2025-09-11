@@ -43,6 +43,6 @@ By using this software, you support the decentralized mission of BitcoinZ and ta
 
 ## 🖼 Screenshots
 
-![BitcoinZ Wallet Home Screen](https://github.com/SpaceZ-Projects/BTCZWallet-win/blob/main/screenshots/home.gif?raw=true)
+![BitcoinZ Wallet Home Screen](https://github.com/SpaceZ-Projects/BTCZWallet-win/blob/main/screenshots/home.png?raw=true)
 
 ---
