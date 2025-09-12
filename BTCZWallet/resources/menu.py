@@ -10,7 +10,7 @@ from toga import (
 from ..framework import (
     Drawing, Color, Sys, FormState, Os, FlatStyle,
     Relation, AlignContent, Forms, FormBorderStyle,
-    Cursors
+    Cursors, ToolTip
 )
 
 from toga.style.pack import Pack
@@ -78,6 +78,8 @@ class Menu(Window):
         self.tr = tr
         self.utils = utils
         self.font = font
+
+        self.tooltip = ToolTip()
 
         self.title = self.tr.title("main_window")
         self._impl.native.Size = Drawing.Size(1066,756)
@@ -993,9 +995,7 @@ class Menu(Window):
 
 
     def _maximize_window(self, sender, event):
-        self.toolbar.resize_icon.image = "images/normal.png"
-        self.toolbar.resize_control.style.background_color = rgb(40,43,48)
-        self.toolbar.resize_icon.style.background_color = rgb(40,43,48)
+        self.toolbar.update_resize_icon("restore")
         self._old_bounds = self._impl.native.Bounds
         work_area = Forms.Screen.FromControl(self._impl.native).WorkingArea
         self._impl.native.Bounds = work_area
@@ -1007,8 +1007,8 @@ class Menu(Window):
         self.wallet.bitcoinz_title_box._impl.native.MouseDown -= self._on_mouse_down
         self.toolbar.resize_control._impl.native.Click -= self._maximize_window
         self.toolbar.resize_icon._impl.native.Click -= self._maximize_window
-        self.toolbar.resize_control._impl.native.Click += self._normalize_window
-        self.toolbar.resize_icon._impl.native.Click += self._normalize_window
+        self.toolbar.resize_control._impl.native.Click += self._restore_window
+        self.toolbar.resize_icon._impl.native.Click += self._restore_window
         if self.app.console.detach_toggle:
             self.app.console.hide()
             self.app.console._impl.native.ShowInTaskbar = False
@@ -1020,10 +1020,8 @@ class Menu(Window):
         if self.console_toggle:
             self.app.console.move_inside()
 
-    def _normalize_window(self, sender, event):
-        self.toolbar.resize_icon.image = "images/maximize.png"
-        self.toolbar.resize_control.style.background_color = rgb(40,43,48)
-        self.toolbar.resize_icon.style.background_color = rgb(40,43,48)
+    def _restore_window(self, sender, event):
+        self.toolbar.update_resize_icon("maximize")
         self._impl.native.Bounds = self._old_bounds
         self._is_minimized = None
         self._is_maximized = None
@@ -1034,8 +1032,8 @@ class Menu(Window):
         if self.console_toggle:
             self.app.console.move_outside()
             self.app.console.resize()
-        self.toolbar.resize_control._impl.native.Click -= self._normalize_window
-        self.toolbar.resize_icon._impl.native.Click -= self._normalize_window
+        self.toolbar.resize_control._impl.native.Click -= self._restore_window
+        self.toolbar.resize_icon._impl.native.Click -= self._restore_window
         self.toolbar.resize_control._impl.native.Click += self._maximize_window
         self.toolbar.resize_icon._impl.native.Click += self._maximize_window
 
@@ -1053,6 +1051,8 @@ class Menu(Window):
             
 
     def _on_close_menu(self, sender, event):
+        self.toolbar.close_control.style.background_color = rgb(40,43,48)
+        self.toolbar.close_icon.style.background_color = rgb(40,43,48)
         if self.settings.minimize_to_tray():
             if self.mining_page.mining_status:
                 self.notifymining.show()
@@ -1062,5 +1062,3 @@ class Menu(Window):
                 self.app.console.hide()
             return
         self.toolbar.exit_app("default")
-        self.toolbar.close_control.style.background_color = rgb(40,43,48)
-        self.toolbar.close_icon.style.background_color = rgb(40,43,48)

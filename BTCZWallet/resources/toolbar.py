@@ -2,7 +2,7 @@
 from toga import App, Box, Window, ImageView
 from ..framework import (
     Toolbar, Command, Color, Keys, Separator,
-    Forms
+    Forms, ToolTip
 )
 from toga.style.pack import Pack
 from toga.constants import ROW, TOP, CENTER, COLUMN
@@ -26,6 +26,8 @@ class AppToolBar(Box):
         self.utils = utils
         self.tr = tr
         self.font = font
+
+        self.tooltip = ToolTip()
 
         self.app_menu_active = None
         self.settings_menu_active = None
@@ -83,6 +85,7 @@ class AppToolBar(Box):
                 padding = (0,0,0,11)
             )
         )
+        self.tooltip.insert(self.minimize_icon._impl.native, "Minimize")
         self.minimize_icon._impl.native.MouseEnter += self.minimize_control_mouse_enter
         self.minimize_icon._impl.native.MouseLeave += self.minimize_control_mouse_leave
 
@@ -95,6 +98,7 @@ class AppToolBar(Box):
                 alignment = CENTER
             )
         )
+        self.tooltip.insert(self.minimize_control._impl.native, "Minimize")
         self.minimize_control._impl.native.MouseEnter += self.minimize_control_mouse_enter
         self.minimize_control._impl.native.MouseLeave += self.minimize_control_mouse_leave
 
@@ -106,6 +110,7 @@ class AppToolBar(Box):
                 padding = (0,0,0,11)
             )
         )
+        self.tooltip.insert(self.resize_icon._impl.native, "Maximize")
         self.resize_icon._impl.native.MouseEnter += self.resize_control_mouse_enter
         self.resize_icon._impl.native.MouseLeave += self.resize_control_mouse_leave
 
@@ -118,6 +123,7 @@ class AppToolBar(Box):
                 alignment = CENTER
             )
         )
+        self.tooltip.insert(self.resize_control._impl.native, "Maximize")
         self.resize_control._impl.native.MouseEnter += self.resize_control_mouse_enter
         self.resize_control._impl.native.MouseLeave += self.resize_control_mouse_leave
 
@@ -129,6 +135,7 @@ class AppToolBar(Box):
                 padding = (0,0,0,11)
             )
         )
+        self.tooltip.insert(self.close_icon._impl.native, "Close")
         self.close_icon._impl.native.MouseEnter += self.close_control_mouse_enter
         self.close_icon._impl.native.MouseLeave += self.close_control_mouse_leave
 
@@ -141,6 +148,7 @@ class AppToolBar(Box):
                 alignment = CENTER
             )
         )
+        self.tooltip.insert(self.close_control._impl.native, "Close")
         self.close_control._impl.native.MouseEnter += self.close_control_mouse_enter
         self.close_control._impl.native.MouseLeave += self.close_control_mouse_leave
 
@@ -640,6 +648,18 @@ class AppToolBar(Box):
             self.close_icon
         )
 
+    def update_resize_icon(self, value):
+        if value == "restore":
+            icon = "images/normal.png"
+            tooltip = "Restore"
+        elif value == "maximize":
+            icon = "images/maximize.png"
+            tooltip = "Maximize"
+        self.resize_icon.image = icon
+        self.resize_control.style.background_color = rgb(40,43,48)
+        self.resize_icon.style.background_color = rgb(40,43,48)
+        self.tooltip.insert(self.resize_icon._impl.native, tooltip)
+        self.tooltip.insert(self.resize_control._impl.native, tooltip)
 
 
     def minimize_control_mouse_enter(self, sender, event):
