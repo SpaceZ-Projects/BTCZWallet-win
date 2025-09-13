@@ -64,7 +64,8 @@ class Notify(NotifyIcon):
         if self.main._is_minimized:
             self.main._impl.native.WindowState = FormState.NORMAL
         if self.app.current_window is not self.main:
-            self.main._impl.native.Activate()
+            self.main._impl.native.TopMost = True
+            self.main._impl.native.TopMost = False
             
 
     def exit_app(self):

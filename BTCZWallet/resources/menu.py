@@ -953,6 +953,7 @@ class Menu(Window):
 
 
     async def show_send_page(self, address, amount):
+        self.notify.show_menu()
         self.send_button_click(None)
         await asyncio.sleep(0.1)
         self.send_page.destination_input_single._impl.native.Text = address
