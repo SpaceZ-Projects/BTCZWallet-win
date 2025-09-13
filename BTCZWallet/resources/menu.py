@@ -952,10 +952,11 @@ class Menu(Window):
         user32.SendMessageW(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0)
 
 
-    def show_send_page(self, address, amount):
+    async def show_send_page(self, address, amount):
         self.send_button_click(None)
-        self.send_page.destination_input_single.value = address
-        self.send_page.amount_input.value = amount
+        await asyncio.sleep(0.1)
+        self.send_page.destination_input_single._impl.native.Text = address
+        self.send_page.amount_input._impl.native.Text = amount
 
 
     def _handler_on_show(self, sender, event):
@@ -967,11 +968,12 @@ class Menu(Window):
         self._impl.native.TopMost = False
         asyncio.create_task(self.read_uri_file())
 
+
     async def read_uri_file(self):
         while True:
             address, amount = self.utils.get_uri_from_txt()
             if address and amount:
-                self.show_send_page(address, amount)
+                await self.show_send_page(address, amount)
                 self.utils.clear_uri_txt()
             await asyncio.sleep(3)
 

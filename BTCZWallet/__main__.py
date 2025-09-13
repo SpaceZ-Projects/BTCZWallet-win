@@ -16,6 +16,15 @@ from toga.constants import COLUMN
 from .resources import *
 from .translations import *
 
+kernel32 = ctypes.windll.kernel32
+kernel32.CreateMutexW.argtypes = [ctypes.c_void_p, ctypes.c_bool, ctypes.c_wchar_p]
+kernel32.CreateMutexW.restype = ctypes.c_void_p
+kernel32.GetLastError.restype = ctypes.c_ulong
+
+mutex_handle = None
+ERROR_ALREADY_EXISTS = 183
+
+
 class BitcoinZGUI(Window):
     def __init__(self):
         super().__init__(
@@ -237,6 +246,28 @@ def extract_uri_sheme(uri):
     else:
         address = without_scheme.rstrip('/')
         return address, None
+    
+
+def ensure_single_instance(mutex_name="Global\\com.btcz.wallet"):
+    global mutex_handle
+    mutex_handle = kernel32.CreateMutexW(None, False, mutex_name)
+    if not mutex_handle:
+        err = kernel32.GetLastError()
+        print(f"Failed to create mutex (WinError={err})")
+        return False
+    last_error = kernel32.GetLastError()
+    if last_error == ERROR_ALREADY_EXISTS:
+        return False
+    return True
+
+
+def release_single_instance():
+    global mutex_handle
+    if mutex_handle:
+        kernel32.ReleaseMutex(mutex_handle)
+        kernel32.CloseHandle(mutex_handle)
+        mutex_handle = None
+
 
 
 class BitcoinZWallet(App):
@@ -260,24 +291,23 @@ def main():
 
     uri_path = Os.Path.Combine(str(app.paths.cache), 'btcz_uri.txt')
 
-    mutex_name = "Global\\BTCZWalletMutex"
-    kernel32 = ctypes.windll.kernel32
-    kernel32.CreateMutexW(None, False, ctypes.c_wchar_p(mutex_name))
-    last_error = kernel32.GetLastError()
+    args = Sys.Environment.GetCommandLineArgs()
+    if len(args) > 1 and args[1].startswith("btcz://"):
+        address, amount = extract_uri_sheme(args[1])
+        if address and amount:
+            with open(uri_path, "w", encoding="utf-8") as f:
+                f.write(f"Address: {address}\n")
+                f.write(f"Amount: {amount}\n")
 
-    if last_error == 183:
+    if not ensure_single_instance():
         print("Another instance is already running.")
-        args = Sys.Environment.GetCommandLineArgs()
-        if len(args) > 1 and args[1].startswith("btcz://"):
-            address, amount = extract_uri_sheme(args[1])
-            if address and amount:
-                with open(uri_path, "w", encoding="utf-8") as f:
-                    f.write(f"Address: {address}\n")
-                    f.write(f"Amount: {amount}\n")
         sys.exit(0)
 
     
-    app.main_loop()
+    try:
+        app.main_loop()
+    finally:
+        release_single_instance()
 
 if __name__ == "__main__":
     main()
