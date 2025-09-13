@@ -398,6 +398,31 @@ class Utils():
         return left, top
     
 
+    def get_uri_from_txt(self):
+        uri_path = Os.Path.Combine(str(self.app.paths.cache), 'btcz_uri.txt')
+        try:
+            with open(uri_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+                address = None
+                amount = None
+                for line in lines:
+                    if line.startswith("Address:"):
+                        address = line.split("Address:", 1)[1].strip()
+                    elif line.startswith("Amount:"):
+                        amount = line.split("Amount:", 1)[1].strip()
+                return address, amount
+        except FileNotFoundError:
+            return None, None
+        
+    
+    def clear_uri_txt(self):
+        uri_path = Os.Path.Combine(str(self.app.paths.cache), 'btcz_uri.txt')
+        try:
+            open(uri_path, "w", encoding="utf-8").close()
+        except FileNotFoundError:
+            pass
+    
+
     def get_app_theme(self):
         key = Win32.Registry.CurrentUser.OpenSubKey(
             r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"

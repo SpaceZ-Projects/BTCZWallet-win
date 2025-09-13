@@ -5,7 +5,10 @@ import sys
 from toga import (
     App, Window, Box, ImageView, Label
 )
-from .framework import CustomFont, ToolTip, Color, Forms, Keys, FormBorderStyle
+from .framework import (
+    CustomFont, ToolTip, Color, Forms, Keys,
+    FormBorderStyle, Sys, Os
+)
 from toga.colors import rgb, WHITE, YELLOW, TRANSPARENT
 from toga.style.pack import Pack
 from toga.constants import COLUMN
@@ -220,6 +223,22 @@ class BitcoinZGUI(Window):
         self.app.exit()
 
 
+def extract_uri_sheme(uri):
+    without_scheme = uri[len("btcz://"):]
+    if '?' in without_scheme:
+        address, query = without_scheme.split('?', 1)
+        address = address.rstrip('/')
+        amount = None
+        for part in query.split('&'):
+            if part.startswith("amount="):
+                amount = part[len("amount="):]
+                break
+        return address, amount
+    else:
+        address = without_scheme.rstrip('/')
+        return address, None
+
+
 class BitcoinZWallet(App):
     
     def startup(self):
@@ -229,14 +248,6 @@ class BitcoinZWallet(App):
 
 
 def main():
-    mutex_name = "Global\\BTCZWalletMutex"
-    kernel32 = ctypes.windll.kernel32
-    kernel32.CreateMutexW(None, False, ctypes.c_wchar_p(mutex_name))
-    last_error = kernel32.GetLastError()
-
-    if last_error == 183:
-        print("Another instance is already running.")
-        sys.exit(0)
 
     app = BitcoinZWallet(
         icon="images/BitcoinZ",
@@ -246,6 +257,26 @@ def main():
         author = "BTCZCommunity",
         version = "1.4.0"
     )
+
+    uri_path = Os.Path.Combine(str(app.paths.cache), 'btcz_uri.txt')
+
+    mutex_name = "Global\\BTCZWalletMutex"
+    kernel32 = ctypes.windll.kernel32
+    kernel32.CreateMutexW(None, False, ctypes.c_wchar_p(mutex_name))
+    last_error = kernel32.GetLastError()
+
+    if last_error == 183:
+        print("Another instance is already running.")
+        args = Sys.Environment.GetCommandLineArgs()
+        if len(args) > 1 and args[1].startswith("btcz://"):
+            address, amount = extract_uri_sheme(args[1])
+            if address and amount:
+                with open(uri_path, "w", encoding="utf-8") as f:
+                    f.write(f"Address: {address}\n")
+                    f.write(f"Amount: {amount}\n")
+        sys.exit(0)
+
+    
     app.main_loop()
 
 if __name__ == "__main__":

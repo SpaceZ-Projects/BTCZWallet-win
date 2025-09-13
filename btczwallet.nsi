@@ -130,7 +130,8 @@ Function .onInit
     ${EndIf}
 FunctionEnd
 
-Section
+Section "Install"
+
   SetOutPath $INSTDIR
 
   ;Uninstall previous version files
@@ -158,6 +159,13 @@ Section
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\BTCZWallet.exe" "" "$INSTDIR\BTCZWallet.exe" 0
+
+  ;Register custom URI scheme
+  DetailPrint "Registering btcz:// URI scheme..."
+  WriteRegStr HKCR "btcz" "" "URL:${PRODUCT_NAME} Protocol"
+  WriteRegStr HKCR "btcz" "URL Protocol" ""
+  WriteRegStr HKCR "btcz\shell\open\command" "" '"$INSTDIR\BTCZWallet.exe" "%1"'
+
 
   ;Adds an uninstaller possibility to Windows Uninstall or change a program section
   WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
@@ -191,6 +199,9 @@ Section "Uninstall"
   DeleteRegKey HKCU "Software\Classes\btcz"
   DeleteRegKey HKCU "Software\${PRODUCT_NAME}"
   DeleteRegKey HKCU "${PRODUCT_UNINST_KEY}"
+
+  ; Remove custom URI scheme
+  DeleteRegKey HKCR "btcz"
 SectionEnd
 
 ;--------------------------------

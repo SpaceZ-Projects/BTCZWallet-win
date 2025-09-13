@@ -952,6 +952,12 @@ class Menu(Window):
         user32.SendMessageW(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0)
 
 
+    def show_send_page(self, address, amount):
+        self.send_button_click(None)
+        self.send_page.destination_input_single.value = address
+        self.send_page.amount_input.value = amount
+
+
     def _handler_on_show(self, sender, event):
         if self.settings.console():
             self._impl.native.Top -= 100
@@ -959,6 +965,16 @@ class Menu(Window):
         self.app.console.info_log(f"Show app notifcation...")
         self.notify.show()
         self._impl.native.TopMost = False
+        asyncio.create_task(self.read_uri_file())
+
+    async def read_uri_file(self):
+        while True:
+            address, amount = self.utils.get_uri_from_txt()
+            if address and amount:
+                self.show_send_page(address, amount)
+                self.utils.clear_uri_txt()
+            await asyncio.sleep(3)
+
 
     def start_resize(self, hit_test_value):
         user32.ReleaseCapture()
@@ -1019,6 +1035,7 @@ class Menu(Window):
             return
         if self.console_toggle:
             self.app.console.move_inside()
+            
 
     def _restore_window(self, sender, event):
         self.toolbar.update_resize_icon("maximize")
