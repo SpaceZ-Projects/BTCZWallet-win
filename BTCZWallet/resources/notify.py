@@ -22,14 +22,14 @@ class Notify(NotifyIcon):
 
         self.restart_cmd = Command(
             title="Restart",
-            action=self.restart_app,
+            action=lambda : self.exit_app("restart"),
             icon="images/restart_a.ico",
             font=font.get(9),
             rtl = self.rtl
         )
         self.stop_exit_cmd = Command(
             title=self.tr.text("notifystopexit_cmd"),
-            action=self.stop_node_exit,
+            action=lambda : self.exit_app("full"),
             icon="images/stop.ico",
             font=font.get(9),
             rtl=self.rtl
@@ -37,7 +37,7 @@ class Notify(NotifyIcon):
 
         self.exit_cmd = Command(
             title=self.tr.text("notifyexit_cmd"),
-            action=self.exit_app,
+            action=lambda : self.exit_app("default"),
             icon="images/exit.ico",
             font=font.get(9),
             rtl=self.rtl
@@ -66,15 +66,28 @@ class Notify(NotifyIcon):
         if self.app.current_window is not self.main:
             self.main._impl.native.TopMost = True
             self.main._impl.native.TopMost = False
-            
 
-    def exit_app(self):
-        def on_result(widget, result):
+
+    def exit_app(self, option):
+        async def on_result(widget, result):
             if result is True:
+                if option == "full":
+                    self.utils.stop_tor()
+                    await self.commands.stopNode()
+
+                elif option == "restart":
+                    result = self.utils.restart_app()
+                    if not result:
+                        return
+                    self.utils.stop_tor()
+                    await self.commands.stopNode()
+
                 self.main.home_page.bitcoinz_curve.image = None
+                if self.main.console_toggle:
+                    self.app.console._impl.native.Close()
                 self.main.home_page.clear_cache()
-                self.hide()
-                self.dispose()
+                self.main.notify.hide()
+                self.main.notify.dispose()
                 if self.main.market_server.server_status:
                     self.main.notifymarket.hide()
                     self.main.notifymarket.dispose()
@@ -82,60 +95,28 @@ class Notify(NotifyIcon):
                     self.main.notifymobile.hide()
                     self.main.notifymobile.dispose()
                 self.app.exit()
+
         if self.main.mining_page.mining_status:
             return
+        if option == "full":
+            title=self.tr.title("stopexit_dialog")
+            message=self.tr.message("stopexit_dialog")
+
+        elif option == "restart":
+            title="Restart App"
+            message="Are you sure you want to restart the application ?"
+
+        else:
+            title=self.tr.title("exit_dialog")
+            message=self.tr.message("exit_dialog")
+
         self.main.question_dialog(
-            title=self.tr.title("exit_dialog"),
-            message=self.tr.message("exit_dialog"),
+            title=title,
+            message=message,
             on_result=on_result
         )
-        
+            
 
-    def stop_node_exit(self):
-        async def on_result(widget, result):
-            if result is True:
-                self.utils.stop_tor()
-                await self.commands.stopNode()
-                self.home_page.bitcoinz_curve.image = None
-                self.home_page.clear_cache()
-                self.hide()
-                self.dispose()
-                self.app.exit()
-
-        if self.mining_page.mining_status:
-            return
-        self.main.question_dialog(
-            title=self.tr.title("stopexit_dialog"),
-            message=self.tr.message("stopexit_dialog"),
-            on_result=on_result
-        )
-
-
-    def restart_app(self):
-        async def on_result(widget, result):
-            if result is True:
-                restart = self.utils.restart_app()
-                if restart:
-                    self.utils.stop_tor()
-                    await self.commands.stopNode()
-                    self.home_page.bitcoinz_curve.image = None
-                    self.home_page.clear_cache()
-                    self.hide()
-                    self.dispose()
-                    if self.main.market_server.server_status:
-                        self.main.notifymarket.hide()
-                        self.main.notifymarket.dispose()
-                    if self.main.mobile_server.server_status:
-                        self.main.notifymobile.hide()
-                        self.main.notifymobile.dispose()
-                    self.app.exit()
-        if self.mining_page.mining_status:
-            return
-        self.main.question_dialog(
-            title="Restart App",
-            message="Are you sure you want to restart the application ?",
-            on_result=on_result
-        )
 
 
 class NotifyMining(NotifyIcon):
