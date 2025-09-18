@@ -12,9 +12,9 @@ from toga import (
 )
 from ..framework import (
     BorderStyle, ToolTip, ClipBoard, RichLabel,
-    Color, DockStyle, ScrollBars, Forms, Command,
+    Color, DockStyle, Forms, Command,
     FlatStyle, Drawing, Relation, Os, AlignContent,
-    MenuStrip, RightToLeft, AlignRichLabel
+    MenuStrip, RightToLeft
 )
 from toga.style.pack import Pack
 from toga.constants import (
@@ -530,6 +530,7 @@ class Contact(Box):
             image=image_path,
             style=Pack(
                 background_color = rgb(40,43,48),
+                width = 35,
                 padding = self.tr.padding("category_icon")
             )
         )
@@ -924,158 +925,56 @@ class Pending(Box):
 
 
 
-class Message(Box):
-    def __init__(self, author, message, amount, timestamp, app:App, output:ScrollContainer, settings, utils, units, tr, font):
-        super().__init__(
-            style=Pack(
-                direction = COLUMN,
-                padding = (0,10,5,5),
-                background_color=rgb(30,33,36)
-            )
-        )
+class Message():
+    def __init__(self, output, units, data):
+        super().__init__()
 
-        self.wheel = 0
-
-        self.app = app
-        self.output_box = output
-        self.author = author
-        self.message = message
-        self.amount = amount
-        self.timestamp = timestamp
-
-        self.settings = settings
-        self.utils = utils
+        self.output = output
         self.units = units
-        self.font = font
-        self.tr = tr
 
-        self.rtl = None
-        lang = self.settings.language()
-        if lang:
-            if lang == "Arabic":
-                self.rtl = True
-                message_align = AlignRichLabel.RIGHT
-            else:
-                message_align = AlignRichLabel.LEFT
-        else:
-            message_align = AlignRichLabel.LEFT
+        self.author = data[0]
+        self.message = data[1]
+        self.amount = data[2]
+        self.timestamp = data[3]
 
         if self.author == "you":
-            if self.rtl:
-                self.author = "أنت :"
-            color = GRAY
+            color = Color.CYAN
+            self.author = "You"
         else:
-            color = rgb(114,137,218)
+            color = Color.rgb(114,137,218)
 
         message_time = datetime.fromtimestamp(self.timestamp).strftime('%Y-%m-%d %H:%M:%S')
-        if self.rtl:
-            message_time = self.units.arabic_digits(message_time)
 
-        self.author_value = Label(
-            text=self.author,
-            style=Pack(
-                color = color,
-                background_color = rgb(30,30,30),
-                padding = self.tr.padding("author_value"),
-                flex = 1
-            )
+        sender = f"{self.author} - [{message_time}]"
+        self.output.SelectionColor = color
+        self.output.SelectionFont = Drawing.Font(
+            self.output.Font, 
+            Drawing.FontStyle.Bold
         )
-        self.author_value._impl.native.Font = self.font.get(11, True)
+        self.invoke(self.append_text(sender))
 
-        self.gift_value = Label(
-            text="",
-            style=Pack(
-                color = YELLOW,
-                background_color = rgb(30,30,30),
-                font_weight = BOLD
-            )
-        )
-        self.gift_value._impl.native.Font = self.font.get(9)
-
-        self.message_time = Label(
-            text=message_time,
-            style=Pack(
-                color = GRAY,
-                background_color = rgb(30,30,30)
-            )
-        )
-        self.message_time._impl.native.Font = self.font.get(9)
-
-        self.sender_box = Box(
-            style=Pack(
-                direction = ROW,
-                background_color = rgb(30,30,30),
-                height = 27
-            )
-        )
-
-        self.message_value = RichLabel(
-            text=f"{self.message}",
-            borderstyle=BorderStyle.NONE,
-            background_color=Color.rgb(30,33,36),
-            color=Color.WHITE,
-            wrap=True,
-            readonly=True,
-            urls=True,
-            text_align=message_align,
-            dockstyle=DockStyle.FILL,
-            scrollbars=ScrollBars.NONE,
-            urls_click=self.open_url,
-            mouse_wheel=self.on_scroll,
-            mouse_move=True
-        )
-
-        self.message_box = Box(
-            style=Pack(
-                direction = COLUMN,
-                background_color=rgb(40,43,48),
-                height = 90,
-                padding = self.tr.padding("message_box")
-            )
-        )
-
-        self.add(
-            self.sender_box,
-            self.message_box
-        )
         if self.amount > 0.0001:
             gift = self.amount - 0.0001
             gift_format = self.units.format_balance(gift)
-            text = self.tr.text("gift_value")
-            self.gift_value.text = f"{text} {gift_format}"
-            if self.rtl:
-                self.sender_box.add(
-                    self.message_time,
-                    self.gift_value,
-                    self.author_value
-                )
-            else:
-                self.sender_box.add(
-                    self.author_value,
-                    self.gift_value,
-                    self.message_time
-                )
-        else:
-            if self.rtl:
-                self.sender_box.add(
-                    self.message_time,
-                    self.author_value
-                )
-            else:
-                self.sender_box.add(
-                    self.author_value,
-                    self.message_time
-                )
-        self.message_box._impl.native.Controls.Add(self.message_value)
+            gift = f"🎁 Gift : {gift_format}"
+            self.output.SelectionColor = Color.YELLOW
+            self.invoke(self.append_text(f" - {gift}"))
+
+        message = f"\n{self.message}"
+        self.output.SelectionColor = Color.WHITE
+        self.output.SelectionFont = Drawing.Font(
+            self.output.Font, 
+            Drawing.FontStyle.Regular
+        )
+        self.invoke(self.append_text(f"{message}"))
+        self.invoke(self.append_text(f"\n\n"))
 
 
-    def open_url(self, url):
-        webbrowser.open(url)
+    def invoke(self, func):
+        self.output.Invoke(Forms.MethodInvoker(lambda: func))
 
-    
-    def on_scroll(self, value):
-        self.wheel = self.output_box.vertical_position - value
-        self.output_box.vertical_position = self.wheel
+    def append_text(self, value):
+        self.output.AppendText(value)
 
 
 
@@ -1497,7 +1396,7 @@ class Chat(Box):
         super().__init__(
             style=Pack(
                 direction = ROW,
-                background_color = rgb(40,43,48),
+                background_color = rgb(30,30,30),
                 padding = (2,5,0,5),
                 flex = 1
             )
@@ -1507,12 +1406,9 @@ class Chat(Box):
         self.contact_id = None
         self.user_address = None
         self.selected_contact_toggle = None
+        self.loading_toggle = None
         self.pending_toggle = None
         self.new_pending_toggle = None
-        self.scroll_toggle = None
-        self.unread_messages_toggle = None
-        self.last_message_timestamp = None
-        self.last_unread_timestamp = None
         self.marketplace_toggle = None
         self.fee_input = None
         self.messages = []
@@ -1626,6 +1522,7 @@ class Chat(Box):
         )
         self.contacts_scroll = ScrollContainer(
             horizontal=False,
+            vertical=True,
             style=Pack(
                 background_color = rgb(30,33,36),
                 padding_top = 5,
@@ -1644,7 +1541,7 @@ class Chat(Box):
         self.contact_info_box = Box(
             style=Pack(
                 direction = ROW,
-                background_color = rgb(30,30,30),
+                background_color = rgb(40,43,48),
                 height = 32,
                 alignment = CENTER
             )
@@ -1653,22 +1550,27 @@ class Chat(Box):
         self.messages_box = Box(
             style=Pack(
                 direction = COLUMN,
-                background_color = rgb(40,43,48),
-                flex = 1
+                background_color = rgb(30,30,30),
+                flex = 1,
+                padding = (5,0,0,5)
             )
         )
-        self.messages_box._impl.native.Resize += self.messages_box_on_resize
 
-        self.output_box = ScrollContainer(
-            horizontal=False,
-            style=Pack(
-                background_color = rgb(40,43,48),
-                flex = 1,
-                padding = (0,5,5,0)
-            )
+        self.output_box = RichLabel(
+            text="",
+            background_color=Color.rgb(30,30,30),
+            wrap=True,
+            dockstyle=DockStyle.FILL,
+            color=Color.WHITE,
+            borderstyle=BorderStyle.NONE,
+            urls=True,
+            mouse_move=True,
+            readonly=True,
+            urls_click=self.open_url,
+            mouse_wheel=self.on_mouse_wheel
         )
         if self.rtl:
-            self.output_box._impl.native.RightToLeft = RightToLeft.YES
+            self.output_box.righttoleft = RightToLeft.YES
 
         self.input_box = Box(
             style=Pack(
@@ -1771,7 +1673,7 @@ class Chat(Box):
         self.chat_box = Box(
             style=Pack(
                 direction = COLUMN,
-                background_color = rgb(40,43,48),
+                background_color = rgb(30,30,30),
                 flex = 7,
                 padding_left = 5
             )
@@ -1817,10 +1719,10 @@ class Chat(Box):
 
         self.chat_box.add(
             self.contact_info_box,
-            self.output_box,
+            self.messages_box,
             self.input_box
         )
-        self.output_box.content = self.messages_box
+        self.messages_box._impl.native.Controls.Add(self.output_box)
         if self.rtl:
             self.input_box.add(
                 self.chat_buttons,
@@ -2070,7 +1972,6 @@ class Chat(Box):
 
 
     async def handler_unread_message(self,contact_id, author, message, amount, timestamp):
-        self.unread_messages_toggle = True
         self.storage.unread_message(contact_id, author, message, amount, timestamp)
         if self.settings.notification_messages():
             notify = NotifyMessage()
@@ -2192,10 +2093,12 @@ class Chat(Box):
             return
         if self.contact_id == contact_id:
             return
+        if self.loading_toggle:
+            return
         username = self.storage.get_contact_username(contact_id)
         if self.selected_contact_toggle:
             self.contact_info_box.clear()
-            self.messages_box.clear()
+            self.output_box.text = ""
             self.last_message_timestamp = None
             self.last_unread_timestamp = None
         self.selected_contact_toggle = True
@@ -2205,7 +2108,7 @@ class Chat(Box):
             text=self.tr.text("username_label"),
             style=Pack(
                 color = GRAY,
-                background_color = rgb(30,30,30),
+                background_color = rgb(40,43,48),
                 font_weight = BOLD,
                 padding = self.tr.padding("username_label")
             )
@@ -2214,7 +2117,7 @@ class Chat(Box):
             text=username[0],
             style=Pack(
                 color = WHITE,
-                background_color = rgb(30,30,30),
+                background_color = rgb(40,43,48),
                 font_weight = BOLD,
                 padding = (9,0,0,0),
                 text_align = self.tr.align("username_value")
@@ -2224,7 +2127,7 @@ class Chat(Box):
             text=self.tr.text("id_label"),
             style=Pack(
                 color = GRAY,
-                background_color = rgb(30,30,30),
+                background_color = rgb(40,43,48),
                 font_weight = BOLD,
                 padding = self.tr.padding("id_label")
             )
@@ -2233,23 +2136,11 @@ class Chat(Box):
             text=contact_id,
             style=Pack(
                 color = WHITE,
-                background_color = rgb(30,30,30),
+                background_color = rgb(40,43,48),
                 font_weight = BOLD,
                 padding = (9,0,0,0),
                 flex =1,
                 text_align = self.tr.align("id_value")
-            )
-        )
-        self.unread_label = Label(
-            text=self.tr.text("unread_label"),
-            style=Pack(
-                color = YELLOW,
-                background_color = rgb(30,30,30),
-                font_weight = BOLD,
-                font_size = 10,
-                text_align = CENTER,
-                flex =1,
-                padding = (0,30,5,15)
             )
         )
         if self.rtl:
@@ -2269,57 +2160,34 @@ class Chat(Box):
         self.contact_id = contact_id
         self.user_address = address
 
+        self.loading_toggle = True
         self.messages = self.storage.get_messages(self.contact_id)
         if self.messages:
-            messages = sorted(self.messages, key=lambda x: x[3], reverse=True)
-            recent_messages = messages[:5]
-            self.last_message_timestamp = recent_messages[-1][3]
-            for data in recent_messages:
-                message_username = data[0]
-                message_text = data[1]
-                message_amount = data[2]
+            messages = sorted(self.messages, key=lambda x: x[3], reverse=False)
+            asyncio.create_task(self.load_messages(messages))
+
+
+    async def load_messages(self, messages):
+        chunk_size = 25
+        for i in range(0, len(messages), chunk_size):
+            chunk = messages[i:i+chunk_size]
+            for data in chunk:
                 message_timestamp = data[3]
                 self.processed_timestamps.add(message_timestamp)
-                message = Message(
-                    author=message_username,
-                    message=message_text,
-                    amount=message_amount,
-                    timestamp=message_timestamp,
-                    app= self.app,
-                    output = self.output_box,
-                    settings=self.settings, utils=self.utils, units=self.units, tr=self.tr, font=self.font
-                )
-                self.messages_box.insert(
-                    0, message
-                )
+                Message(self.output_box, self.units, data)
+            await asyncio.sleep(0.0)
+            self.output_box.ScrollToCaret()
+
         self.unread_messages = self.storage.get_unread_messages(self.contact_id)
         if self.unread_messages:
             unread_messages = sorted(self.unread_messages, key=lambda x: x[3], reverse=False)
-            recent_unread_messages = unread_messages[:5]
-            self.last_unread_timestamp = recent_unread_messages[-1][3]
-            self.messages_box.add(
-                self.unread_label
-            )
             for data in unread_messages:
-                message_username = data[0]
-                message_text = data[1]
-                message_amount = data[2]
                 message_timestamp = data[3]
                 self.processed_timestamps.add(message_timestamp)
-                message = Message(
-                    author=message_username,
-                    message=message_text,
-                    amount=message_amount,
-                    timestamp=message_timestamp,
-                    app= self.app,
-                    output = self.output_box,
-                    settings=self.settings, utils=self.utils, units=self.units, tr=self.tr, font=self.font
-                )
-                self.messages_box.add(
-                    message
-                )
-        self.output_box.on_scroll = self.update_messages_on_scroll
-        asyncio.create_task(self.update_current_messages())     
+                Message(self.output_box, self.units, data)
+
+        self.loading_toggle = None
+        asyncio.create_task(self.update_current_messages())
 
 
     async def update_current_messages(self):
@@ -2334,40 +2202,31 @@ class Chat(Box):
             if messages:
                 for data in messages:
                     if data not in self.messages:
-                        author = data[0]
-                        text = data[1]
-                        amount = data[2]
-                        timestamp = data[3]
-                        await self.insert_message(author, text, amount, timestamp)
+                        Message(self.output_box, self.units, data)
                         self.messages.append(data)
+                        self.output_box.ScrollToCaret()
 
             unread_messages = self.storage.get_unread_messages(self.contact_id)
             if unread_messages:
                 for data in unread_messages:
                     if data not in self.unread_messages:
-                        author = data[0]
-                        text = data[1]
-                        amount = data[2]
-                        timestamp = data[3]
-                        self.insert_unread_message(author, text, amount, timestamp)
+                        Message(self.output_box, self.units, data)
                         self.unread_messages.append(data)
                 
             await asyncio.sleep(3)
 
-    
-    async def update_messages_on_scroll(self, scroll):
-        if self.output_box.vertical_position == self.output_box.max_vertical_position:
-            self.messages_box.remove(self.unread_label)
+
+    def on_mouse_wheel(self, wheel):
+        if self.output_box.Lines.Length == 0:
+            return
+
+        rect = self.output_box.ClientRectangle
+        last_char_index = self.output_box.GetCharIndexFromPosition(Drawing.Point(rect.Right - 1, rect.Bottom - 1))
+        last_visible_line = self.output_box.GetLineFromCharIndex(last_char_index)
+
+        if last_visible_line >= self.output_box.Lines.Length - 1:
             self.clean_unread_messages()
 
-        if not self.scroll_toggle:
-            if self.output_box.vertical_position == 0:
-                self.scroll_toggle = True
-                await self.load_old_messages()
-
-            if self.output_box.vertical_position == self.output_box.max_vertical_position:
-                self.scroll_toggle = True
-                await self.load_unread_messages()
 
 
     def clean_unread_messages(self):
@@ -2381,62 +2240,6 @@ class Chat(Box):
                 self.storage.message(self.contact_id, author, text, amount, timestamp)
                 self.messages.append(data)
             self.storage.delete_unread(self.contact_id)
-
-
-    async def load_old_messages(self):
-        messages = self.storage.get_messages(self.contact_id)
-        messages = sorted(messages, key=lambda x: x[3], reverse=True)
-        last_loaded_message_timestamp = self.last_message_timestamp
-        try:
-            last_loaded_index = next(i for i, m in enumerate(messages) if m[3] == last_loaded_message_timestamp)
-        except StopIteration:
-            return
-        older_messages = messages[last_loaded_index + 1 : last_loaded_index + 6]
-        if older_messages:
-            self.last_message_timestamp = older_messages[-1][3]
-            for data in older_messages:
-                message = Message(
-                    author=data[0],
-                    message=data[1],
-                    amount=data[2],
-                    timestamp=data[3],
-                    app=self.app,
-                    output=self.output_box,
-                    settings=self.settings, utils=self.utils, units=self.units, tr=self.tr, font=self.font
-                )
-                self.messages_box.insert(0, message)
-            await asyncio.sleep(1)
-        self.scroll_toggle = False
-
-
-    async def load_unread_messages(self):
-        unread_messages = self.storage.get_unread_messages(self.contact_id)
-        if unread_messages:
-            unread_messages = sorted(unread_messages, key=lambda x: x[3], reverse=False)
-            more_unread_messages = [m for m in unread_messages if m[3] < self.last_unread_timestamp]
-            more_unread_messages = more_unread_messages[:5]
-
-            for data in more_unread_messages:
-                message_username = data[0]
-                message_text = data[1]
-                message_amount = data[2]
-                message_timestamp = data[3]
-                self.processed_timestamps.add(message_timestamp)
-                message = Message(
-                    author=message_username,
-                    message=message_text,
-                    amount=message_amount,
-                    timestamp=message_timestamp,
-                    app=self.app,
-                    output=self.output_box,
-                    settings=self.settings, utils=self.utils, units=self.units, tr=self.tr, font=self.font
-                )
-                self.messages_box.add(message)
-
-            if more_unread_messages:
-                self.last_unread_timestamp = more_unread_messages[-1][3]
-                await asyncio.sleep(1)
-        self.scroll_toggle = False
 
 
     def update_pending_list(self):
@@ -2603,15 +2406,7 @@ class Chat(Box):
             memo = {"type":"message","id":id[0],"username":username,"text":message, "timestamp":timestamp}
             memo_str = json.dumps(memo)
             self.disable_send_button()
-            await self.send_memo(
-                address,
-                amount,
-                txfee,
-                memo_str,
-                author,
-                message,
-                timestamp
-            )
+            await self.send_memo(address, amount, txfee, memo_str, author, message, timestamp)
 
 
     async def send_memo(self, address, amount, txfee, memo, author, text, timestamp):
@@ -2636,11 +2431,16 @@ class Chat(Box):
                             self.send_button._impl.native.Focus()
                             self.fee_input.value = "0.00020000"
                             self.character_count.style.color = GRAY
+                            self.enable_send_button()
                             await asyncio.sleep(0.2)
                             self.message_input.focus()
                             return
                         await asyncio.sleep(3)
                 else:
+                    self.main.error_dialog(
+                        title="Failed",
+                        message="Sending message was failed, verify your balance"
+                    )
                     self.enable_send_button()
         else:
             self.enable_send_button()
@@ -2660,44 +2460,6 @@ class Chat(Box):
         self.send_button.text = "Sending..."
         self.send_button.on_press = None
         self.message_input.readonly = True
-
-
-    async def insert_message(self, author, text, amount, timestamp):
-        message = Message(
-            author=author,
-            message=text,
-            amount=amount,
-            timestamp=timestamp,
-            app=self.app,
-            output=self.output_box,
-            settings=self.settings, utils=self.utils, units=self.units, tr=self.tr, font=self.font
-        )
-        self.messages_box.add(
-            message
-        )
-        await asyncio.sleep(0.1)
-        self.output_box.vertical_position = self.output_box.max_vertical_position
-        self.enable_send_button()
-
-    
-    def insert_unread_message(self, author, text, amount, timestamp):
-        message = Message(
-            author=author,
-            message=text,
-            amount=amount,
-            timestamp=timestamp,
-            app=self.app,
-            output=self.output_box,
-            settings=self.settings, utils=self.utils, units=self.units, tr=self.tr, font=self.font
-        )
-        self.messages_box.add(
-            message
-        )
-
-    def messages_box_on_resize(self, sender, event):
-        if self.output_box.vertical_position == self.output_box.max_vertical_position or self.scroll_toggle:
-            return
-        self.output_box.vertical_position = self.output_box.max_vertical_position
 
 
     def update_character_count(self, input):
@@ -2721,6 +2483,10 @@ class Chat(Box):
         else:
             value = f"{character_count} / 325"
         self.character_count.text = f"{text} {value}"
+
+
+    def open_url(self, url):
+        webbrowser.open(url)
         
 
     def send_button_mouse_enter(self, sender, event):
