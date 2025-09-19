@@ -6,7 +6,7 @@ from datetime import datetime
 from toga import (
     App, Box, Label, TextInput, Selection, 
     ImageView, Window, Switch, MultilineTextInput,
-    Button
+    Button, DetailedList
 )
 from ..framework import (
     Command, Color, ToolTip, FlatStyle, MenuStrip,
@@ -17,14 +17,335 @@ from toga.constants import (
     COLUMN, ROW, TOP, CENTER, VISIBLE, HIDDEN
 )
 from toga.colors import (
-    rgb, GRAY, WHITE, YELLOW, BLACK, RED
+    rgb, GRAY, WHITE, YELLOW, BLACK, RED, GREENYELLOW
 )
 
 from .storage import StorageMessages, StorageTxs, StorageAddresses
 
 
+class CashOut(Window):
+    def __init__(self, main:Window, send_page, settings, utils, units, commnads, tr, font, uaddress, data, single=None):
+        super().__init__(
+            size = (600,300),
+            resizable=False
+        )
+
+        self.main = main
+        self.send_page = send_page
+        self.settings = settings
+        self.utils = utils
+        self.units = units
+        self.commands = commnads
+        self.tr = tr
+        self.font = font
+
+        self.storagetxs = StorageTxs(self.app)
+
+        self.uaddress = uaddress
+        self.single = single
+
+        self.title = "CashOut"
+        position_center = self.utils.windows_screen_center(self.main, self)
+        self.position = position_center
+        self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
+
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
+
+
+        self.main_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                alignment = CENTER
+            )
+        )
+
+        self.cashout_info = DetailedList(
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(40,43,48),
+                flex = 1,
+                alignment = CENTER,
+                padding = (5,10,15,10)
+            )
+        )
+        self.cashout_info._impl.native.Font = self.font.get(10, True)
+
+        self.operation_status = Label(
+            text="",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                text_align = CENTER
+            )
+        )
+        self.operation_status._impl.native.Font = self.font.get(11, True)
+
+        self.result_icon = ImageView(
+            image="images/valid.png",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                height = 40
+            )
+        )
+
+        self.cancel_button = Button(
+            text=self.tr.text("cancel_button"),
+            style=Pack(
+                color = RED,
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                width = 100
+            ),
+            on_press=self.cancel_cashout
+        )
+        self.cancel_button._impl.native.Font = self.font.get(self.tr.size("cancel_button"), True)
+        self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
+        self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
+
+        self.confirm_button = Button(
+            text=self.tr.text("confirm_button"),
+            style=Pack(
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                padding = (0,0,0,20),
+                width = 100
+            ),
+            on_press=self.confirm_cashout
+        )
+        self.confirm_button._impl.native.Font = self.font.get(self.tr.size("confirm_button"), True)
+        self.confirm_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.confirm_button._impl.native.MouseEnter += self.confirm_button_mouse_enter
+        self.confirm_button._impl.native.MouseLeave += self.confirm_button_mouse_leave
+
+        self.buttons_box = Box(
+            style=Pack(
+                direction = ROW,
+                alignment =CENTER,
+                background_color = rgb(30,33,36),
+                height = 40,
+                padding = (0,0,10,0)
+            )
+        )
+
+        self.content = self.main_box
+
+        self.main_box.add(
+            self.cashout_info,
+            self.buttons_box
+        )
+        self.buttons_box.add(
+            self.cancel_button,
+            self.confirm_button
+        )
+
+        self.show_cashout_info(data)
+
+    
+    def show_cashout_info(self, data):
+        if self.single:
+            self.destination_address = data[0]
+            self.amount = data[1]
+            self.txfee = data[2]
+            info = [
+                {"title": "From Address :", "subtitle": self.uaddress},
+                {"title": "Destination :", "subtitle": self.destination_address},
+                {"title": "Amount :", "subtitle": self.amount},
+                {"title": "Tx fee :", "subtitle": self.txfee}
+            ]
+        else:
+            self.destination_addresses = data
+            info = [
+                {"title": "From Address :", "subtitle": self.uaddress},
+                {"title": "Destination :", "subtitle": ""}
+            ]
+            self.total_amount = 0
+            for destination in data:
+                address = destination.get("address")
+                amount = float(destination.get("amount", 0))
+                self.total_amount += amount
+                info.append({"title": f"Amount : {amount}", "subtitle": f"Address : {address}"})
+
+            info.append({"title": "", "subtitle": ""})    
+            info.append({"title": "Total Amount :", "subtitle": self.units.format_balance(self.total_amount)})
+            info.append({"title": "Tx fee :", "subtitle": 0.0001})
+
+        self.cashout_info.data = info
+        lv = self.cashout_info._impl.native
+        lv.Columns[0].Width = 160
+        lv.Columns[1].Width = 400
+        lv.ShowItemToolTips = True
+
+
+    async def confirm_cashout(self, button):
+        self.disable_send()
+        if self.single:
+            await self.send_single()
+        else:
+            await self.send_many()
+
+
+    async def send_single(self):
+        try:
+            if (float(self.amount)+float(self.txfee)) > float(self.send_page.format_balance):
+                self.main.error_dialog(
+                    title=self.tr.title("insufficientbalance_dialog"),
+                    message=self.tr.message("insufficientbalance_dialog")
+                )
+                return
+            operation, _= await self.commands.z_sendMany(self.uaddress, self.destination_address, self.amount, self.txfee)
+            if operation:
+                self.app.console.info_log(f"Operation: {operation}")
+                transaction_status, _= await self.commands.z_getOperationStatus(operation)
+                transaction_status = json.loads(transaction_status)
+                if isinstance(transaction_status, list) and transaction_status:
+                    status = transaction_status[0].get('status')
+                    if status == "failed":
+                        self.operation_status.text = self.tr.text("send_failed")
+                    elif status == "executing":
+                        self.operation_status.text = self.tr.text("send_executing")
+                    if status == "executing" or status =="success":
+                        await asyncio.sleep(1)
+                        while True:
+                            transaction_result, _= await self.commands.z_getOperationResult(operation)
+                            transaction_result = json.loads(transaction_result)
+                            if isinstance(transaction_result, list) and transaction_result:
+                                status = transaction_result[0].get('status')
+                                result = transaction_result[0].get('result', {})
+                                txid = result.get('txid')
+                                if status == "failed":
+                                    self.operation_status.text = self.tr.text("send_failed")
+                                    self.enable_send()
+                                    return
+                                elif status == "executing":
+                                    self.operation_status.text = self.tr.text("send_executing")
+                                elif status == "success":
+                                    self.app.console.info_log(f"TX: {txid}")
+                                if self.uaddress.startswith('z'):
+                                    self.store_shielded_transaction(self.uaddress, txid, self.amount, self.txfee)
+                                asyncio.create_task(self.show_success_result())
+                                return
+                            await asyncio.sleep(3)
+                    else:
+                        self.enable_send()
+            else:
+                self.enable_send()
+        except Exception as e:
+            self.enable_send()
+            self.app.console.error_log(f"Cashout : {e}")
+
+
+    async def send_many(self):
+        try:
+            operation, _= await self.commands.z_sendToManyAddresses(self.uaddress, self.destination_addresses)
+            if operation:
+                self.app.console.info_log(f"Operation: {operation}")
+                transaction_status, _= await self.commands.z_getOperationStatus(operation)
+                transaction_status = json.loads(transaction_status)
+                if isinstance(transaction_status, list) and transaction_status:
+                    status = transaction_status[0].get('status')
+                    if status == "failed":
+                        self.operation_status.text = self.tr.text("send_failed")
+                    elif status == "executing":
+                        self.operation_status.text = self.tr.text("send_executing")
+                    self.operation_status.text = status
+                    if status == "executing" or status =="success":
+                        await asyncio.sleep(1)
+                        while True:
+                            transaction_result, _= await self.commands.z_getOperationResult(operation)
+                            transaction_result = json.loads(transaction_result)
+                            if isinstance(transaction_result, list) and transaction_result:
+                                status = transaction_status[0].get('status')
+                                result = transaction_result[0].get('result', {})
+                                txid = result.get('txid')
+                                if status == "failed":
+                                    self.operation_status.text = self.tr.text("send_failed")
+                                    self.enable_send()
+                                    return
+                                elif status == "executing":
+                                    self.operation_status.text = self.tr.text("send_executing")
+                                elif status == "success":
+                                    self.app.console.info_log(f"TX: {txid}")
+                                if self.uaddress.startswith('z'):
+                                    self.store_shielded_transaction(self.uaddress, txid, self.total_amount, 0.0001)
+                                asyncio.create_task(self.show_success_result())
+                                return
+                            await asyncio.sleep(3)
+                    else:
+                        self.enable_send()
+            else:
+                self.enable_send()
+        except Exception as e:
+            self.enable_send()
+            self.app.console.error_log(f"Cashout : {e}")
+
+
+    def store_shielded_transaction(self, address, txid, amount, fee):
+        tx_type = "shielded"
+        category = "send"
+        amount = float(amount)
+        blocks = self.main.home_page.current_blocks
+        timesent = int(datetime.now().timestamp())
+        self.storagetxs.insert_transaction(tx_type, category, address, txid, -amount, blocks, fee, timesent)
+
+
+    async def show_success_result(self):
+        self.buttons_box.clear()
+        self.buttons_box.add(
+            self.result_icon
+        )
+        await asyncio.sleep(3)
+        self.close()
+        self.app.current_window = self.main
+        await self.send_page.clear_inputs()
+
+
+    def disable_send(self):
+        self.buttons_box.clear()
+        self.buttons_box.add(
+            self.operation_status
+        )
+
+    def enable_send(self):
+        self.buttons_box.clear()
+        self.buttons_box.add(
+            self.cancel_button,
+            self.confirm_button
+        )
+
+    def confirm_button_mouse_enter(self, sender, event):
+        self.confirm_button.style.color = BLACK
+        self.confirm_button.style.background_color = GREENYELLOW
+
+    def confirm_button_mouse_leave(self, sender, event):
+        self.confirm_button.style.color = GRAY
+        self.confirm_button.style.background_color = rgb(30,33,36)
+
+
+    def cancel_button_mouse_enter(self, sender, event):
+        self.cancel_button.style.color = BLACK
+        self.cancel_button.style.background_color = RED
+
+    def cancel_button_mouse_leave(self, sender, event):
+        self.cancel_button.style.color = RED
+        self.cancel_button.style.background_color = rgb(30,33,36)
+
+    def cancel_cashout(self, button):
+        self.close()
+        self.app.current_window = self.main
+
+
+
 class Send(Box):
-    def __init__(self, app:App, main:Window, settings, units, commands, tr, font):
+    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -44,13 +365,13 @@ class Send(Box):
         self.app = app
         self.main = main
         self.commands = commands
+        self.utils = utils
         self.units = units
         self.settings = settings
         self.tr = tr
         self.font = font
 
         self.storagemsgs = StorageMessages(self.app)
-        self.storagetxs = StorageTxs(self.app)
         self.addresses_storage = StorageAddresses(self.app)
         self.tooltip = ToolTip()
 
@@ -445,36 +766,6 @@ class Send(Box):
             ) 
         )
 
-        self.operation_label = Label(
-            text=self.tr.text("operation_label"),
-            style=Pack(
-                color = GRAY,
-                text_align= self.tr.align("operation_label"),
-                background_color = rgb(30,33,36),
-                padding_top = 5
-            )
-        )
-        self.operation_label._impl.native.Font = self.font.get(10, True)
-
-        self.operation_status = Label(
-            text="",
-            style=Pack(
-                color = WHITE,
-                text_align= self.tr.align("operation_status"),
-                background_color = rgb(30,33,36),
-                padding_top = 5
-            )
-        )
-        self.operation_status._impl.native.Font = self.font.get(10, True)
-
-        self.operation_box = Box(
-            style=Pack(
-                direction = ROW,
-                background_color = rgb(30,33,36),
-                padding = self.tr.padding("operation_box")
-            )
-        )
-
         self.send_box = Box(
             style=Pack(
                 direction = COLUMN,
@@ -619,20 +910,6 @@ class Send(Box):
                 self.send_box,
                 self.send_button
             )
-        self.send_box.add(
-            self.operation_box
-        )
-        if self.rtl:
-            self.operation_box.add(
-                self.operation_status,
-                self.operation_label
-            )
-        else:
-            self.operation_box.add(
-                self.operation_label,
-                self.operation_status
-            )
-
 
     def insert_widgets(self):
         if not self.send_toggle:
@@ -1096,15 +1373,6 @@ class Send(Box):
             self.fee_input.value = ""
 
 
-    def store_shielded_transaction(self, address, txid, amount, fee):
-        tx_type = "shielded"
-        category = "send"
-        amount = float(amount)
-        blocks = self.main.home_page.current_blocks
-        timesent = int(datetime.now().timestamp())
-        self.storagetxs.insert_transaction(tx_type, category, address, txid, -amount, blocks, fee, timesent)
-
-
     def send_button_click(self, button):
         selected_address = self.address_selection.value.select_address if self.address_selection.value else None
         if self.many_option.value is True:
@@ -1157,94 +1425,31 @@ class Send(Box):
             )
             self.amount_input.focus()
             return
-        asyncio.create_task(self.make_transaction())
+        self.make_transaction()
 
 
-    async def make_transaction(self):
-        self.disable_send()
+    def make_transaction(self):
         selected_address = self.address_selection.value.select_address
         amount = self.amount_input.value
         txfee = self.fee_input.value
-        balance = self.format_balance
         if self.many_option.value is True:
             destination_address = self.destination_input_many.value
             addresses_array = self.create_addresses_array(destination_address)
-            await self.send_many(selected_address, addresses_array)
+            data = addresses_array
+            self.cashout_window = CashOut(
+                self.main, self, self.settings, self.utils, self.units, self.commands, self.tr, self.font, selected_address, data
+            )
         else:
             destination_address = self.destination_input_single.value
-            await self.send_single(selected_address, destination_address, amount, txfee, balance)
-
-
-    async def send_single(self, selected_address, destination_address, amount, txfee, balance):
-        try:
-            if (float(amount)+float(txfee)) > float(balance):
-                self.main.error_dialog(
-                    title=self.tr.title("insufficientbalance_dialog"),
-                    message=self.tr.message("insufficientbalance_dialog")
-                )
-                self.enable_send()
-                return
-            operation, _= await self.commands.z_sendMany(selected_address, destination_address, amount, txfee)
-            if operation:
-                self.app.console.info_log(f"Operation: {operation}")
-                transaction_status, _= await self.commands.z_getOperationStatus(operation)
-                transaction_status = json.loads(transaction_status)
-                if isinstance(transaction_status, list) and transaction_status:
-                    status = transaction_status[0].get('status')
-                    if status == "failed":
-                        self.operation_status.text = self.tr.text("send_failed")
-                    elif status == "executing":
-                        self.operation_status.text = self.tr.text("send_executing")
-                    elif status == "success":
-                        self.operation_status.text = self.tr.text("send_success")
-                    if status == "executing" or status =="success":
-                        await asyncio.sleep(1)
-                        while True:
-                            transaction_result, _= await self.commands.z_getOperationResult(operation)
-                            transaction_result = json.loads(transaction_result)
-                            if isinstance(transaction_result, list) and transaction_result:
-                                status = transaction_result[0].get('status')
-                                result = transaction_result[0].get('result', {})
-                                txid = result.get('txid')
-                                if status == "failed":
-                                    self.operation_status.text = self.tr.text("send_failed")
-                                    self.enable_send()
-                                    self.main.error_dialog(
-                                        title=self.tr.title("sendfailed_dialog"),
-                                        message=self.tr.message("sendfailed_dialog")
-                                    )
-                                    return
-                                elif status == "executing":
-                                    self.operation_status.text = self.tr.text("send_executing")
-                                elif status == "success":
-                                    self.operation_status.text = self.tr.text("send_success")
-                                    self.app.console.info_log(f"TX: {txid}")
-                                if selected_address.startswith('z'):
-                                    self.store_shielded_transaction(selected_address, txid, amount, txfee)
-                                self.enable_send()
-                                self.main.info_dialog(
-                                    title=self.tr.title("sendsuccess_dialog"),
-                                    message=self.tr.message("sendsuccess_dialog")
-                                )
-                                await self.clear_inputs()
-                                return
-                            await asyncio.sleep(3)
-                    else:
-                        self.enable_send()
-                        self.main.error_dialog(
-                            title=self.tr.title("sendfailed_dialog"),
-                            message=self.tr.message("sendfailed_dialog")
-                        )
-            else:
-                self.enable_send()
-                self.main.error_dialog(
-                    title=self.tr.title("sendfailed_dialog"),
-                    message=self.tr.message("sendfailed_dialog")
-                )
-        except Exception as e:
-            self.enable_send()
-            print(f"An error occurred: {e}")
-
+            data = [
+                destination_address,
+                amount,
+                txfee
+            ]
+            self.cashout_window = CashOut(
+                self.main, self, self.settings, self.utils, self.units, self.commands, self.tr, self.font, selected_address, data, True
+            )
+        self.cashout_window._impl.native.ShowDialog(self.main._impl.native)
 
 
     def create_addresses_array(self, addresses_list):
@@ -1267,96 +1472,6 @@ class Send(Box):
                 amount = amount_value
         transactions = [{"address": address, "amount": amount} for address in addresses]
         return transactions
-
-
-    
-    async def send_many(self, selected_address, destination_addresses):
-        try:
-            operation, _= await self.commands.z_sendToManyAddresses(selected_address, destination_addresses)
-            if operation:
-                self.app.console.info_log(f"Operation: {operation}")
-                transaction_status, _= await self.commands.z_getOperationStatus(operation)
-                transaction_status = json.loads(transaction_status)
-                if isinstance(transaction_status, list) and transaction_status:
-                    status = transaction_status[0].get('status')
-                    if status == "failed":
-                        self.operation_status.text = self.tr.text("send_failed")
-                    elif status == "executing":
-                        self.operation_status.text = self.tr.text("send_executing")
-                    elif status == "success":
-                        self.operation_status.text = self.tr.text("send_success")
-                    self.operation_status.text = status
-                    if status == "executing" or status =="success":
-                        await asyncio.sleep(1)
-                        while True:
-                            transaction_result, _= await self.commands.z_getOperationResult(operation)
-                            transaction_result = json.loads(transaction_result)
-                            if isinstance(transaction_result, list) and transaction_result:
-                                status = transaction_status[0].get('status')
-                                result = transaction_result[0].get('result', {})
-                                txid = result.get('txid')
-                                if status == "failed":
-                                    self.operation_status.text = self.tr.text("send_failed")
-                                    self.enable_send()
-                                    self.main.error_dialog(
-                                        title=self.tr.title("sendfailed_dialog"),
-                                        message=self.tr.message("sendfailed_dialog")
-                                    )
-                                    return
-                                elif status == "executing":
-                                    self.operation_status.text = self.tr.text("send_executing")
-                                elif status == "success":
-                                    self.operation_status.text = self.tr.text("send_success")
-                                    self.app.console.info_log(f"TX: {txid}")
-                                if selected_address.startswith('z'):
-                                    self.store_shielded_transaction(selected_address, txid, self.amount_input.value, self.fee_input.value)
-                                self.enable_send()
-                                self.main.info_dialog(
-                                    title=self.tr.title("sendsuccess_dialog"),
-                                    message=self.tr.message("sendsuccess_dialog")
-                                )
-                                await self.clear_inputs()
-                                return
-                            await asyncio.sleep(3)
-
-                    else:
-                        self.enable_send()
-                        self.main.error_dialog(
-                            title=self.tr.title("sendfailed_dialog"),
-                            message=self.tr.message("sendfailed_dialog")
-                        )
-            else:
-                self.enable_send()
-                self.main.error_dialog(
-                    title=self.tr.title("sendfailed_dialog"),
-                    message=self.tr.message("sendfailed_dialog")
-                )
-        except Exception as e:
-            self.enable_send()
-            print(f"An error occurred: {e}")
-
-    
-    def disable_send(self):
-        self.operation_toggle = True
-        self.send_button.enabled = False
-        if self.many_option.value is True:
-            self.destination_input_many.readonly = True
-        elif self.single_option.value is True:
-            self.destination_input_single.readonly = True
-        self.amount_input.readonly = True
-        self.fee_input.readonly = True
-
-
-    def enable_send(self):
-        self.operation_toggle = None
-        self.send_button.enabled = True
-        if self.many_option.value is True:
-            self.destination_input_many.readonly = False
-        elif self.single_option.value is True:
-            self.destination_input_single.readonly = False
-        self.amount_input.readonly = False
-        self.fee_input.readonly = False
-        self.operation_status.text = ""
 
     
     def messages_address_cmd_mouse_enter(self):
