@@ -1106,6 +1106,7 @@ class Table(Forms.DataGridView):
         if self._rtl:
             self.RightToLeft = RightToLeft.YES
         self.ScrollBars = Forms.ScrollBars(0)
+        self.CellMouseDown += self._on_cell_mouse_down
         self.MouseWheel += self.on_mouse_wheel
 
         self.AllowUserToAddRows = False
@@ -1406,6 +1407,12 @@ class Table(Forms.DataGridView):
     def _on_cell_double_click(self, sender, e: Forms.DataGridViewCellEventArgs):
         if self._on_double_click:
             self._on_double_click(sender, e)
+
+    def _on_cell_mouse_down(self, sender, e: Forms.DataGridViewCellMouseEventArgs):
+        if e.Button == Forms.MouseButtons.Right and e.RowIndex >= 0 and e.ColumnIndex >= 0:
+            self.CurrentCell = self.Rows[e.RowIndex].Cells[e.ColumnIndex]
+            self.ClearSelection()
+            self.Rows[e.RowIndex].Cells[e.ColumnIndex].Selected = True
 
     def on_mouse_wheel(self, sender, e):
         if e.Delta > 0:

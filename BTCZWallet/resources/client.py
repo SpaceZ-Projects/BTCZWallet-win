@@ -19,7 +19,7 @@ class RPC():
     async def _rpc_call(self, method, params):
         try:
             rpcuser, rpcpassword, rpcport = self.utils.get_rpc_config()
-            url = f"http://127.0.0.1:{rpcport}/"
+            url = f"http://localhost:{rpcport}/"
             auth = aiohttp.BasicAuth(rpcuser, rpcpassword)
             payload = {
                 "jsonrpc": "1.0",
@@ -76,6 +76,12 @@ class RPC():
     async def getConnectionCount(self):
         return await self._rpc_call(
             "getconnectioncount",
+            []
+        )
+    
+    async def getPeerinfo(self):
+        return await self._rpc_call(
+            "getpeerinfo",
             []
         )
     

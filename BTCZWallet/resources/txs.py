@@ -832,7 +832,7 @@ class Transactions(Box):
                 
 
     def open_transaction_in_explorer(self):
-        url = "https://explorer.btcz.rocks/tx/"
+        url = "https://explorer.btcz.zelcore.io/tx/"
         selected_cells = self.transactions_table.selected_cells
         for cell in selected_cells:
             if cell.ColumnIndex == 4:

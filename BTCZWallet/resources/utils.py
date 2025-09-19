@@ -51,6 +51,16 @@ class Utils():
         if not Os.Directory.Exists(str(self.app_logs)):
             Os.Directory.CreateDirectory(str(self.app_logs))
 
+
+    def get_pools_data(self):
+        try:
+            pools_json = Os.Path.Combine(str(self.app.paths.app), 'resources', 'pools.json')
+            with open(pools_json, 'r') as f:
+                pools_data = json.load(f)
+                return pools_data
+        except (FileNotFoundError, json.JSONDecodeError):
+            return None
+
     
     async def get_repo_info(self, tor_enabled):
         if tor_enabled:

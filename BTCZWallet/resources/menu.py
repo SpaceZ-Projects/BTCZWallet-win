@@ -101,6 +101,7 @@ class Menu(Window):
         self.toolbar.toolbar.MouseDown += self._on_mouse_down
         self.wallet._impl.native.MouseDown += self._on_mouse_down
         self.wallet.bitcoinz_title._impl.native.MouseDown += self._on_mouse_down
+        self.wallet.bitcoinz_version._impl.native.MouseDown += self._on_mouse_down
         self.wallet.bitcoinz_title_box._impl.native.MouseDown += self._on_mouse_down
 
         self.notifymining = NotifyMining(font)
@@ -108,7 +109,7 @@ class Menu(Window):
         self.notifymobile = NotifyMobile()
 
         self.receive_page = Receive(self.app, self, settings, utils, units, commands, tr, font)
-        self.send_page = Send(self.app, self, settings, units, commands, tr, font)
+        self.send_page = Send(self.app, self, settings, utils, units, commands, tr, font)
         self.message_page = Messages(self.app, self, settings, utils, units, commands, tr, font)
         self.transactions_page = Transactions(self.app, self, settings, utils, units, rpc, tr, font)
         

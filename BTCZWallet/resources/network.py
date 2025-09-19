@@ -1305,10 +1305,10 @@ class Peer(Window):
         )
         self.main_scroll.content = self.peers_box
 
-        self.app.add_background_task(self.get_peers_list)
+        asyncio.create_task(self.get_peers_list())
 
 
-    async def get_peers_list(self, widget):
+    async def get_peers_list(self):
         peerinfo, _ = await self.commands.getPeerinfo()
         if peerinfo:
             peerinfo = json.loads(peerinfo)
@@ -1325,10 +1325,10 @@ class Peer(Window):
                     self.add_peer(node)
         self.main_box.add(self.main_scroll)
         self.show()
-        self.app.add_background_task(self.updating_peers_list)
+        asyncio.create_task(self.updating_peers_list())
 
 
-    async def updating_peers_list(self, widget):
+    async def updating_peers_list(self):
         while True:
             if not self.main.peer_toggle:
                 return

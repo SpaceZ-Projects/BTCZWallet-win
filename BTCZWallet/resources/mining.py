@@ -631,7 +631,7 @@ class Mining(Box):
             self.ssl_switch.value = False
             self.ssl_switch.enabled = False
         
-        pools_data = self.get_pools_data()
+        pools_data = self.utils.get_pools_data()
         if self.selected_pool in pools_data:
             self.pool_api = pools_data[self.selected_pool]["api"]
             self.pool_port = pools_data[self.selected_pool]["port"]
@@ -642,20 +642,10 @@ class Mining(Box):
         else:
             self.pool_region_selection.items.clear()
             self.pool_region_selection.enabled = False
-
-
-    def get_pools_data(self):
-        try:
-            pools_json = Os.Path.Combine(str(self.app.paths.app), 'resources', 'pools.json')
-            with open(pools_json, 'r') as f:
-                pools_data = json.load(f)
-                return pools_data
-        except (FileNotFoundError, json.JSONDecodeError):
-            return None
         
 
     def get_pools_list(self):
-        pools_data = self.get_pools_data()
+        pools_data = self.utils.get_pools_data()
         if pools_data:
             pool_items = [{"pool": pool} for pool in pools_data.keys()]
             return pool_items
