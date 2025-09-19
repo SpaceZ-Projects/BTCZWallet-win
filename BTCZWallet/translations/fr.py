@@ -269,7 +269,7 @@ translations = {
     "id_label": {"text": "ID :", "padding": (9,0,0,10)},
     "id_value": {"align": LEFT},
     "username_value": {"align": LEFT},
-    "category_icon": {"padding": (0,0,0,10)},
+    "category_icon": {"padding": (7,0,0,10)},
     "unread_label": {"text": "--Messages non lus--"},
     "edituser_window": {"title": "Modifier le nom d'utilisateur"},
     "ban_contact_cmd": {"text": "Bannir le contact"},

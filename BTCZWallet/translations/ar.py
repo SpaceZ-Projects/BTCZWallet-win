@@ -269,7 +269,7 @@ translations = {
     "id_label": {"text": ": المعرف", "padding": (9,10,0,0)},
     "id_value": {"align": RIGHT},
     "username_value": {"align": RIGHT},
-    "category_icon": {"padding": (0,10,0,0)},
+    "category_icon": {"padding": (7,10,0,0)},
     "unread_label": {"text": "--الرسائل غير المقروءة--"},
     "edituser_window": {"title": "تغيير اسم المستخدم"},
     "ban_contact_cmd": {"text": "حظر المستخدم"},

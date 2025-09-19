@@ -268,7 +268,7 @@ translations = {
     "id_label": {"text": "ID :", "padding": (9,0,0,10)},
     "id_value": {"align": LEFT},
     "username_value": {"align": LEFT},
-    "category_icon": {"padding": (0,0,0,10)},
+    "category_icon": {"padding": (7,0,0,10)},
     "unread_label": {"text": "--Unread Messages--"},
     "edituser_window": {"title": "Edit Username"},
     "ban_contact_cmd": {"text": "Ban contact"},
