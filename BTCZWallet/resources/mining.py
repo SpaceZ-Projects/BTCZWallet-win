@@ -16,7 +16,7 @@ from toga.style.pack import Pack
 from toga.constants import COLUMN, CENTER, BOLD, ROW
 from toga.colors import rgb, GRAY, WHITE, GREENYELLOW, BLACK, RED
 
-from .storage import StorageMessages, StorageAddresses
+from .storage import StorageMessages, StorageAddresses, StorageMobile
 
 
 class Mining(Box):
@@ -54,6 +54,7 @@ class Mining(Box):
 
         self.storage = StorageMessages(self.app)
         self.addresses_storage = StorageAddresses(self.app)
+        self.mobile_storage = StorageMobile(self.app)
         self.tooltip = ToolTip()
 
         self.rtl = None
@@ -870,6 +871,13 @@ class Mining(Box):
                             self.main.notifymining.immature.text = f"🔃 {immature_text} {self.units.format_balance(immature_bal)}"
                             self.main.notifymining.paid.text = f"💸 {paid_text} {self.units.format_balance(paid)}"
 
+                            self.store_mining_stats(
+                                self.selected_miner, self.selected_address, self.selected_pool,
+                                self.pool_region_selection.value.region,
+                                self.worker_name, total_share, balance, immature_bal,
+                                paid, converted_rate, estimated_24h
+                            )
+
                 except ProxyConnectionError:
                     self.app.console.error_log("Proxy connection failed")
                 except aiohttp.ClientError as e:
@@ -880,6 +888,18 @@ class Mining(Box):
                     self.app.console.error_log(f"{e}")
 
                 await asyncio.sleep(60)
+
+
+    def store_mining_stats(self, miner, address, pool, region, worker, shares, balance, immature, paid, solutions, reward):
+        mining_stats = self.mobile_storage.get_mining_stats()
+        if mining_stats:
+            self.mobile_storage.update_mining_stats(
+                miner, address, pool, region, worker, shares, balance, immature, paid, solutions, reward
+            )
+        else:
+            self.mobile_storage.insert_mining_stats(
+                miner, address, pool, region, worker, shares, balance, immature, paid, solutions, reward
+            )
 
 
     def reset_miner_notify_stats(self):

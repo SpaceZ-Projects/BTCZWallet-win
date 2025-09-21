@@ -396,6 +396,7 @@ class MobileServer():
         self.flask.add_url_rule('/status', 'status', self.handle_status, methods=['GET'])
         self.flask.add_url_rule('/addresses', 'addresses', self.handle_addresses, methods=['GET'])
         self.flask.add_url_rule('/balances', 'balances', self.handle_balances, methods=['GET'])
+        self.flask.add_url_rule('/mining', 'mining', self.handle_mining, methods=['GET'])
         self.flask.add_url_rule('/transactions', 'transactions', self.handle_transactions, methods=['GET'])
         self.flask.add_url_rule('/cashout', 'cashout', self.handle_cashout, methods=['GET'])
         self.flask.before_request(self.log_request)
@@ -413,6 +414,7 @@ class MobileServer():
                 f"[MOBILE]{request.remote_addr} {request.method} {request.path}"
             )
     
+
     def handle_status(self):
         mobile_ids = self.mobile_storage.get_auth_ids()
         valid, response = verify_signature(mobile_ids, self.mobile_storage)
@@ -448,6 +450,34 @@ class MobileServer():
         tbalance = self.addresses_storage.get_address_balance(taddress)
         zbalance = self.addresses_storage.get_address_balance(zaddress)
         return jsonify({'transparent': tbalance, 'shielded': zbalance}), 200
+    
+
+    def handle_mining(self):
+        mobile_ids = self.mobile_storage.get_auth_ids()
+        valid, response = verify_signature(mobile_ids, self.mobile_storage)
+        if not valid:
+            return response
+        if not self.main.mining_page.mining_status:
+            return jsonify({"error": "Mining is currently turned off"}), 400
+        
+        stats = self.mobile_storage.get_mining_stats()
+        if stats:
+            mining_dict = {
+                "miner": stats[0],
+                "address": stats[1],
+                "pool": stats[2],
+                "region": stats[3],
+                "worker": stats[4],
+                "shares": stats[5],
+                "balance": stats[6],
+                "immature": stats[7],
+                "paid": stats[8],
+                "solutions": stats[9],
+                "reward": stats[10],
+            }
+            return jsonify(mining_dict)
+
+        return jsonify({"error": "No mining stats found"}), 404
     
 
     def handle_transactions(self):
