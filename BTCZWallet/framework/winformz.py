@@ -187,6 +187,7 @@ class Keys:
     F5 = Forms.Keys.F5
     F12 = Forms.Keys.F12
     A = Forms.Keys.A
+    B = Forms.Keys.B
     C = Forms.Keys.C
     Q = Forms.Keys.Q
     N = Forms.Keys.N
@@ -1194,6 +1195,24 @@ class Table(Forms.DataGridView):
         for index, column_type in self._column_types.items():
             if 0 <= index < self.ColumnCount:
                 self.Columns[index].ColumnType = column_type
+
+    def _update_commands_menu(self):
+        if self._commands:
+            self.context_menu = Forms.ContextMenuStrip()
+            for command in self._commands:
+                self.context_menu.Items.Add(command)
+            self.ContextMenuStrip = self.context_menu
+        else:
+            self.ContextMenuStrip = None
+
+    @property
+    def commands(self) -> Optional[List[type]]:
+        return self._commands
+
+    @commands.setter
+    def commands(self, value: Optional[List[type]]):
+        self._commands = value
+        self.Invoke(Forms.MethodInvoker(self._update_commands_menu))
 
     def disable_sorting(self):
         for column in self.Columns:

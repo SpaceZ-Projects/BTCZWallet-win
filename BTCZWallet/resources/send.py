@@ -20,6 +20,7 @@ from toga.colors import (
     rgb, GRAY, WHITE, YELLOW, BLACK, RED, GREENYELLOW
 )
 
+from .wallet import AddressBook
 from .storage import StorageMessages, StorageTxs, StorageAddresses
 
 
@@ -231,7 +232,7 @@ class CashOut(Window):
                                     self.app.console.info_log(f"TX: {txid}")
                                 if self.uaddress.startswith('z'):
                                     self.store_shielded_transaction(self.uaddress, txid, self.amount, self.txfee)
-                                asyncio.create_task(self.show_success_result())
+                                self.app.loop.create_task(self.show_success_result())
                                 return
                             await asyncio.sleep(3)
                     else:
@@ -276,7 +277,7 @@ class CashOut(Window):
                                     self.app.console.info_log(f"TX: {txid}")
                                 if self.uaddress.startswith('z'):
                                     self.store_shielded_transaction(self.uaddress, txid, self.total_amount, 0.0001)
-                                asyncio.create_task(self.show_success_result())
+                                self.app.loop.create_task(self.show_success_result())
                                 return
                             await asyncio.sleep(3)
                     else:
@@ -593,6 +594,18 @@ class Send(Box):
             self.destination_input_many._impl.native.RightToLeft = RightToLeft.YES
         self.destination_input_many.placeholder = self.tr.text("destination_input_many")
 
+        self.address_book = ImageView(
+            image="images/address_book.png",
+            style=Pack(
+                background_color = rgb(30,33,36),
+                width = 32,
+                height = 32,
+                padding= self.tr.padding("is_valid")
+            )
+        )
+        self.tooltip.insert(self.address_book._impl.native, "Address book")
+        self.address_book._impl.native.Click += self.show_address_book
+
         self.is_valid = ImageView(
             style=Pack(
                 background_color = rgb(30,33,36),
@@ -603,7 +616,7 @@ class Send(Box):
         )
         self.is_valid_box = Box(
             style=Pack(
-                direction = COLUMN,
+                direction = ROW,
                 background_color = rgb(30,33,36),
                 flex = 1,
                 alignment = self.tr.align("is_valid_box")
@@ -865,6 +878,7 @@ class Send(Box):
                 self.is_valid_box
             )
         self.is_valid_box.add(
+            self.address_book,
             self.is_valid
         )
         if self.rtl:
@@ -1241,6 +1255,7 @@ class Send(Box):
             else:
                 self.address_balance.style.color = GRAY
                 self.address_balance.text = self.tr.text("address_balance_value")
+
             await asyncio.sleep(3)
 
 
@@ -1286,6 +1301,26 @@ class Send(Box):
                 self.many_option.value = True
 
 
+    def show_address_book(self, sender, event):
+        if self.single_option.value is True:
+            option = "single"
+            widget = self.destination_input_single._impl.native
+        else:
+            option = "many"
+            widget = self.destination_input_many._impl.native
+
+        width = widget.Size.Width
+        height = 187
+
+        location = self.main._impl.native.PointToScreen(widget.Location)
+        x = location.X
+        y = location.Y + 30
+        book_window = AddressBook(
+            self.main, self.utils, self.commands, self.font, self.tr, option, (width, height),(x,y)
+        )
+        book_window.show()
+
+
     def split_option_on_change(self, switch):
         if switch.value is True:
             self.each_option.value = False
@@ -1318,7 +1353,7 @@ class Send(Box):
 
 
     async def is_valid_address(self, input):
-        address = self.destination_input_single.value
+        address = self.destination_input_single.value.strip()
         if not address:
             self.is_valid.image = None
             return

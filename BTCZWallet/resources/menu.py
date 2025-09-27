@@ -22,7 +22,7 @@ from toga.constants import (
 from .toolbar import AppToolBar
 from .status import AppStatusBar
 from .notify import Notify, NotifyMining, NotifyMarket, NotifyMobile
-from .wallet import Wallet, ImportKey, ImportWallet
+from .wallet import Wallet, ImportKey, ImportWallet, AddressBook
 from .home import Home, Currency, Languages
 from .txs import Transactions
 from .receive import Receive
@@ -66,6 +66,7 @@ class Menu(Window):
         self._is_active = False
         self.import_key_toggle = None
         self.peer_toggle = None
+        self.book_toggle = None
         self.marketplace_toggle = None
         self.mobile_toggle = None
         self.console_toggle = None
@@ -313,17 +314,17 @@ class Menu(Window):
         self.send_button_toggle = None
         self.message_button_toggle = None
         self.mining_button_toggle = None
-        asyncio.create_task(self.set_default_page())
+        self.app.loop.create_task(self.set_default_page())
 
     async def set_default_page(self):
         await asyncio.sleep(0.5)
         self.home_button_click(self)
         self.add_actions_cmds()
-        asyncio.create_task(self.transactions_page.run_tasks())
+        self.app.loop.create_task(self.transactions_page.run_tasks())
         await asyncio.sleep(1)
-        asyncio.create_task(self.message_page.gather_unread_memos())
+        self.app.loop.create_task(self.message_page.gather_unread_memos())
         await asyncio.sleep(1)
-        asyncio.create_task(self.updating_orders_status())
+        self.app.loop.create_task(self.updating_orders_status())
 
     def add_actions_cmds(self):
         if self.settings.hidden_balances():
@@ -357,6 +358,7 @@ class Menu(Window):
         self.toolbar.tor_config_cmd.action = self.show_tor_config
         self.toolbar.currency_cmd.action = self.show_currencies_list
         self.toolbar.languages_cmd.action = self.show_languages
+        self.toolbar.address_book_cmd.action = self.show_address_book
         self.toolbar.generate_t_cmd.action = self.new_transparent_address
         self.toolbar.generate_z_cmd.action = self.new_shielded_address
         self.toolbar.check_update_cmd.action = self.check_app_version
@@ -432,6 +434,15 @@ class Menu(Window):
     def show_languages(self, sender, event):
         self.languages_window = Languages(self, self.settings, self.utils, self.tr, self.font)
         self.languages_window._impl.native.ShowDialog(self._impl.native)
+
+    def show_address_book(self, sender, event):
+        if not self.book_toggle:
+            book_window = AddressBook(self, self.utils, self.commands, self.font, self.tr)
+            book_window.show()
+            self.book_window = book_window
+            self.book_toggle = True
+        else:
+            self.book_window._impl.native.Activate()
 
     def show_peer_info(self, sender, event):
         if not self.peer_toggle:
@@ -968,7 +979,7 @@ class Menu(Window):
         self.app.console.info_log(f"Show app notifcation...")
         self.notify.show()
         self._impl.native.TopMost = False
-        asyncio.create_task(self.read_uri_file())
+        self.app.loop.create_task(self.read_uri_file())
 
 
     async def read_uri_file(self):

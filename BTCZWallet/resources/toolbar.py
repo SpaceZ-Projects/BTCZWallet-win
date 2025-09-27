@@ -440,6 +440,17 @@ class AppToolBar(Box):
             rtl = self.rtl
         )
 
+        self.address_book_cmd = Command(
+            title="Address book",
+            background_color=Color.rgb(40,43,48),
+            color=Color.WHITE,
+            icon="images/address_book_i.ico",
+            mouse_enter=self.address_book_cmd_mouse_enter,
+            mouse_leave=self.address_book_cmd_mouse_leave,
+            shortcut_key=Keys.Control | Keys.Shift | Keys.B,
+            font=self.font.get(9),
+            rtl = self.rtl
+        )
         self.generate_t_cmd = Command(
             title=self.tr.text("generate_t_cmd"),
             background_color=Color.rgb(40,43,48),
@@ -519,6 +530,7 @@ class AppToolBar(Box):
             mouse_enter=self.wallet_menu_mouse_enter,
             mouse_leave=self.wallet_menu_mouse_leave,
             sub_commands=[
+                self.address_book_cmd,
                 self.generate_address_cmd,
                 self.import_key_cmd,
                 self.export_wallet_cmd,
@@ -921,6 +933,14 @@ class AppToolBar(Box):
             return
         self.messages_menu.icon = "images/messages_conf_i.ico"
         self.messages_menu.color = Color.WHITE
+
+    def address_book_cmd_mouse_enter(self):
+        self.address_book_cmd.icon = "images/address_book_a.ico"
+        self.address_book_cmd.color = Color.BLACK
+
+    def address_book_cmd_mouse_leave(self):
+        self.address_book_cmd.icon = "images/address_book_i.ico"
+        self.address_book_cmd.color = Color.WHITE
 
     def generate_address_cmd_opened(self):
         self.generate_address_cmd_active = True

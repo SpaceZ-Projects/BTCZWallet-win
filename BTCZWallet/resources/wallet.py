@@ -1,13 +1,15 @@
 
 import asyncio
+import json
 
 from toga import (
     App, Box, Label, Window, TextInput,
-    Button, ProgressBar
+    Button, ProgressBar, ImageView
 )
 from ..framework import (
     Cursors, FlatStyle, Forms, ProgressStyle, Os, DockStyle,
-    BTCZControl
+    BTCZControl, Color, FormBorderStyle, Drawing, Table,
+    BorderStyle, SelectMode, AlignTable, Keys, Command
 )
 from toga.style.pack import Pack
 from toga.colors import (
@@ -15,7 +17,7 @@ from toga.colors import (
 )
 from toga.constants import (
     TOP, ROW, COLUMN, RIGHT, CENTER,
-    BOTTOM, HIDDEN, VISIBLE
+    BOTTOM, HIDDEN, VISIBLE, LEFT
 )
 
 from .storage import StorageAddresses
@@ -274,10 +276,11 @@ class Wallet(Box):
             self.shielded_label,
             self.shielded_value
         )
-        asyncio.create_task(self.get_node_version())
-        asyncio.create_task(self.update_total_balances())
-        asyncio.create_task(self.update_transparent_addresses())
-        asyncio.create_task(self.update_shielded_addresses())
+
+        self.app.loop.create_task(self.get_node_version())
+        self.app.loop.create_task(self.update_total_balances())
+        self.app.loop.create_task(self.update_transparent_addresses())
+        self.app.loop.create_task(self.update_shielded_addresses())
 
 
     async def get_node_version(self):
@@ -401,9 +404,570 @@ class Wallet(Box):
         elif option == "update":
             self.addresses_storage.update_balance(address, balance)
 
+
+
+
+
+class AddAddress(Window):
+    def __init__(self, book_window:Window, utils, commands, font, tr):
+        super().__init__(
+            size = (550, 200),
+            resizable=False
+        )
+
+        self.book_window = book_window
+        self.utils = utils
+        self.commands = commands
+        self.font = font
+        self.tr = tr
+
+        self.storage = StorageAddresses(self.app)
+        self.is_valid_toggle = None
+
+        self.title = "Add Address"
+        position_center = self.utils.windows_screen_center(self.book_window, self)
+        self.position = position_center
+        self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
+
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
+
+        self.main_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                alignment = CENTER
+            )
+        )
+
+        self.name_label = Label(
+            text="Name :",
+            style=Pack(
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                text_align = CENTER,
+                flex = 1
+            )
+        )
+        self.name_label._impl.native.Font = self.font.get(11, True)
+
+        self.name_input = TextInput(
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                text_align = CENTER,
+                width = 250,
+                padding = (0,150,0,0)
+            )
+        )
+        self.name_input._impl.native.Font = self.font.get(11, True)
+
+        self.name_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                flex = 1,
+                padding = (10,0,0,0)
+            )
+        )
+
+        self.address_label = Label(
+            text="Address :",
+            style=Pack(
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                text_align = CENTER,
+                flex = 1
+            )
+        )
+        self.address_label._impl.native.Font = self.font.get(11, True)
+
+        self.address_input = TextInput(
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(30,33,36),
+                text_align = CENTER,
+                width = 350
+            ),
+            on_change=self.is_valid_address
+        )
+        self.address_input._impl.native.Font = self.font.get(11, True)
+
+        self.is_valid = ImageView(
+            style=Pack(
+                background_color = rgb(30,33,36),
+                width = 30,
+                height = 30,
+                padding = (0,10,0,10)
+            )
+        )
+
+        self.address_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                flex = 1
+            )
+        )
+
+        self.cancel_button = Button(
+            text=self.tr.text("cancel_button"),
+            style=Pack(
+                color = RED,
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                width = 100
+            ),
+            on_press=self.close_add_window
+        )
+        self.cancel_button._impl.native.Font = self.font.get(self.tr.size("cancel_button"), True)
+        self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.cancel_button._impl.native.MouseEnter += self.cancel_button_mouse_enter
+        self.cancel_button._impl.native.MouseLeave += self.cancel_button_mouse_leave
+
+        self.confirm_button = Button(
+            text=self.tr.text("confirm_button"),
+            style=Pack(
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                padding = (0,0,0,20),
+                width = 100
+            ),
+            on_press=self.confirm_address
+        )
+        self.confirm_button._impl.native.Font = self.font.get(self.tr.size("confirm_button"), True)
+        self.confirm_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.confirm_button._impl.native.MouseEnter += self.confirm_button_mouse_enter
+        self.confirm_button._impl.native.MouseLeave += self.confirm_button_mouse_leave
+
+        self.buttons_box = Box(
+            style=Pack(
+                direction = ROW,
+                alignment =CENTER,
+                background_color = rgb(30,33,36),
+                height = 40,
+                padding = (15,0,10,0)
+            )
+        )
+
+        self.content = self.main_box
+
+        self.main_box.add(
+            self.name_box,
+            self.address_box,
+            self.buttons_box
+        )
+        self.name_box.add(
+            self.name_label,
+            self.name_input
+        )
+        self.address_box.add(
+            self.address_label,
+            self.address_input,
+            self.is_valid
+        )
+        self.buttons_box.add(
+            self.cancel_button,
+            self.confirm_button
+        )
+
+
+    async def confirm_address(self, button):
+        name = self.name_input.value.strip()
+        address = self.address_input.value.strip()
+        if not name or not address:
+            self.error_dialog(
+                title="Missing Requirments",
+                message="Name and Address is required"
+            )
+            return
+        elif not self.is_valid_toggle:
+            self.error_dialog(
+                title=self.tr.title("invalidaddress_dialog"),
+                message=self.tr.message("invalidaddress_dialog")
+            )
+            return
+        address_book = self.storage.get_address_book("address")
+        if address in address_book:
+            self.error_dialog(
+                title="Address Exists",
+                message="This address is already exists"
+            )
+            return
+        address_book = self.storage.get_address_book("name")
+        if name in address_book:
+            self.error_dialog(
+                title="Name Exists",
+                message="This name is already exists"
+            )
+            return
+        self.storage.insert_book(name, address)
+        self.close()
+        self.book_window.realod_address_book()
+        
+
+    async def is_valid_address(self, input):
+        address = self.address_input.value.strip()
+        if not address:
+            self.is_valid.image = None
+            return
+        if address.startswith("t"):
+            result, _ = await self.commands.validateAddress(address)
+        elif address.startswith("z"):
+            result, _ = await self.commands.z_validateAddress(address)
+        else:
+            self.is_valid.image = "images/notvalid.png"
+            return
+        if result is not None:
+            result = json.loads(result)
+            is_valid = result.get('isvalid')
+            if is_valid is True:
+                self.is_valid.image = "images/valid.png"
+                self.is_valid_toggle = True
+            elif is_valid is False:
+                self.is_valid.image = "images/notvalid.png"
+                self.is_valid_toggle = None
+
+
+    def confirm_button_mouse_enter(self, sender, event):
+        self.confirm_button.style.color = BLACK
+        self.confirm_button.style.background_color = GREENYELLOW
+
+    def confirm_button_mouse_leave(self, sender, event):
+        self.confirm_button.style.color = GRAY
+        self.confirm_button.style.background_color = rgb(30,33,36)
+
+
+    def cancel_button_mouse_enter(self, sender, event):
+        self.cancel_button.style.color = BLACK
+        self.cancel_button.style.background_color = RED
+
+    def cancel_button_mouse_leave(self, sender, event):
+        self.cancel_button.style.color = RED
+        self.cancel_button.style.background_color = rgb(30,33,36)
+
+
+    def close_add_window(self, button):
+        self.close()
+        self.app.current_window = self.book_window
+
             
 
 
+class AddressBook(Window):
+    def __init__(self, main:Window ,utils, commands, font, tr, option = None, size = None, location = None):
+        super().__init__(
+            resizable=False
+        )
+
+        self.main = main
+        self.utils = utils
+        self.commands = commands
+        self.font = font
+        self.tr = tr
+        self.option = option
+
+        self.storage = StorageAddresses(self.app)
+
+        self.no_addresses_toggle = None
+
+        self.title = "Address Book"
+        self._impl.native.Icon = self.window_icon("images/Book.ico")
+        self.size = (700,400)
+
+        position_center = self.utils.windows_screen_center(self.main, self)
+        self.position = position_center
+        self.on_close = self.close_book_window
+
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
+
+        background_color = (30,33,36)
+        multiselect = False
+        self.column_widths={0:150,1:538}
+        selection_backcolors={
+            0:Color.rgb(15,15,15),
+            1:Color.rgb(40,43,48)
+        }
+
+        if option:
+            self.size = size
+            background_color = (25,25,25)
+            self.column_widths={0:size[0] - 12}
+            selection_backcolors={
+                0:Color.rgb(40,43,48)
+            }
+            self._impl.native.FormBorderStyle = FormBorderStyle.NONE
+            self._impl.native.Location = Drawing.Point(*location)
+            self._impl.native.ShowInTaskbar = False
+            self._impl.native.Deactivate += self._close_address_book
+
+            if option == "many":
+                multiselect = True
+
+
+        self.main_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(*background_color),
+                flex = 1,
+                alignment = CENTER
+            )
+        )
+
+        self.add_button = Button(
+            text="Add Address",
+            style=Pack(
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                width = 100,
+                padding =(5,10,0,10)
+            ),
+            on_press=self.show_add_window
+        )
+        self.add_button._impl.native.Font = self.font.get(9, True)
+        self.add_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.add_button._impl.native.MouseEnter += self.add_button_mouse_enter
+        self.add_button._impl.native.MouseLeave += self.add_button_mouse_leave
+
+        self.empty_label = Label(
+            text="",
+            style=Pack(
+                background_color = rgb(40,43,48),
+                flex = 1
+            )
+        )
+
+        self.menu_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(40,43,48),
+                height = 40,
+                alignment = CENTER
+            )
+        )
+
+        self.no_addresses_label = Label(
+            text="No addresses available",
+            style=Pack(
+                color = GRAY,
+                background_color = rgb(*background_color),
+                text_align = CENTER
+            )
+        )
+        self.no_addresses_label._impl.native.Font = self.font.get(10, True)
+
+        self.empty_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(*background_color),
+                flex = 1,
+                alignment = CENTER
+            )
+        )
+
+        self.book_table = Table(
+            background_color=Color.rgb(*background_color),
+            cell_color=Color.rgb(30,33,36),
+            text_color=Color.GRAY,
+            multiselect=multiselect,
+            dockstyle=DockStyle.FILL,
+            align=AlignTable.MIDCENTER,
+            row_visible=False,
+            column_visible=False,
+            row_heights=35,
+            column_count=2,
+            select_mode=SelectMode.FULLROWSELECT,
+            borderstyle=BorderStyle.NONE,
+            readonly=True,
+            selection_backcolors=selection_backcolors,
+            cell_font=self.font.get(10, True),
+            on_double_click=self.on_table_double_click,
+        )
+        self.book_table.KeyDown += self.table_keydown
+
+        self.book_box = Box(
+            style=Pack(
+                flex = 1,
+                background_color = rgb(*background_color),
+                padding = (5,5,0,5)
+            )
+        )
+
+        self.content = self.main_box
+        self.book_box._impl.native.Controls.Add(self.book_table)
+        if not option:
+            self.main_box.add(
+                self.menu_box,
+            )
+            self.menu_box.add(
+                self.add_button,
+                self.empty_label
+            )
+
+        self.empty_box.add(
+            self.no_addresses_label
+        )
+
+
+        self.insert_book_menustrip()
+        self.load_address_book()
+
+
+    def insert_book_menustrip(self):
+        if not self.option:
+            self.edit_address_cmd = Command(
+                title="Remove address",
+                color=Color.WHITE,
+                background_color=Color.rgb(30,33,36),
+                action=self.remove_address,
+                icon="images/remove_i.ico",
+                mouse_enter=self.edit_address_cmd_mouse_enter,
+                mouse_leave=self.edit_address_cmd_mouse_leave,
+                font=self.font.get(9)
+            )
+            self.book_table.commands = [self.edit_address_cmd]
+    
+    def load_address_book(self):
+        book = []
+        address_book = self.storage.get_address_book()
+        if not address_book:
+            self.main_box.add(
+                self.empty_box
+            )
+            self.no_addresses_toggle = True
+            return
+        self.main_box.add(
+            self.book_box
+        )
+        for data in address_book:
+            name = data[0]
+            address = data[1]
+            if self.option:
+                row = {
+                    "Name": name
+                }
+            else:
+                row = {
+                    "Name": name,
+                    "Address": address
+                }
+            book.append(row)
+        self.book_table.data_source = book
+        self.book_table.column_widths = self.column_widths
+
+
+    def realod_address_book(self):
+        book = []
+        if self.no_addresses_toggle:
+            self.main_box.remove(
+                self.empty_box
+            )
+            self.main_box.add(
+                self.book_box
+            )
+            self.no_addresses_toggle = None
+        address_book = self.storage.get_address_book()
+        if not address_book:
+            self.main_box.remove(
+                self.book_box
+            )
+            self.main_box.add(
+                self.empty_box
+            )
+            self.no_addresses_toggle = True
+            return
+        for data in address_book:
+            name = data[0]
+            address = data[1]
+            row = {
+                    "Name": name,
+                    "Address": address
+                }
+            book.append(row)
+        self.book_table.data_source = book
+        self.book_table.column_widths = self.column_widths
+
+
+    def show_add_window(self, button):
+        add_window = AddAddress(self, self.utils, self.commands, self.font, self.tr)
+        add_window._impl.native.ShowDialog(self._impl.native)
+
+
+    def remove_address(self):
+        selected_cells = self.book_table.selected_cells
+        for cell in selected_cells:
+            if cell.ColumnIndex == 1:
+                address = cell.Value
+                self.storage.delete_address_book(address)
+        self.realod_address_book()
+
+
+    def on_table_double_click(self, sender, event):
+        if self.option == "single":
+            row_index = event.RowIndex
+            name = sender.Rows[row_index].Cells[0].Value
+            address = self.storage.get_address_book(name=name)
+            self.main.send_page.destination_input_single.value = address[0]
+            self.close()
+
+
+    def table_keydown(self, sender, e):
+        if self.option == "many":
+            selected_cells = self.book_table.selected_cells
+            if len(selected_cells) > 1:
+                if e.KeyCode == Keys.Enter:
+                    self.main.send_page.destination_input_many.value = ""
+                    for cell in selected_cells:
+                        name = cell.Value
+                        address = self.storage.get_address_book(name=name)
+                        self.main.send_page.destination_input_many.value += f"{address[0]}\n"
+                    self.close()
+
+
+    def add_button_mouse_enter(self, sender, event):
+        self.add_button.style.color = BLACK
+        self.add_button.style.background_color = GREENYELLOW
+
+    def add_button_mouse_leave(self, sender, event):
+        self.add_button.style.color = GRAY
+        self.add_button.style.background_color = rgb(30,33,36)
+
+    def edit_address_cmd_mouse_enter(self):
+        self.edit_address_cmd.icon = "images/remove_a.ico"
+        self.edit_address_cmd.color = Color.BLACK
+
+    def edit_address_cmd_mouse_leave(self):
+        self.edit_address_cmd.icon = "images/remove_i.ico"
+        self.edit_address_cmd.color = Color.WHITE
+
+
+    def window_icon(self, path):
+        icon_path = Os.Path.Combine(str(self.app.paths.app), path)
+        icon = Drawing.Icon(icon_path)
+        return icon
+
+
+    def _close_address_book(self, sender, event):
+        try:
+            self.close()
+        except Exception:
+            pass
+
+    def close_book_window(self, widget):
+        self.main.book_toggle = None
+        self.close()
+        self.app.current_window = self.main
+        
 
 
 class ImportKey(Window):
@@ -541,10 +1105,10 @@ class ImportKey(Window):
         self.key_input.readonly = True
         self.cancel_button.enabled = False
         self.main.import_key_toggle = True
-        self.app.add_background_task(self.import_private_key)
+        self.app.loop.create_task(self.import_private_key())
 
 
-    async def import_private_key(self, widget):
+    async def import_private_key(self):
         def on_result(widget, result):
             if result is None:
                 self.main.import_key_toggle = None
@@ -784,10 +1348,10 @@ class ImportWallet(Window):
         self.file_input._impl.native.AllowDrop = False
         self.cancel_button.enabled = False
         self.main.import_key_toggle = True
-        self.app.add_background_task(self.import_wallet_file)
+        self.app.loop.create_task(self.import_wallet_file())
 
 
-    async def import_wallet_file(self, widget):
+    async def import_wallet_file(self):
         file_path = self.file_input.value
         await self.commands.z_ImportWallet(file_path) 
         await self.update_import_window()
