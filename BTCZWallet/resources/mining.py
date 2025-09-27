@@ -1,6 +1,5 @@
 
 import asyncio
-import json
 import psutil
 import subprocess
 import re
@@ -217,6 +216,7 @@ class Mining(Box):
 
         self.ssl_switch = Switch(
             text=" SSL",
+            value=False,
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,33,36),
@@ -569,7 +569,7 @@ class Mining(Box):
     def insert_widgets(self):
         if not self.mining_toggle:
             self.mining_toggle = True
-            asyncio.create_task(self.update_mining_options())
+            self.app.loop.create_task(self.update_mining_options())
 
 
 
@@ -625,12 +625,6 @@ class Mining(Box):
         self.selected_pool = self.pool_selection.value.pool
         if not self.selected_pool:
             return
-        
-        if self.selected_pool == "Zergpool":
-            self.ssl_switch.enabled = True
-        else:
-            self.ssl_switch.value = False
-            self.ssl_switch.enabled = False
         
         pools_data = self.utils.get_pools_data()
         if self.selected_pool in pools_data:
@@ -703,8 +697,6 @@ class Mining(Box):
                 self.miner_command += f'{self.selected_address}.{self.worker_name}@{self.selected_server}:{self.pool_port}  --logfile {log_file}'
                 if self.selected_pool == "Zpool":
                     self.miner_command += ' --pass c=BTCZ,zap=BTCZ --pers auto'
-                elif self.selected_pool == "Zergpool":
-                    self.miner_command += ' --pass c=BTCZ,mc=BTCZ --pers BitcoinZ'
                 else:
                     self.miner_command += ' --pass x --par 144,5 --pers BitcoinZ'
                 if self.tor_enabled:
@@ -718,8 +710,6 @@ class Mining(Box):
                     self.pool_port = self.pool_ssl
                 if self.selected_pool == "Zpool":
                     self.miner_command += f'.{self.worker_name} --pass c=BTCZ,zap=BTCZ --algo 144_5 --pers auto'
-                elif self.selected_pool == "Zergpool":
-                    self.miner_command += f' --pass c=BTCZ,mc=BTCZ,ID={self.worker_name} --algo 144_5 --pers BitcoinZ'
                 else:
                     self.miner_command += f'.{self.worker_name} --pass x --algo 144_5 --pers BitcoinZ'
                 self.miner_command += f' --port {self.pool_port}'
@@ -735,15 +725,13 @@ class Mining(Box):
                 self.miner_command += f'{self.selected_server}:{self.pool_port} --log "on" --logfile {log_file} --user {self.selected_address}'
                 if self.selected_pool == "Zpool":
                     self.miner_command += f'.{self.worker_name} --pass c=BTCZ,zap=BTCZ --pers BitcoinZ --algo EQUI144_5'
-                elif self.selected_pool == "Zergpool":
-                    self.miner_command += f' --pass c=BTCZ,mc=BTCZ,ID={self.worker_name} --pers BitcoinZ --algo EQUI144_5'
                 else:
                     self.miner_command += f'.{self.worker_name} --pass x --pers BitcoinZ --algo EQUI144_5'
                 if self.tor_enabled:
                     self.miner_command += ' --socks5 127.0.0.1:9050'
 
             self.disable_mining_inputs()
-            asyncio.create_task(self.start_mining_command(self.app))
+            self.app.loop.create_task(self.start_mining_command(self.app))
             self.settings.save_mining_options(
                 self.selected_miner,
                 self.selected_address,
@@ -753,7 +741,7 @@ class Mining(Box):
                 self.worker_name
             )
             self.mining_status = True
-            self.fetch_stats_task = asyncio.create_task(self.fetch_miner_stats())
+            self.fetch_stats_task = self.app.loop.create_task(self.fetch_miner_stats())
 
 
     async def start_mining_command(self, app):

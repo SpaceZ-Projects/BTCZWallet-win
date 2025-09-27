@@ -27,6 +27,14 @@
         {"region": "USA", "server": "zeropool.io:1235"}
       ]
     },
+    "Zeropool (Solo)": {
+      "api": "https://solo.zeropool.io/api/worker_stats?",
+      "port": "4235",
+      "ssl": "",
+      "regions": [
+        {"region": "USA", "server": "solo.zeropool.io:4235"}
+      ]
+    },
     "PCmining": {
       "api": "https://btcz.pcmining.xyz/api/worker_stats?",
       "port": "3333",
@@ -41,16 +49,6 @@
       "ssl": "",
       "regions": [
         {"region": "USA", "server": "142.4.211.28"}
-      ]
-    },
-    "Zergpool": {
-      "api": "https://zergpool.com/api/walletEx?address=",
-      "port": "2146",
-      "ssl": "12146",
-      "regions": [
-        {"region": "North America", "server": "equihash144.na.mine.zergpool.com"},
-        {"region": "Europe", "server": "equihash144.eu.mine.zergpool.com"},
-        {"region": "Asia", "server": "equihash144.asia.mine.zergpool.com"}
       ]
     },
     "Zpool": {
