@@ -106,7 +106,7 @@ class BTCZSetup(Box):
             self.progress_box
         )
 
-        asyncio.create_task(self.check_network())
+        self.app.loop.create_task(self.check_network())
 
 
     def update_info_box(self):
@@ -323,14 +323,14 @@ class BTCZSetup(Box):
                         if tor_running:
                             self.status_label.text = self.tr.text("tor_success")
                             await asyncio.sleep(1)
-                            asyncio.create_task(self.keep_tor_alive())
+                            self.app.loop.create_task(self.keep_tor_alive())
                             if not self.node_status:
                                 await self.check_binary_files()
                         else:
                             self.status_label.text = self.tr.text("tor_failed")
                             self.utils.stop_tor()
                             await asyncio.sleep(1)
-                            asyncio.create_task(self.execute_tor())
+                            self.app.loop.create_task(self.execute_tor())
                 except asyncio.TimeoutError as e:
                     self.app.console.error_log(e)
                     self.status_label.text = self.tr.text("tor_timeout")
@@ -456,7 +456,7 @@ class BTCZSetup(Box):
     
     async def check_bockchaine_index(self):
         if self.blockchaine_index:
-            asyncio.create_task(self.execute_bitcoinz_node())
+            self.app.loop.create_task(self.execute_bitcoinz_node())
         else:
             self.main.question_dialog(
                 title=self.tr.title("bootstarp_dialog"),
@@ -466,9 +466,9 @@ class BTCZSetup(Box):
 
     def download_bootstrap_dialog(self, widget, result):
         if result is True:
-            asyncio.create_task(self.download_bitcoinz_bootstrap())
+            self.app.loop.create_task(self.download_bitcoinz_bootstrap())
         elif result is False:
-            asyncio.create_task(self.execute_bitcoinz_node())
+            self.app.loop.create_task(self.execute_bitcoinz_node())
 
 
     async def download_bitcoinz_bootstrap(self):
@@ -493,7 +493,7 @@ class BTCZSetup(Box):
             self.status_label,
             self.progress_bar
         )
-        asyncio.create_task(self.execute_bitcoinz_node())
+        self.app.loop.create_task(self.execute_bitcoinz_node())
 
 
     async def execute_bitcoinz_node(self):

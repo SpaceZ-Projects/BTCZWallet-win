@@ -25,7 +25,7 @@ from ..framework import (
 
 
 class Utils():
-    def __init__(self, app:App, settings, units, tr):
+    def __init__(self, app:App, settings = None, units=None, tr=None):
         super().__init__()
 
         self.app = app
@@ -39,10 +39,11 @@ class Utils():
         self.tr = tr
 
         self.rtl = None
-        lang = self.settings.language()
-        if lang:
-            if lang == "Arabic":
-                self.rtl = True
+        if self.settings:
+            lang = self.settings.language()
+            if lang:
+                if lang == "Arabic":
+                    self.rtl = True
 
         if not Os.Directory.Exists(str(self.app_data)):
             Os.Directory.CreateDirectory(str(self.app_data))

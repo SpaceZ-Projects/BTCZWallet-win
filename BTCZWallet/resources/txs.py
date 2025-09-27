@@ -519,13 +519,13 @@ class Transactions(Box):
 
 
     async def run_tasks(self):
-        asyncio.create_task(self.gather_transparent_transactions())
+        self.app.loop.create_task(self.gather_transparent_transactions())
         await asyncio.sleep(0.5)
-        asyncio.create_task(self.update_unconfirmed_transactions())
+        self.app.loop.create_task(self.update_unconfirmed_transactions())
         await asyncio.sleep(0.5)
-        asyncio.create_task(self.gather_shielded_transactions())
+        self.app.loop.create_task(self.gather_shielded_transactions())
         await asyncio.sleep(1)
-        asyncio.create_task(self.update_transactions_table())
+        self.app.loop.create_task(self.update_transactions_table())
 
 
     def insert_widgets(self):
@@ -703,7 +703,7 @@ class Transactions(Box):
                             blocks = self.main.home_page.current_blocks
                         if txid not in stored_transactions:
                             await self.get_block_timestamp(blocks, tx_type, category, address, txid, amount)
-
+                            
             await asyncio.sleep(10)
 
 
@@ -855,7 +855,7 @@ class Transactions(Box):
             if last_visible_row >= total_rows - 1 - threshold:
                 self.scroll_toggle = True
                 self.transactions_from += 50
-                asyncio.create_task(self.get_transactions_archive())
+                self.app.loop.create_task(self.get_transactions_archive())
         except Exception as e:
             print(f"Error: {e}")
 

@@ -224,7 +224,7 @@ translations = {
     "operation_label": {"text": ": حالة العملية", "align": RIGHT},
     "operation_status": {"align": RIGHT},
     "operation_box": {"padding": (0,10,0,0)},
-    "cashout_button": {"text": "صرف", "size": 10, "padding": (10,0,0,10)},
+    "cashout_button": {"text": "صرف", "size": 10, "padding": (0,0,0,10)},
     "send_box": {"align": RIGHT},
     "messages_address_cmd": {"text": "إرسال إلى عنوان الرسائل"},
     "percentage_25_cmd": {"text": "25 من الكمية"},

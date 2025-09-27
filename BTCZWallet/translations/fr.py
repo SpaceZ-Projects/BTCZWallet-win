@@ -224,7 +224,7 @@ translations = {
     "operation_label": {"text": "Statut de l'Opération :", "align": LEFT},
     "operation_status": {"align": LEFT},
     "operation_box": {"padding": (0,0,0,10)},
-    "cashout_button": {"text": "Retrait", "size": 11, "padding": (10,10,0,0)},
+    "cashout_button": {"text": "Retrait", "size": 11, "padding": (0,10,0,0)},
     "send_box": {"align": LEFT},
     "messages_address_cmd": {"text": "Envoyer à l'adresse des messages"},
     "percentage_25_cmd": {"text" : "25 montant"},

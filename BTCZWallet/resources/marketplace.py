@@ -278,7 +278,7 @@ class PlaceOrder(Window):
     def place_order(self, button):
         button.enabled = False
         self.cancel_button.enabled = False
-        asyncio.create_task(self.make_request())
+        self.app.loop.create_task(self.make_request())
 
     async def make_request(self):
         url = f"http://{self.market[0]}/place_order"
@@ -297,9 +297,9 @@ class PlaceOrder(Window):
         self.close()
         self.app.current_window = self.main
         if "failed" in result:
-            asyncio.create_task(self.item_view.failed_dialog())
+            self.app.loop.create_task(self.item_view.failed_dialog())
             return
-        asyncio.create_task(self.item_view.result_dialog())
+        self.app.loop.create_task(self.item_view.result_dialog())
 
 
     def cancel_button_mouse_enter(self, sender, event):
@@ -605,7 +605,7 @@ class ItemView(Box):
             self.total_value
         )
 
-        asyncio.create_task(self.display_image())
+        self.app.loop.create_task(self.display_image())
 
 
     async def display_image(self):
@@ -621,7 +621,7 @@ class ItemView(Box):
             if not self.main.marketplace_toggle:
                 return
             await asyncio.sleep(3)
-            asyncio.create_task(self.display_image())
+            self.app.loop.create_task(self.display_image())
 
 
     async def show_item(self, button):
@@ -1307,8 +1307,8 @@ class MarketView(Window):
         )
         self.items_scroll.content = self.items_list
 
-        asyncio.create_task(self.update_balance())
-        asyncio.create_task(self.get_status())
+        self.app.loop.create_task(self.update_balance())
+        self.app.loop.create_task(self.get_status())
 
 
     async def update_balance(self):
@@ -1338,10 +1338,10 @@ class MarketView(Window):
         self.status_label.text = "Status : Online"
         self.status_label.style.color = GREENYELLOW
 
-        asyncio.create_task(self.update_status())
-        asyncio.create_task(self.get_market_items())
-        asyncio.create_task(self.update_items_list())
-        asyncio.create_task(self.update_orders_list())
+        self.app.loop.create_task(self.update_status())
+        self.app.loop.create_task(self.get_market_items())
+        self.app.loop.create_task(self.update_items_list())
+        self.app.loop.create_task(self.update_orders_list())
 
 
     async def update_status(self, widget):
@@ -1367,7 +1367,7 @@ class MarketView(Window):
         self.menu_box.remove(self.refresh_button)
         self.status_label.text = "Status : Loading..."
         self.status_label.style.color = WHITE
-        asyncio.create_task(self.get_status())
+        self.app.loop.create_task(self.get_status())
 
 
     async def get_market_items(self):
@@ -2846,9 +2846,9 @@ class MarketPlace(Window):
                     self.market_port = port_line.split()[1].split(":")[1] if port_line else ""
                     self.start_server.enabled = True
 
-        asyncio.create_task(self.load_items_list())
-        asyncio.create_task(self.updating_items_list())
-        asyncio.create_task(self.updating_orders_list())
+        self.app.loop.create_task(self.load_items_list())
+        self.app.loop.create_task(self.updating_items_list())
+        self.app.loop.create_task(self.updating_orders_list())
 
 
 
@@ -3007,7 +3007,7 @@ class MarketPlace(Window):
             self.orders_button.on_press = self.show_items_list
             self.items_list.clear()
             self.items_data.clear()
-            asyncio.create_task(self.load_orders_list())
+            self.app.loop.create_task(self.load_orders_list())
 
 
     async def show_items_list(self, button):
@@ -3022,7 +3022,7 @@ class MarketPlace(Window):
             self.orders_button.on_press = self.show_orders_list
             self.items_list.clear()
             self.orders_data.clear()
-            asyncio.create_task(self.load_items_list())
+            self.app.loop.create_task(self.load_items_list())
             self.menu_box.insert(0, self.add_button)
 
 

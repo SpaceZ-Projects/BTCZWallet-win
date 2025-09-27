@@ -24,7 +24,7 @@
       "port": "1235",
       "ssl": "",
       "regions": [
-        {"region": "USA", "server": "zeropool.io:1235"}
+        {"region": "USA", "server": "zeropool.io"}
       ]
     },
     "Zeropool (Solo)": {
@@ -32,7 +32,7 @@
       "port": "4235",
       "ssl": "",
       "regions": [
-        {"region": "USA", "server": "solo.zeropool.io:4235"}
+        {"region": "USA", "server": "solo.zeropool.io"}
       ]
     },
     "PCmining": {

@@ -223,7 +223,7 @@ translations = {
     "operation_label": {"text": "Operation Status :", "align": LEFT},
     "operation_status": {"align": LEFT},
     "operation_box": {"padding": (0,0,0,10)},
-    "cashout_button": {"text": "Cash Out", "size": 11, "padding": (10,10,0,0)},
+    "cashout_button": {"text": "Cash Out", "size": 11, "padding": (0,10,0,0)},
     "send_box": {"align": LEFT},
     "messages_address_cmd": {"text": "Send to messages address"},
     "percentage_25_cmd": {"text": "25 amount"},

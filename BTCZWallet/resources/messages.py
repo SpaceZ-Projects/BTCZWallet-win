@@ -355,10 +355,10 @@ class Indentifier(Window):
             )
             self.username_input.focus()
             return
-        self.app.add_background_task(self.setup_new_identity)
+        self.app.loop.create_task(self.setup_new_identity())
 
 
-    async def setup_new_identity(self, widget):
+    async def setup_new_identity(self):
         category = "individual"
         username = self.username_input.value
         messages_address, _ = await self.commands.z_getNewAddress()
@@ -577,7 +577,7 @@ class Contact(Box):
                 self.unread_messages
             )
         self.insert_contact_menustrip()
-        asyncio.create_task(self.update_contact())
+        self.app.loop.create_task(self.update_contact())
 
 
     def insert_contact_menustrip(self):
@@ -1169,10 +1169,10 @@ class NewContact(Window):
                 message=self.tr.message("addressisbanned_dialog")
             )
             return
-        self.app.add_background_task(self.send_request)
+        self.app.loop.create_task(self.send_request())
 
 
-    async def send_request(self, widget):
+    async def send_request(self):
         destination_address = self.address_input.value
         amount = 0.0001
         txfee = 0.0001
@@ -1805,9 +1805,9 @@ class Chat(Box):
 
 
     def run_tasks(self):
-        asyncio.create_task(self.update_messages_balance())
-        asyncio.create_task(self.waiting_new_memos())
-        asyncio.create_task(self.update_contacts_list())
+        self.app.loop.create_task(self.update_messages_balance())
+        self.app.loop.create_task(self.waiting_new_memos())
+        self.app.loop.create_task(self.update_contacts_list())
         self.load_pending_list()
 
 
@@ -2164,7 +2164,7 @@ class Chat(Box):
         self.messages = self.storage.get_messages(self.contact_id)
         if self.messages:
             messages = sorted(self.messages, key=lambda x: x[3], reverse=False)
-            asyncio.create_task(self.load_messages(messages))
+            self.app.loop.create_task(self.load_messages(messages))
 
 
     async def load_messages(self, messages):
@@ -2187,7 +2187,7 @@ class Chat(Box):
                 Message(self.output_box, self.units, data)
 
         self.loading_toggle = None
-        asyncio.create_task(self.update_current_messages())
+        self.app.loop.create_task(self.update_current_messages())
 
 
     async def update_current_messages(self):
@@ -2457,6 +2457,8 @@ class Chat(Box):
     
     def disable_send_button(self):
         self.send_toggle = True
+        self.send_button.style.color = GRAY
+        self.send_button.style.background_color = rgb(30,33,36)
         self.send_button.text = "Sending..."
         self.send_button.on_press = None
         self.message_input.readonly = True

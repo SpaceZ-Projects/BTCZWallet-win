@@ -13,13 +13,13 @@ from .storage import StorageMobile, StorageTxs, StorageAddresses
 
 
 class AuthQR(Window):
-    def __init__(self, main:Window, utils, font, device_id, device_name, device_secret):
+    def __init__(self, mobile_window:Window, utils, font, device_id, device_name, device_secret):
         super().__init__(
             resizable=False,
             closable=False
         )
 
-        self.main = main
+        self.mobile_window = mobile_window
         self.utils = utils
         self.font = font
 
@@ -31,7 +31,7 @@ class AuthQR(Window):
 
         self.title = f"Device : {device_name}"
         self.size = (450,450)
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.windows_screen_center(self.mobile_window, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -330,19 +330,19 @@ class AuthQR(Window):
 
     def close_auth_qr(self, button):
         self.close()
-        self.app.current_window = self.main
+        self.app.current_window = self.mobile_window
 
 
 
 
 class AddDevice(Window):
-    def __init__(self, main:Window, utils, units, commands, tr, font):
+    def __init__(self, mobile_window:Window, utils, units, commands, tr, font):
         super().__init__(
             resizable=False,
             closable=False
         )
 
-        self.main = main
+        self.mobile_window = mobile_window
         self.utils = utils
         self.units = units
         self.commands = commands
@@ -353,7 +353,7 @@ class AddDevice(Window):
 
         self.title = "Add Device"
         self.size = (450,120)
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.windows_screen_center(self.mobile_window, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -411,7 +411,7 @@ class AddDevice(Window):
                 padding_bottom = 10,
                 width = 100
             ),
-            on_press=self.close_adddevice_window
+            on_press=self.close_add_window
         )
         self.cancel_button._impl.native.Font = self.font.get(self.tr.size("cancel_button"), True)
         self.cancel_button._impl.native.FlatStyle = FlatStyle.FLAT
@@ -507,14 +507,14 @@ class AddDevice(Window):
         self.confirm_button.style.color = GRAY
         self.confirm_button.style.background_color = rgb(30,33,36)
 
-    def close_adddevice_window(self, button):
+    def close_add_window(self, button):
         self.close()
-        self.app.current_window = self.main
+        self.app.current_window = self.mobile_window
 
 
 
 class Device(Box):
-    def __init__(self, app:App, main:Window, utils, font, device, secret):
+    def __init__(self, app:App, mobile_window:Window, utils, font, device, secret):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -526,7 +526,7 @@ class Device(Box):
         )
 
         self.app = app
-        self.main = main
+        self.mobile_window = mobile_window
         self.utils = utils
         self.font = font
         self.storage = StorageMobile(self.app)
@@ -667,8 +667,8 @@ class Device(Box):
 
 
     def show_auth_qr(self, button):
-        auth_window = AuthQR(self.main, self.utils, self.font, self.device_id, self.device_name, self.device_secret)
-        auth_window._impl.native.ShowDialog(self.main._impl.native)
+        auth_window = AuthQR(self.mobile_window, self.utils, self.font, self.device_id, self.device_name, self.device_secret)
+        auth_window._impl.native.ShowDialog(self.mobile_window._impl.native)
 
 
     def remove_device(self, button):
@@ -678,8 +678,8 @@ class Device(Box):
             if result is True:
                 self.storage.delete_device(self.device_id)
                 self.storage.delete_secret(self.device_id)
-                self.main.devices_list.remove(self)
-        self.main.question_dialog(
+                self.mobile_window.devices_list.remove(self)
+        self.mobile_window.question_dialog(
             title="Removing Device",
             message=f"Are you sure you want to remove this device {self.device_name} ?",
             on_result=on_result
@@ -859,9 +859,9 @@ class Mobile(Window):
                     self.mobile_port = port_line.split()[1].split(":")[1] if port_line else ""
                     self.start_server.enabled = True
                     
-        asyncio.create_task(self.updating_devices_status())
-        asyncio.create_task(self.load_devices_list())
-        asyncio.create_task(self.updating_devices_list())
+        self.app.loop.create_task(self.updating_devices_status())
+        self.app.loop.create_task(self.load_devices_list())
+        self.app.loop.create_task(self.updating_devices_list())
 
 
     async def load_devices_list(self):
@@ -932,10 +932,10 @@ class Mobile(Window):
 
 
     def add_new_device(self, button):
-        self.adddevice_window = AddDevice(
+        add_window = AddDevice(
             self, self.utils, self.units, self.commands, self.tr, self.font
         )
-        self.adddevice_window._impl.native.ShowDialog(self._impl.native)
+        add_window._impl.native.ShowDialog(self._impl.native)
 
 
     def start_mobile_server(self, button):         

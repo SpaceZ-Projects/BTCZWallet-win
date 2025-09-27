@@ -1305,7 +1305,7 @@ class Peer(Window):
         )
         self.main_scroll.content = self.peers_box
 
-        asyncio.create_task(self.get_peers_list())
+        self.app.loop.create_task(self.get_peers_list())
 
 
     async def get_peers_list(self):
@@ -1325,7 +1325,7 @@ class Peer(Window):
                     self.add_peer(node)
         self.main_box.add(self.main_scroll)
         self.show()
-        asyncio.create_task(self.updating_peers_list())
+        self.app.loop.create_task(self.updating_peers_list())
 
 
     async def updating_peers_list(self):

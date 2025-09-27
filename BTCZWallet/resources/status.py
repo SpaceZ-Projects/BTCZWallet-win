@@ -188,10 +188,10 @@ class AppStatusBar(Box):
 
     
     def run_statusbar_tasks(self):
-        asyncio.create_task(self.update_blockchaininfo())
-        asyncio.create_task(self.update_networkhash())
-        asyncio.create_task(self.update_connections_count())
-        asyncio.create_task(self.update_deprecationinfo())
+        self.app.loop.create_task(self.update_blockchaininfo())
+        self.app.loop.create_task(self.update_networkhash())
+        self.app.loop.create_task(self.update_connections_count())
+        self.app.loop.create_task(self.update_deprecationinfo())
 
 
     async def update_blockchaininfo(self):

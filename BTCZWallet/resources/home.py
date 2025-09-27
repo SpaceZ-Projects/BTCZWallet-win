@@ -634,10 +634,10 @@ class Home(Box):
     def insert_widgets(self):
         if not self.home_toggle:
             self.home_toggle = True
-            asyncio.create_task(self.update_marketchart())
-            asyncio.create_task(self.update_marketcap())
-            asyncio.create_task(self.update_circulating_supply())
-            asyncio.create_task(self.update_remaining_deprecation())
+            self.app.loop.create_task(self.update_marketchart())
+            self.app.loop.create_task(self.update_marketcap())
+            self.app.loop.create_task(self.update_circulating_supply())
+            self.app.loop.create_task(self.update_remaining_deprecation())
 
 
     
@@ -790,7 +790,7 @@ class Home(Box):
             return
         if not self.circulating_toggle:
             self.circulating_toggle = True
-            asyncio.create_task(self.show_max_emissions())
+            self.app.loop.create_task(self.show_max_emissions())
 
     async def show_max_emissions(self):
         self.circulating_box.add(
