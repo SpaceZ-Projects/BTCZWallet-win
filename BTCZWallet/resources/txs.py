@@ -38,7 +38,7 @@ class Txid(Window):
         self.font = font
 
         self.title = self.tr.title("txinfo_window")
-        position_center = self.utils.window_center_to_parentr(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
 
