@@ -50,7 +50,7 @@ class EditUser(Window):
         self.storage = StorageMessages(self.app)
 
         self.title = self.tr.title("edituser_window")
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -230,7 +230,7 @@ class Indentifier(Window):
         self.storage = StorageMessages(self.app)
 
         self.title = self.tr.title("newmessenger_window")
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -998,7 +998,7 @@ class NewContact(Window):
         self.storage = StorageMessages(self.app)
 
         self.title = self.tr.title("addcontact_window")
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -1260,7 +1260,7 @@ class PendingList(Window):
         self.storage = StorageMessages(self.app)
 
         self.title = self.tr.title("pendinglist_window")
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False

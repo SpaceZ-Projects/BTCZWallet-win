@@ -6,7 +6,8 @@ from toga import (
 )
 from ..framework import (
     Table, DockStyle, BorderStyle, AlignTable,
-    Color, Command, ClipBoard, SelectMode, FlatStyle
+    Color, Command, ClipBoard, SelectMode, FlatStyle,
+    Keys
 )
 from toga.style.pack import Pack
 from toga.constants import COLUMN, ROW, CENTER, TOP
@@ -30,7 +31,7 @@ class QRView(Window):
         
         self.title = "QRCode"
         self.size = (450,400)
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -323,6 +324,7 @@ class Receive(Box):
             cell_font=self.font.get(9, True),
             rtl=self.rtl
         )
+        self.addresses_table.KeyDown += self.table_keydown
 
         self.addresses_list._impl.native.Controls.Add(self.addresses_table)
         self.addresses_box.add(
@@ -513,10 +515,10 @@ class Receive(Box):
 
     def copy_key(self):
         if self.selected_address:
-            self.app.add_background_task(self.get_private_key)
+            self.app.loop.create_task(self.get_private_key())
 
 
-    async def get_private_key(self, widget):
+    async def get_private_key(self):
         if self.transparent_toggle:
             result, _= await self.commands.DumpPrivKey(self.selected_address)
         elif self.shielded_toggle:
@@ -527,6 +529,10 @@ class Receive(Box):
                 title=self.tr.title("copykey_dialog"),
                 message=self.tr.message("copykey_dialog"),
             )
+
+    def table_keydown(self, sender, e):
+        if e.KeyCode == Keys.F5:
+            self.reload_addresses()
     
     
     def reload_addresses(self):

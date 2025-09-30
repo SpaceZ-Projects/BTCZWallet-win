@@ -37,7 +37,7 @@ class AddNode(Window):
 
         self.title = self.tr.title("addnode_window")
         self.size = (550, 120)
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -271,7 +271,7 @@ class TorConfig(Window):
             self.size = (350, 490)
 
         self.title = self.tr.title("torconfig_window")
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -786,11 +786,12 @@ class TorConfig(Window):
 
 
 class NodeInfo(Window):
-    def __init__(self, node, settings, utils, units, tr, font):
+    def __init__(self, peer_window:Window, node, settings, utils, units, tr, font):
         super().__init__(
             resizable=False
         )
-
+        
+        self.peer_window = peer_window
         self.node = node
 
         self.utils = utils
@@ -803,7 +804,7 @@ class NodeInfo(Window):
 
         self.size = (350, 510)
         self.title = self.tr.title("nodeinfo_window")
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.peer_window, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -1087,7 +1088,7 @@ class Node(Box):
 
     def show_node_info(self):
         self.node_info = NodeInfo(
-            self.node, self.settings, self.utils, self.units, self.tr, self.font
+            self.peer_window, self.node, self.settings, self.utils, self.units, self.tr, self.font
         )
         self.node_info._impl.native.ShowDialog(self.peer_window._impl.native)
 
@@ -1115,10 +1116,10 @@ class Node(Box):
                 update_lines.append(line)
         with open(config_file_path, 'w') as file:
             file.writelines(update_lines)
-        self.app.add_background_task(self.remove_node)
+        self.app.loop.create_task(self.remove_node())
         
     
-    async def remove_node(self, widget):
+    async def remove_node(self):
         await self.commands.disconnectNode(self.address)
         await self.commands.removeNode(self.address)
         message = self.tr.message("removenode_dialog")
@@ -1176,7 +1177,7 @@ class Peer(Window):
         self.title = self.tr.title("peer_window")
         self.size = (900,607)
         self._impl.native.Opacity = self.main._impl.native.Opacity
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self.on_close = self.close_peers_window
         self._impl.native.Resize += self._handle_on_resize

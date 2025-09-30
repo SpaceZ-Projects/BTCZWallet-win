@@ -129,7 +129,7 @@ class PlaceOrder(Window):
 
         self.title = "Confirm Order"
         self.size = (550,250)
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -1192,7 +1192,7 @@ class MarketView(Window):
         self.title = f"{username}'s Market"
         self._impl.native.Icon = self.window_icon("images/Market.ico")
         self.size = (900,607)
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self._impl.native.Resize += self._handle_on_resize
         self.on_close = self.close_market_window
@@ -1576,7 +1576,7 @@ class AddItem(Window):
 
         self.title = "Add Item"
         self.size = (500, 450)
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -2048,7 +2048,7 @@ class AddQuantity(Window):
 
         self.title = "Add Quantity"
         self.size = (200, 100)
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -2690,7 +2690,7 @@ class MarketPlace(Window):
         self._impl.native.Icon = self.window_icon("images/Market.ico")
         self.size = (900,607)
         self._impl.native.Opacity = self.main._impl.native.Opacity
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self._impl.native.Resize += self._handle_on_resize
         self.on_close = self.close_market_window

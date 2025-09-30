@@ -3,7 +3,7 @@ import asyncio
 from datetime import datetime, timezone
 
 from toga import App, Window, Box, ImageView, Button, Label, TextInput, ScrollContainer
-from ..framework import FlatStyle, Drawing, Os
+from ..framework import FlatStyle, Drawing, Os, Forms
 from toga.style.pack import Pack
 from toga.constants import COLUMN, ROW, CENTER, BOLD
 from toga.colors import rgb, GRAY, GREENYELLOW, BLACK, WHITE, RED, YELLOW
@@ -31,7 +31,7 @@ class AuthQR(Window):
 
         self.title = f"Device : {device_name}"
         self.size = (450,450)
-        position_center = self.utils.windows_screen_center(self.mobile_window, self)
+        position_center = self.utils.window_center_to_parent(self.mobile_window, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -353,7 +353,7 @@ class AddDevice(Window):
 
         self.title = "Add Device"
         self.size = (450,120)
-        position_center = self.utils.windows_screen_center(self.mobile_window, self)
+        position_center = self.utils.window_center_to_parent(self.mobile_window, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -464,7 +464,7 @@ class AddDevice(Window):
         def on_result(widget, result):
             if result is None:
                 self.close()
-                self.app.current_window = self.main
+                self.app.current_window = self.mobile_window
         device_name = self.device_name_input.value
         if not device_name:
             self.error_dialog(
@@ -724,7 +724,7 @@ class Mobile(Window):
         self.title = "Mobile Server"
         self._impl.native.Icon = self.window_icon("images/Mobile.ico")
         self.size = (500,600)
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self.on_close = self.close_mobile_window
 
@@ -802,13 +802,6 @@ class Mobile(Window):
             )
         )
 
-        self.devices_scroll = ScrollContainer(
-            style=Pack(
-                background_color = rgb(30,33,36),
-                flex = 1
-            )
-        )
-
         self.devices_list = Box(
             style=Pack(
                 direction = COLUMN,
@@ -820,8 +813,7 @@ class Mobile(Window):
         self.content = self.main_box
 
         self.main_box.add(
-            self.menu_box,
-            self.devices_scroll
+            self.menu_box
         )
         self.menu_box.add(
             self.add_button,
@@ -829,7 +821,6 @@ class Mobile(Window):
             self.connected_label,
             self.start_server
         )
-        self.devices_scroll.content = self.devices_list
 
         self.load_mobile_config()
 
@@ -874,7 +865,7 @@ class Mobile(Window):
                 self.devices_data[device_id] = device_info
                 self.devices_list.add(device_info)
         await asyncio.sleep(0.5)
-        self.main_box.add(self.devices_scroll)
+        self.main_box.add(self.devices_list)
 
 
     async def updating_devices_list(self):
@@ -907,8 +898,11 @@ class Mobile(Window):
                         if device_timestamp:
                             device_timestamp = datetime.fromtimestamp(device_timestamp).strftime('%Y-%m-%d %H:%M:%S')
                             existing_device.device_last_connected._impl.native.Text = f"Recent Request : {device_timestamp}"
-                        existing_device.transparent_balance.text = f"T : {self.units.format_balance(tbalance)}"
-                        existing_device.shielded_balance.text = f"Z : {self.units.format_balance(zbalance)}"
+                        try:
+                            existing_device.transparent_balance.text = f"T : {self.units.format_balance(tbalance)}"
+                            existing_device.shielded_balance.text = f"Z : {self.units.format_balance(zbalance)}"
+                        except Exception:
+                            pass
 
             await asyncio.sleep(3)
 
@@ -932,6 +926,9 @@ class Mobile(Window):
 
 
     def add_new_device(self, button):
+        devices_list = self.mobile_storage.get_devices()
+        if len(devices_list) >= 5:
+            return
         add_window = AddDevice(
             self, self.utils, self.units, self.commands, self.tr, self.font
         )

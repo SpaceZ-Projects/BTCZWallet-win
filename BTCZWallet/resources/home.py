@@ -33,7 +33,7 @@ class Languages(Window):
         self.font = font
 
         self.title = self.tr.title("language_window")
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -161,7 +161,7 @@ class Currency(Window):
         self.font = font
 
         self.title = self.tr.title("currency_window")
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False

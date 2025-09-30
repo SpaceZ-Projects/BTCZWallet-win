@@ -425,7 +425,7 @@ class AddAddress(Window):
         self.is_valid_toggle = None
 
         self.title = "Add Address"
-        position_center = self.utils.windows_screen_center(self.book_window, self)
+        position_center = self.utils.window_center_to_parent(self.book_window, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -682,7 +682,7 @@ class AddressBook(Window):
         self._impl.native.Icon = self.window_icon("images/Book.ico")
         self.size = (700,400)
 
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self.on_close = self.close_book_window
 
@@ -985,7 +985,7 @@ class ImportKey(Window):
         self.font = font
 
         self.title = self.tr.title("importkey_window")
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False
@@ -1187,7 +1187,7 @@ class ImportWallet(Window):
         self.font = font
 
         self.title = self.tr.title("importwallet_window")
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False

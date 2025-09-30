@@ -46,7 +46,7 @@ class CashOut(Window):
         self.single = single
 
         self.title = "CashOut"
-        position_center = self.utils.windows_screen_center(self.main, self)
+        position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self._impl.native.ControlBox = False
         self._impl.native.ShowInTaskbar = False

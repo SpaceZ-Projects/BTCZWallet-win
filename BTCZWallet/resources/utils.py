@@ -408,6 +408,12 @@ class Utils():
 
         return left, top
     
+    def window_center_to_parent(self, parent, window):
+        bounds = parent._impl.native.Bounds
+        left = bounds.X + (bounds.Width - window._impl.native.Width) // 2
+        top = bounds.Y + (bounds.Height - window._impl.native.Height) // 2
+        return left, top
+    
 
     def get_uri_from_txt(self):
         uri_path = Os.Path.Combine(str(self.app.paths.cache), 'btcz_uri.txt')
