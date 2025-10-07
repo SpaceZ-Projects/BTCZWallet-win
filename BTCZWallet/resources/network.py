@@ -1036,6 +1036,9 @@ class Node(Box):
             self.node_subversion,
             self.node_conntime
         )
+        for widget in self.children:
+            widget._impl.native.MouseDoubleClick += self._on_double_click
+
         self.insert_node_menustrip()
 
 
@@ -1091,6 +1094,9 @@ class Node(Box):
             self.peer_window, self.node, self.settings, self.utils, self.units, self.tr, self.font
         )
         self.node_info._impl.native.ShowDialog(self.peer_window._impl.native)
+
+    def _on_double_click(self, sender, event):
+        self.show_node_info()
 
 
     def copy_node_address(self):

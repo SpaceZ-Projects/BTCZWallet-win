@@ -189,6 +189,7 @@ class AppToolBar(Box):
             color=Color.WHITE,
             mouse_enter=self.mobile_wallet_cmd_mouse_enter,
             mouse_leave=self.mobile_wallet_cmd_mouse_leave,
+            shortcut_key=Keys.Control | Keys.Shift | Keys.M,
             font=self.font.get(9),
             rtl = self.rtl
         )

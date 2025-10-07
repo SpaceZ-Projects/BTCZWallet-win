@@ -640,7 +640,7 @@ class Transactions(Box):
                             self.storagetxs.insert_transaction(tx_type, category, address, txid, amount, blocks, fee, timereceived)
                         else:
                             blockhash = data["blockhash"]
-                            await self.get_block_height(blockhash, tx_type, category, address, txid, amount, fee, timereceived)
+                            self.app.loop.create_task(self.get_block_height(blockhash, tx_type, category, address, txid, amount, fee, timereceived))
                         
             await asyncio.sleep(10)
             
@@ -702,7 +702,7 @@ class Transactions(Box):
                         elif confirmations == 0:
                             blocks = self.main.home_page.current_blocks
                         if txid not in stored_transactions:
-                            await self.get_block_timestamp(blocks, tx_type, category, address, txid, amount)
+                            self.app.loop.create_task(self.get_block_timestamp(blocks, tx_type, category, address, txid, amount))
                             
             await asyncio.sleep(10)
 

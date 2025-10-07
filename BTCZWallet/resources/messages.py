@@ -14,7 +14,7 @@ from ..framework import (
     BorderStyle, ToolTip, ClipBoard, RichLabel,
     Color, DockStyle, Forms, Command,
     FlatStyle, Drawing, Relation, Os, AlignContent,
-    MenuStrip, RightToLeft
+    MenuStrip, RightToLeft, Cursors
 )
 from toga.style.pack import Pack
 from toga.constants import (
@@ -2506,27 +2506,35 @@ class Chat(Box):
             self.send_button.style.background_color = rgb(30,33,36)
 
     def add_contact_mouse_enter(self, sender, event):
+        sender.Cursor = Cursors.HAND
         self.add_contact.image = "images/add_contact_a.png"
 
     def add_contact_mouse_leave(self, sender, event):
+        sender.Cursor = Cursors.DEFAULT
         self.add_contact.image = "images/add_contact_i.png"
 
     def pending_contacts_mouse_enter(self, sender, event):
+        sender.Cursor = Cursors.HAND
         self.pending_contacts.image = "images/pending_a.png"
 
     def pending_contacts_mouse_leave(self, sender, event):
+        sender.Cursor = Cursors.DEFAULT
         self.pending_contacts.image = "images/pending_i.png"
 
     def new_pending_contacts_mouse_enter(self, sender, event):
+        sender.Cursor = Cursors.HAND
         self.pending_contacts.image = "images/new_pending_a.png"
 
     def new_pending_contacts_mouse_leave(self, sender, event):
+        sender.Cursor = Cursors.DEFAULT
         self.pending_contacts.image = "images/new_pending_i.png"
 
     def copy_address_mouse_enter(self, sender, event):
+        sender.Cursor = Cursors.HAND
         self.copy_address.image = "images/copy_a.png"
 
     def copy_address_mouse_leave(self, sender, event):
+        sender.Cursor = Cursors.DEFAULT
         self.copy_address.image = "images/copy_i.png"
 
 

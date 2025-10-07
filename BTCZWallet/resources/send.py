@@ -10,7 +10,7 @@ from toga import (
 )
 from ..framework import (
     Command, Color, ToolTip, FlatStyle, MenuStrip,
-    RightToLeft
+    RightToLeft, Cursors
 )
 from toga.style.pack import Pack
 from toga.constants import (
@@ -603,8 +603,10 @@ class Send(Box):
                 padding= self.tr.padding("is_valid")
             )
         )
-        self.tooltip.insert(self.address_book._impl.native, "Address book")
+        self.address_book._impl.native.MouseEnter += self.address_book_mouse_enter
+        self.address_book._impl.native.MouseLeave += self.address_book_mouse_leave
         self.address_book._impl.native.Click += self.show_address_book
+        self.tooltip.insert(self.address_book._impl.native, "Address book")
 
         self.is_valid = ImageView(
             style=Pack(
@@ -1517,6 +1519,11 @@ class Send(Box):
         self.messages_address_cmd.icon = "images/deposit_messages_i.ico"
         self.messages_address_cmd.color = Color.WHITE
 
+    def address_book_mouse_enter(self, sender, event):
+        sender.Cursor = Cursors.HAND
+
+    def address_book_mouse_leave(self, sender, event):
+        sender.Cursor = Cursors.DEFAULT
 
     def percentage_25_cmd_mouse_enter(self):
         self.percentage_25_cmd.icon = "images/percentage_a.ico"

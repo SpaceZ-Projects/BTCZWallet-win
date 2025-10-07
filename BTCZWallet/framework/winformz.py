@@ -190,6 +190,7 @@ class Keys:
     B = Forms.Keys.B
     C = Forms.Keys.C
     Q = Forms.Keys.Q
+    M = Forms.Keys.M
     N = Forms.Keys.N
     L = Forms.Keys.L
     R = Forms.Keys.R

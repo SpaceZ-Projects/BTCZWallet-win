@@ -922,7 +922,11 @@ class AddressBook(Window):
 
 
     def table_keydown(self, sender, e):
-        if self.option == "many":
+        if not self.option:
+            if e.KeyCode == Keys.F5:
+                self.realod_address_book()
+                
+        elif self.option == "many":
             selected_cells = self.book_table.selected_cells
             if len(selected_cells) > 1:
                 if e.KeyCode == Keys.Enter:
