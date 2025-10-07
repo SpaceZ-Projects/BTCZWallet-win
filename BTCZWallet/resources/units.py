@@ -6,6 +6,8 @@ from datetime import datetime, timedelta, timezone
 import json
 import base64
 
+from nacl.secret import SecretBox
+from nacl import utils
 from toga import App
 
 INITIAL_REWARD = 12500
@@ -30,6 +32,25 @@ class Units():
         key_bytes = secrets.token_bytes(length)
         secret_key = base64.urlsafe_b64encode(key_bytes).decode('utf-8')
         return secret_key
+    
+    
+    def get_secret_key_bytes(self, secret_b64: str):
+        return base64.urlsafe_b64decode(secret_b64)[:32]
+    
+    
+    def encrypt_data(self, secret_b64, data: str) -> str:
+        key = self.get_secret_key_bytes(secret_b64)
+        box = SecretBox(key)
+        nonce = utils.random(SecretBox.NONCE_SIZE)
+        encrypted = box.encrypt(data.encode(), nonce)
+        return base64.urlsafe_b64encode(encrypted).decode()
+    
+
+    def decrypt_data(self, secret_b64, data: str) -> str:
+        key = self.get_secret_key_bytes(secret_b64)
+        box = SecretBox(key)
+        encrypted = base64.urlsafe_b64decode(data)
+        return box.decrypt(encrypted).decode()
     
 
     def generate_random_string(self, length=16):

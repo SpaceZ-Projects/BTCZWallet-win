@@ -136,16 +136,18 @@ class Utils():
     async def make_request(self, key, secret, url, params = None, return_bytes = None):
         if params is None:
             params = {}
+        params = {k: str(v) for k, v in params.items()}
+
         torrc = self.read_torrc()
         socks_port = torrc.get("SocksPort")
         connector = ProxyConnector.from_url(f'socks5://127.0.0.1:{socks_port}')
+
+        message_payload = json.dumps(params, separators=(",", ":"), sort_keys=True)
         timestamp = datetime.now(timezone.utc).isoformat()
-        message = f"{timestamp}.{json.dumps(params, separators=(',', ':'), sort_keys=True)}"
-        signature = hmac.new(
-            secret.encode(),
-            message.encode(),
-            hashlib.sha512
-        ).hexdigest()
+        message = f"{timestamp}.{message_payload}"
+        signature = hmac.new(secret.encode(), message.encode(), hashlib.sha512).hexdigest()
+
+        encrypted_params = self.units.encrypt_data(secret, json.dumps(params))
         headers = {
             'Authorization': key,
             'X-Timestamp': timestamp,
@@ -153,13 +155,22 @@ class Utils():
         }
         try:
             async with aiohttp.ClientSession(connector=connector) as session:
-                async with session.get(url, headers=headers, params=params) as response:
-                    if return_bytes:
-                        data = await response.read()
-                    else:
-                        data = await response.json()
-                    await session.close()
-                    return data
+                if params:
+                    async with session.get(url, headers=headers, params={"data": encrypted_params}) as response:
+                        if return_bytes:
+                            data = await response.read()
+                        else:
+                            data = await response.json()
+                        await session.close()
+                        return data
+                else:
+                    async with session.get(url, headers=headers) as response:
+                        if return_bytes:
+                            data = await response.read()
+                        else:
+                            data = await response.json()
+                        await session.close()
+                        return data
         except ProxyConnectionError:
             self.app.console.error_log("Proxy connection failed")
             return None
@@ -167,10 +178,8 @@ class Utils():
             self.app.console.error_log(f"Client socket errors: {e}")
             return None
         except (ProxyError, ClientError) as e:
-            self.app.console.error_log(f"{e}")
             return None
         except Exception as e:
-            self.app.console.error_log(f"{e}")
             return None
         
 

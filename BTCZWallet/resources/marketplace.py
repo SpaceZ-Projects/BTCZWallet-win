@@ -115,7 +115,7 @@ class DisplayImage(Window):
 
 
 class PlaceOrder(Window):
-    def __init__(self, main:Window, item_view:Box, utils, tr, font, item, order_qauntity, total_price, market, contact_id):
+    def __init__(self, main:Window, item_view:Box, storage, utils, tr, font, item, order_qauntity, total_price, contact_id):
         super().__init__(
             resizable=False,
             closable=False
@@ -123,6 +123,7 @@ class PlaceOrder(Window):
 
         self.main = main
         self.item_view = item_view
+        self.storage = storage
         self.utils = utils
         self.tr = tr
         self.font = font
@@ -143,7 +144,6 @@ class PlaceOrder(Window):
         self.item_title = item.get('title')
         self.order_quantity = order_qauntity
         self.total_price = total_price
-        self.market = market
         self.contact_id = contact_id
 
         self.main_box = Box(
@@ -281,7 +281,8 @@ class PlaceOrder(Window):
         self.app.loop.create_task(self.make_request())
 
     async def make_request(self):
-        url = f"http://{self.market[0]}/place_order"
+        market, secret = self.storage.get_hostname(self.contact_id)
+        url = f"http://{market}/place_order"
         params = {
             "id": str(self.item_id),
             "contact_id": str(self.contact_id),
@@ -289,7 +290,7 @@ class PlaceOrder(Window):
             "quantity": str(self.order_quantity),
             "comment": str(self.comment_input.value.strip())
         }
-        result = await self.utils.make_request(self.contact_id, self.market[1], url, params)
+        result = await self.utils.make_request(self.contact_id, secret, url, params)
         if not result or "error" in result:
             self.cancel_button.enabled = True
             self.place_order_button.enabled = True
@@ -328,7 +329,7 @@ class PlaceOrder(Window):
 
 
 class ItemView(Box):
-    def __init__(self, app:App, main:Window, utils, units, tr, font, item, market, contact_id):
+    def __init__(self, app:App, main:Window, storage, utils, units, tr, font, item, contact_id):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -341,6 +342,7 @@ class ItemView(Box):
 
         self.app = app
         self.main = main
+        self.storage = storage
         self.utils = utils
         self.units = units
         self.tr = tr
@@ -354,7 +356,6 @@ class ItemView(Box):
         self.item_price = item.get('price')
         self.item_currency = item.get('currency')
 
-        self.market = market
         self.contact_id = contact_id
         self.image_stream = None
 
@@ -626,9 +627,10 @@ class ItemView(Box):
 
     async def show_item(self, button):
         self.view_button.enabled = False
+        market, secret = self.storage.get_hostname(self.contact_id)
         params = {"get": "quantity"}
-        url = f"http://{self.market[0]}/item/{self.item_id}"
-        result = await self.utils.make_request(self.contact_id, self.market[1], url, params)
+        url = f"http://{market}/item/{self.item_id}"
+        result = await self.utils.make_request(self.contact_id, secret, url, params)
         if "error" in result:
             self.view_button.enabled = True
             return
@@ -648,8 +650,8 @@ class ItemView(Box):
             self.total_value.text = self.units.format_balance(self.item_price)
             self.calculated_price = self.item_price
         else:
-            url = f"http://{self.market[0]}/price"
-            result = await self.utils.make_request(self.contact_id, self.market[1], url)
+            url = f"http://{market}/price"
+            result = await self.utils.make_request(self.contact_id, secret, url)
             btcz_price = result.get('price')
             item_price = self.item_price / float(btcz_price)
             self.total_value.text =  self.units.format_balance(item_price)
@@ -717,7 +719,7 @@ class ItemView(Box):
             )
             return
         confirm_window = PlaceOrder(
-            self.main, self, self.utils, self.tr, self.font, self.item, quantity, self.total_price, self.market, self.contact_id
+            self.main, self, self.storage, self.utils, self.tr, self.font, self.item, quantity, self.total_price, self.contact_id
         )
         confirm_window._impl.native.ShowDialog(self.main._impl.native)
 
@@ -1344,7 +1346,7 @@ class MarketView(Window):
         self.app.loop.create_task(self.update_orders_list())
 
 
-    async def update_status(self, widget):
+    async def update_status(self):
         market, secret = self.storage.get_hostname(self.contact_id)
         url = f'http://{market}/status'
         while True:
@@ -1371,17 +1373,19 @@ class MarketView(Window):
 
 
     async def get_market_items(self):
-        market = self.storage.get_hostname(self.contact_id)
+        market, secret = self.storage.get_hostname(self.contact_id)
         url = f'http://{market[0]}/items'
-        result = await self.utils.make_request(self.contact_id, market[1], url)
+        result = await self.utils.make_request(self.contact_id, secret, url)
         if not result:
             self.items_toggle = True
             self.orders_button.enabled = True
             return
+        decrypted = self.units.decrypt_params(secret, result["data"])
+        result = json.loads(decrypted)
         for item in result:
             item_id = item.get('id')
             item_view = ItemView(
-                self.app, self, self.utils, self.units, self.tr, self.font, item, market, self.contact_id
+                self.app, self, self.storage, self.utils, self.units, self.tr, self.font, item, self.contact_id
             )
             self.items_data[item_id] = item_view
             self.items_list.add(item_view)
@@ -1404,12 +1408,15 @@ class MarketView(Window):
                 pass
             else:
                 current_ids = set()
+                if 'data' in result:
+                    decrypted = self.units.decrypt_params(secret, result['data'])
+                    result = json.loads(decrypted)
                 for item in result:
                     item_id = item.get('id')
                     current_ids.add(item_id)
                     if item_id not in self.items_data:
                         item_view = ItemView(
-                            self.app, self, self.utils, self.units, self.tr, self.font, item, market, self.contact_id
+                            self.app, self, self.storage, self.utils, self.units, self.tr, self.font, item, self.contact_id
                         )
                         self.items_data[item_id] = item_view
                         self.items_list.insert(0, item_view)
@@ -1425,12 +1432,13 @@ class MarketView(Window):
     async def get_market_orders(self):
         market, secret = self.storage.get_hostname(self.contact_id)
         url = f'http://{market}/orders'
-        param = {"contact_id": self.contact_id}
-        result = await self.utils.make_request(self.contact_id, secret, url, param)
+        result = await self.utils.make_request(self.contact_id, secret, url)
         if not result or "error" in result:
             self.orders_toggle = True
             self.orders_button.enabled = True
             return
+        decrypted = self.units.decrypt_params(secret, result["data"])
+        result = json.loads(decrypted)
         for order in result:
             order_id = order.get('order_id')
             order_view = OrderView(
@@ -1459,6 +1467,8 @@ class MarketView(Window):
                 pass
             else:
                 current_ids = set()
+                decrypted = self.units.decrypt_params(secret, result["data"])
+                result = json.loads(decrypted)
                 for order in result:
                     order_id = order.get('order_id')
                     order_status = order.get('status')

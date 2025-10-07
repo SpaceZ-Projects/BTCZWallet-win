@@ -14,6 +14,7 @@ from toga import App
 from ..framework import Sys, Os
 
 from .client import Client
+from .units import Units
 
 
 def get_secret(id, storage):
@@ -23,7 +24,19 @@ def get_secret(id, storage):
     return None
 
 
-def verify_signature(list_ids, storage):
+def encrypt_data(id, storage, units, data):
+    secret = get_secret(id, storage)
+    encrypted = units.encrypt_data(secret, data)
+    return encrypted
+
+
+def decrypt_data(id, storage, units, data):
+    secret = get_secret(id, storage)
+    decrypted = units.decrypt_data(secret, data)
+    return decrypted
+
+
+def verify_signature(list_ids, storage, units = None):
     id = request.headers.get('Authorization')
     timestamp = request.headers.get('X-Timestamp')
     signature = request.headers.get('X-Signature')
@@ -39,13 +52,24 @@ def verify_signature(list_ids, storage):
         if request_time.tzinfo is None:
             request_time = request_time.replace(tzinfo=timezone.utc)
         now = datetime.now(timezone.utc)
-        if abs(now - request_time) > timedelta(seconds=30):
+        delta = now - request_time
+        if delta < timedelta(seconds=-5) or delta > timedelta(seconds=30):
             return False, (jsonify({'error': 'Request expired'}), 403)
     except ValueError:
         return False, (jsonify({'error': 'Invalid timestamp'}), 400)
 
     try:
-        if request.method == 'GET':
+        secret = get_secret(id, storage)
+
+        if "data" in request.args:
+            ciphertext_b64 = request.args.get("data")
+            try:
+                plaintext_json = decrypt_data(id, storage, units, ciphertext_b64)
+                body = json.loads(plaintext_json)
+            except Exception as e:
+                return False, (jsonify({"error": "Decryption failed"}), 400)
+            
+        elif request.method == 'GET':
             body = request.args.to_dict(flat=True)
         else:
             body = {}
@@ -122,6 +146,8 @@ class MarketServer():
         self.notify = notify
 
         self.app = app
+        self.commands = Client(self.app)
+        self.units = Units(self.app, self.commands)
         self.server_status = None
 
         self.flask = Flask(
@@ -172,6 +198,7 @@ class MarketServer():
         valid, response = verify_signature(contacts_ids, self.market_storage)
         if not valid:
             return response
+        contact_id = request.headers.get('Authorization')
         market_items = self.market_storage.get_market_items()
         if not market_items:
             return jsonify([]), 200
@@ -194,20 +221,27 @@ class MarketServer():
                 "timestamp": item[7],
             }
             result.append(item_dict)
-        return jsonify(result), 200
+        encrypted_data = encrypt_data(contact_id, self.market_storage, self.units, json.dumps(result))
+        return jsonify({"data": encrypted_data})
     
 
     def handle_item_id(self, item_id):
         contacts_ids = self.messages_storage.get_ids_contacts()
-        valid, response = verify_signature(contacts_ids, self.market_storage)
+        valid, response = verify_signature(contacts_ids, self.market_storage, self.units)
         if not valid:
             return response
+        contact_id = request.headers.get('Authorization')
+
         item = self.market_storage.get_item(item_id)
         if not item:
             return jsonify({'error': 'Item not found'}), 404
         
-        get_param = request.args.get("get")
-        if get_param == "quantity":
+        encrypted_data = request.args.get("data")
+        decrypted_json = decrypt_data(contact_id, self.market_storage, self.units, encrypted_data)
+        get_params = json.loads(decrypted_json)
+
+        quantity = get_params.get("get")
+        if quantity:
             return jsonify({"quantity": item[6]}), 200
         
 
@@ -222,11 +256,16 @@ class MarketServer():
 
     def handle_place_order(self):
         contacts_ids = self.messages_storage.get_ids_contacts()
-        valid, response = verify_signature(contacts_ids, self.market_storage)
+        valid, response = verify_signature(contacts_ids, self.market_storage, self.units)
         if not valid:
             return response
         
-        get_params = request.args
+        contact_id = request.headers.get('Authorization')
+        
+        encrypted_data = request.args.get("data")
+        decrypted_json = decrypt_data(contact_id, self.market_storage, self.units, encrypted_data)
+        get_params = json.loads(decrypted_json)
+
         required_params = ["id", "contact_id", "total_price", "quantity"]
         missing = [p for p in required_params if not get_params.get(p)]
         if missing:
@@ -270,7 +309,7 @@ class MarketServer():
         valid, response = verify_signature(contacts_ids, self.market_storage)
         if not valid:
             return response
-        contact_id = request.args.get("contact_id")
+        contact_id = request.headers.get('Authorization')
         if not contact_id:
             return jsonify({"error": "Missing required parameter: contact_id"}), 400
         
@@ -300,17 +339,22 @@ class MarketServer():
                 "remaining": remaining_seconds
             }
             result.append(item_dict)
-        return jsonify(result), 200
+        encrypted_data = encrypt_data(contact_id, self.market_storage, self.units, json.dumps(result))
+        return jsonify({"data": encrypted_data})
     
     
 
     def handle_cancel_order(self):
         contacts_ids = self.messages_storage.get_ids_contacts()
-        valid, response = verify_signature(contacts_ids, self.market_storage)
+        valid, response = verify_signature(contacts_ids, self.market_storage, self.units)
         if not valid:
             return response
+        contact_id = request.headers.get('Authorization')
         
-        get_params = request.args
+        encrypted_data = request.args.get("data")
+        decrypted_json = decrypt_data(contact_id, self.market_storage, self.units, encrypted_data)
+        get_params = json.loads(decrypted_json)
+
         required_params = ["order_id"]
         missing = [p for p in required_params if not get_params.get(p)]
         if missing:
@@ -382,6 +426,7 @@ class MobileServer():
         self.app = app
         self.main = main
         self.commands = Client(self.app)
+        self.units = Units(self.app, self.commands)
         self.server_status = None
         self.current_blocks = None
         
@@ -395,6 +440,7 @@ class MobileServer():
     def add_rules(self):
         self.flask.add_url_rule('/status', 'status', self.handle_status, methods=['GET'])
         self.flask.add_url_rule('/addresses', 'addresses', self.handle_addresses, methods=['GET'])
+        self.flask.add_url_rule('/book', 'book', self.handle_book, methods=['GET'])
         self.flask.add_url_rule('/balances', 'balances', self.handle_balances, methods=['GET'])
         self.flask.add_url_rule('/mining', 'mining', self.handle_mining, methods=['GET'])
         self.flask.add_url_rule('/transactions', 'transactions', self.handle_transactions, methods=['GET'])
@@ -425,7 +471,17 @@ class MobileServer():
         currency = self.settings.currency()
         price = self.settings.price()
         version = self.app.version
-        return jsonify({'version': version, 'height': height, 'currency': currency, 'price': price}), 200
+        data = {
+            'version': version,
+            'height': height,
+            'currency': currency,
+            'price': price
+        }
+
+        mobile_id = request.headers.get("Authorization")
+        encrypted_data = encrypt_data(mobile_id, self.mobile_storage, self.units, json.dumps(data))
+
+        return jsonify({"data": encrypted_data}), 200
     
 
     def handle_addresses(self):
@@ -436,7 +492,58 @@ class MobileServer():
         self.update_device_status()
         mobile_id = request.headers.get('Authorization')
         taddress, zaddress = self.mobile_storage.get_device_addresses(mobile_id)
-        return jsonify({'transparent': taddress, 'shielded': zaddress}), 200
+        data = {
+            'transparent': taddress,
+            'shielded': zaddress
+        }
+        encrypted_data = encrypt_data(mobile_id, self.mobile_storage, self.units, json.dumps(data))
+
+        return jsonify({"data": encrypted_data}), 200
+    
+    
+    async def handle_book(self):
+        mobile_ids = self.mobile_storage.get_auth_ids()
+        valid, response = verify_signature(mobile_ids, self.mobile_storage, self.units)
+        if not valid:
+            return response
+        self.update_device_status()
+
+        mobile_id = request.headers.get('Authorization')
+
+        encrypted_data = request.args.get("data")
+        decrypted_json = decrypt_data(mobile_id, self.mobile_storage, self.units, encrypted_data)
+        params = json.loads(decrypted_json)
+
+        if "get" in params:
+            result = []
+            address_book = self.addresses_storage.get_address_book()
+            for data in address_book:
+                book_dict = {
+                    "name": data[0],
+                    "address": data[1]
+                }
+                result.append(book_dict)
+            encrypted_data = encrypt_data(mobile_id, self.mobile_storage, self.units, json.dumps(result))
+            return jsonify({"data": encrypted_data})
+        
+        elif "name" in params:
+            name = params.get('name')
+            address = params.get('address')
+
+            is_valid = await self.is_valid(address)
+            if not is_valid:
+                return jsonify({"error": "Invalid address"}), 400
+            
+            address_book = self.addresses_storage.get_address_book("address")
+            if address in address_book:
+                return jsonify({"error": "Address is already exists"}), 400
+            
+            address_book = self.addresses_storage.get_address_book("name")
+            if name in address_book:
+                return jsonify({"error": "Name is already exists"}), 400
+            
+            self.addresses_storage.insert_book(name, address)
+            return jsonify({"result": "success"}), 200
     
     
     def handle_balances(self):
@@ -449,7 +556,12 @@ class MobileServer():
         taddress, zaddress = self.mobile_storage.get_device_addresses(mobile_id)
         tbalance = self.addresses_storage.get_address_balance(taddress)
         zbalance = self.addresses_storage.get_address_balance(zaddress)
-        return jsonify({'transparent': tbalance, 'shielded': zbalance}), 200
+        data = {
+            'transparent': tbalance,
+            'shielded': zbalance
+        }
+        encrypted_data = encrypt_data(mobile_id, self.mobile_storage, self.units, json.dumps(data))
+        return jsonify({"data": encrypted_data}), 200
     
 
     def handle_mining(self):
@@ -460,6 +572,7 @@ class MobileServer():
         if not self.main.mining_page.mining_status:
             return jsonify({"error": "Mining is currently turned off"}), 400
         
+        mobile_id = request.headers.get('Authorization')
         stats = self.mobile_storage.get_mining_stats()
         if stats:
             mining_dict = {
@@ -475,7 +588,8 @@ class MobileServer():
                 "solutions": stats[9],
                 "reward": stats[10],
             }
-            return jsonify(mining_dict)
+            encrypted_data = encrypt_data(mobile_id, self.mobile_storage, self.units, json.dumps(mining_dict))
+            return jsonify({"data": encrypted_data})
 
         return jsonify({"error": "No mining stats found"}), 404
     
@@ -507,23 +621,27 @@ class MobileServer():
                     "timestamp": data[7]
                 }
                 result.append(tx_dict)
-        return jsonify(result), 200
+            encrypted_data = encrypt_data(mobile_id, self.mobile_storage, self.units, json.dumps(result))
+        return jsonify({"data": encrypted_data}), 200
     
 
     async def handle_cashout(self):
         mobile_ids = self.mobile_storage.get_auth_ids()
-        valid, response = verify_signature(mobile_ids, self.mobile_storage)
+        valid, response = verify_signature(mobile_ids, self.mobile_storage, self.units)
         if not valid:
             return response
         self.update_device_status()
+        mobile_id = request.headers.get('Authorization')
 
-        get_params = request.args
+        encrypted_data = request.args.get("data")
+        decrypted_json = decrypt_data(mobile_id, self.mobile_storage, self.units, encrypted_data)
+        get_params = json.loads(decrypted_json)
+
         required_params = ["type", "address", "amount", "fee"]
         missing = [p for p in required_params if not get_params.get(p)]
         if missing:
             return jsonify({"error": f"Missing required parameters: {', '.join(missing)}"}), 400
         
-        mobile_id = request.headers.get('Authorization')
         
         tx_type = get_params.get("type")
         address = get_params.get("address")
@@ -581,7 +699,7 @@ class MobileServer():
                             blocks = 0
                         amount = float(amount)
                         self.store_shielded_transaction(tx_type, category, from_address, txid, -amount, blocks, txfee)
-                        return jsonify({"txid": txid}), 200
+                        return jsonify({"result": "success"}), 200
                                 
                 await asyncio.sleep(3)
         
