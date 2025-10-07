@@ -286,7 +286,7 @@ def main():
         app_id = "com.btcz",
         home_page = "https://getbtcz.com",
         author = "BTCZCommunity",
-        version = "1.4.5"
+        version = "1.4.6"
     )
 
     uri_path = Os.Path.Combine(str(app.paths.cache), 'btcz_uri.txt')
