@@ -38,7 +38,7 @@ By using this software, you support the decentralized mission of BitcoinZ and ta
 
 ## 🛠 Requirements to Build the App
 
-- [Python 3.9 or higher](https://www.python.org/downloads/)
+- [Python 3.10 or higher](https://www.python.org/downloads/)
 
 - run the `build.py` script.
 
