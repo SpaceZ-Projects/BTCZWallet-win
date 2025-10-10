@@ -589,9 +589,12 @@ class Menu(Window):
                 self.message_button.text = f"{text} [{count}]"
             else:
                 self.message_button.text = text
-
-            message_i_icon = self.menu_icon("images/messages_i.png")
-            self.message_button._impl.native.Image = Drawing.Image.FromFile(message_i_icon)
+            if self.message_button_toggle:
+                icon = "images/messages_a.png"
+            else:
+                icon = "images/messages_i.png"
+            message_icon = self.menu_icon(icon)
+            self.message_button._impl.native.Image = Drawing.Image.FromFile(message_icon)
 
             await asyncio.sleep(5)
 
