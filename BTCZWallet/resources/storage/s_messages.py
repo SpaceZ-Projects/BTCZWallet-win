@@ -367,14 +367,17 @@ class StorageMessages:
             return []
         
 
-    def get_unread_messages(self, contact_id):
+    def get_unread_messages(self, contact_id=None):
         try:
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
-            cursor.execute(
-                'SELECT author, message, amount, timestamp FROM unread_messages WHERE id = ?',
-                (contact_id,)
-            )
+            if contact_id:
+                cursor.execute(
+                    'SELECT author, message, amount, timestamp FROM unread_messages WHERE id = ?',
+                    (contact_id,)
+                )
+            else:
+                cursor.execute('SELECT * FROM unread_messages')
             messages = cursor.fetchall()
             conn.close()
             return messages

@@ -42,12 +42,7 @@ WM_NCLBUTTONDOWN = 0x00A1
 RESIZE_BORDER = 6
 
 HTLEFT = 10
-HTRIGHT = 11
-HTTOP = 12
-HTTOPLEFT = 13
-HTTOPRIGHT = 14
 HTBOTTOM = 15
-HTBOTTOMLEFT = 16
 HTBOTTOMRIGHT = 17
 
 
@@ -177,6 +172,14 @@ class Menu(Window):
 
 
     def insert_menu_buttons(self):
+
+        self.home_button_toggle = None
+        self.transactions_button_toggle = None
+        self.receive_button_toggle = None
+        self.send_button_toggle = None
+        self.message_button_toggle = None
+        self.mining_button_toggle = None
+
         if self.rtl:
             relation = Relation.TEXTBEFORIMAGE
             align = AlignContent.LEFT
@@ -308,12 +311,6 @@ class Menu(Window):
                 self.mining_button
             )
 
-        self.home_button_toggle = None
-        self.transactions_button_toggle = None
-        self.receive_button_toggle = None
-        self.send_button_toggle = None
-        self.message_button_toggle = None
-        self.mining_button_toggle = None
         self.app.loop.create_task(self.set_default_page())
 
     async def set_default_page(self):
@@ -325,6 +322,9 @@ class Menu(Window):
         self.app.loop.create_task(self.message_page.gather_unread_memos())
         await asyncio.sleep(1)
         self.app.loop.create_task(self.updating_orders_status())
+        await asyncio.sleep(1)
+        self.app.loop.create_task(self.count_unread_messages())
+
 
     def add_actions_cmds(self):
         if self.settings.hidden_balances():
@@ -574,6 +574,24 @@ class Menu(Window):
                             item = self.market_storage.get_item(item_id)
                             quantity = order_quantity + item[6]
                             self.market_storage.update_item_quantity(item_id, quantity)
+
+            await asyncio.sleep(5)
+
+
+    async def count_unread_messages(self):
+        text = self.tr.text("messages_button")
+        while True:
+            unread_messages = self.storage.get_unread_messages()
+            if unread_messages:
+                count = len(unread_messages)
+                if count > 99:
+                    count = "99+"
+                self.message_button.text = f"{text} [{count}]"
+            else:
+                self.message_button.text = text
+
+            message_i_icon = self.menu_icon("images/messages_i.png")
+            self.message_button._impl.native.Image = Drawing.Image.FromFile(message_i_icon)
 
             await asyncio.sleep(5)
 

@@ -27,8 +27,7 @@ from toga.colors import (
 )
 
 from .marketplace import MarketView
-from .storage import StorageMessages, StorageMarket
-from .notify import NotifyRequest, NotifyMessage     
+from .storage import StorageMessages, StorageMarket   
 
 
 
@@ -1430,6 +1429,8 @@ class Chat(Box):
         self.tooltip = ToolTip()
         self.clipboard = ClipBoard()
 
+        self.notify = self.main.notify
+
         self.rtl = None
         lang = self.settings.language()
         if lang:
@@ -1942,15 +1943,10 @@ class Chat(Box):
             self.storage.add_contact(category, id[0], contact_id, username, address)
             self.storage.delete_request(address)
             if self.settings.notification_messages():
-                notify = NotifyRequest()
-                notify.show()
-                notify.send_note(
+                self.notify.send_note(
                     title="Request Accepted",
                     text=f"By {username}"
                 )
-                await asyncio.sleep(5)
-                notify.hide()
-                notify.dispose()
 
 
     async def get_message(self, form, amount):
@@ -1974,15 +1970,10 @@ class Chat(Box):
     async def handler_unread_message(self,contact_id, author, message, amount, timestamp):
         self.storage.unread_message(contact_id, author, message, amount, timestamp)
         if self.settings.notification_messages():
-            notify = NotifyMessage()
-            notify.show()
-            notify.send_note(
+            self.notify.send_note(
                 title="New Message",
                 text=f"{author} : {message[:100]}"
             )
-            await asyncio.sleep(5)
-            notify.hide()
-            notify.dispose()
 
 
     async def get_request(self, form):
@@ -1999,15 +1990,10 @@ class Chat(Box):
         else:
             self.pending_list.insert_pending(category, contact_id, username, address)
         if self.settings.notification_messages():
-            notify = NotifyRequest()
-            notify.show()
-            notify.send_note(
+            self.notify.send_note(
                 title="New Request",
                 text=f"From : {username}"
             )
-            await asyncio.sleep(5)
-            notify.hide()
-            notify.dispose()
 
 
     async def get_marketplace(self, form):
@@ -2217,15 +2203,23 @@ class Chat(Box):
 
 
     def on_mouse_wheel(self, wheel):
-        if self.output_box.Lines.Length == 0:
-            return
+        try:
+            if self.output_box.Lines.Length == 0:
+                return
 
-        rect = self.output_box.ClientRectangle
-        last_char_index = self.output_box.GetCharIndexFromPosition(Drawing.Point(rect.Right - 1, rect.Bottom - 1))
-        last_visible_line = self.output_box.GetLineFromCharIndex(last_char_index)
+            rect = self.output_box.ClientRectangle
+            last_char_index = self.output_box.GetCharIndexFromPosition(
+                Drawing.Point(rect.Right - 1, rect.Bottom - 1)
+            )
+            last_visible_line = self.output_box.GetLineFromCharIndex(last_char_index)
 
-        if last_visible_line >= self.output_box.Lines.Length - 1:
-            self.clean_unread_messages()
+            if last_visible_line >= self.output_box.Lines.Length - 1:
+                self.output_box.Invoke(
+                    Forms.MethodInvoker(lambda: self.clean_unread_messages())
+                )
+
+        except Exception as e:
+            self.app.console.error_log(e)
 
 
 
@@ -2618,6 +2612,8 @@ class Messages(Box):
         self.storage = StorageMessages(self.app)
         self.chat = Chat(self.app, self.main, settings, utils, units, commands, tr, font)
 
+        self.notify = self.main.notify
+
         data = self.storage.is_exists()
         if data:
             identity = self.storage.get_identity()
@@ -2659,26 +2655,16 @@ class Messages(Box):
 
                     if self.request_count > 0:
                         if self.settings.notification_messages():
-                            notify = NotifyRequest()
-                            notify.show()
-                            notify.send_note(
+                            self.notify.send_note(
                                 title="New Request(s)",
                                 text=f"{self.request_count} New Request(s)"
                             )
-                            await asyncio.sleep(5)
-                            notify.hide()
-                            notify.dispose()
                     if self.message_count > 0:
                         if self.settings.notification_messages():
-                            notify = NotifyMessage()
-                            notify.show()
-                            notify.send_note(
+                            self.notify.send_note(
                                 title="New Message(s)",
                                 text=f"{self.message_count} New Message(s)"
                             )
-                            await asyncio.sleep(5)
-                            notify.hide()
-                            notify.dispose()
                         
                     self.chat.run_tasks()
 

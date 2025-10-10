@@ -153,19 +153,3 @@ class NotifyMobile(NotifyIcon):
             icon="images/Mobile.ico",
             text = "Mobile Server"
         )
-
-
-class NotifyRequest(NotifyIcon):
-    def __init__(self):
-        super().__init__(
-            icon="images/new_request.ico",
-            text = "New Request"
-        )
-
-
-class NotifyMessage(NotifyIcon):
-    def __init__(self):
-        super().__init__(
-            icon="images/new_message.ico",
-            text = "New Message"
-        )

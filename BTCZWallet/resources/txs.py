@@ -640,7 +640,7 @@ class Transactions(Box):
                             self.storagetxs.insert_transaction(tx_type, category, address, txid, amount, blocks, fee, timereceived)
                         else:
                             blockhash = data["blockhash"]
-                            self.app.loop.create_task(self.get_block_height(blockhash, tx_type, category, address, txid, amount, fee, timereceived))
+                            asyncio.create_task((self.get_block_height(blockhash, tx_type, category, address, txid, amount, fee, timereceived)))
                         
             await asyncio.sleep(10)
             
@@ -702,7 +702,7 @@ class Transactions(Box):
                         elif confirmations == 0:
                             blocks = self.main.home_page.current_blocks
                         if txid not in stored_transactions:
-                            self.app.loop.create_task(self.get_block_timestamp(blocks, tx_type, category, address, txid, amount))
+                            asyncio.create_task(self.get_block_timestamp(blocks, tx_type, category, address, txid, amount))
                             
             await asyncio.sleep(10)
 
@@ -832,7 +832,7 @@ class Transactions(Box):
                 
 
     def open_transaction_in_explorer(self):
-        url = "https://explorer.btcz.zelcore.io/tx/"
+        url = "https://explorer.btcz.rocks/tx/"
         selected_cells = self.transactions_table.selected_cells
         for cell in selected_cells:
             if cell.ColumnIndex == 4:
