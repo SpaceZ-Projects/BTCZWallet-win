@@ -10,7 +10,7 @@ from toga import (
 from ..framework import (
     Drawing, Color, Sys, FormState, Os, FlatStyle,
     Relation, AlignContent, Forms, FormBorderStyle,
-    Cursors, ToolTip
+    Cursors, ToolTip, MenuStrip, Command
 )
 
 from toga.style.pack import Pack
@@ -273,6 +273,20 @@ class Menu(Window):
         self.message_button._impl.native.ImageAlign = align
         self.message_button._impl.native.MouseEnter += self.message_button_mouse_enter
         self.message_button._impl.native.MouseLeave += self.message_button_mouse_leave
+
+        context_menu = MenuStrip(rtl=self.rtl)
+        self.clean_unread_messages_cmd = Command(
+            title="Clean unread messages",
+            color=Color.WHITE,
+            background_color=Color.rgb(30,33,36),
+            action=self.clean_unread_messages,
+            mouse_enter=self.clean_unread_messages_cmd_mouse_enter,
+            mouse_leave=self.clean_unread_messages_cmd_mouse_leave,
+            font=self.font.get(9),
+            rtl=self.rtl
+        )
+        context_menu.Items.Add(self.clean_unread_messages_cmd)
+        self.message_button._impl.native.ContextMenuStrip = context_menu
         
         self.mining_button = Button(
             text=self.tr.text("mining_button"),
@@ -597,6 +611,19 @@ class Menu(Window):
             self.message_button._impl.native.Image = Drawing.Image.FromFile(message_icon)
 
             await asyncio.sleep(5)
+
+
+    def clean_unread_messages(self):
+        unread_messages = self.storage.get_unread_messages()
+        if unread_messages:
+            for data in unread_messages:
+                contact_id = data[0]
+                author = data[1]
+                text = data[2]
+                amount = data[3]
+                timestamp = data[4]
+                self.storage.message(contact_id, author, text, amount, timestamp)
+            self.storage.delete_unread()
 
 
     def backup_messages(self, sender, event):
@@ -1115,3 +1142,10 @@ class Menu(Window):
                 self.app.console.hide()
             return
         self.toolbar.exit_app("default")
+
+
+    def clean_unread_messages_cmd_mouse_enter(self):
+        self.clean_unread_messages_cmd.color = Color.BLACK
+
+    def clean_unread_messages_cmd_mouse_leave(self):
+        self.clean_unread_messages_cmd.color = Color.WHITE

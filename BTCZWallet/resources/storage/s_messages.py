@@ -445,16 +445,19 @@ class StorageMessages:
             print(f"Error deleting request: {e}")
 
 
-    def delete_unread(self, contact_id):
+    def delete_unread(self, contact_id=None):
         try:
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
-            cursor.execute(
-                '''
-                DELETE FROM unread_messages WHERE id = ?
-                ''', 
-                (contact_id,)
-            )
+            if contact_id:
+                cursor.execute(
+                    '''
+                    DELETE FROM unread_messages WHERE id = ?
+                    ''', 
+                    (contact_id,)
+                )
+            else:
+                cursor.execute('DELETE FROM unread_messages')
             conn.commit()
             conn.close()
         except sqlite3.OperationalError as e:

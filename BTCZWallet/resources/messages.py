@@ -1567,8 +1567,7 @@ class Chat(Box):
             urls=True,
             mouse_move=True,
             readonly=True,
-            urls_click=self.open_url,
-            mouse_wheel=self.on_mouse_wheel
+            urls_click=self.open_url
         )
         if self.rtl:
             self.output_box.righttoleft = RightToLeft.YES
@@ -1960,7 +1959,7 @@ class Chat(Box):
         self.processed_timestamps.add(timestamp)
         if author != contact_username:
             self.storage.update_contact_username(author, contact_id)
-        if self.contact_id == contact_id and self.main.message_button_toggle and not self.main._is_minimized and self.main._is_active:
+        if self.contact_id == contact_id:
             self.storage.message(contact_id, author, message, amount, timestamp)
             self.username_value.text = author
         else:
@@ -2171,6 +2170,8 @@ class Chat(Box):
                 message_timestamp = data[3]
                 self.processed_timestamps.add(message_timestamp)
                 Message(self.output_box, self.units, data)
+                
+            self.clean_unread_messages()
 
         self.loading_toggle = None
         self.app.loop.create_task(self.update_current_messages())
@@ -2202,38 +2203,15 @@ class Chat(Box):
             await asyncio.sleep(3)
 
 
-    def on_mouse_wheel(self, wheel):
-        try:
-            if self.output_box.Lines.Length == 0:
-                return
-
-            rect = self.output_box.ClientRectangle
-            last_char_index = self.output_box.GetCharIndexFromPosition(
-                Drawing.Point(rect.Right - 1, rect.Bottom - 1)
-            )
-            last_visible_line = self.output_box.GetLineFromCharIndex(last_char_index)
-
-            if last_visible_line >= self.output_box.Lines.Length - 1:
-                self.output_box.Invoke(
-                    Forms.MethodInvoker(lambda: self.clean_unread_messages())
-                )
-
-        except Exception as e:
-            self.app.console.error_log(e)
-
-
-
     def clean_unread_messages(self):
-        unread_messages = self.storage.get_unread_messages(self.contact_id)
-        if unread_messages:
-            for data in unread_messages:
-                author = data[0]
-                text = data[1]
-                amount = data[2]
-                timestamp = data[3]
-                self.storage.message(self.contact_id, author, text, amount, timestamp)
-                self.messages.append(data)
-            self.storage.delete_unread(self.contact_id)
+        for data in self.unread_messages:
+            author = data[0]
+            text = data[1]
+            amount = data[2]
+            timestamp = data[3]
+            self.storage.message(self.contact_id, author, text, amount, timestamp)
+            self.messages.append(data)
+        self.storage.delete_unread(self.contact_id)
 
 
     def update_pending_list(self):
