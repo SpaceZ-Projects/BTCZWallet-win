@@ -1845,7 +1845,7 @@ class Chat(Box):
                 if listunspent:
                     listunspent = json.loads(listunspent)
                     self.count_list_unspent(listunspent)
-                    if len(listunspent) >= 54:
+                    if len(listunspent) >= 10:
                         total_balance,_ = await self.commands.z_getBalance(address[0])
                         merge_fee = Decimal('0.0002')
                         txfee = Decimal('0.0001')
@@ -1862,9 +1862,9 @@ class Chat(Box):
 
     def count_list_unspent(self, listunspent):
         count = len(listunspent)
-        if count >= 50:
+        if count >= 10:
             self.list_unspent_utxos.style.color = RED
-        elif count >= 20:
+        elif count >= 5:
             self.list_unspent_utxos.style.color = ORANGE
         else:
             self.list_unspent_utxos.style.color = WHITE
@@ -1962,6 +1962,11 @@ class Chat(Box):
         if self.contact_id == contact_id:
             self.storage.message(contact_id, author, message, amount, timestamp)
             self.username_value.text = author
+            if not self.main.message_button_toggle and self.settings.notification_messages():
+                self.notify.send_note(
+                    title="New Message",
+                    text=f"{author} : {message[:100]}"
+                )
         else:
             await self.handler_unread_message(contact_id, author, message, amount, timestamp)
 
