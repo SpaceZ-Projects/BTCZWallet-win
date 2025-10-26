@@ -412,6 +412,7 @@ class MobileServer():
         mobile_storage = None,
         txs_storage = None,
         addresses_storage = None,
+        messages_storage = None,
         settings = None,
         notify = None
     ):
@@ -420,6 +421,7 @@ class MobileServer():
         self.mobile_storage = mobile_storage
         self.txs_storage = txs_storage
         self.addresses_storage = addresses_storage
+        self.messages_storage = messages_storage
         self.settings = settings
         self.notify = notify
 
@@ -429,6 +431,10 @@ class MobileServer():
         self.units = Units(self.app, self.commands)
         self.server_status = None
         self.current_blocks = None
+        self.transactions_data = []
+        self.read_messages = []
+        self.unread_messages = []
+        self.processed_timestamps = set()
         
         self.flask = Flask(__name__)
         Sys.Environment.SetEnvironmentVariable(
@@ -441,10 +447,13 @@ class MobileServer():
         self.flask.add_url_rule('/status', 'status', self.handle_status, methods=['GET'])
         self.flask.add_url_rule('/addresses', 'addresses', self.handle_addresses, methods=['GET'])
         self.flask.add_url_rule('/book', 'book', self.handle_book, methods=['GET'])
+        self.flask.add_url_rule('/balance', 'balance', self.handle_balance, methods=['GET'])
         self.flask.add_url_rule('/balances', 'balances', self.handle_balances, methods=['GET'])
         self.flask.add_url_rule('/mining', 'mining', self.handle_mining, methods=['GET'])
         self.flask.add_url_rule('/transactions', 'transactions', self.handle_transactions, methods=['GET'])
         self.flask.add_url_rule('/cashout', 'cashout', self.handle_cashout, methods=['GET'])
+        self.flask.add_url_rule('/contacts', 'contacts', self.handle_contacts, methods=['GET'])
+        self.flask.add_url_rule('/messages', 'messages', self.handle_messages, methods=['GET'])
         self.flask.before_request(self.log_request)
 
 
@@ -545,24 +554,6 @@ class MobileServer():
             self.addresses_storage.insert_book(name, address)
             return jsonify({"result": "success"}), 200
     
-    
-    def handle_balances(self):
-        mobile_ids = self.mobile_storage.get_auth_ids()
-        valid, response = verify_signature(mobile_ids, self.mobile_storage)
-        if not valid:
-            return response
-        self.update_device_status()
-        mobile_id = request.headers.get('Authorization')
-        taddress, zaddress = self.mobile_storage.get_device_addresses(mobile_id)
-        tbalance = self.addresses_storage.get_address_balance(taddress)
-        zbalance = self.addresses_storage.get_address_balance(zaddress)
-        data = {
-            'transparent': tbalance,
-            'shielded': zbalance
-        }
-        encrypted_data = encrypt_data(mobile_id, self.mobile_storage, self.units, json.dumps(data))
-        return jsonify({"data": encrypted_data}), 200
-    
 
     def handle_mining(self):
         mobile_ids = self.mobile_storage.get_auth_ids()
@@ -589,7 +580,7 @@ class MobileServer():
                 "reward": stats[10],
             }
             encrypted_data = encrypt_data(mobile_id, self.mobile_storage, self.units, json.dumps(mining_dict))
-            return jsonify({"data": encrypted_data})
+            return jsonify({"data": encrypted_data}), 200
 
         return jsonify({"error": "No mining stats found"}), 404
     
@@ -607,7 +598,10 @@ class MobileServer():
         for address in addresses:
             address_data = self.txs_storage.get_mobile_transactions(address)
             for data in address_data:
-                transactions_data.append(data)
+                if data[3] not in self.transactions_data:
+                    self.transactions_data.append(data[3])
+                    transactions_data.append(data)
+
         if transactions_data:
             for data in transactions_data:
                 tx_dict = {
@@ -621,7 +615,8 @@ class MobileServer():
                     "timestamp": data[7]
                 }
                 result.append(tx_dict)
-            encrypted_data = encrypt_data(mobile_id, self.mobile_storage, self.units, json.dumps(result))
+                
+        encrypted_data = encrypt_data(mobile_id, self.mobile_storage, self.units, json.dumps(result))
         return jsonify({"data": encrypted_data}), 200
     
 
@@ -666,11 +661,250 @@ class MobileServer():
         amount_str = f"{amount:.8f}"
         txfee_str = f"{txfee:.8f}"
         
-        return await self.send_single(from_address, address, amount_str, txfee_str)
+        return await self.make_tx(from_address, address, amount_str, txfee_str)
+    
+
+    async def handle_contacts(self):
+        mobile_ids = self.mobile_storage.get_auth_ids()
+        valid, response = verify_signature(mobile_ids, self.mobile_storage, self.units)
+        if not valid:
+            return response
+        self.update_device_status()
+
+        mobile_id = request.headers.get('Authorization')
+
+        encrypted_data = request.args.get("data")
+        decrypted_json = decrypt_data(mobile_id, self.mobile_storage, self.units, encrypted_data)
+        params = json.loads(decrypted_json)
+
+        if "get" in params:
+            result = []
+            option = params.get('get')
+
+            if option == "identity":
+                identity = self.messages_storage.get_identity()
+                if identity:
+                    address = identity[2]
+                    result = {"address": address}
+                else:
+                    return jsonify({"error": "Identity not found"}), 404
+
+            elif option == "contacts":
+                contacts = self.messages_storage.get_contacts()
+                for data in contacts:
+                    contact_dict = {
+                        "category": data[0],
+                        "contact_id": data[2],
+                        "username": data[3]
+                    }
+                    result.append(contact_dict)
+
+            elif option == "pending":
+                pending = self.messages_storage.get_pending()
+                for data in pending:
+                    pending_dict = {
+                        "category": data[0],
+                        "contact_id": data[1],
+                        "username": data[2]
+                    }
+                    result.append(pending_dict)
+                    
+            encrypted_data = encrypt_data(mobile_id, self.mobile_storage, self.units, json.dumps(result))
+            return jsonify({"data": encrypted_data}), 200
+        
+        elif "request" in params:
+            address = params.get('request')
+
+            is_valid = await self.is_valid(address, True)
+            if not is_valid:
+                return jsonify({"error": "Invalid shielded address"}), 400
+            contacts = self.messages_storage.get_contacts("address")
+            if address in contacts:
+                return jsonify({"error": "This address is already in your contacts list"}), 400
+            pending = self.messages_storage.get_pending()
+            if address in pending:
+                return jsonify({"error": "This address is already in your pending list"}), 400
+            requests = self.messages_storage.get_requests()
+            if address in requests:
+                return jsonify({"error": "This address is already in your requests list"}), 400
+            banned = self.messages_storage.get_banned()
+            if address in banned:
+                return jsonify({"error": "This address has been banned"}), 400
+            
+            amount = 0.0001
+            txfee = 0.0001
+            id = self.units.generate_id()
+            category, username, from_address = self.messages_storage.get_identity()
+            memo = {"type":"request","category":category,"id":id,"username":username,"address":from_address}
+            memo_str = json.dumps(memo)
+
+            return await self.make_tx(from_address, address, amount, txfee, memo_str, id, "request")
+        
+        elif "accept" in params:
+            pending_id = params.get('accpet')
+            data = self.messages_storage.get_pending_single(pending_id)
+            if not data:
+                return jsonify({"error": "Pending not found"}), 400
+
+            amount = 0.0001
+            txfee = 0.0001
+            id = self.units.generate_id()
+            category, username, from_address = self.messages_storage.get_identity()
+            memo = {"type":"identity","category":category,"id":id,"username":username,"address":from_address}
+            memo_str = json.dumps(memo)
+
+            return await self.make_tx(from_address, data[3], amount, txfee, memo_str, id, "accept", data)
+        
+        elif "reject" in params:
+            reject_id = params.get('reject')
+            address = self.messages_storage.get_pending_address(reject_id)
+            if not address:
+                return jsonify({"error": "Pending not found"}), 400
+            
+            self.messages_storage.ban(address[0])
+            self.messages_storage.delete_pending(address[0])
+
+            return jsonify({"result": "success"}), 200
+        
+        elif "ban" in params:
+            ban_id = params.get('ban')
+            address = self.messages_storage.get_contact_address(ban_id)
+            banned = self.messages_storage.get_banned()
+            if address[0] in banned:
+                return jsonify({"error": "Contact already banned"})
+            
+            self.messages_storage.ban(address[0])
+            self.messages_storage.delete_contact(address[0])
+
+            return jsonify({"result": "success"}), 200
         
 
-    async def send_single(self, from_address, address, amount, txfee):
-        operation, _= await self.commands.z_sendMany(from_address, address, amount, txfee)
+    async def handle_messages(self):
+        mobile_ids = self.mobile_storage.get_auth_ids()
+        valid, response = verify_signature(mobile_ids, self.mobile_storage, self.units)
+        if not valid:
+            return response
+        self.update_device_status()
+
+        mobile_id = request.headers.get('Authorization')
+
+        encrypted_data = request.args.get("data")
+        decrypted_json = decrypt_data(mobile_id, self.mobile_storage, self.units, encrypted_data)
+        params = json.loads(decrypted_json)
+
+        if "get" in params:
+            result = []
+            option = params.get('get')
+            if option == "read":
+                messages = self.messages_storage.get_messages()
+                for data in messages:
+                    timestamp = data[4]
+                    if timestamp not in self.read_messages:
+                        self.read_messages.append(timestamp)
+                        self.processed_timestamps.add(timestamp)
+                        message_dict = {
+                            "id": data[0],
+                            "author": data[1],
+                            "message": data[2],
+                            "amount": data[3],
+                            "timestamp": data[4]
+                        }
+                        result.append(message_dict)
+
+            elif option == "unread":
+                unread_messages = self.messages_storage.get_unread_messages()
+                for data in unread_messages:
+                    timestamp = data[4]
+                    if timestamp not in self.unread_messages:
+                        self.unread_messages.append(timestamp)
+                        self.processed_timestamps.add(timestamp)
+                        unread_message_dict = {
+                            "id": data[0],
+                            "author": data[1],
+                            "message": data[2],
+                            "amount": data[3],
+                            "timestamp": data[4]
+                        }
+                        result.append(unread_message_dict)
+
+            encrypted_data = encrypt_data(mobile_id, self.mobile_storage, self.units, json.dumps(result))
+            return jsonify({"data": encrypted_data}), 200
+
+        elif "clean" in params:
+            clean_id = params.get('clean')
+            unread_messages = self.messages_storage.get_unread_messages(clean_id)
+            if unread_messages:
+                for data in unread_messages:
+                    author = data[0]
+                    text = data[1]
+                    amount = data[2]
+                    timestamp = data[3]
+                    self.messages_storage.message(clean_id, author, text, amount, timestamp)
+                self.messages_storage.delete_unread(clean_id)
+            return jsonify({"result": "success"}), 200
+        
+        elif "send" in params:
+            contact_id = params.get('send')
+            message = params.get('message')
+            fee = params.get('amount')
+
+            amount = float(fee) - 0.0001
+            txfee = 0.0001
+            user = self.messages_storage.get_contact(contact_id)
+            _, username, from_address = self.messages_storage.get_identity()
+            timestamp = await self.get_message_timestamp()
+            if timestamp is not None:
+                data = ["you", message, timestamp]
+                memo = {"type":"message","id":user[1],"username":username,"text":message, "timestamp":timestamp}
+                memo_str = json.dumps(memo)
+
+                return await self.make_tx(from_address, user[4], amount, txfee, memo_str, contact_id, "message", data)
+            return jsonify({"error", "Failed to get timestamp"})
+    
+
+    async def handle_balance(self):
+        mobile_ids = self.mobile_storage.get_auth_ids()
+        valid, response = verify_signature(mobile_ids, self.mobile_storage, self.units)
+        if not valid:
+            return response
+        self.update_device_status()
+        mobile_id = request.headers.get('Authorization')
+
+        encrypted_data = request.args.get("data")
+        decrypted_json = decrypt_data(mobile_id, self.mobile_storage, self.units, encrypted_data)
+        params = json.loads(decrypted_json)
+        if "address" in params:
+            address = params.get('address')
+            balance,_ = await self.commands.z_getBalance(address)
+            if balance:
+                result = {"balance": balance}
+                encrypted_data = encrypt_data(mobile_id, self.mobile_storage, self.units, json.dumps(result))
+                return jsonify({"data": encrypted_data}), 200
+    
+    
+    def handle_balances(self):
+        mobile_ids = self.mobile_storage.get_auth_ids()
+        valid, response = verify_signature(mobile_ids, self.mobile_storage)
+        if not valid:
+            return response
+        self.update_device_status()
+        mobile_id = request.headers.get('Authorization')
+        taddress, zaddress = self.mobile_storage.get_device_addresses(mobile_id)
+        tbalance = self.addresses_storage.get_address_balance(taddress)
+        zbalance = self.addresses_storage.get_address_balance(zaddress)
+        data = {
+            'transparent': tbalance,
+            'shielded': zbalance
+        }
+        encrypted_data = encrypt_data(mobile_id, self.mobile_storage, self.units, json.dumps(data))
+        return jsonify({"data": encrypted_data}), 200
+        
+
+    async def make_tx(self, from_address, address, amount, txfee, memo = None, id=None, option = None, data = None):
+        if memo and id:
+            operation,_ = await self.commands.SendMemo(from_address, address, amount, txfee, memo)
+        else:
+            operation, _= await self.commands.z_sendMany(from_address, address, amount, txfee)
         if not operation:
             return jsonify({"error": "Unable to create operation. Please try again later."}), 500
         transaction_status, _= await self.commands.z_getOperationStatus(operation)
@@ -688,17 +922,38 @@ class MobileServer():
                     result = transaction_result[0].get('result', {})
                     txid = result.get('txid')
                     if status == "failed":
-                        return jsonify({"error": "Transaction send failed"}), 500
+                        return jsonify({"error": "Transaction failed"}), 500
                     elif status == "success":
-                        category = "send"
-                        if from_address.startswith('z'):
-                            tx_type = "shielded"
-                            blocks = self.main.home_page.current_blocks
-                        elif from_address.startswith("t"):
-                            tx_type = "transparent"
-                            blocks = 0
-                        amount = float(amount)
-                        self.store_shielded_transaction(tx_type, category, from_address, txid, -amount, blocks, txfee)
+                        if not option:
+                            category = "send"
+                            if from_address.startswith('z'):
+                                tx_type = "shielded"
+                                blocks = self.main.home_page.current_blocks
+                            elif from_address.startswith("t"):
+                                tx_type = "transparent"
+                                blocks = 0
+                            amount = float(amount)
+                            self.store_shielded_transaction(tx_type, category, from_address, txid, -amount, blocks, txfee)
+                        else:
+                            if option == "request":
+                                self.messages_storage.tx(txid)
+                                self.messages_storage.add_request(id, address)
+
+                            elif option == "accept":
+                                category = data[0]
+                                contact_id = data[1]
+                                username = data[2]
+                                address = data[3]
+                                self.messages_storage.tx(txid)
+                                self.messages_storage.delete_pending(address)
+                                self.messages_storage.add_contact(category, id, contact_id, username, address)
+
+                            elif option == "message":
+                                author = data[0]
+                                message = data[1]
+                                timestamp = data[2]
+                                self.messages_storage.message(id, author, message, amount, timestamp)
+
                         return jsonify({"result": "success"}), 200
                                 
                 await asyncio.sleep(3)
@@ -710,19 +965,37 @@ class MobileServer():
 
 
     
-    async def is_valid(self, address):
-        if address.startswith("t"):
-            result, _ = await self.commands.validateAddress(address)
-        elif address.startswith("z"):
+    async def is_valid(self, address, z_only=False):
+        if z_only:
+            if not address.startswith("z"):
+                return None
             result, _ = await self.commands.z_validateAddress(address)
         else:
-            return None
+            if address.startswith("t"):
+                result, _ = await self.commands.validateAddress(address)
+            elif address.startswith("z"):
+                result, _ = await self.commands.z_validateAddress(address)
+            else:
+                return None
         if result is not None:
             result = json.loads(result)
-            is_valid = result.get('isvalid')
-            if is_valid is True:
+            if result.get('isvalid') is True:
                 return True
-            return None
+        return None
+    
+
+    async def get_message_timestamp(self):
+        blockchaininfo, _ = await self.commands.getBlockchainInfo()
+        if blockchaininfo is not None:
+            if isinstance(blockchaininfo, str):
+                info = json.loads(blockchaininfo)
+                if info is not None:
+                    timestamp = info.get('mediantime')
+                    if timestamp in self.processed_timestamps:
+                        highest_timestamp = max(self.processed_timestamps)
+                        timestamp = highest_timestamp + 1
+                    self.processed_timestamps.add(timestamp)
+                    return timestamp
 
 
     def update_device_status(self):
@@ -745,6 +1018,10 @@ class MobileServer():
             return None
 
     def stop(self):
+        self.transactions_data.clear()
+        self.read_messages.clear()
+        self.unread_messages.clear()
+        self.processed_timestamps.clear()
         self.app.console.warning_log("📱: Shutdown server")
         self.server_status = None
         self.server_thread.shutdown()
