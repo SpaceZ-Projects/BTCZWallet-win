@@ -2,13 +2,13 @@
 import asyncio
 from datetime import datetime, timezone
 
-from toga import App, Window, Box, ImageView, Button, Label, TextInput, ScrollContainer
-from ..framework import FlatStyle, Drawing, Os, Forms
+from toga import App, Window, Box, ImageView, Button, Label, TextInput
+from ..framework import FlatStyle, Drawing, Os
 from toga.style.pack import Pack
 from toga.constants import COLUMN, ROW, CENTER, BOLD
 from toga.colors import rgb, GRAY, GREENYELLOW, BLACK, WHITE, RED, YELLOW
 
-from .storage import StorageMobile, StorageTxs, StorageAddresses
+from .storage import StorageMobile, StorageTxs, StorageAddresses, StorageMessages
 
 
 
@@ -519,7 +519,7 @@ class Device(Box):
             style=Pack(
                 direction = ROW,
                 background_color = rgb(40,43,48),
-                padding = (5,5,0,5),
+                padding = (5,2,5,5),
                 height = 100,
                 alignment = CENTER
             )
@@ -720,6 +720,7 @@ class Mobile(Window):
         self.mobile_storage = StorageMobile(self.app)
         self.txs_storage = StorageTxs(self.app)
         self.addresses_storage = StorageAddresses(self.app)
+        self.messages_storage = StorageMessages(self.app)
 
         self.title = "Mobile Server"
         self._impl.native.Icon = self.window_icon("images/Mobile.ico")
@@ -944,6 +945,7 @@ class Mobile(Window):
         self.server.mobile_storage = self.mobile_storage
         self.server.txs_storage = self.txs_storage
         self.server.addresses_storage = self.addresses_storage
+        self.server.messages_storage = self.messages_storage
 
         result = self.server.start()
         if result is True:

@@ -2151,22 +2151,22 @@ class Chat(Box):
         self.user_address = address
 
         self.loading_toggle = True
+        self.app.loop.create_task(self.load_messages())
+
+
+    async def load_messages(self):
         self.messages = self.storage.get_messages(self.contact_id)
         if self.messages:
             messages = sorted(self.messages, key=lambda x: x[3], reverse=False)
-            self.app.loop.create_task(self.load_messages(messages))
-
-
-    async def load_messages(self, messages):
-        chunk_size = 25
-        for i in range(0, len(messages), chunk_size):
-            chunk = messages[i:i+chunk_size]
-            for data in chunk:
-                message_timestamp = data[3]
-                self.processed_timestamps.add(message_timestamp)
-                Message(self.output_box, self.units, data)
-            await asyncio.sleep(0.0)
-            self.output_box.ScrollToCaret()
+            chunk_size = 25
+            for i in range(0, len(messages), chunk_size):
+                chunk = messages[i:i+chunk_size]
+                for data in chunk:
+                    message_timestamp = data[3]
+                    self.processed_timestamps.add(message_timestamp)
+                    Message(self.output_box, self.units, data)
+                await asyncio.sleep(0.0)
+                self.output_box.ScrollToCaret()
 
         self.unread_messages = self.storage.get_unread_messages(self.contact_id)
         if self.unread_messages:
@@ -2179,16 +2179,13 @@ class Chat(Box):
             self.clean_unread_messages()
 
         self.loading_toggle = None
-        self.app.loop.create_task(self.update_current_messages())
+        self.app.loop.create_task(self.update_current_messages(self.contact_id))
 
 
-    async def update_current_messages(self):
-        self.messages = self.storage.get_messages(self.contact_id)
-        self.unread_messages = self.storage.get_unread_messages(self.contact_id)
+    async def update_current_messages(self, contact_id):
         while True:
-            if not self.main.message_button_toggle:
-                await asyncio.sleep(1)
-                continue
+            if self.contact_id != contact_id:
+                return
 
             messages = self.storage.get_messages(self.contact_id)
             if messages:

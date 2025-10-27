@@ -7,16 +7,12 @@ import re
 import inspect
 import math
 
-clr.AddReference(r"C:\Windows\Microsoft.NET\Framework64\v4.0.30319\WPF\PresentationFramework.dll")
-clr.AddReference(r"C:\Windows\Microsoft.NET\Framework64\v4.0.30319\WPF\WindowsFormsIntegration.dll")
+clr.AddReference(r"wpf\PresentationFramework")
+clr.AddReference(r"wpf\WindowsFormsIntegration")
 
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Drawing')
 clr.AddReference('System.Threading')
-clr.AddReference("WindowsFormsIntegration")
-clr.AddReference('PresentationCore')
-clr.AddReference("PresentationFramework")
-clr.AddReference("WindowsBase")
 
 import System as Sys
 import System.IO as Os

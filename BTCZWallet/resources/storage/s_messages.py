@@ -252,6 +252,21 @@ class StorageMessages:
             return []
         
 
+    def get_contact(self, contact_id):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT * FROM contacts WHERE contact_id = ?',
+                (contact_id,)
+            )
+            contact = cursor.fetchone()
+            conn.close()
+            return contact
+        except sqlite3.OperationalError:
+            return None
+        
+
     def get_contact_username(self, contact_id):
         try:
             conn = sqlite3.connect(self.data)
@@ -325,6 +340,21 @@ class StorageMessages:
             return []
         
 
+    def get_pending_single(self, pending_id):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT * FROM pending WHERE id = ?',
+                (pending_id,)
+            )
+            data = cursor.fetchone()
+            conn.close()
+            return data
+        except sqlite3.OperationalError:
+            return None
+        
+
     def get_requests(self):
         try:
             conn = sqlite3.connect(self.data)
@@ -352,14 +382,17 @@ class StorageMessages:
             return None
         
     
-    def get_messages(self, contact_id):
+    def get_messages(self, contact_id = None):
         try:
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
-            cursor.execute(
-                'SELECT author, message, amount, timestamp FROM messages WHERE id = ?',
-                (contact_id,)
-            )
+            if contact_id:
+                cursor.execute(
+                    'SELECT author, message, amount, timestamp FROM messages WHERE id = ?',
+                    (contact_id,)
+                )
+            else:
+                cursor.execute('SELECT * FROM messages')
             messages = cursor.fetchall()
             conn.close()
             return messages
