@@ -201,6 +201,7 @@ class CashOut(Window):
                     title=self.tr.title("insufficientbalance_dialog"),
                     message=self.tr.message("insufficientbalance_dialog")
                 )
+                self.enable_send()
                 return
             operation, _= await self.commands.z_sendMany(self.uaddress, self.destination_address, self.amount, self.txfee)
             if operation:
