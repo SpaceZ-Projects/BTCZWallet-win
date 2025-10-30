@@ -5,16 +5,17 @@ import binascii
 from datetime import datetime
 import webbrowser
 from decimal import Decimal
+from pathlib import Path
 
 from toga import (
     App, Box, Label, Window, TextInput, ImageView,
-    ScrollContainer, Button
+    ScrollContainer, Button, MultilineTextInput
 )
+
 from ..framework import (
-    BorderStyle, ToolTip, ClipBoard, RichLabel,
-    Color, DockStyle, Forms, Command,
+    ToolTip, ClipBoard, Color, Forms, Command,
     FlatStyle, Drawing, Relation, Os, AlignContent,
-    MenuStrip, RightToLeft, Cursors
+    MenuStrip, RightToLeft, Cursors, WebView
 )
 from toga.style.pack import Pack
 from toga.constants import (
@@ -1552,45 +1553,38 @@ class Chat(Box):
             style=Pack(
                 direction = COLUMN,
                 background_color = rgb(30,30,30),
-                flex = 1,
-                padding = (5,0,0,5)
+                flex = 1
             )
         )
 
-        self.output_box = RichLabel(
-            text="",
-            background_color=Color.rgb(30,30,30),
-            wrap=True,
-            dockstyle=DockStyle.FILL,
-            color=Color.WHITE,
-            borderstyle=BorderStyle.NONE,
-            urls=True,
-            mouse_move=True,
-            readonly=True,
-            urls_click=self.open_url
+        html_path = Path(__file__).parent / "index.html"
+        self.output_box = WebView(
+            self.app,
+            content=html_path,
+            background_color = Color.rgb(40,43,48),
+            on_edit=self.on_message_edit,
+            on_scroll_bottom=self.on_scroll_bottom
         )
-        if self.rtl:
-            self.output_box.righttoleft = RightToLeft.YES
 
         self.input_box = Box(
             style=Pack(
                 direction = ROW,
                 background_color = rgb(40,43,48),
-                height = 100,
+                height = 110,
                 alignment = BOTTOM,
                 padding = self.tr.padding("input_box")
             )
         )
 
-        self.message_input = TextInput(
+        self.message_input = MultilineTextInput(
             style=Pack(
                 color = WHITE,
                 background_color = rgb(30,30,30),
+                height = 70,
                 flex = 1,
                 padding = self.tr.padding("message_input")
             ),
-            on_change=self.update_character_count,
-            on_confirm=self.verify_message
+            on_change=self.update_character_count
         )
         self.message_input._impl.native.Font = self.font.get(self.tr.size("message_input"), True)
         if self.rtl:
@@ -1722,7 +1716,7 @@ class Chat(Box):
             self.messages_box,
             self.input_box
         )
-        self.messages_box._impl.native.Controls.Add(self.output_box)
+        self.messages_box._impl.native.Controls.Add(self.output_box.control)
         if self.rtl:
             self.input_box.add(
                 self.chat_buttons,
@@ -2086,11 +2080,10 @@ class Chat(Box):
         if self.loading_toggle:
             return
         username = self.storage.get_contact_username(contact_id)
-        if self.selected_contact_toggle:
-            self.contact_info_box.clear()
-            self.output_box.text = ""
-            self.last_message_timestamp = None
-            self.last_unread_timestamp = None
+        self.output_box.clear_chat()
+        self.contact_info_box.clear()
+        self.last_message_timestamp = None
+        self.last_unread_timestamp = None
         self.selected_contact_toggle = True
         self.processed_timestamps.clear()
 
@@ -2162,58 +2155,109 @@ class Chat(Box):
             for i in range(0, len(messages), chunk_size):
                 chunk = messages[i:i+chunk_size]
                 for data in chunk:
-                    message_timestamp = data[3]
-                    self.processed_timestamps.add(message_timestamp)
-                    Message(self.output_box, self.units, data)
-                await asyncio.sleep(0.0)
-                self.output_box.ScrollToCaret()
+                    author, message, amount, timestamp = data
+                    content_js = message.replace("\n", "\\n").replace('"', '\\"')
+                    message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                    if author != "you":
+                        user_type = "user"
+                        username = author
+                    else:
+                        user_type = author
+                        username = "You"
+                    self.processed_timestamps.add(timestamp)
+                    self.output_box.add_message(user_type, username, content_js, message_time, amount)
+                    self.output_box.scroll_to_bottom()
 
         self.unread_messages = self.storage.get_unread_messages(self.contact_id)
         if self.unread_messages:
+            self.output_box.show_unread_label()
             unread_messages = sorted(self.unread_messages, key=lambda x: x[3], reverse=False)
             for data in unread_messages:
-                message_timestamp = data[3]
-                self.processed_timestamps.add(message_timestamp)
-                Message(self.output_box, self.units, data)
-                
-            self.clean_unread_messages()
+                author, message, amount, timestamp = data
+                content_js = message.replace("\n", "\\n").replace('"', '\\"')
+                message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                if author != "you":
+                    user_type = "user"
+                    username = author
+                else:
+                    user_type = author
+                    username = "You"
+                self.processed_timestamps.add(timestamp)
+                self.output_box.add_message(user_type, username, content_js, message_time, amount)
 
+        await asyncio.sleep(3)
         self.loading_toggle = None
         self.app.loop.create_task(self.update_current_messages(self.contact_id))
 
 
     async def update_current_messages(self, contact_id):
+        self.messages = self.storage.get_messages(self.contact_id)
+        self.unread_messages = self.storage.get_unread_messages(self.contact_id)
         while True:
             if self.contact_id != contact_id:
                 return
-
             messages = self.storage.get_messages(self.contact_id)
             if messages:
                 for data in messages:
                     if data not in self.messages:
-                        Message(self.output_box, self.units, data)
+                        author, message, amount, timestamp = data
+                        content_js = message.replace("\n", "\\n").replace('"', '\\"')
+                        message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                        if author != "you":
+                            user_type = "user"
+                            username = author
+                        else:
+                            user_type = author
+                            username = "You"
+                        self.processed_timestamps.add(timestamp)
                         self.messages.append(data)
-                        self.output_box.ScrollToCaret()
+                        self.output_box.add_message(user_type, username, content_js, message_time, amount)
+                        self.output_box.scroll_to_bottom()
 
             unread_messages = self.storage.get_unread_messages(self.contact_id)
             if unread_messages:
+                self.output_box.show_unread_label()
                 for data in unread_messages:
                     if data not in self.unread_messages:
-                        Message(self.output_box, self.units, data)
+                        author, message, amount, timestamp = data
+                        content_js = message.replace("\n", "\\n").replace('"', '\\"')
+                        message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                        if author != "you":
+                            user_type = "user"
+                            username = author
+                        else:
+                            user_type = author
+                            username = "You"
+                        self.processed_timestamps.add(timestamp)
                         self.unread_messages.append(data)
+                        self.output_box.add_message(user_type, username, content_js, message_time, amount)
                 
             await asyncio.sleep(3)
 
 
     def clean_unread_messages(self):
-        for data in self.unread_messages:
-            author = data[0]
-            text = data[1]
-            amount = data[2]
-            timestamp = data[3]
-            self.storage.message(self.contact_id, author, text, amount, timestamp)
-            self.messages.append(data)
-        self.storage.delete_unread(self.contact_id)
+        unread_messages = self.storage.get_unread_messages(self.contact_id)
+        if unread_messages:
+            for data in unread_messages:
+                author = data[0]
+                text = data[1]
+                amount = data[2]
+                timestamp = data[3]
+                self.storage.message(self.contact_id, author, text, amount, timestamp)
+                self.messages.append(data)
+            self.storage.delete_unread(self.contact_id)
+            self.output_box.hide_unread_label()
+
+
+    def on_message_edit(self, username, message, timestamp):
+        self.main.info_dialog(
+            title="Disabled",
+            message="The edit ability is under dev..."
+        )
+
+    def on_scroll_bottom(self):
+        if not self.loading_toggle:
+            self.clean_unread_messages()
 
 
     def update_pending_list(self):
@@ -2370,7 +2414,7 @@ class Chat(Box):
         author = "you"
         _, username, address = self.storage.get_identity()
         id = self.storage.get_id_contact(self.contact_id)
-        message = self.message_input.value.replace('\n', '')
+        message = self.message_input.value.strip()
         fee = self.fee_input.value
         amount = float(fee) - 0.0001
         txfee = 0.0001

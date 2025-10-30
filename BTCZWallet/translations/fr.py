@@ -262,7 +262,7 @@ translations = {
     "list_unspent_utxos": {"padding": (0,0,0,5)},
     "message_box": {"padding": (0,0,0,10)},
     "author_value": {"padding": (0,0,8,5)},
-    "message_input": {"text": " Écrire un message", "size": 11, "padding": (3,0,5,8)},
+    "message_input": {"text": " Écrire un message", "size": 11, "padding": (3,0,5,5)},
     "character_count": {"text": "Limite :"},
     "sendmessage_button": {"text": "  Envoyer", "size": 9.5},
     "username_label": {"text": "Nom d'utilisateur :", "padding": (9,0,0,10)},

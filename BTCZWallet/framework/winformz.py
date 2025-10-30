@@ -6,6 +6,12 @@ from typing import Optional, Union, List, Callable
 import re
 import inspect
 import math
+import platform
+import toga_winforms
+import webbrowser
+import json
+from datetime import datetime
+from toga import App
 
 clr.AddReference(r"wpf\PresentationFramework")
 clr.AddReference(r"wpf\WindowsFormsIntegration")
@@ -20,6 +26,27 @@ import System.Drawing as Drawing
 import System.Windows.Forms as Forms
 import System.Threading.Tasks as Tasks
 import Microsoft.Win32 as Win32
+
+toga_path = Path(toga_winforms.__file__).parent
+WEBVIEW2_DIR = toga_path / "libs" / "WebView2"
+arch_path = {
+    "AMD64": "win-x64",
+    "x86": "win-x86",
+    "ARM64": "win-arm64",
+}[platform.machine()]
+
+webview_runtime_dir = WEBVIEW2_DIR / f"runtimes/{arch_path}/native"
+current_path = Sys.Environment.GetEnvironmentVariable("PATH")
+Sys.Environment.SetEnvironmentVariable(
+    "PATH",
+    f"{webview_runtime_dir}{Os.Path.PathSeparator}{current_path}"
+)
+
+clr.AddReference(str(WEBVIEW2_DIR / "Microsoft.Web.WebView2.Core.dll"))
+clr.AddReference(str(WEBVIEW2_DIR / "Microsoft.Web.WebView2.WinForms.dll"))
+
+from Microsoft.Web.WebView2.WinForms import WebView2
+from Microsoft.Web.WebView2.Core import CoreWebView2Environment
 
 from System.Windows.Media.Media3D import (
     PerspectiveCamera, DirectionalLight, Model3DGroup, GeometryModel3D, MeshGeometry3D,
@@ -896,6 +923,120 @@ class TextBox(Forms.ToolStripTextBox):
     @text.setter
     def text(self, value: str):
         self.Text = value
+
+
+
+class WebView:
+    def __init__(
+            self,
+            app:App,
+            content:Path,
+            background_color:Color = None,
+            on_edit=None,
+            on_scroll_bottom=None
+        ):
+        self.control = WebView2()
+        self.control.Dock = DockStyle.FILL
+
+        self._content = content
+        self._background_color = background_color
+        self._on_edit = on_edit
+        self._on_scroll_bottom = on_scroll_bottom
+
+        env_path = app.paths.cache / "WebView2"
+        env_path.mkdir(parents=True, exist_ok=True)
+        try:
+            env_task = CoreWebView2Environment.CreateAsync(None, str(env_path), None)
+            self.env = env_task.GetAwaiter().GetResult()
+        except Exception as e:
+            print(f"[ERROR] Failed to create CoreWebView2Environment: {e}")
+            self.env = None
+            return
+        self.control.CoreWebView2InitializationCompleted += self._on_core_ready
+
+        try:
+            self.control.EnsureCoreWebView2Async(self.env)
+        except Exception as e:
+            print(f"[ERROR] Failed to initialize WebView2: {e}")
+        if self._background_color:
+            self.control.DefaultBackgroundColor = self._background_color
+
+    def _on_core_ready(self, sender, args):
+        if not args.IsSuccess:
+            print(f"[ERROR] WebView2 initialization failed: {args.InitializationException}")
+            return
+        try:
+            if self._content.exists():
+                url = f"file:///{self._content.as_posix()}"
+                sender.CoreWebView2.Navigate(url)
+                self.control.CoreWebView2.WebMessageReceived += self.on_web_message
+            else:
+                print(f"[WARN] HTML file not found: {self._content}")
+        except Exception as e:
+            print(f"[ERROR] Navigation failed: {e}")
+
+    
+    def add_message(self, user_type: str, username: str, content: str, timestamp: str, amount: float=0.0):
+        if not self.control.CoreWebView2:
+            print("[WARN] WebView2 not ready yet. Message not sent.")
+            return
+        content_js = content.replace('"', '\\"')
+        username_js = username.replace('"', '\\"')
+        user_type_js = user_type.replace('"', '\\"')
+        timestamp_js = timestamp.replace('"', '\\"')
+        amount_js = f"{amount:.8f}"
+
+        js_code = f'addMessage("{user_type_js}", "{username_js}", "{content_js}", "{timestamp_js}", "{amount_js}");'
+        self.control.CoreWebView2.ExecuteScriptAsync(js_code)
+
+    def on_web_message(self, sender, args):
+        try:
+            msg = args.WebMessageAsJson
+            if not msg:
+                return
+            try:
+                data = json.loads(msg)
+                if isinstance(data, str) and data.strip().startswith("{"):
+                    data = json.loads(data)
+                if isinstance(data, dict):
+                    action = data.get("action")
+                    if action == "edit":
+                        username = data.get("username")
+                        content = data.get("content")
+                        timestamp_str = data.get("timestamp")
+                        try:
+                            dt = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+                            timestamp_unix = int((dt - datetime(1970, 1, 1)).total_seconds())
+                        except Exception:
+                            timestamp_unix = int((datetime.now() - datetime(1970, 1, 1)).total_seconds())
+                        if callable(self._on_edit):
+                            self._on_edit(username, content, timestamp_unix)
+                    elif action == "scrolledToBottom":
+                        if callable(self._on_scroll_bottom):
+                            self._on_scroll_bottom()
+                    return
+            except Exception:
+                pass
+            url = msg.strip('"')
+            if url.startswith(("http://", "https://")):
+                webbrowser.open(url)
+            else:
+                print(f"[WARN] Unknown message: {msg}")
+
+        except Exception as e:
+            print(f"[ERROR] on_web_message failed: {e}")
+
+    def show_unread_label(self):
+        self.control.CoreWebView2.ExecuteScriptAsync("showUnreadLabel();")
+
+    def hide_unread_label(self):
+        self.control.CoreWebView2.ExecuteScriptAsync("hideUnreadLabel();")
+
+    def scroll_to_bottom(self):
+        self.control.CoreWebView2.ExecuteScriptAsync("scrollToBottom();")
+
+    def clear_chat(self):
+        self.control.CoreWebView2.ExecuteScriptAsync("clearChat();")
 
 
 
