@@ -1,3 +1,4 @@
+
 const chatContainer = document.getElementById('chatContainer');
 const chatPlaceholder = document.getElementById('chatPlaceholder');
 const toast = document.getElementById('toast');
@@ -133,7 +134,8 @@ chatContainer.addEventListener('scroll', () => {
 
 onScrollToBottom = function() {
   if (window.chrome && window.chrome.webview) {
-    window.chrome.webview.postMessage(JSON.stringify({ action: "scrolledToBottom" }));
+    const payload = {action: "scrolledToBottom"};
+    window.chrome.webview.postMessage(payload);
   }
 };
 
