@@ -259,7 +259,7 @@ translations = {
 
     #messages :
     "input_box": {"padding": (0,0,5,0)},
-    "list_unspent_utxos": {"padding": (0,5,0,0)},
+    "list_unspent_utxos": {"padding": (6,0,0,10)},
     "message_box": {"padding": (0,10,0,0)},
     "author_value": {"padding": (0,5,8,0)},
     "message_input": {"text": " اكتب رسالة", "size": 9, "padding": (3,5,5,0)},

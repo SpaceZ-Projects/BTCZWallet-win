@@ -159,16 +159,17 @@ class StorageMessages:
         conn.close()
 
 
-    def ban(self, address):
+    def ban(self, address, username):
         self.create_banned_table()
+        self.add_column('banned', 'username', 'TEXT')
         conn = sqlite3.connect(self.data)
         cursor = conn.cursor()
         cursor.execute(
             '''
-            INSERT INTO banned (address)
-            VALUES (?)
+            INSERT INTO banned (address, username)
+            VALUES (?, ?)
             ''', 
-            (address,)
+            (address, username)
         )
         conn.commit()
         conn.close()
@@ -191,7 +192,6 @@ class StorageMessages:
 
     def insert_market(self, contact_id, hostname, secret):
         self.create_market_table()
-        self.add_column('market', 'secret_key', 'TEXT')
         conn = sqlite3.connect(self.data)
         cursor = conn.cursor()
         cursor.execute(
@@ -207,7 +207,6 @@ class StorageMessages:
 
     def get_hostname(self, contact_id):
         try:
-            self.add_column('market', 'secret_key', 'TEXT')
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
             cursor.execute(
@@ -418,14 +417,19 @@ class StorageMessages:
             return []
         
 
-    def get_banned(self):
+    def get_banned(self, option=None):
         try:
+            self.add_column('banned', 'username', 'TEXT')
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
-            cursor.execute('SELECT address FROM banned')
-            txs = [row[0] for row in cursor.fetchall()]
+            if option:
+                cursor.execute('SELECT address FROM banned')
+                data = [row[0] for row in cursor.fetchall()]
+            else:
+                cursor.execute('SELECT * FROM banned')
+                data = cursor.fetchall()
             conn.close()
-            return txs
+            return data
         except sqlite3.OperationalError:
             return []
         
@@ -495,6 +499,22 @@ class StorageMessages:
             conn.close()
         except sqlite3.OperationalError as e:
             print(f"Error deleting request: {e}")
+
+
+    def delete_ban(self, address):
+        try:
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute(
+                '''
+                DELETE FROM banned WHERE address = ?
+                ''', 
+                (address,)
+            )
+            conn.commit()
+            conn.close()
+        except sqlite3.OperationalError as e:
+            print(f"Error deleting banned contact: {e}")
 
 
     def create_identity_table(self):
@@ -666,7 +686,8 @@ class StorageMessages:
         cursor.execute(
             '''
             CREATE TABLE IF NOT EXISTS banned (
-                address TEXT
+                address TEXT,
+                username TEXT
             )
             '''
         )

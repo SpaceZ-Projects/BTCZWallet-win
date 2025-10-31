@@ -683,7 +683,7 @@ class Contact(Box):
                         self.chat.last_unread_timestamp = None
                         self.chat.selected_contact_toggle = None
             if result is True:
-                self.storage.ban(self.address)
+                self.storage.ban(self.address, self.username)
                 self.storage.delete_contact(self.address)
                 self.chat.contacts_box.remove(self)
                 self.main.info_dialog(
@@ -751,7 +751,7 @@ class Contact(Box):
 
 
 class Pending(Box):
-    def __init__(self, category, contact_id, username, address, app:App, window:Window, chat:Box, utils, units, commands, font):
+    def __init__(self, app:App, window:Window, chat:Box, utils, units, commands, font, data):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -760,20 +760,21 @@ class Pending(Box):
                 height = 50
             )
         )
-        self._impl.native.DoubleClick += self.show_pending_info
-
-        self.pending_window = window
-        self.chat = chat
-        self.category = category
-        self.contact_id = contact_id
-        self.username = username
-        self.address = address
 
         self.app = app
+        self.pending_window = window
+        self.chat = chat
         self.commands = commands
         self.utils = utils
         self.units = units
         self.font = font
+
+        self._impl.native.DoubleClick += self.show_pending_info
+
+        self.category = data[0]
+        self.contact_id = data[1]
+        self.username = data[2]
+        self.address = data[3]
 
         self.storage = StorageMessages(self.app)
 
@@ -896,7 +897,7 @@ class Pending(Box):
 
 
     def reject_button_click(self, button):
-        self.storage.ban(self.address)
+        self.storage.ban(self.address, self.username)
         self.storage.delete_pending(self.address)
         self.pending_window.pending_list_box.remove(self)
 
@@ -925,56 +926,91 @@ class Pending(Box):
 
 
 
-class Message():
-    def __init__(self, output, units, data):
-        super().__init__()
-
-        self.output = output
-        self.units = units
-
-        self.author = data[0]
-        self.message = data[1]
-        self.amount = data[2]
-        self.timestamp = data[3]
-
-        if self.author == "you":
-            color = Color.CYAN
-            self.author = "You"
-        else:
-            color = Color.rgb(114,137,218)
-
-        message_time = datetime.fromtimestamp(self.timestamp).strftime('%Y-%m-%d %H:%M:%S')
-
-        sender = f"{self.author} - [{message_time}]"
-        self.output.SelectionColor = color
-        self.output.SelectionFont = Drawing.Font(
-            self.output.Font, 
-            Drawing.FontStyle.Bold
+class Banned(Box):
+    def __init__(self, app:App, window:Window, utils, font, data):
+        super().__init__(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(40,43,48),
+                padding = (5,5,0,5),
+                height = 50
+            )
         )
-        self.invoke(self.append_text(sender))
 
-        if self.amount > 0.0001:
-            gift = self.amount - 0.0001
-            gift_format = self.units.format_balance(gift)
-            gift = f"🎁 Gift : {gift_format}"
-            self.output.SelectionColor = Color.YELLOW
-            self.invoke(self.append_text(f" - {gift}"))
+        self.app = app
+        self.banned_window = window
+        self.utils = utils
+        self.font = font
 
-        message = f"\n{self.message}"
-        self.output.SelectionColor = Color.WHITE
-        self.output.SelectionFont = Drawing.Font(
-            self.output.Font, 
-            Drawing.FontStyle.Regular
+        self.storage = StorageMessages(self.app)
+        self.tooltip = ToolTip()
+
+        self.address = data[0]
+        self.username = data[1]
+        if not self.username:
+            self.username = "Unknow"
+
+        self.address_label = Label(
+            text=f"{self.address[:50]}...",
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(40,43,48),
+                flex = 1,
+                text_align = CENTER,
+                padding_top = 11
+            )
         )
-        self.invoke(self.append_text(f"{message}"))
-        self.invoke(self.append_text(f"\n\n"))
+        self.address_label._impl.native.Font = self.font.get(11, True)
+        self.tooltip.insert(self.address_label._impl.native, self.address)
 
 
-    def invoke(self, func):
-        self.output.Invoke(Forms.MethodInvoker(lambda: func))
+        self.username_label = Label(
+            text=self.username,
+            style=Pack(
+                color = WHITE,
+                background_color = rgb(40,43,48),
+                text_align = CENTER,
+                padding_top = 11
+            )
+        )
+        self.username_label._impl.native.Font = self.font.get(11, True)
 
-    def append_text(self, value):
-        self.output.AppendText(value)
+        self.unban_button = Button(
+            text="Unban",
+            style=Pack(
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                padding = (10,10,0,10),
+                width = 100
+            ),
+            on_press=self.unban_button_click
+        )
+        self.unban_button._impl.native.Font = self.font.get(9, True)
+        self.unban_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.unban_button._impl.native.MouseEnter += self.unban_button_mouse_enter
+        self.unban_button._impl.native.MouseLeave += self.unban_button_mouse_leave
+
+        self.add(
+            self.address_label,
+            self.username_label,
+            self.unban_button
+        )
+
+
+    def unban_button_click(self, button):
+        self.storage.delete_ban(self.address)
+        self.banned_window.banned_list_box.remove(self)
+
+
+    def unban_button_mouse_enter(self, sender, event):
+        self.unban_button.style.color = BLACK
+        self.unban_button.style.background_color = RED
+
+
+    def unban_button_mouse_leave(self, sender, event):
+        self.unban_button.style.color = GRAY
+        self.unban_button.style.background_color = rgb(30,33,36)
 
 
 
@@ -1241,6 +1277,137 @@ class NewContact(Window):
         self.app.current_window = self.main
 
 
+
+
+class BannedList(Window):
+    def __init__(self, main:Window, utils, tr, font):
+        super().__init__(
+            size = (800, 400),
+            resizable= False
+        )
+
+        self.main = main
+
+        self.utils = utils
+        self.tr = tr
+        self.font = font
+
+        self.storage = StorageMessages(self.app)
+
+        self.title = "Banned contacts"
+        position_center = self.utils.window_center_to_parent(self.main, self)
+        self.position = position_center
+        self._impl.native.ControlBox = False
+        self._impl.native.ShowInTaskbar = False
+
+        mode = 0
+        if self.utils.get_app_theme() == "dark":
+            mode = 1
+        self.utils.apply_title_bar_mode(self, mode)
+
+        self.main_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                alignment = CENTER
+            )
+        )
+
+        self.no_banned_label = Label(
+            text="Empty list",
+            style=Pack(
+                color = GRAY,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                text_align = CENTER
+            )
+        )
+        self.no_banned_label._impl.native.Font = self.font.get(10, True)
+
+        self.no_banned_box = Box(
+            style=Pack(
+                direction = ROW,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                alignment = CENTER
+            )
+        )
+
+        self.banned_list_box = Box(
+            style=Pack(
+                direction = COLUMN,
+                background_color = rgb(30,33,36),
+                flex = 1,
+                alignment = CENTER
+            )
+        )
+
+        self.banned_list = ScrollContainer(
+            horizontal=False,
+            vertical=True,
+            style=Pack(
+                background_color = rgb(30,33,36),
+                flex = 1
+            )
+        )
+        self.banned_list.content = self.banned_list_box
+
+        self.close_button = Button(
+            text=self.tr.text("close_button"),
+            style=Pack(
+                color = RED,
+                background_color = rgb(30,33,36),
+                alignment = CENTER,
+                padding = (10,0,10,0),
+                width = 100
+            ),
+            on_press=self.close_banned_list
+        )
+        self.close_button._impl.native.Font = self.font.get(self.tr.size("close_button"), True)
+        self.close_button._impl.native.FlatStyle = FlatStyle.FLAT
+        self.close_button._impl.native.MouseEnter += self.close_button_mouse_enter
+        self.close_button._impl.native.MouseLeave += self.close_button_mouse_leave
+
+        self.content = self.main_box
+
+        self.get_banned_list()
+
+    def get_banned_list(self):
+        banned = self.storage.get_banned()
+        if banned:
+            for data in banned:
+                banned_contact = Banned(
+                    self.app, self, self.utils, self.font, data
+                )
+                self.banned_list_box.add(banned_contact)
+            self.main_box.add(
+                self.banned_list,
+                self.close_button
+            )
+        else:
+            self.main_box.add(
+                self.no_banned_box,
+                self.close_button
+            )
+            self.no_banned_box.add(
+                self.no_banned_label
+            )
+
+    def close_button_mouse_enter(self, sender, event):
+        self.close_button.style.color = BLACK
+        self.close_button.style.background_color = RED
+
+    def close_button_mouse_leave(self, sender, event):
+        self.close_button.style.color = RED
+        self.close_button.style.background_color = rgb(30,33,36)
+
+
+    def close_banned_list(self, button):
+        self.close()
+
+
+
 class PendingList(Window):
     def __init__(self, main:Window, chat:Box, utils, units, commands, tr, font):
         super().__init__(
@@ -1309,12 +1476,14 @@ class PendingList(Window):
         )
 
         self.pending_list = ScrollContainer(
-            horizontal=None,
+            horizontal=False,
+            vertical=True,
             style=Pack(
                 background_color = rgb(30,33,36),
                 flex = 1
             )
         )
+        self.pending_list.content = self.pending_list_box
 
         self.close_button = Button(
             text=self.tr.text("close_button"),
@@ -1335,23 +1504,13 @@ class PendingList(Window):
 
         self.get_pending_list()
 
+
     def get_pending_list(self):
         pending = self.storage.get_pending()
         if pending:
             for data in pending:
-                category = data[0]
-                id = data[1]
-                username = data[2]
-                address = data[3]
                 pending_contact = Pending(
-                    category=category,
-                    contact_id=id,
-                    username=username,
-                    address=address,
-                    app = self.app,
-                    window = self,
-                    chat = self.chat,
-                    utils=self.utils, units=self.units, commands=self.commands, font=self.font
+                    self.app, self, self.chat, self.utils, self.units, self.commands, self.font, data
                 )
                 self.pending_list_box.add(
                     pending_contact
@@ -1360,7 +1519,6 @@ class PendingList(Window):
                 self.pending_list,
                 self.close_button
             )
-            self.pending_list.content = self.pending_list_box
         else:
             self.main_box.add(
                 self.no_pending_box,
@@ -1370,15 +1528,11 @@ class PendingList(Window):
                 self.no_pending_label
             )
 
+
     def insert_pending(self, category, id, username, address):
+        data = [category, id, username, address]
         pending_contact = Pending(
-            category=category,
-            contact_id=id,
-            username=username,
-            address=address,
-            window = self,
-            chat=self.chat,
-            utils=self.utils, units=self.units, commands=self.commands, font=self.font
+            self.app, self, self.chat, self.utils, self.units, self.commands, self.font, data
         )
         self.pending_list_box.add(pending_contact)
 
@@ -1389,6 +1543,8 @@ class PendingList(Window):
     def close_button_mouse_leave(self, sender, event):
         self.close_button.style.color = RED
         self.close_button.style.background_color = rgb(30,33,36)
+
+
 
 
 class Chat(Box):
@@ -1443,7 +1599,8 @@ class Chat(Box):
             image="images/add_contact_i.png",
             style=Pack(
                 background_color = rgb(40,43,48),
-                alignment = CENTER
+                alignment = CENTER,
+                flex=1
             )
         )
         self.add_contact._impl.native.MouseEnter += self.add_contact_mouse_enter
@@ -1455,7 +1612,8 @@ class Chat(Box):
             image="images/pending_i.png",
             style=Pack(
                 background_color = rgb(40,43,48),
-                alignment = CENTER
+                alignment = CENTER,
+                flex=1
             )
         )
         self.pending_contacts._impl.native.Click += self.pending_contacts_click
@@ -1465,13 +1623,27 @@ class Chat(Box):
             image="images/copy_i.png",
             style=Pack(
                 background_color = rgb(40,43,48),
-                alignment = CENTER
+                alignment = CENTER,
+                flex=1
             )
         )
         self.copy_address._impl.native.MouseEnter += self.copy_address_mouse_enter
         self.copy_address._impl.native.MouseLeave += self.copy_address_mouse_leave
         self.copy_address._impl.native.Click += self.copy_address_click
         self.tooltip.insert(self.copy_address._impl.native, "Copy your messages address")
+
+        self.banned_contacts = ImageView(
+            image="images/banned_list_i.png",
+            style=Pack(
+                background_color = rgb(40,43,48),
+                alignment = CENTER,
+                flex=1
+            )
+        )
+        self.banned_contacts._impl.native.MouseEnter += self.banned_contacts_mouse_enter
+        self.banned_contacts._impl.native.MouseLeave += self.banned_contacts_mouse_leave
+        self.banned_contacts._impl.native.Click += self.banned_contacts_click
+        self.tooltip.insert(self.banned_contacts._impl.native, "Show banned contacts")
 
         self.buttons_box = Box(
             style=Pack(
@@ -1487,8 +1659,9 @@ class Chat(Box):
             style=Pack(
                 color = rgb(114,137,218),
                 background_color = rgb(66,69,73),
-                text_align = self.tr.align("address_balance"),
-                flex = 1
+                text_align = CENTER,
+                flex = 1,
+                padding= (6,0,0,0)
             )
         )
         self.address_balance._impl.native.Font = self.font.get(9, True)
@@ -1511,7 +1684,8 @@ class Chat(Box):
                 direction = ROW,
                 background_color= rgb(66,69,73),
                 height = 32,
-                flex = 1
+                flex = 1,
+                padding = (5,0,0,0)
             )
         )
 
@@ -1685,29 +1859,30 @@ class Chat(Box):
             )
         self.panel_box.add(
             self.buttons_box,
+            self.info_box,
             self.contacts_scroll
         )
         if self.rtl:
             self.buttons_box.add(
-                self.info_box,
+                self.banned_contacts,
                 self.copy_address,
                 self.pending_contacts,
                 self.add_contact
             )
             self.info_box.add(
+                self.list_unspent_utxos,
                 self.address_balance,
-                self.list_unspent_utxos
             )
         else:
             self.buttons_box.add(
                 self.add_contact,
                 self.pending_contacts,
                 self.copy_address,
-                self.info_box
+                self.banned_contacts
             )
             self.info_box.add(
-                self.list_unspent_utxos,
-                self.address_balance
+                self.address_balance,
+                self.list_unspent_utxos
             )
         self.contacts_scroll.content = self.contacts_box
 
@@ -1928,7 +2103,7 @@ class Chat(Box):
         contact_id = form.get('id')
         username = form.get('username')
         address = form.get('address')
-        banned = self.storage.get_banned()
+        banned = self.storage.get_banned(True)
         if address in banned:
             return
         id = self.storage.get_request(address)
@@ -1979,7 +2154,7 @@ class Chat(Box):
         contact_id = form.get('id')
         username = form.get('username')
         address = form.get('address')
-        banned = self.storage.get_banned()
+        banned = self.storage.get_banned(True)
         if address in banned:
             return
         self.storage.add_pending(category, contact_id, username, address)
@@ -2299,6 +2474,11 @@ class Chat(Box):
         self.pending_toggle = False
 
 
+    def banned_contacts_click(self, sender, event):
+        self.banned_list = BannedList(self.main, self.utils, self.tr, self.font)
+        self.banned_list._impl.native.ShowDialog(self.main._impl.native)
+
+
     def copy_address_click(self, sender, event):
         address = self.storage.get_identity("address")
         self.clipboard.copy(address[0])
@@ -2555,6 +2735,14 @@ class Chat(Box):
         sender.Cursor = Cursors.DEFAULT
         self.copy_address.image = "images/copy_i.png"
 
+    def banned_contacts_mouse_enter(self, sender, event):
+        sender.Cursor = Cursors.HAND
+        self.banned_contacts.image = "images/banned_list_a.png"
+
+    def banned_contacts_mouse_leave(self, sender, event):
+        sender.Cursor = Cursors.DEFAULT
+        self.banned_contacts.image = "images/banned_list_i.png"
+
 
     async def get_message_timestamp(self):
         blockchaininfo, _ = await self.commands.getBlockchainInfo()
@@ -2736,7 +2924,7 @@ class Messages(Box):
         id = form.get('id')
         username = form.get('username')
         address = form.get('address')
-        banned = self.storage.get_banned()
+        banned = self.storage.get_banned(True)
         if address in banned:
             return
         self.storage.add_pending(category, id, username, address)
