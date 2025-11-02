@@ -1760,7 +1760,10 @@ class Chat(Box):
             ),
             on_change=self.update_character_count
         )
-        self.message_input._impl.native.Font = self.font.get(self.tr.size("message_input"), True)
+        try:
+            self.message_input._impl.native.Font = Drawing.Font("Segoe UI Emoji", 11)
+        except:
+            self.message_input._impl.native.Font = Drawing.Font("Segoe UI Symbol", 11)
         if self.rtl:
             self.message_input._impl.native.RightToLeft = RightToLeft.YES
         self.message_input.placeholder = self.tr.text("message_input")
