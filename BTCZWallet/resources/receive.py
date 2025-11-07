@@ -508,7 +508,7 @@ class Receive(Box):
         if self.selected_address:
             if self.selected_address.startswith("z"):
                 return
-        url = "https://explorer.btcz.zelcore.io/address/"
+        url = "https://explorer.btcz.rocks/address/"
         transaction_url = url + self.selected_address
         webbrowser.open(transaction_url)
 

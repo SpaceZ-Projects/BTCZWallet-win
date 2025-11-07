@@ -1,6 +1,7 @@
 
 import asyncio
 import json
+from pathlib import Path
 
 from toga import (
     App, Box, Label, Window, TextInput,
@@ -9,15 +10,14 @@ from toga import (
 from ..framework import (
     Cursors, FlatStyle, Forms, ProgressStyle, Os, DockStyle,
     BTCZControl, Color, FormBorderStyle, Drawing, Table,
-    BorderStyle, SelectMode, AlignTable, Keys, Command
+    BorderStyle, SelectMode, AlignTable, Keys, Command, WebView
 )
 from toga.style.pack import Pack
 from toga.colors import (
-    rgb, WHITE, GRAY, YELLOW, RED, GREENYELLOW, BLACK
+    rgb, WHITE, GRAY, RED, GREENYELLOW, BLACK
 )
 from toga.constants import (
-    TOP, ROW, COLUMN, RIGHT, CENTER,
-    BOTTOM, HIDDEN, VISIBLE, LEFT
+    TOP, ROW, COLUMN, RIGHT, CENTER
 )
 
 from .storage import StorageAddresses
@@ -105,134 +105,22 @@ class Wallet(Box):
                 direction = COLUMN,
                 padding = 10,
                 alignment = RIGHT,
-                width = 350,
-                background_color = rgb(30,33,36)
-            )
-        )
-        self.total_balances_label = Label(
-            text=self.tr.text("total_balances_label"),
-            style=Pack(
-                text_align = CENTER,
-                color = GRAY,
-                background_color = rgb(30,33,36),
-                padding_top = 5,
-                flex =1
-            )
-        )
-        self.total_balances_label._impl.native.Font = self.font.get(self.tr.size("total_balances_label"), True)
-
-        self.total_value = Label(
-            text="",
-            style=Pack(
-                text_align = CENTER,
-                color = WHITE,
-                background_color = rgb(30,33,36)
-            )
-        )
-        self.total_value._impl.native.Font = self.font.get(self.tr.size("total_value"), True)
-
-        self.balances_type_box = Box(
-            style=Pack(
-                direction = ROW,
-                background_color = rgb(30,33,36),
-                alignment = BOTTOM,
-                flex = 1
+                flex = 1.5,
+                background_color = BLACK
             )
         )
 
-        self.transparent_balance_box = Box(
-            style=Pack(
-                direction = COLUMN,
-                background_color = rgb(40,43,48),
-                padding = 5,
-                flex = 1
-            )
+        html_path = Path(__file__).parent / "html" / "balances.html"
+        self.balances_output = WebView(
+            app=self.app,
+            content=html_path,
+            background_color=Color.rgb(40,43,48)
         )
-        self.shielded_balance_box = Box(
-            style=Pack(
-                direction = COLUMN,
-                background_color = rgb(40,43,48),
-                padding = 5,
-                flex = 1
-            )
-        )
-
-        self.transparent_label = Label(
-            text=self.tr.text("transparent_label"),
-            style=Pack(
-                background_color = rgb(40,43,48),
-                text_align = CENTER,
-                color = GRAY
-            )
-        )
-        self.transparent_label._impl.native.Font = self.font.get(8, True)
-
-        self.transparent_value = Label(
-            text="",
-            style=Pack(
-                background_color = rgb(40,43,48),
-                text_align = CENTER,
-                color = YELLOW
-            )
-        )
-        self.transparent_value._impl.native.Font = self.font.get(9, True)
-
-        self.shielded_label = Label(
-            text=self.tr.text("shielded_label"),
-            style=Pack(
-                background_color = rgb(40,43,48),
-                text_align = CENTER,
-                color = GRAY
-            )
-        )
-        self.shielded_label._impl.native.Font = self.font.get(8, True)
-
-        self.shielded_value = Label(
-            text="",
-            style=Pack(
-                background_color = rgb(40,43,48),
-                text_align = CENTER,
-                color = rgb(114,137,218)
-            )
-        )
-        self.shielded_value._impl.native.Font = self.font.get(9, True)
-
-        self.unconfirmed_label = Label(
-            text=self.tr.text("unconfirmed_label"),
-            style=Pack(
-                background_color = rgb(30,33,36),
-                text_align = CENTER,
-                color = GRAY,
-                visibility = HIDDEN
-            )
-        )
-        self.unconfirmed_label._impl.native.Font = self.font.get(8, True)
-
-        self.unconfirmed_value = Label(
-            text="",
-            style=Pack(
-                background_color = rgb(30,33,36),
-                text_align = CENTER,
-                color = RED,
-                visibility = HIDDEN
-            )
-        )
-        self.unconfirmed_value._impl.native.Font = self.font.get(9, True)
-        
-        self.unconfirmed_box = Box(
-            style=Pack(
-                direction = COLUMN,
-                alignment = CENTER,
-                background_color = rgb(30,33,36),
-                padding = self.tr.padding("unconfirmed_box"),
-                visibility = HIDDEN
-            )
-        )
+        self.balances_box._impl.native.Controls.Add(self.balances_output.control)
         
         if self.rtl:
             self.add(
                 self.balances_box,
-                self.unconfirmed_box,
                 self.bitcoinz_title_box,
                 self.bitcoinz_logo
             )
@@ -240,41 +128,11 @@ class Wallet(Box):
             self.add(
                 self.bitcoinz_logo,
                 self.bitcoinz_title_box,
-                self.unconfirmed_box,
                 self.balances_box
             )
         self.bitcoinz_title_box.add(
             self.bitcoinz_title,
             self.bitcoinz_version
-        )
-        self.unconfirmed_box.add(
-            self.unconfirmed_label,
-            self.unconfirmed_value
-        )
-
-        self.balances_box.add(
-            self.total_balances_label,
-            self.total_value,
-            self.balances_type_box
-        )
-        if self.rtl:
-            self.balances_type_box.add(
-                self.shielded_balance_box,
-                self.transparent_balance_box
-            )
-        else:
-            self.balances_type_box.add(
-                self.transparent_balance_box,
-                self.shielded_balance_box
-            )
-
-        self.transparent_balance_box.add(
-            self.transparent_label,
-            self.transparent_value
-        )
-        self.shielded_balance_box.add(
-            self.shielded_label,
-            self.shielded_value
         )
 
         self.app.loop.create_task(self.get_node_version())
@@ -317,25 +175,22 @@ class Wallet(Box):
                     totalbalance = "*.********"
                     transparentbalance = "*.********"
                     shieldedbalance = "*.********"
-                self.total_value.text = totalbalance
-                self.transparent_value.text = transparentbalance
-                self.shielded_value.text = shieldedbalance
+                js_code = f'setBalances("{totalbalance}", "{transparentbalance}", "{shieldedbalance}");'
+                self.balances_output.control.CoreWebView2.ExecuteScriptAsync(js_code)
+            
             unconfirmed_balance,_ = await self.rpc.getUnconfirmedBalance()
             unconfirmed = self.units.format_balance(float(unconfirmed_balance))
             if float(unconfirmed) > 0:
-                self.unconfirmed_box.style.visibility = VISIBLE
-                self.unconfirmed_label.style.visibility = VISIBLE
-                self.unconfirmed_value.style.visibility = VISIBLE
                 if self.rtl:
                     unconfirmed = self.units.arabic_digits(unconfirmed)
                 if self.settings.hidden_balances():
                     unconfirmed = "*.********"
-                self.unconfirmed_value.text = unconfirmed
             else:
-                self.unconfirmed_box.style.visibility = HIDDEN
-                self.unconfirmed_label.style.visibility = HIDDEN
-                self.unconfirmed_value.style.visibility = HIDDEN
-            await asyncio.sleep(5)
+                unconfirmed = 0
+            js_unconfirmed = f'setUnconfirmedBalance("{unconfirmed}");'
+            self.balances_output.control.CoreWebView2.ExecuteScriptAsync(js_unconfirmed)
+            
+            await asyncio.sleep(4)
 
 
     async def update_transparent_addresses(self):
