@@ -438,9 +438,9 @@ function hideUnreadLabel() {
   unreadLabel.style.display = 'none';
 }
 
-//document.addEventListener('contextmenu', function(e) {
-  //e.preventDefault();
-//});
+document.addEventListener('contextmenu', function(e) {
+  e.preventDefault();
+});
 
 function scrollToBottom() {
   chatContainer.scrollTop = chatContainer.scrollHeight;
