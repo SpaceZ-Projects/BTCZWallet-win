@@ -129,31 +129,33 @@ class StorageMessages:
         conn.commit()
         conn.close()
 
-    def message(self, id, author, message, amount, timestamp):
+    def message(self, id, author, message, amount, timestamp, edited):
         self.create_messages_table()
+        self.add_column('messages', 'edited', 'INTEGER')
         conn = sqlite3.connect(self.data)
         cursor = conn.cursor()
         cursor.execute(
             '''
-            INSERT INTO messages (id, author, message, amount, timestamp)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO messages (id, author, message, amount, timestamp, edited)
+            VALUES (?, ?, ?, ?, ?, ?)
             ''', 
-            (id, author, message, amount, timestamp)
+            (id, author, message, amount, timestamp, edited)
         )
         conn.commit()
         conn.close()
 
 
-    def unread_message(self, id, author, message, amount, timestamp):
+    def unread_message(self, id, author, message, amount, timestamp, edited):
         self.create_unread_messages_table()
+        self.add_column('unread_messages', 'edited', 'INTEGER')
         conn = sqlite3.connect(self.data)
         cursor = conn.cursor()
         cursor.execute(
             '''
-            INSERT INTO unread_messages (id, author, message, amount, timestamp)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO unread_messages (id, author, message, amount, timestamp, edited)
+            VALUES (?, ?, ?, ?, ?, ?)
             ''', 
-            (id, author, message, amount, timestamp)
+            (id, author, message, amount, timestamp, edited)
         )
         conn.commit()
         conn.close()
@@ -383,11 +385,12 @@ class StorageMessages:
     
     def get_messages(self, contact_id = None):
         try:
+            self.add_column('messages', 'edited', 'INTEGER')
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
             if contact_id:
                 cursor.execute(
-                    'SELECT author, message, amount, timestamp FROM messages WHERE id = ?',
+                    'SELECT author, message, amount, timestamp, edited FROM messages WHERE id = ?',
                     (contact_id,)
                 )
             else:
@@ -399,13 +402,44 @@ class StorageMessages:
             return []
         
 
+    def get_message(self, contact_id, timestamp):
+        try:
+            self.add_column('messages', 'edited', 'INTEGER')
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT timestamp FROM messages WHERE id = ? AND timestamp = ?',
+                (contact_id, timestamp)
+            )
+            data = cursor.fetchone()
+            conn.close()
+            return data
+        except sqlite3.OperationalError:
+            return None
+        
+
+    def update_message(self, contact_id, message, timestamp, edit_timestamp):
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            UPDATE messages
+            SET message = ?, edited = ?
+            WHERE id = ? AND timestamp = ?
+            ''', (message, edit_timestamp, contact_id, timestamp)
+        )
+        conn.commit()
+        conn.close()
+        
+
     def get_unread_messages(self, contact_id=None):
         try:
+            self.add_column('unread_messages', 'edited', 'INTEGER')
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
             if contact_id:
                 cursor.execute(
-                    'SELECT author, message, amount, timestamp FROM unread_messages WHERE id = ?',
+                    'SELECT author, message, amount, timestamp, edited FROM unread_messages WHERE id = ?',
                     (contact_id,)
                 )
             else:
@@ -415,6 +449,36 @@ class StorageMessages:
             return messages
         except sqlite3.OperationalError:
             return []
+        
+
+    def get_unread_message(self, contact_id, timestamp):
+        try:
+            self.add_column('unread_messages', 'edited', 'INTEGER')
+            conn = sqlite3.connect(self.data)
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT timestamp FROM unread_messages WHERE id = ? AND timestamp = ?',
+                (contact_id, timestamp)
+            )
+            data = cursor.fetchone()
+            conn.close()
+            return data
+        except sqlite3.OperationalError:
+            return None
+        
+
+    def update_unread_message(self, contact_id, message, timestamp, edit_timestamp):
+        conn = sqlite3.connect(self.data)
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            UPDATE unread_messages
+            SET message = ?, edited = ?
+            WHERE id = ? AND timestamp = ?
+            ''', (message, edit_timestamp, contact_id, timestamp)
+        )
+        conn.commit()
+        conn.close()
         
 
     def get_banned(self, option=None):
@@ -616,7 +680,8 @@ class StorageMessages:
                 author TEXT,
                 message TEXT,
                 amount REAL,
-                timestamp INTEGER
+                timestamp INTEGER,
+                edited INTEGER
             )
             '''
         )
@@ -633,7 +698,8 @@ class StorageMessages:
                 author TEXT,
                 message TEXT,
                 amount REAL,
-                timestamp INTEGER
+                timestamp INTEGER,
+                edited INTEGER
             )
             '''
         )

@@ -678,7 +678,8 @@ class Contact(Box):
                 if result is None:
                     if self.chat.selected_contact_toggle:
                         self.chat.contact_info_box.clear()
-                        self.chat.messages_box.clear()
+                        self.chat.clear_chat()
+                        self.chat.restore()
                         self.chat.last_message_timestamp = None
                         self.chat.last_unread_timestamp = None
                         self.chat.selected_contact_toggle = None
@@ -1567,6 +1568,9 @@ class Chat(Box):
         self.new_pending_toggle = None
         self.marketplace_toggle = None
         self.fee_input = None
+        self.edit_toggle = None
+        self.editing_message = None
+        self.message_timestamp = None
         self.messages = []
         self.unread_messages = []
         self.processed_timestamps = set()
@@ -1731,13 +1735,12 @@ class Chat(Box):
             )
         )
 
-        html_path = Path(__file__).parent / "index.html"
+        html_path = Path(__file__).parent / "html" / "chat.html"
         self.output_box = WebView(
             self.app,
             content=html_path,
             background_color = Color.rgb(40,43,48),
-            on_edit=self.on_message_edit,
-            on_scroll_bottom=self.on_scroll_bottom
+            on_action=self.on_web_action
         )
 
         self.input_box = Box(
@@ -2017,7 +2020,7 @@ class Chat(Box):
                 if listunspent:
                     listunspent = json.loads(listunspent)
                     self.count_list_unspent(listunspent)
-                    if len(listunspent) >= 10:
+                    if len(listunspent) >= 20:
                         total_balance,_ = await self.commands.z_getBalance(address[0])
                         merge_fee = Decimal('0.0002')
                         txfee = Decimal('0.0001')
@@ -2079,29 +2082,32 @@ class Chat(Box):
             form_type = form_dict.get('type')
 
             if form_type == "identity":
-                await self.get_identity(form_dict)
+                self.get_identity(form_dict)
 
             elif form_type == "message":
-                await self.get_message(form_dict, amount)
+                self.get_message(form_dict, amount)
+            
+            elif form_type == "edit":
+                self.edit_message(form_dict)
 
             elif form_type == "request":
-                await self.get_request(form_dict)
+                self.get_request(form_dict)
 
             elif form_type == "market":
-                await self.get_marketplace(form_dict)
+                self.get_marketplace(form_dict)
 
             elif form_type == "payment":
-                await self.get_payment(form_dict, amount)
+                self.get_payment(form_dict, amount)
 
             self.storage.tx(txid)
 
-        except (binascii.Error, json.decoder.JSONDecodeError) as e:
+        except (binascii.Error, json.decoder.JSONDecodeError):
             self.storage.tx(txid)
-        except Exception as e:
+        except Exception:
             self.storage.tx(txid)
 
 
-    async def get_identity(self, form):
+    def get_identity(self, form):
         category = form.get('category')
         contact_id = form.get('id')
         username = form.get('username')
@@ -2120,7 +2126,7 @@ class Chat(Box):
                 )
 
 
-    async def get_message(self, form, amount):
+    def get_message(self, form, amount):
         contact_id = form.get('id')
         author = form.get('username')
         message = form.get('text')
@@ -2131,20 +2137,15 @@ class Chat(Box):
         self.processed_timestamps.add(timestamp)
         if author != contact_username:
             self.storage.update_contact_username(author, contact_id)
-        if self.contact_id == contact_id:
-            self.storage.message(contact_id, author, message, amount, timestamp)
+        if self.contact_id == contact_id and self.main.message_button_toggle and not self.main._is_minimized and self.main._is_active:
+            self.storage.message(contact_id, author, message, amount, timestamp, None)
             self.username_value.text = author
-            if not self.main.message_button_toggle and self.settings.notification_messages():
-                self.notify.send_note(
-                    title="New Message",
-                    text=f"{author} : {message[:100]}"
-                )
         else:
-            await self.handler_unread_message(contact_id, author, message, amount, timestamp)
+            self.handler_unread_message(contact_id, author, message, amount, timestamp)
 
 
-    async def handler_unread_message(self,contact_id, author, message, amount, timestamp):
-        self.storage.unread_message(contact_id, author, message, amount, timestamp)
+    def handler_unread_message(self,contact_id, author, message, amount, timestamp):
+        self.storage.unread_message(contact_id, author, message, amount, timestamp, None)
         if self.settings.notification_messages():
             self.notify.send_note(
                 title="New Message",
@@ -2152,7 +2153,29 @@ class Chat(Box):
             )
 
 
-    async def get_request(self, form):
+    def edit_message(self, form):
+        contact_id = form.get('id')
+        message = form.get('text')
+        timestamp = form.get('timestamp')
+        edited_timestamp = form.get('edited')
+        contact_username = self.storage.get_contact_username(contact_id)
+        if not contact_username:
+            return
+        is_message = self.storage.get_message(contact_id, timestamp)
+        is_unread_message = self.storage.get_unread_message(contact_id, timestamp)
+        if not is_message and not is_unread_message:
+            return
+        if is_message:
+            self.storage.update_message(contact_id, message, timestamp, edited_timestamp)
+        elif is_unread_message:
+            self.storage.update_unread_message(contact_id, message, timestamp, edited_timestamp)
+        if self.contact_id == contact_id:
+            timestamp_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+            edited_timestamp_str = datetime.fromtimestamp(edited_timestamp).strftime('%Y-%m-%d %H:%M:%S')
+            self.output_box.edit_message(timestamp_str, message, edited_timestamp_str)
+
+
+    def get_request(self, form):
         category = form.get('category')
         contact_id = form.get('id')
         username = form.get('username')
@@ -2172,7 +2195,7 @@ class Chat(Box):
             )
 
 
-    async def get_marketplace(self, form):
+    def get_marketplace(self, form):
         contact_id = form.get('id')
         hostname = form.get('hostname')
         secret = form.get('key')
@@ -2186,7 +2209,7 @@ class Chat(Box):
 
 
     
-    async def get_payment(self, form, amount):
+    def get_payment(self, form, amount):
         order_id = form.get('order_id')
         order = self.market_storage.get_order(order_id)
         if order:
@@ -2194,6 +2217,121 @@ class Chat(Box):
             if amount < total_price:
                 return
             self.market_storage.update_order_status(order_id, "paid")
+
+
+
+    def on_web_action(self, action, **kwargs):
+        if action == "edit":
+            message = kwargs.get('content')
+            timestamp = kwargs.get('timestamp')
+            timestamp_unix = int(datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S").timestamp())
+            self.on_message_edit(message, timestamp_unix)
+        elif action == "cancelEdit":
+            self.on_message_canceledit()
+        elif action == "scrolledToBottom":
+            self.on_scroll_bottom()
+        elif action == "scrolledToTop":
+            self.on_scroll_top()
+        elif action == "urlClicked":
+            url = kwargs.get('url')
+            self.on_url_click(url)
+
+
+    def on_message_edit(self, message, timestamp):
+        if isinstance(message, str):
+            message = message.replace("\\n", "\n")
+        self.editing_message = message
+        self.message_timestamp = timestamp
+        self.edit_toggle = True
+        self.update_send_button()
+        self.fee_input.readonly = True
+        self.fee_input.value = "0.00020000"
+        self.message_input.value = message
+        self.message_input.focus()
+        self.message_input._impl.native.SelectionStart = self.message_input._impl.native.TextLength
+        
+
+    def on_message_canceledit(self):
+        self.edit_toggle = None
+        self.update_send_button()
+        self.message_input.value = ""
+        self.fee_input.readonly = False
+
+
+    def on_scroll_bottom(self):
+        if not self.loading_toggle:
+            self.clean_unread_messages()
+
+
+    def on_scroll_top(self):
+        if not self.loading_toggle:
+            self.app.loop.create_task(self.load_old_messages())
+
+
+    def on_url_click(self, url):
+        def on_result(widget, result):
+            if result is True:
+                webbrowser.open(url)
+
+        self.main.question_dialog(
+            title="Open External Link",
+            message=f"You're about to open:\n\n{url}\n\nDo you want to continue?",
+            on_result=on_result
+        )
+
+    def control_add_message(self, user_type: str, username: str, content: str, timestamp: str, edited_timestamp: str, amount):
+        if not self.output_box.control.CoreWebView2:
+            print("[WARN] WebView2 not ready yet. Message not sent.")
+            return
+        args = [user_type, username, content, timestamp, edited_timestamp, amount]
+        js_args = json.dumps(args, ensure_ascii=False)
+        js_code = f"addMessage(...{js_args});"
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync(js_code)
+
+
+    def control_insert_message(self, index: int, user_type: str, username: str, content: str, timestamp: str, edited_timestamp: str, amount):
+        if not self.output_box.control.CoreWebView2:
+            print("[WARN] WebView2 not ready yet. Message not sent.")
+            return
+        args = [index, user_type, username, content, timestamp, edited_timestamp, amount]
+        js_args = json.dumps(args, ensure_ascii=False)
+        js_code = f"insertMessage(...{js_args});"
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync(js_code)
+
+
+    def control_edit_message(self, timestamp: str, content: str, edited_timestamp: str):
+        if not self.output_box.control.CoreWebView2:
+            print("[WARN] WebView2 not ready yet. Message not sent.")
+            return
+        args = [timestamp, content, edited_timestamp]
+        js_args = json.dumps(args, ensure_ascii=False)
+        js_code = f"editMessage(...{js_args});"
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync(js_code)
+
+
+    def show_unread_label(self):
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync("showUnreadLabel();")
+
+    def hide_unread_label(self):
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync("hideUnreadLabel();")
+
+    def scroll_to_bottom(self):
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync("scrollToBottom();")
+
+    def cancel_edit(self):
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync("cancelEdit();")
+
+    def enable_cancel(self):
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync("enableCancelButton();")
+
+    def disable_cancel(self):
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync("disableCancelButton();")
+
+    def clear_chat(self):
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync("clearChat();")
+
+    def restore(self):
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync("restorePlaceholder();")
 
             
 
@@ -2258,8 +2396,10 @@ class Chat(Box):
         if self.loading_toggle:
             return
         username = self.storage.get_contact_username(contact_id)
-        self.output_box.clear_chat()
+        self.clear_chat()
+        self.message_input.value = ""
         self.contact_info_box.clear()
+        self.edit_toggle = None
         self.last_message_timestamp = None
         self.last_unread_timestamp = None
         self.selected_contact_toggle = True
@@ -2328,32 +2468,20 @@ class Chat(Box):
     async def load_messages(self):
         self.messages = self.storage.get_messages(self.contact_id)
         if self.messages:
-            messages = sorted(self.messages, key=lambda x: x[3], reverse=False)
-            chunk_size = 25
-            for i in range(0, len(messages), chunk_size):
-                chunk = messages[i:i+chunk_size]
-                for data in chunk:
-                    author, message, amount, timestamp = data
-                    content_js = message.replace("\n", "\\n").replace('"', '\\"')
-                    message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-                    if author != "you":
-                        user_type = "user"
-                        username = author
-                    else:
-                        user_type = author
-                        username = "You"
-                    self.processed_timestamps.add(timestamp)
-                    self.output_box.add_message(user_type, username, content_js, message_time, amount)
-                    self.output_box.scroll_to_bottom()
-
-        self.unread_messages = self.storage.get_unread_messages(self.contact_id)
-        if self.unread_messages:
-            self.output_box.show_unread_label()
-            unread_messages = sorted(self.unread_messages, key=lambda x: x[3], reverse=False)
-            for data in unread_messages:
-                author, message, amount, timestamp = data
+            messages = sorted(self.messages, key=lambda x: x[3], reverse=True)
+            recent_messages = messages[:20]
+            self.last_message_timestamp = recent_messages[-1][3]
+            for data in recent_messages:
+                author, message, amount, timestamp, edited = data
                 content_js = message.replace("\n", "\\n").replace('"', '\\"')
+                amount = self.units.format_balance(amount)
                 message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                edited_time = ""
+                if edited:
+                    try:
+                        edited_time = datetime.fromtimestamp(edited).strftime('%Y-%m-%d %H:%M:%S')
+                    except Exception:
+                        pass
                 if author != "you":
                     user_type = "user"
                     username = author
@@ -2361,9 +2489,34 @@ class Chat(Box):
                     user_type = author
                     username = "You"
                 self.processed_timestamps.add(timestamp)
-                self.output_box.add_message(user_type, username, content_js, message_time, amount)
+                self.control_insert_message(0, user_type, username, content_js, message_time, edited_time, amount)
+                self.scroll_to_bottom()
 
-        await asyncio.sleep(3)
+        self.unread_messages = self.storage.get_unread_messages(self.contact_id)
+        if self.unread_messages:
+            self.show_unread_label()
+            unread_messages = sorted(self.unread_messages, key=lambda x: x[3], reverse=False)
+            for data in unread_messages:
+                author, message, amount, timestamp, edited = data
+                content_js = message.replace("\n", "\\n").replace('"', '\\"')
+                amount = self.units.format_balance(amount)
+                message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                edited_time = ""
+                if edited:
+                    try:
+                        edited_time = datetime.fromtimestamp(edited).strftime('%Y-%m-%d %H:%M:%S')
+                    except Exception:
+                        pass
+                if author != "you":
+                    user_type = "user"
+                    username = author
+                else:
+                    user_type = author
+                    username = "You"
+                self.processed_timestamps.add(timestamp)
+                self.control_add_message(user_type, username, content_js, message_time, edited_time, amount)
+
+        await asyncio.sleep(1)
         self.loading_toggle = None
         self.app.loop.create_task(self.update_current_messages(self.contact_id))
 
@@ -2378,37 +2531,41 @@ class Chat(Box):
             if messages:
                 for data in messages:
                     if data not in self.messages:
-                        author, message, amount, timestamp = data
-                        content_js = message.replace("\n", "\\n").replace('"', '\\"')
-                        message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-                        if author != "you":
-                            user_type = "user"
-                            username = author
-                        else:
-                            user_type = author
-                            username = "You"
-                        self.processed_timestamps.add(timestamp)
-                        self.messages.append(data)
-                        self.output_box.add_message(user_type, username, content_js, message_time, amount)
-                        self.output_box.scroll_to_bottom()
+                        author, message, amount, timestamp, edited = data
+                        if not edited:
+                            content_js = message.replace("\n", "\\n").replace('"', '\\"')
+                            amount = self.units.format_balance(amount)
+                            message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                            if author != "you":
+                                user_type = "user"
+                                username = author
+                            else:
+                                user_type = author
+                                username = "You"
+                            self.processed_timestamps.add(timestamp)
+                            self.messages.append(data)
+                            self.control_add_message(user_type, username, content_js, message_time, "", amount)
+                            self.scroll_to_bottom()
 
             unread_messages = self.storage.get_unread_messages(self.contact_id)
             if unread_messages:
-                self.output_box.show_unread_label()
+                self.show_unread_label()
                 for data in unread_messages:
                     if data not in self.unread_messages:
-                        author, message, amount, timestamp = data
-                        content_js = message.replace("\n", "\\n").replace('"', '\\"')
-                        message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-                        if author != "you":
-                            user_type = "user"
-                            username = author
-                        else:
-                            user_type = author
-                            username = "You"
-                        self.processed_timestamps.add(timestamp)
-                        self.unread_messages.append(data)
-                        self.output_box.add_message(user_type, username, content_js, message_time, amount)
+                        author, message, amount, timestamp, edited = data
+                        if not edited:
+                            amount = self.units.format_balance(amount)
+                            content_js = message.replace("\n", "\\n").replace('"', '\\"')
+                            message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                            if author != "you":
+                                user_type = "user"
+                                username = author
+                            else:
+                                user_type = author
+                                username = "You"
+                            self.processed_timestamps.add(timestamp)
+                            self.unread_messages.append(data)
+                            self.control_add_message(user_type, username, content_js, message_time, "", amount)
                 
             await asyncio.sleep(3)
 
@@ -2421,21 +2578,42 @@ class Chat(Box):
                 text = data[1]
                 amount = data[2]
                 timestamp = data[3]
-                self.storage.message(self.contact_id, author, text, amount, timestamp)
+                edited = data[4]
+                self.storage.message(self.contact_id, author, text, amount, timestamp, edited)
                 self.messages.append(data)
             self.storage.delete_unread(self.contact_id)
-            self.output_box.hide_unread_label()
+            self.hide_unread_label()
 
 
-    def on_message_edit(self, username, message, timestamp):
-        self.main.info_dialog(
-            title="Disabled",
-            message="The edit ability is under dev..."
-        )
-
-    def on_scroll_bottom(self):
-        if not self.loading_toggle:
-            self.clean_unread_messages()
+    async def load_old_messages(self):
+        messages = self.storage.get_messages(self.contact_id)
+        messages = sorted(messages, key=lambda x: x[3], reverse=True)
+        last_loaded_message_timestamp = self.last_message_timestamp
+        try:
+            last_loaded_index = next(i for i, m in enumerate(messages) if m[3] == last_loaded_message_timestamp)
+        except StopIteration:
+            return
+        older_messages = messages[last_loaded_index + 1 : last_loaded_index + 11]
+        if older_messages:
+            self.last_message_timestamp = older_messages[-1][3]
+            for data in older_messages:
+                author, message, amount, timestamp, edited = data
+                content_js = message.replace("\n", "\\n").replace('"', '\\"')
+                amount = self.units.format_balance(amount)
+                message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                edited_time = ""
+                if edited:
+                    try:
+                        edited_time = datetime.fromtimestamp(edited).strftime('%Y-%m-%d %H:%M:%S')
+                    except Exception:
+                        pass
+                if author != "you":
+                    user_type = "user"
+                    username = author
+                else:
+                    user_type = author
+                    username = "You"
+                self.control_insert_message(0, user_type, username, content_js, message_time, edited_time, amount)
 
 
     def update_pending_list(self):
@@ -2491,7 +2669,7 @@ class Chat(Box):
         )
 
 
-    async def verify_message(self, widget):
+    async def verify_message(self, button):
         message = self.message_input.value.strip()
         character_count = len(message)
         fee = self.fee_input.value
@@ -2523,13 +2701,25 @@ class Chat(Box):
             )
             self.fee_input.value = "0.00020000"
             return
+
         if message.lower() == "/market":
-            self.app.add_background_task(self.handle_market_command)
+            self.app.loop.create_task(self.handle_market_command())
             return
-        self.app.add_background_task(self.send_message)
+        self.app.loop.create_task(self.send_message())
 
 
-    async def handle_market_command(self, widget):
+    async def verify_edit_message(self, button):
+        message = self.message_input.value.strip()
+        if message == self.editing_message:
+            self.edit_toggle = None
+            self.cancel_edit()
+            self.update_send_button()
+            self.message_input.value = ""
+            return
+        self.app.loop.create_task(self.send_edit_message())
+
+
+    async def handle_market_command(self):
         if not self.settings.market_service():
             self.main.error_dialog(
                 title="Disbaled",
@@ -2593,7 +2783,7 @@ class Chat(Box):
             self.enable_send_button()
 
     
-    async def send_message(self, widget):
+    async def send_message(self):
         author = "you"
         _, username, address = self.storage.get_identity()
         id = self.storage.get_id_contact(self.contact_id)
@@ -2604,7 +2794,7 @@ class Chat(Box):
         timestamp = await self.get_message_timestamp()
         if timestamp is not None:
             self.app.console.info_log(f"Sending message...")
-            memo = {"type":"message","id":id[0],"username":username,"text":message, "timestamp":timestamp}
+            memo = {"type":"message","id":id[0],"username":username,"text":message,"timestamp":timestamp}
             memo_str = json.dumps(memo)
             self.disable_send_button()
             await self.send_memo(address, amount, txfee, memo_str, author, message, timestamp)
@@ -2628,7 +2818,7 @@ class Chat(Box):
                             result = transaction_result[0].get('result', {})
                             txid = result.get('txid')
                             self.storage.tx(txid)
-                            self.storage.message(self.contact_id, author, text, amount, timestamp)
+                            self.storage.message(self.contact_id, author, text, amount, timestamp, None)
                             self.send_button._impl.native.Focus()
                             self.fee_input.value = "0.00020000"
                             self.character_count.style.color = GRAY
@@ -2645,24 +2835,100 @@ class Chat(Box):
                     self.enable_send_button()
         else:
             self.enable_send_button()
+
+
+    async def send_edit_message(self):
+        author = "you"
+        _, _, address = self.storage.get_identity()
+        id = self.storage.get_id_contact(self.contact_id)
+        message = self.message_input.value.strip()
+        txfee = 0.0001
+        edit_timestamp = await self.get_message_timestamp()
+        if edit_timestamp is not None:
+            self.app.console.info_log(f"Editing message...")
+            memo = {"type":"edit","id":id[0],"text":message,"timestamp":self.message_timestamp,"edited":edit_timestamp}
+            memo_str = json.dumps(memo)
+            self.disable_cancel()
+            self.disable_send_button()
+            await self.send_edit_memo(address, txfee, txfee, memo_str, author, message, edit_timestamp)
+
+
+    async def send_edit_memo(self, address, amount, txfee, memo, author, text, edit_timestamp):
+        operation, _= await self.commands.SendMemo(address, self.user_address, amount, txfee, memo)
+        if operation:
+            self.app.console.info_log(f"Operation : {operation}")
+            transaction_status, _= await self.commands.z_getOperationStatus(operation)
+            transaction_status = json.loads(transaction_status)
+            if isinstance(transaction_status, list) and transaction_status:
+                status = transaction_status[0].get('status')
+                if status == "executing" or status =="success":
+                    await asyncio.sleep(1)
+                    while True:
+                        transaction_result, _= await self.commands.z_getOperationResult(operation)
+                        transaction_result = json.loads(transaction_result)
+                        if isinstance(transaction_result, list) and transaction_result:
+                            self.message_input.value = ""
+                            result = transaction_result[0].get('result', {})
+                            txid = result.get('txid')
+                            self.storage.tx(txid)
+                            data = author, text, amount, self.message_timestamp, edit_timestamp
+                            self.messages.append(data)
+                            self.storage.update_message(self.contact_id, text, self.message_timestamp, edit_timestamp)
+                            timestamp_str = datetime.fromtimestamp(self.message_timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                            edited_timestamp_str = datetime.fromtimestamp(edit_timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                            self.cancel_edit()
+                            self.control_edit_message(timestamp_str, text, edited_timestamp_str)
+                            self.edit_toggle = None
+                            self.send_button._impl.native.Focus()
+                            self.character_count.style.color = GRAY
+                            self.enable_send_button()
+                            await asyncio.sleep(0.2)
+                            self.message_input.focus()
+                            return
+                        await asyncio.sleep(3)
+                else:
+                    self.main.error_dialog(
+                        title="Failed",
+                        message="Editing message was failed, verify your balance"
+                    )
+                    self.enable_cancel()
+                    self.enable_send_button()
+        else:
+            self.enable_cancel()
+            self.enable_send_button()
     
 
     def enable_send_button(self):
-        self.send_button.text = "Send"
-        send_i_icon = self.messages_icon("images/send_message_i.png")
-        self.send_button._impl.native.Image = Drawing.Image.FromFile(send_i_icon)
-        self.send_button.on_press = self.verify_message
+        self.update_send_button()
         self.message_input.readonly = False
-        self.send_toggle = False
+        self.send_toggle = None
 
     
     def disable_send_button(self):
         self.send_toggle = True
         self.send_button.style.color = GRAY
         self.send_button.style.background_color = rgb(30,33,36)
-        self.send_button.text = "Sending..."
+        if self.edit_toggle:
+            text = "Editing..."
+        else:
+            text = "Sending..."
+        self.send_button.text = text
         self.send_button.on_press = None
         self.message_input.readonly = True
+
+
+    def update_send_button(self):
+        if self.edit_toggle:
+            text = "Edit"
+            icon = self.messages_icon("images/edit_message_i.png")
+            self.send_button.on_press = self.verify_edit_message
+        else:
+            text = "Send"
+            icon = self.messages_icon("images/send_message_i.png")
+            self.send_button.on_press = self.verify_message
+
+        self.send_button.text = text
+        self.send_button._impl.native.Image = Drawing.Image.FromFile(icon)
 
 
     def update_character_count(self, input):
@@ -2672,6 +2938,11 @@ class Chat(Box):
         if self.rtl:
             value = self.units.arabic_digits(value)
         if not message:
+            if self.edit_toggle:
+                self.edit_toggle = None
+                self.cancel_edit()
+                self.update_send_button()
+            self.fee_input.readonly = False
             self.character_count.text = f"{text} {value}"
             return
         character_count = len(message)
@@ -2694,15 +2965,21 @@ class Chat(Box):
 
     def send_button_mouse_enter(self, sender, event):
         if not self.send_toggle:
-            send_a_icon = self.messages_icon("images/send_message_a.png")
-            self.send_button._impl.native.Image = Drawing.Image.FromFile(send_a_icon)
+            if self.edit_toggle:
+                icon = self.messages_icon("images/edit_message_a.png")
+            else:
+                icon = self.messages_icon("images/send_message_a.png")
+            self.send_button._impl.native.Image = Drawing.Image.FromFile(icon)
             self.send_button.style.color = BLACK
             self.send_button.style.background_color = rgb(114,137,218)
 
     def send_button_mouse_leave(self, sender, event):
         if not self.send_toggle:
-            send_i_icon = self.messages_icon("images/send_message_i.png")
-            self.send_button._impl.native.Image = Drawing.Image.FromFile(send_i_icon)
+            if self.edit_toggle:
+                icon = self.messages_icon("images/edit_message_i.png")
+            else:
+                icon = self.messages_icon("images/send_message_i.png")
+            self.send_button._impl.native.Image = Drawing.Image.FromFile(icon)
             self.send_button.style.color = GRAY
             self.send_button.style.background_color = rgb(30,33,36)
 
@@ -2918,7 +3195,7 @@ class Messages(Box):
         contacts_ids = self.storage.get_contacts("contact_id")
         if id not in contacts_ids:
             return
-        self.storage.unread_message(id, author, message, amount, timestamp)
+        self.storage.unread_message(id, author, message, amount, timestamp, None)
         self.chat.processed_timestamps.add(timestamp)
 
 

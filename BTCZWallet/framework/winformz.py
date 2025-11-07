@@ -8,9 +8,7 @@ import inspect
 import math
 import platform
 import toga_winforms
-import webbrowser
 import json
-from datetime import datetime
 from toga import App
 
 clr.AddReference(r"wpf\PresentationFramework")
@@ -34,13 +32,7 @@ arch_path = {
     "x86": "win-x86",
     "ARM64": "win-arm64",
 }[platform.machine()]
-
 webview_runtime_dir = WEBVIEW2_DIR / f"runtimes/{arch_path}/native"
-current_path = Sys.Environment.GetEnvironmentVariable("PATH")
-Sys.Environment.SetEnvironmentVariable(
-    "PATH",
-    f"{webview_runtime_dir}{Os.Path.PathSeparator}{current_path}"
-)
 
 clr.AddReference(str(WEBVIEW2_DIR / "Microsoft.Web.WebView2.Core.dll"))
 clr.AddReference(str(WEBVIEW2_DIR / "Microsoft.Web.WebView2.WinForms.dll"))
@@ -932,16 +924,15 @@ class WebView:
             app:App,
             content:Path,
             background_color:Color = None,
-            on_edit=None,
-            on_scroll_bottom=None
+            on_action = None
         ):
         self.control = WebView2()
         self.control.Dock = DockStyle.FILL
 
         self._content = content
         self._background_color = background_color
-        self._on_edit = on_edit
-        self._on_scroll_bottom = on_scroll_bottom
+        self.on_action = on_action
+
 
         env_path = app.paths.cache / "WebView2"
         env_path.mkdir(parents=True, exist_ok=True)
@@ -975,20 +966,6 @@ class WebView:
         except Exception as e:
             print(f"[ERROR] Navigation failed: {e}")
 
-    
-    def add_message(self, user_type: str, username: str, content: str, timestamp: str, amount: float=0.0):
-        if not self.control.CoreWebView2:
-            print("[WARN] WebView2 not ready yet. Message not sent.")
-            return
-        content_js = content.replace('"', '\\"')
-        username_js = username.replace('"', '\\"')
-        user_type_js = user_type.replace('"', '\\"')
-        timestamp_js = timestamp.replace('"', '\\"')
-        amount_js = f"{amount:.8f}"
-
-        js_code = f'addMessage("{user_type_js}", "{username_js}", "{content_js}", "{timestamp_js}", "{amount_js}");'
-        self.control.CoreWebView2.ExecuteScriptAsync(js_code)
-
     def on_web_message(self, sender, args):
         try:
             msg = args.WebMessageAsJson
@@ -1000,43 +977,15 @@ class WebView:
                     data = json.loads(data)
                 if isinstance(data, dict):
                     action = data.get("action")
-                    if action == "edit":
-                        username = data.get("username")
-                        content = data.get("content")
-                        timestamp_str = data.get("timestamp")
-                        try:
-                            dt = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
-                            timestamp_unix = int((dt - datetime(1970, 1, 1)).total_seconds())
-                        except Exception:
-                            timestamp_unix = int((datetime.now() - datetime(1970, 1, 1)).total_seconds())
-                        if callable(self._on_edit):
-                            self._on_edit(username, content, timestamp_unix)
-                    elif action == "scrolledToBottom":
-                        if callable(self._on_scroll_bottom):
-                            self._on_scroll_bottom()
-                    return
-            except Exception:
-                pass
-            url = msg.strip('"')
-            if url.startswith(("http://", "https://")):
-                webbrowser.open(url)
-            else:
-                print(f"[WARN] Unknown message: {msg}")
-
+                    if not action:
+                        return
+                    event = {k: v for k, v in data.items() if k != "action"}
+                    if callable(self.on_action):
+                        self.on_action(action, **event)
+            except Exception as inner_error:
+                print(f"[WARN] Failed to parse WebMessage JSON: {inner_error}")
         except Exception as e:
             print(f"[ERROR] on_web_message failed: {e}")
-
-    def show_unread_label(self):
-        self.control.CoreWebView2.ExecuteScriptAsync("showUnreadLabel();")
-
-    def hide_unread_label(self):
-        self.control.CoreWebView2.ExecuteScriptAsync("hideUnreadLabel();")
-
-    def scroll_to_bottom(self):
-        self.control.CoreWebView2.ExecuteScriptAsync("scrollToBottom();")
-
-    def clear_chat(self):
-        self.control.CoreWebView2.ExecuteScriptAsync("clearChat();")
 
 
 

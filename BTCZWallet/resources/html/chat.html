@@ -8,7 +8,7 @@
 <style>
   @font-face {
     font-family: 'Monda';
-    src: url('../fonts/Monda.ttf') format('truetype');
+    src: url('../../fonts/Monda.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
   }
@@ -58,6 +58,34 @@
     max-width: 100%;
     word-wrap: break-word;
     box-sizing: border-box;
+  }
+
+  .message .editing-label {
+    display: none;
+    margin-top: 6px;
+    font-size: 0.75em;
+    font-style: italic;
+    color: #e9da00;
+    opacity: 0.8;
+    align-self: self-end;
+  }
+
+  .message.editing .editing-label {
+    display: block;
+  }
+
+  .message.user.editing,
+  .message.user.editing:hover,
+  .message.you.editing,
+  .message.you.editing:hover {
+    background-color: #282b30;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    outline: 2px dashed #e9da00;
+    transition: background-color 0.3s, box-shadow 0.3s;
+  }
+
+  .message.editing .message-actions button[title="Cancel"] {
+    color: #ff5555;
   }
 
   .message.user {
@@ -116,11 +144,83 @@
     font-weight: bold;
   }
 
+  .edited-tag {
+    font-size: 0.85em;
+    color: #aaa;
+    margin-left: 4px;
+    position: relative;
+    cursor: pointer;
+  }
+
+  .edited-tag::after {
+    font-style: normal;
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 130%;
+    left: 50%;
+    transform: translateX(-80%);
+    background: #000;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 1.2em;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 5px 5px rgba(0, 0, 0, 0.3);
+    transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+    transform-origin: bottom center;
+    z-index: 9999;
+  }
+
+  .edited-tag:hover::after {
+    opacity: 1;
+    transform: translateX(-80%) translateY(-6px);
+  }
+
+
   .message-content {
     font-size: 0.85em;
     line-height: 1.3em;
     white-space: pre-wrap;
     word-wrap: break-word;
+  }
+
+  .emoji {
+    font-size: 1.4em;
+    display: inline-block;
+    line-height: 1;
+    vertical-align: -0.1em;
+  }
+
+  .msg-list {
+    list-style-type: disc;
+    padding-left: 20px;
+    margin: 4px 0;
+  }
+
+  .box {
+    display: inline-block;
+    font-size: 0.8rem;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    padding: 2px 6px;
+  }
+
+  .code-block {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 6px 10px;
+    white-space: pre-wrap;
+    overflow-x: auto;
+  }
+
+  .inline-code {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    padding: 1px 4px;
   }
 
   .message-actions {
@@ -160,6 +260,28 @@
     background-color: #40444b;
     color: #e9da00;
   }
+
+  .link-tooltip {
+    position: absolute;
+    background: rgba(30, 30, 30, 0.9);
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8em;
+    white-space: nowrap;
+    pointer-events: none;
+    transform: translateX(-50%);
+    z-index: 9999;
+    opacity: 0;
+    animation: fadeIn 0.15s ease forwards;
+  }
+
+  @keyframes fadeIn {
+    to {
+      opacity: 1;
+    }
+  }
+
 
   .unreadText {
     display: none;
