@@ -2172,7 +2172,7 @@ class Chat(Box):
         if self.contact_id == contact_id:
             timestamp_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
             edited_timestamp_str = datetime.fromtimestamp(edited_timestamp).strftime('%Y-%m-%d %H:%M:%S')
-            self.output_box.edit_message(timestamp_str, message, edited_timestamp_str)
+            self.control_edit_message(timestamp_str, message, edited_timestamp_str)
 
 
     def get_request(self, form):
