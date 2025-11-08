@@ -176,7 +176,22 @@ function formatMessageContent(text) {
              .replace(/>/g, "&gt;");
 
   text = text.replace(/```([\s\S]*?)```/g, (_, code) => {
-    return `<pre class="code-block"><code>${code.trim()}</code></pre>`;
+    try {
+      if (code.includes('\\"') || code.includes('\\n') || code.includes('\\\\')) {
+        code = JSON.parse(`"${code}"`);
+      }
+    } catch {
+      code = code
+        .replace(/\\\\/g, "\\")
+        .replace(/\\"/g, '"')
+        .replace(/\\n/g, '\n');
+    }
+    const safeCode = code
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    return `<pre class="code-block"><code>${safeCode.trim()}</code></pre>`;
   });
   text = text.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
   text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');

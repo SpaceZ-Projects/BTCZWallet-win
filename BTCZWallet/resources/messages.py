@@ -2037,9 +2037,9 @@ class Chat(Box):
 
     def count_list_unspent(self, listunspent):
         count = len(listunspent)
-        if count >= 10:
+        if count >= 20:
             self.list_unspent_utxos.style.color = RED
-        elif count >= 5:
+        elif count >= 10:
             self.list_unspent_utxos.style.color = ORANGE
         else:
             self.list_unspent_utxos.style.color = WHITE
