@@ -381,8 +381,8 @@ class Home(Box):
                 self.market_output.control.CoreWebView2.ExecuteScriptAsync(f"setBTCZPrice('{self.settings.symbol()} {btcz_price}');")
                 self.market_output.control.CoreWebView2.ExecuteScriptAsync(f"setChange24h('{price_percentage_24} %');")
                 self.market_output.control.CoreWebView2.ExecuteScriptAsync(f"setChange7d('{price_percentage_7d} %');")
-                self.market_output.control.CoreWebView2.ExecuteScriptAsync(f"setMarketCap('{market_cap} {self.settings.symbol()}');")
-                self.market_output.control.CoreWebView2.ExecuteScriptAsync(f"setVolume('{market_volume} {self.settings.symbol()}');")
+                self.market_output.control.CoreWebView2.ExecuteScriptAsync(f"setMarketCap('{self.settings.symbol()} {market_cap}');")
+                self.market_output.control.CoreWebView2.ExecuteScriptAsync(f"setVolume('{self.settings.symbol()} {market_volume}');")
 
             await asyncio.sleep(601)
 
