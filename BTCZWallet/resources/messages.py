@@ -2020,17 +2020,18 @@ class Chat(Box):
                 if listunspent:
                     listunspent = json.loads(listunspent)
                     self.count_list_unspent(listunspent)
+                    list_txs = self.storage.get_txs()
+                    for data in listunspent:
+                        txid = data['txid']
+                        if txid not in list_txs:
+                            await self.unhexlify_memo(data)
+                            
                     if len(listunspent) >= 20:
                         total_balance,_ = await self.commands.z_getBalance(address[0])
                         merge_fee = Decimal('0.0002')
                         txfee = Decimal('0.0001')
                         amount = Decimal(total_balance) - merge_fee
                         await self.merge_utxos(address[0], amount, txfee)
-                    list_txs = self.storage.get_txs()
-                    for data in listunspent:
-                        txid = data['txid']
-                        if txid not in list_txs:
-                            await self.unhexlify_memo(data)
 
             await asyncio.sleep(5)
 
@@ -2281,7 +2282,7 @@ class Chat(Box):
 
     def control_add_message(self, user_type: str, username: str, content: str, timestamp: str, edited_timestamp: str, amount):
         if not self.output_box.control.CoreWebView2:
-            print("[WARN] WebView2 not ready yet. Message not sent.")
+            print("[WARN] WebView2 not ready yet")
             return
         args = [user_type, username, content, timestamp, edited_timestamp, amount]
         js_args = json.dumps(args, ensure_ascii=False)
@@ -2291,7 +2292,7 @@ class Chat(Box):
 
     def control_insert_message(self, index: int, user_type: str, username: str, content: str, timestamp: str, edited_timestamp: str, amount):
         if not self.output_box.control.CoreWebView2:
-            print("[WARN] WebView2 not ready yet. Message not sent.")
+            print("[WARN] WebView2 not ready yet")
             return
         args = [index, user_type, username, content, timestamp, edited_timestamp, amount]
         js_args = json.dumps(args, ensure_ascii=False)
@@ -2299,9 +2300,42 @@ class Chat(Box):
         self.output_box.control.CoreWebView2.ExecuteScriptAsync(js_code)
 
 
+    def control_pending_message(self, user_type: str, username: str, content: str, timestamp, amount):
+        if not self.output_box.control.CoreWebView2:
+            print("[WARN] WebView2 not ready yet")
+            return
+        message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+        args = [user_type, username, content, message_time, amount]
+        js_args = json.dumps(args, ensure_ascii=False)
+        js_code = f"addPendingMessage(...{js_args});"
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync(js_code)
+
+
+    def control_message_sent(self, timestamp):
+        if not self.output_box.control.CoreWebView2:
+            print("[WARN] WebView2 not ready yet")
+            return
+        message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+        args = [message_time]
+        js_args = json.dumps(args, ensure_ascii=False)
+        js_code = f"markMessageAsSent(...{js_args});"
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync(js_code)
+
+
+    def control_message_failed(self, timestamp):
+        if not self.output_box.control.CoreWebView2:
+            print("[WARN] WebView2 not ready yet")
+            return
+        message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+        args = [message_time]
+        js_args = json.dumps(args, ensure_ascii=False)
+        js_code = f"markMessageAsFailed(...{js_args});"
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync(js_code)
+
+
     def control_edit_message(self, timestamp: str, content: str, edited_timestamp: str):
         if not self.output_box.control.CoreWebView2:
-            print("[WARN] WebView2 not ready yet. Message not sent.")
+            print("[WARN] WebView2 not ready yet")
             return
         args = [timestamp, content, edited_timestamp]
         js_args = json.dumps(args, ensure_ascii=False)
@@ -2793,6 +2827,7 @@ class Chat(Box):
         txfee = 0.0001
         timestamp = await self.get_message_timestamp()
         if timestamp is not None:
+            self.control_pending_message(author, username, message, timestamp, amount)
             self.app.console.info_log(f"Sending message...")
             memo = {"type":"message","id":id[0],"username":username,"text":message,"timestamp":timestamp}
             memo_str = json.dumps(memo)
@@ -2814,6 +2849,9 @@ class Chat(Box):
                         transaction_result, _= await self.commands.z_getOperationResult(operation)
                         transaction_result = json.loads(transaction_result)
                         if isinstance(transaction_result, list) and transaction_result:
+                            data = author, text, amount, timestamp, None
+                            self.messages.append(data)
+                            self.control_message_sent(timestamp)
                             self.message_input.value = ""
                             result = transaction_result[0].get('result', {})
                             txid = result.get('txid')
@@ -2828,12 +2866,14 @@ class Chat(Box):
                             return
                         await asyncio.sleep(3)
                 else:
+                    self.control_message_failed(timestamp)
                     self.main.error_dialog(
                         title="Failed",
                         message="Sending message was failed, verify your balance"
                     )
                     self.enable_send_button()
         else:
+            self.control_message_failed(timestamp)
             self.enable_send_button()
 
 

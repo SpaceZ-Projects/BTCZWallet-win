@@ -401,6 +401,39 @@ function editMessage(timestamp, content, edited_timestamp) {
   }
 }
 
+function addPendingMessage(userType, username, content, timestamp, amount = 0) {
+  const message = _createMessageElement(userType, username, content, timestamp, "", amount);
+  message.classList.add('sending');
+  chatContainer.appendChild(message);
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+  return message;
+}
+
+function markMessageAsSent(timestamp) {
+  const messages = chatContainer.querySelectorAll('.message.sending');
+  messages.forEach(msg => {
+    const tsElem = msg.querySelector('.timestamp');
+    if (tsElem && tsElem.dataset.ts === timestamp) {
+      msg.classList.remove('sending');
+      msg.style.opacity = 1;
+    }
+  });
+}
+
+function markMessageAsFailed(timestamp) {
+  const msg = chatContainer.querySelector(`.message.sending [data-ts="${timestamp}"]`)?.closest('.message');
+  if (!msg) return;
+
+  msg.classList.remove('sending');
+  msg.classList.add('failed');
+
+  setTimeout(() => {
+    msg.style.opacity = '0';
+    msg.style.transform = 'scale(0.95)';
+    setTimeout(() => msg.remove(), 400);
+  }, 2000);
+}
+
 
 function cancelEdit() {
   const editingMsg = document.querySelector('.message.editing');
