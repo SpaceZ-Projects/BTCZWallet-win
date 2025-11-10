@@ -110,7 +110,7 @@ class Wallet(Box):
             )
         )
 
-        html_path = Path(__file__).parent / "html" / "balances.html"
+        html_path = Path(__file__).parent / "html" / "wallet.html"
         self.balances_output = WebView(
             app=self.app,
             content=html_path,

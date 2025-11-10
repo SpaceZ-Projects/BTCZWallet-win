@@ -24,6 +24,9 @@ from ..framework import (
 )
 
 
+COINGECKO_API = "https://api.coingecko.com/api/v3/coins/bitcoinz/market_chart"
+
+
 class Utils():
     def __init__(self, app:App, settings = None, units=None, tr=None):
         super().__init__()
@@ -96,6 +99,33 @@ class Utils():
         except Exception as e:
             self.app.console.error_log(f"{e}")
             return None, None
+        
+
+    async def fetch_marketchart(self):
+        params = {
+            'vs_currency': self.settings.currency(),
+            'days': '1',
+        }
+        tor_enabled = self.settings.tor_network()
+        if tor_enabled:
+            torrc = self.read_torrc()
+            socks_port = torrc.get("SocksPort")
+            connector = ProxyConnector.from_url(f'socks5://127.0.0.1:{socks_port}')
+        else:
+            connector = None
+        try:
+            async with aiohttp.ClientSession(connector=connector) as session:
+                headers={'User-Agent': 'Mozilla/5.0'}
+                async with session.get(COINGECKO_API, params=params, headers=headers, timeout=10) as response:
+                    response.raise_for_status()
+                    data = await response.json()
+                    return data.get('prices', [])
+        except ProxyConnectionError:
+            return None
+        except asyncio.TimeoutError:
+            return None
+        except Exception:
+            return None
 
 
     async def is_tor_alive(self):

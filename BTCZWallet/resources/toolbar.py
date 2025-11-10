@@ -1114,10 +1114,8 @@ class AppToolBar(Box):
                     self.utils.stop_tor()
                     await self.commands.stopNode()
 
-                self.main.home_page.bitcoinz_curve.image = None
                 if self.main.console_toggle:
                     self.app.console._impl.native.Close()
-                self.main.home_page.clear_cache()
                 self.main.notify.hide()
                 self.main.notify.dispose()
                 if self.main.market_server.server_status:

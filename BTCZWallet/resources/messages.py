@@ -1735,7 +1735,7 @@ class Chat(Box):
             )
         )
 
-        html_path = Path(__file__).parent / "html" / "chat.html"
+        html_path = Path(__file__).parent / "html" / "messages.html"
         self.output_box = WebView(
             self.app,
             content=html_path,
