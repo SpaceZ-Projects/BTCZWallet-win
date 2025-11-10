@@ -78,7 +78,7 @@ class Menu(Window):
         self.tooltip = ToolTip()
 
         self.title = self.tr.title("main_window")
-        self._impl.native.Size = Drawing.Size(1066,756)
+        self.size = (1066,756)
         self._impl.native.BackColor = Color.rgb(30,33,36)
         self._impl.native.FormBorderStyle = FormBorderStyle.NONE
 
@@ -970,7 +970,7 @@ class Menu(Window):
                 if self._is_minimized:
                     self._impl.native.Size = self.stored_size
                 else:
-                    self._impl.native.MinimumSize = Drawing.Size(916, 646)
+                    self._impl.native.MinimumSize = Drawing.Size(1066,756)
             
             self._is_minimized = None
             self._is_maximized = None
