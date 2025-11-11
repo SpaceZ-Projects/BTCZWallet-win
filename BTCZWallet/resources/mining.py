@@ -5,14 +5,18 @@ import subprocess
 import re
 import aiohttp
 from aiohttp_socks import ProxyConnector, ProxyConnectionError
+from pathlib import Path
 
 from toga import (
     App, Box, Label, Selection, TextInput,
-    ProgressBar, Window, Button, ImageView, Switch
+    ProgressBar, Window, Button, Switch
 )
-from ..framework import FlatStyle, Os, ToolTip, RightToLeft
+from ..framework import (
+    FlatStyle, Os, ToolTip, RightToLeft, WebView,
+    Color
+)
 from toga.style.pack import Pack
-from toga.constants import COLUMN, CENTER, BOLD, ROW
+from toga.constants import COLUMN, CENTER, ROW
 from toga.colors import rgb, GRAY, WHITE, GREENYELLOW, BLACK, RED
 
 from .storage import StorageMessages, StorageAddresses, StorageMobile
@@ -281,156 +285,21 @@ class Mining(Box):
             ) 
         )
 
-        self.divider_box = Box(
+        html_path = Path(__file__).parent / "html" / "mining.html"
+        self.miner_stats = WebView(
+            app=self.app,
+            content=html_path,
+            background_color = Color.rgb(40,43,48)
+        )
+
+        self.stats_box = Box(
            style=Pack(
                 direction = COLUMN,
                 background_color = rgb(40,43,48),
-                flex = 1,
-                padding = (5,10,0,10)
+                flex = 1
             ) 
         )
-
-        self.totalshares_icon = ImageView(
-            image="images/shares.png",
-            style=Pack(
-                background_color = rgb(30,33,36),
-                padding = self.tr.padding("miningstats_icon")
-            )
-        )
-        self.tooltip.insert(self.totalshares_icon._impl.native, self.tr.tooltip("totalshares_icon"))
-
-        self.totalshares_value = Label(
-            text="0.00",
-            style=Pack(
-                color = WHITE,
-                background_color = rgb(30,33,36),
-                font_weight = BOLD,
-                padding = self.tr.padding("miningstats_value")
-            )
-        )
-        self.totalshares_value._impl.native.Font = self.font.get(7, True)
-
-        self.balance_icon = ImageView(
-            image="images/balance.png",
-            style=Pack(
-                background_color = rgb(30,33,36),
-                padding = self.tr.padding("miningstats_icon")
-            )
-        )
-        self.tooltip.insert(self.balance_icon._impl.native, self.tr.tooltip("balance_icon"))
-
-        self.balance_value = Label(
-            text="0.00",
-            style=Pack(
-                color = WHITE,
-                background_color = rgb(30,33,36),
-                padding = self.tr.padding("miningstats_value")
-            )
-        )
-        self.balance_value._impl.native.Font = self.font.get(7, True)
-
-        self.immature_icon = ImageView(
-            image="images/immature.png",
-            style=Pack(
-                background_color = rgb(30,33,36),
-                padding = self.tr.padding("miningstats_icon")
-            )
-        )
-        self.tooltip.insert(self.immature_icon._impl.native, self.tr.tooltip("immature_icon"))
-
-        self.immature_value = Label(
-            text="0.00",
-            style=Pack(
-                color = WHITE,
-                background_color = rgb(30,33,36),
-                padding = self.tr.padding("miningstats_value")
-            )
-        )
-        self.immature_value._impl.native.Font = self.font.get(7, True)
-
-        self.paid_icon = ImageView(
-            image="images/paid.png",
-            style=Pack(
-                background_color = rgb(30,33,36),
-                padding = self.tr.padding("miningstats_icon")
-            )
-        )
-        self.tooltip.insert(self.paid_icon._impl.native, self.tr.tooltip("paid_icon"))
-
-        self.paid_value = Label(
-            text="0.00",
-            style=Pack(
-                color = WHITE,
-                background_color = rgb(30,33,36),
-                padding = self.tr.padding("miningstats_value")
-            )
-        )
-        self.paid_value._impl.native.Font = self.font.get(7, True)
-
-        self.solutions_icon = ImageView(
-            image="images/hash_speed.png",
-            style=Pack(
-                background_color = rgb(30,33,36),
-                padding = self.tr.padding("miningstats_icon")
-            )
-        )
-        self.tooltip.insert(self.solutions_icon._impl.native, self.tr.tooltip("solutions_icon"))
-
-        self.solutions_value = Label(
-            text="0.00 Sol/s",
-            style=Pack(
-                color = WHITE,
-                background_color = rgb(30,33,36),
-                padding = self.tr.padding("miningstats_value")
-            )
-        )
-        self.solutions_value._impl.native.Font = self.font.get(7, True)
-
-        self.estimated_icon = ImageView(
-            image="images/estimated.png",
-            style=Pack(
-                background_color = rgb(30,33,36),
-                padding = self.tr.padding("miningstats_icon")
-            )
-        )
-        self.tooltip.insert(self.estimated_icon._impl.native, self.tr.tooltip("estimated_icon"))
-        
-        text = self.tr.text("estimated_value")
-        self.estimated_value = Label(
-            text=f"0.00 {text}",
-            style=Pack(
-                color = WHITE,
-                background_color = rgb(30,33,36),
-                padding = self.tr.padding("miningstats_value")
-            )
-        )
-        self.estimated_value._impl.native.Font = self.font.get(7, True)
-
-        self.estimated_earn_value = Label(
-            text=f"0.00 {self.settings.symbol()}",
-            style=Pack(
-                color = WHITE,
-                background_color = rgb(30,33,36),
-                padding = self.tr.padding("miningstats_value")
-            )
-        )
-        self.estimated_earn_value._impl.native.Font = self.font.get(7, True)
-
-        self.estimated_box = Box(
-            style=Pack(
-                direction = COLUMN,
-                background_color = rgb(30,33,36)
-            )
-        )
-
-        self.mining_stats_box = Box(
-            style=Pack(
-                direction = ROW,
-                background_color = rgb(30,33,36),
-                alignment = CENTER,
-                flex = 1
-            )
-        )
+        self.stats_box._impl.native.Controls.Add(self.miner_stats.control)
 
         self.mining_box = Box(
             style=Pack(
@@ -473,7 +342,7 @@ class Mining(Box):
             self.selection_address_box,
             self.selection_pool_box,
             self.worker_box,
-            self.divider_box,
+            self.stats_box,
             self.start_mining_box
         )
         if self.rtl:
@@ -502,20 +371,6 @@ class Mining(Box):
                 self.start_mining_button,
                 self.mining_box
             )
-            self.mining_stats_box.add(
-                self.estimated_box,
-                self.estimated_icon,
-                self.solutions_value,
-                self.solutions_icon,
-                self.paid_value,
-                self.paid_icon,
-                self.immature_value,
-                self.immature_icon,
-                self.balance_value,
-                self.balance_icon,
-                self.totalshares_value,
-                self.totalshares_icon
-            )
         else:
             self.selection_miner_box.add(
                 self.miner_label,
@@ -542,28 +397,6 @@ class Mining(Box):
                 self.mining_box,
                 self.start_mining_button
             )
-            self.mining_stats_box.add(
-                self.totalshares_icon,
-                self.totalshares_value,
-                self.balance_icon,
-                self.balance_value,
-                self.immature_icon,
-                self.immature_value,
-                self.paid_icon,
-                self.paid_value,
-                self.solutions_icon,
-                self.solutions_value,
-                self.estimated_icon,
-                self.estimated_box
-            )
-
-        self.mining_box.add(
-            self.mining_stats_box
-        )
-        self.estimated_box.add(
-            self.estimated_value,
-            self.estimated_earn_value
-        )
 
 
     def insert_widgets(self):
@@ -700,7 +533,8 @@ class Mining(Box):
                 else:
                     self.miner_command += ' --pass x --par 144,5 --pers BitcoinZ'
                 if self.tor_enabled:
-                    self.miner_command += ' --socks 127.0.0.1:9050'
+                    socks_port = self.get_socks_port()
+                    self.miner_command += f' --socks 127.0.0.1:{socks_port}'
                     
             elif self.selected_miner == "Gminer":
                 log_file = Os.Path.Combine(str(self.app.paths.logs), 'Gminer.log')
@@ -714,7 +548,8 @@ class Mining(Box):
                     self.miner_command += f'.{self.worker_name} --pass x --algo 144_5 --pers BitcoinZ'
                 self.miner_command += f' --port {self.pool_port}'
                 if self.tor_enabled:
-                    self.miner_command += ' --proxy 127.0.0.1:9050'
+                    socks_port = self.get_socks_port()
+                    self.miner_command += f' --proxy 127.0.0.1:{socks_port}'
 
             elif self.selected_miner == "lolMiner":
                 log_file = Os.Path.Combine(str(self.app.paths.logs), 'lolMiner.log')
@@ -728,7 +563,8 @@ class Mining(Box):
                 else:
                     self.miner_command += f'.{self.worker_name} --pass x --pers BitcoinZ --algo EQUI144_5'
                 if self.tor_enabled:
-                    self.miner_command += ' --socks5 127.0.0.1:9050'
+                    socks_port = self.get_socks_port()
+                    self.miner_command += f' --socks5 127.0.0.1:{socks_port}'
 
             self.disable_mining_inputs()
             self.app.loop.create_task(self.start_mining_command(self.app))
@@ -783,10 +619,12 @@ class Mining(Box):
     async def fetch_miner_stats(self):
         self.reset_miner_notify_stats()
         api = self.pool_api + self.selected_address
+        solutions_value = None
+        estimated_value = None
+        estimated_earn_value = None
         self.app.console.info_log(f"Fetch miner stats : {api}")
         if self.tor_enabled:
-            torrc = self.utils.read_torrc()
-            socks_port = torrc.get("SocksPort")
+            socks_port = self.get_socks_port()
             connector = ProxyConnector.from_url(f'socks5://127.0.0.1:{socks_port}')
         else:
             connector = None
@@ -796,7 +634,7 @@ class Mining(Box):
                 estimated_24h = 0
                 converted_rate = 0.0
                 try:
-                    async with session.get(api, headers=headers, timeout=10) as response:
+                    async with session.get(api, headers=headers) as response:
                         response.raise_for_status()
                         mining_data = await response.json()
                         if mining_data:
@@ -805,7 +643,6 @@ class Mining(Box):
                             immature_bal = mining_data.get("immature", mining_data.get("unpaid", 0))
                             paid = mining_data.get("paid", mining_data.get("paidtotal", 0))
                             workers_data = mining_data.get("workers", {})
-                            text = self.tr.text("estimated_value")
                             if workers_data:
                                 for worker_name, worker_info in workers_data.items():
                                     worker_name_parts = worker_name.split(".")
@@ -817,38 +654,45 @@ class Mining(Box):
                                         hashrate = worker_info.get("hashrate", None)
                                         if hashrate:
                                             converted_rate = self.units.hash_to_solutions(hashrate)
-                                            self.solutions_value.text = f"{converted_rate:.2f} Sol/s"
+                                            solutions_value = f"{converted_rate:.2f} Sol/s"
+                                            
                                             estimated_24h = await self.units.estimated_earn(24, hashrate)
-                                            self.estimated_value.text = f"{int(estimated_24h)} {text}"
+                                            estimated_value = int(estimated_24h)
                             else:
                                 total_hashrates = mining_data.get("total_hashrates", [])
                                 if total_hashrates:
                                     for hashrate in total_hashrates:
                                         for algo, rate in hashrate.items():
-                                            self.solutions_value.text = f"{rate:.2f} Sol/s"
+                                            solutions_value = f"{rate:.2f}"
                                             converted_rate = self.units.solution_to_hash(rate)
                                             estimated_24h = await self.units.estimated_earn(24, converted_rate)
-                                            self.estimated_value.text = f"{int(estimated_24h)} {text}"
+                                            estimated_value = int(estimated_24h)
                                             converted_rate = rate
                                 else:
                                     rate = sum(float(miner.get("hashrate", "0").replace("h/s", "").strip()) for miner in mining_data.get("miners", []))
                                     if rate:
-                                        self.solutions_value.text = f"{rate:.2f} Sol/s"
+                                        solutions_value = f"{rate:.2f} Sol/s"
                                         converted_rate = self.units.solution_to_hash(rate)
                                         estimated_24h = await self.units.estimated_earn(24, converted_rate)
-                                        self.estimated_value.text = f"{int(estimated_24h)} {text}"
+                                        estimated_value = int(estimated_24h)
                                         converted_rate = rate
 
                             btcz_price = self.settings.price()
                             if btcz_price:
                                 estimated_earn = float(btcz_price) * float(estimated_24h)
-                                self.estimated_earn_value.text = f"{self.units.format_price(estimated_earn)} {self.settings.symbol()}"
+                                estimated_earn_value = f"{self.units.format_price(estimated_earn)} {self.settings.symbol()}"
 
-                            self.totalshares_value.text = f"{total_share:.2f}"
-                            self.balance_value.text = self.units.format_balance(balance)
-                            self.immature_value.text = self.units.format_balance(immature_bal)
-                            self.paid_value.text = self.units.format_balance(paid)
-                            
+                            self.miner_stats.control.CoreWebView2.ExecuteScriptAsync(f"setTotalShares('{total_share:.2f}');")
+                            self.miner_stats.control.CoreWebView2.ExecuteScriptAsync(f"setBalance('{self.units.format_balance(balance)}');")
+                            self.miner_stats.control.CoreWebView2.ExecuteScriptAsync(f"setImmatureBalance('{self.units.format_balance(immature_bal)}');")
+                            self.miner_stats.control.CoreWebView2.ExecuteScriptAsync(f"setPaidBalance('{self.units.format_balance(paid)}');")
+                            if solutions_value:
+                                self.miner_stats.control.CoreWebView2.ExecuteScriptAsync(f"setHashrate('{solutions_value}');")
+                            if estimated_value:
+                                self.miner_stats.control.CoreWebView2.ExecuteScriptAsync(f"setEstimatedBTCZ('{estimated_value}');")
+                            if estimated_earn_value:
+                                self.miner_stats.control.CoreWebView2.ExecuteScriptAsync(f"setEstimatedCurrency('{estimated_earn_value}');")
+
                             solutions_text = self.tr.text("notifymining_solutions")
                             balance_text = self.tr.text("notifymining_balance")
                             immature_text = self.tr.text("notifymining_immature")
@@ -918,14 +762,13 @@ class Mining(Box):
             self.process.terminate()
             await asyncio.sleep(0.5)
             self.app.console.info_log(self.tr.text("miner_stopped"))
-            self.totalshares_value.text = "0.00"
-            self.balance_value.text = "0.00"
-            self.immature_value.text = "0.00"
-            self.paid_value.text = "0.00"
-            self.solutions_value.text = "0.00 Sol/s"
-            text = self.tr.text("estimated_value")
-            self.estimated_value.text = f"0.00 {text}"
-            self.estimated_earn_value.text = f"0.00 {self.settings.symbol()}"
+            self.miner_stats.control.CoreWebView2.ExecuteScriptAsync(f"setTotalShares('--');")
+            self.miner_stats.control.CoreWebView2.ExecuteScriptAsync(f"setBalance('');")
+            self.miner_stats.control.CoreWebView2.ExecuteScriptAsync(f"setImmatureBalance('');")
+            self.miner_stats.control.CoreWebView2.ExecuteScriptAsync(f"setPaidBalance('');")
+            self.miner_stats.control.CoreWebView2.ExecuteScriptAsync(f"setHashrate('');")
+            self.miner_stats.control.CoreWebView2.ExecuteScriptAsync(f"setEstimatedBTCZ('');")
+            self.miner_stats.control.CoreWebView2.ExecuteScriptAsync(f"setEstimatedCurrency('');")
         except Exception as e:
             self.app.console.error_log(f"Exception occurred while killing miner process: {e}")
 
@@ -981,6 +824,12 @@ class Mining(Box):
         self.pool_selection.enabled = True
         self.pool_region_selection.enabled = True
         self.worker_input.readonly = False
+
+
+    def get_socks_port(self):
+        torrc = self.utils.read_torrc()
+        socks_port = torrc.get("SocksPort")
+        return socks_port
 
 
     def start_mining_button_mouse_enter(self, sender, event):

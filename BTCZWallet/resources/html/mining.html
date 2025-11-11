@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Miner Stats</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+  <style>
+    @font-face {
+      font-family: 'Monda';
+      src: url('../../fonts/Monda.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    body {
+      background-color: #282b30;
+      color: #e6edf3;
+      margin: 0;
+      font-family: 'Monda', sans-serif;
+      padding: 5px 10px;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      font-size: 18px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-left: 10px;
+    }
+
+    .stats-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    .stat-box {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 10px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .stat-box:hover {
+      transform: translateY(-2px);
+      border-color: #00d4ff;
+    }
+
+    .stat-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .stat-header i {
+      color: #fffb02;
+      font-size: 14px;
+    }
+
+    .label {
+      font-size: 11px;
+      color: #8b949e;
+    }
+
+    .value {
+      font-size: 12px;
+      font-weight: 600;
+      color: #ffffff;
+      margin-top: 4px;
+    }
+
+    .subvalue {
+      font-size: 13px;
+      color: #ffffff;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h2><i class="fa-solid fa-gauge-high"></i> Miner Statistics</h2>
+
+  <div class="stats-container">
+    <div class="stat-box">
+      <div class="stat-header"><i class="fa-solid fa-cubes"></i><div class="label">Total Shares</div></div>
+      <div class="value" id="totalShares">--</div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-header"><i class="fa-solid fa-gauge"></i><div class="label">Hashrate</div></div>
+      <div class="value" id="hashrate">-- Sol/s</div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-header"><i class="fa-solid fa-wallet"></i><div class="label">Balance</div></div>
+      <div class="value" id="balance">-- BTCZ</div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-header"><i class="fa-solid fa-hourglass-half"></i><div class="label">Immature Balance</div></div>
+      <div class="value" id="immatureBalance">-- BTCZ</div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-header"><i class="fa-solid fa-money-bill-transfer"></i><div class="label">Paid Balance</div></div>
+      <div class="value" id="paidBalance">-- BTCZ</div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-header"><i class="fa-solid fa-chart-line"></i><div class="label">Est. Earnings / Day</div></div>
+      <div class="value" id="estimatedBTCZ">-- BTCZ</div>
+      <div class="subvalue" id="estimatedCurrency">--</div>
+    </div>
+  </div>
+
+  <script src="mining.js"></script>
+
+</body>
+</html>

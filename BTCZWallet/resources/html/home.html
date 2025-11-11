@@ -4,8 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BitcoinZ — 24H Curve</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
+
+    @font-face {
+      font-family: 'Monda';
+      src: url('../../fonts/Monda.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
     :root {
       --bg-top: #202225;
       --bg-bottom: #282b30;
@@ -13,13 +20,15 @@
       --accent2: #ed3a3a;
       --muted: #9aa4b2;
     }
+
     * { box-sizing: border-box; }
+    
     html, body {
       margin: 0;
       padding: 0;
       height: 100%;
       width: 100%;
-      font-family: Inter, system-ui, sans-serif;
+      font-family: 'Monda', sans-serif;
       background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
       color: #e6eef6;
       overflow: hidden;
