@@ -32,6 +32,51 @@
       padding-left: 10px;
     }
 
+    .gpu-icon {
+      color: #ff5555;
+      font-size: 25px;
+      margin-left: 10px;
+      margin-top: 2px;
+      text-shadow: 0 0 4px rgba(255, 85, 85, 0.6);
+      transition: color 0.5s ease, text-shadow 0.5s ease, transform 1s ease;
+    }
+
+    .gpu-icon.active {
+      color: #00ff7f;
+      text-shadow: 0 0 12px rgba(0, 255, 127, 0.9);
+      animation: gpuPulse 1.5s infinite ease-in-out, gpuSpin 1s linear infinite;
+    }
+
+    .gpu-icon.slow-stop {
+      animation: gpuSlowStop 2.5s ease-out forwards;
+    }
+
+    @keyframes gpuPulse {
+      0% { transform: scale(1); opacity: 0.85; text-shadow: 0 0 12px rgba(0,255,127,0.6); }
+      50% { transform: scale(1.15); opacity: 1; text-shadow: 0 0 20px rgba(0,255,127,1); }
+      100% { transform: scale(1); opacity: 0.85; text-shadow: 0 0 12px rgba(0,255,127,0.6); }
+    }
+
+    @keyframes gpuSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes gpuSlowStop {
+      0% {
+        transform: rotate(0deg) scale(1.1);
+        color: #00ff7f;
+        text-shadow: 0 0 12px rgba(0,255,127,0.8);
+        opacity: 1;
+      }
+      100% {
+        transform: rotate(720deg) scale(1);
+        color: #ff5555;
+        text-shadow: 0 0 4px rgba(255,85,85,0.6);
+        opacity: 0.9;
+      }
+    }
+
     .stats-container {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -87,7 +132,11 @@
   </style>
 </head>
 <body>
-  <h2><i class="fa-solid fa-gauge-high"></i> Miner Statistics</h2>
+  <h2>
+    <i class="fa-solid fa-gauge-high"></i>
+    Miner Statistics
+    <i id="gpuIcon" class="fa-solid fa-fan gpu-icon"></i>
+  </h2>
 
   <div class="stats-container">
     <div class="stat-box">

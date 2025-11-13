@@ -337,30 +337,32 @@ class Home(Box):
     async def update_circulating_supply(self):
         self.app.console.event_log(f"✔: Circulating supply")
         while True:
-            self.circulating = self.units.calculate_circulating(int(self.current_blocks))
-            remaining_blocks = self.units.remaining_blocks_until_halving(int(self.current_blocks))
-            remaining_days = self.units.remaining_days_until_halving(int(self.current_blocks))
-            circulating = int(self.circulating)
+            if self.current_blocks:
+                self.circulating = self.units.calculate_circulating(int(self.current_blocks))
+                remaining_blocks = self.units.remaining_blocks_until_halving(int(self.current_blocks))
+                remaining_days = self.units.remaining_days_until_halving(int(self.current_blocks))
+                circulating = int(self.circulating)
 
-            self.market_output.control.CoreWebView2.ExecuteScriptAsync(f"setCirculating('{circulating}');")
-            blocks_text = self.tr.text("blocks_label")
-            days_text = self.tr.text("days_label")
-            circulating_percentage = f"{(self.circulating / 21_000_000_000) * 100:.1f} %"
-            self.market_output.control.CoreWebView2.ExecuteScriptAsync(f"setCirculatingTooltip('{circulating_percentage}');")
-            self.market_output.control.CoreWebView2.ExecuteScriptAsync(
-                f"setNextHalving('{remaining_blocks} {blocks_text} / {remaining_days} {days_text}');"
-            )
+                self.market_output.control.CoreWebView2.ExecuteScriptAsync(f"setCirculating('{circulating}');")
+                blocks_text = self.tr.text("blocks_label")
+                days_text = self.tr.text("days_label")
+                circulating_percentage = f"{(self.circulating / 21_000_000_000) * 100:.1f} %"
+                self.market_output.control.CoreWebView2.ExecuteScriptAsync(f"setCirculatingTooltip('{circulating_percentage}');")
+                self.market_output.control.CoreWebView2.ExecuteScriptAsync(
+                    f"setNextHalving('{remaining_blocks} {blocks_text} / {remaining_days} {days_text}');"
+                )
             await asyncio.sleep(10)
 
 
     async def update_remaining_deprecation(self):
         self.app.console.event_log(f"✔: Remaining deprecation")
         while True:
-            remaining_blocks = self.units.remaining_blocks_until_deprecation(int(self.deprecation), int(self.current_blocks))
-            remaining_days = self.units.remaining_days_until_deprecation(int(self.deprecation), int(self.current_blocks))
-            self.market_output.control.CoreWebView2.ExecuteScriptAsync(
-                f"setDeprecation('{remaining_blocks} Blocks / {remaining_days} Days');"
-            )
+            if self.current_blocks:
+                remaining_blocks = self.units.remaining_blocks_until_deprecation(int(self.deprecation), int(self.current_blocks))
+                remaining_days = self.units.remaining_days_until_deprecation(int(self.deprecation), int(self.current_blocks))
+                self.market_output.control.CoreWebView2.ExecuteScriptAsync(
+                    f"setDeprecation('{remaining_blocks} Blocks / {remaining_days} Days');"
+                )
             await asyncio.sleep(10)
 
 

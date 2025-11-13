@@ -1127,6 +1127,16 @@ class AppToolBar(Box):
                 self.app.exit()
 
         if self.main.mining_page.mining_status:
+            async def on_stop_mining(widget, result):
+                if result:
+                    await self.main.mining_page.stop_mining()
+                    self.exit_app(option)
+
+            self.main.question_dialog(
+                title="Mining in Progress",
+                message="Mining is currently active. Do you want to stop mining before exiting ?",
+                on_result=on_stop_mining
+            )
             return
         if option == "full":
             title=self.tr.title("stopexit_dialog")

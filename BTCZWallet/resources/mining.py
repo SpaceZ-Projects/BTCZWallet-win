@@ -582,6 +582,7 @@ class Mining(Box):
 
     async def start_mining_command(self, app):
         self.update_mining_button("stop")
+        self.miner_stats.control.CoreWebView2.ExecuteScriptAsync(f"startAnimation();")
         command = [self.miner_command]
         app.console.info_log(f"Starting mining...")
         app.console.mining_log(command)
@@ -710,14 +711,10 @@ class Mining(Box):
                                 paid, converted_rate, estimated_24h
                             )
 
-                except ProxyConnectionError:
-                    self.app.console.error_log("Proxy connection failed")
-                except aiohttp.ClientError as e:
-                    self.app.console.error_log(f"Error while fetching data: {e}")
-                except asyncio.TimeoutError:
-                    self.app.console.warning_log("Request timed out")
                 except Exception as e:
                     self.app.console.error_log(f"{e}")
+                    self.fetch_stats_task = self.app.loop.create_task(self.fetch_miner_stats())
+                    return
 
                 await asyncio.sleep(60)
 
@@ -749,6 +746,10 @@ class Mining(Box):
 
 
     async def stop_mining_button_click(self, button):
+        await self.stop_mining()
+        
+
+    async def stop_mining(self):
         if self.selected_miner == "MiniZ":
             process_name =  "miniZ.exe"
         elif self.selected_miner == "Gminer":
@@ -773,6 +774,7 @@ class Mining(Box):
             self.app.console.error_log(f"Exception occurred while killing miner process: {e}")
 
         self.update_mining_button("start")
+        self.miner_stats.control.CoreWebView2.ExecuteScriptAsync(f"stopAnimation();")
         self.enable_mining_inputs()
         self.mining_status = None
         self.miner_command = None

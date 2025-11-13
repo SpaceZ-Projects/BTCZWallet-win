@@ -6,6 +6,7 @@ const immatureBalance = document.getElementById('immatureBalance')
 const paidBalance = document.getElementById('paidBalance')
 const estimatedBTCZ = document.getElementById('estimatedBTCZ')
 const estimatedCurrency = document.getElementById('estimatedCurrency')
+const gpuIcon = document.getElementById('gpuIcon');
 
 function setTotalShares(value) {
     totalShares.textContent = value ?? '--';
@@ -33,6 +34,24 @@ function setEstimatedBTCZ(value) {
 
 function setEstimatedCurrency(value) {
     estimatedCurrency.textContent = value ? `${value}` : '--';
+}
+
+function startAnimation() {
+    gpuIcon.style.color = '';
+    gpuIcon.style.textShadow = '';
+    gpuIcon.classList.remove('slow-stop');
+    gpuIcon.classList.add('active');
+}
+
+function stopAnimation() {
+    gpuIcon.classList.remove('active');
+    gpuIcon.classList.add('slow-stop');
+
+    setTimeout(() => {
+        gpuIcon.classList.remove('slow-stop');
+        gpuIcon.style.color = '#ff5555';
+        gpuIcon.style.textShadow = '0 0 4px rgba(255,85,85,0.6)';
+    }, 2500);
 }
 
 document.addEventListener('contextmenu', function(e) {

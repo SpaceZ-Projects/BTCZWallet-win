@@ -630,11 +630,10 @@ class Transactions(Box):
                     category = data["category"]
                     amount = data["amount"]
                     timereceived = data["timereceived"]
-                    vout = data["vout"]
                     fee = 0
                     if "fee" in data:
                         fee = data["fee"]
-                    if txid not in stored_transactions and vout == 0:
+                    if txid not in stored_transactions:
                         if "blockhash" not in data:
                             blocks = 0
                             self.storagetxs.insert_transaction(tx_type, category, address, txid, amount, blocks, fee, timereceived)
