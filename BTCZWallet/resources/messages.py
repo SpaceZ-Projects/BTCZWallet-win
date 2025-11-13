@@ -1569,8 +1569,10 @@ class Chat(Box):
         self.marketplace_toggle = None
         self.fee_input = None
         self.edit_toggle = None
+        self.reply_toggle = None
         self.editing_message = None
         self.message_timestamp = None
+        self.replied_timestamp = None
         self.messages = []
         self.unread_messages = []
         self.processed_timestamps = set()
@@ -2128,10 +2130,13 @@ class Chat(Box):
 
 
     def get_message(self, form, amount):
+        replied = None
         contact_id = form.get('id')
         author = form.get('username')
         message = form.get('text')
         timestamp = form.get('timestamp')
+        if 'replied' in form:
+            replied = form.get('replied')
         contact_username = self.storage.get_contact_username(contact_id)
         if not contact_username:
             return
@@ -2139,14 +2144,14 @@ class Chat(Box):
         if author != contact_username:
             self.storage.update_contact_username(author, contact_id)
         if self.contact_id == contact_id and self.main.message_button_toggle and not self.main._is_minimized and self.main._is_active:
-            self.storage.message(contact_id, author, message, amount, timestamp, None)
+            self.storage.message(contact_id, author, message, amount, timestamp, None, replied)
             self.username_value.text = author
         else:
-            self.handler_unread_message(contact_id, author, message, amount, timestamp)
+            self.handler_unread_message(contact_id, author, message, amount, timestamp, replied)
 
 
-    def handler_unread_message(self,contact_id, author, message, amount, timestamp):
-        self.storage.unread_message(contact_id, author, message, amount, timestamp, None)
+    def handler_unread_message(self,contact_id, author, message, amount, timestamp, replied):
+        self.storage.unread_message(contact_id, author, message, amount, timestamp, None, replied)
         if self.settings.notification_messages():
             self.notify.send_note(
                 title="New Message",
@@ -2227,8 +2232,14 @@ class Chat(Box):
             timestamp = kwargs.get('timestamp')
             timestamp_unix = int(datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S").timestamp())
             self.on_message_edit(message, timestamp_unix)
+        elif action == "reply":
+            timestamp = kwargs.get('timestamp')
+            timestamp_unix = int(datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S").timestamp())
+            self.on_message_reply(timestamp_unix)
         elif action == "cancelEdit":
             self.on_message_canceledit()
+        elif action == "cancelReply":
+            self.on_message_cancelreply()
         elif action == "scrolledToBottom":
             self.on_scroll_bottom()
         elif action == "scrolledToTop":
@@ -2254,9 +2265,24 @@ class Chat(Box):
 
     def on_message_canceledit(self):
         self.edit_toggle = None
+        self.reply_toggle = None
         self.update_send_button()
         self.message_input.value = ""
         self.fee_input.readonly = False
+
+
+    def on_message_reply(self, timestamp):
+        self.replied_timestamp = timestamp
+        self.reply_toggle = True
+        self.update_send_button()
+        self.message_input.focus()
+
+
+    def on_message_cancelreply(self):
+        self.reply_toggle = None
+        self.replied_timestamp = None
+        self.update_send_button()
+        self.message_input.value = ""
 
 
     def on_scroll_bottom(self):
@@ -2280,32 +2306,40 @@ class Chat(Box):
             on_result=on_result
         )
 
-    def control_add_message(self, user_type: str, username: str, content: str, timestamp: str, edited_timestamp: str, amount):
+    def control_add_message(
+            self, user_type: str, username: str, content: str, timestamp: str,
+            edited_timestamp: str, amount, repliedusername = None, repliedcontent = None
+        ):
         if not self.output_box.control.CoreWebView2:
             print("[WARN] WebView2 not ready yet")
             return
-        args = [user_type, username, content, timestamp, edited_timestamp, amount]
+        args = [user_type, username, content, timestamp, edited_timestamp, amount, repliedusername, repliedcontent]
         js_args = json.dumps(args, ensure_ascii=False)
         js_code = f"addMessage(...{js_args});"
         self.output_box.control.CoreWebView2.ExecuteScriptAsync(js_code)
 
 
-    def control_insert_message(self, index: int, user_type: str, username: str, content: str, timestamp: str, edited_timestamp: str, amount):
+    def control_insert_message(
+            self, index: int, user_type: str, username: str, content: str, timestamp: str,
+            edited_timestamp: str, amount, repliedusername = None, repliedcontent = None
+        ):
         if not self.output_box.control.CoreWebView2:
             print("[WARN] WebView2 not ready yet")
             return
-        args = [index, user_type, username, content, timestamp, edited_timestamp, amount]
+        args = [index, user_type, username, content, timestamp, edited_timestamp, amount, repliedusername, repliedcontent]
         js_args = json.dumps(args, ensure_ascii=False)
         js_code = f"insertMessage(...{js_args});"
         self.output_box.control.CoreWebView2.ExecuteScriptAsync(js_code)
 
 
-    def control_pending_message(self, user_type: str, username: str, content: str, timestamp, amount):
+    def control_pending_message(
+            self, content: str, timestamp, amount, repliedusername = None, repliedcontent = None
+        ):
         if not self.output_box.control.CoreWebView2:
             print("[WARN] WebView2 not ready yet")
             return
         message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-        args = [user_type, username, content, message_time, amount]
+        args = [content, message_time, amount, repliedusername, repliedcontent]
         js_args = json.dumps(args, ensure_ascii=False)
         js_code = f"addPendingMessage(...{js_args});"
         self.output_box.control.CoreWebView2.ExecuteScriptAsync(js_code)
@@ -2355,11 +2389,20 @@ class Chat(Box):
     def cancel_edit(self):
         self.output_box.control.CoreWebView2.ExecuteScriptAsync("cancelEdit();")
 
-    def enable_cancel(self):
-        self.output_box.control.CoreWebView2.ExecuteScriptAsync("enableCancelButton();")
+    def enable_cancel_edit(self):
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync("enableCancelEditButton();")
 
-    def disable_cancel(self):
-        self.output_box.control.CoreWebView2.ExecuteScriptAsync("disableCancelButton();")
+    def disable_cancel_edit(self):
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync("disableCancelEditButton();")
+
+    def cancel_reply(self):
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync("cancelReply();")
+
+    def enable_cancel_reply(self):
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync("enableCancelReplyButton();")
+
+    def disable_cancel_reply(self):
+        self.output_box.control.CoreWebView2.ExecuteScriptAsync("disableCancelReplyButton();")
 
     def clear_chat(self):
         self.output_box.control.CoreWebView2.ExecuteScriptAsync("clearChat();")
@@ -2506,7 +2549,7 @@ class Chat(Box):
             recent_messages = messages[:20]
             self.last_message_timestamp = recent_messages[-1][3]
             for data in recent_messages:
-                author, message, amount, timestamp, edited = data
+                author, message, amount, timestamp, edited, replied = data
                 content_js = message.replace("\n", "\\n").replace('"', '\\"')
                 amount = self.units.format_balance(amount)
                 message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
@@ -2522,8 +2565,16 @@ class Chat(Box):
                 else:
                     user_type = author
                     username = "You"
+                replied_user = None
+                replied_msg_js = None
+                if replied:
+                    replied_user, replied_msg = self.storage.get_message(timestamp=replied)
+                    if replied_msg:
+                        if replied_user == "you":
+                            replied_user = "You"
+                        replied_msg_js = replied_msg.replace("\n", "\\n").replace('"', '\\"')
                 self.processed_timestamps.add(timestamp)
-                self.control_insert_message(0, user_type, username, content_js, message_time, edited_time, amount)
+                self.control_insert_message(0, user_type, username, content_js, message_time, edited_time, amount, replied_user, replied_msg_js)
                 self.scroll_to_bottom()
 
         self.unread_messages = self.storage.get_unread_messages(self.contact_id)
@@ -2531,7 +2582,7 @@ class Chat(Box):
             self.show_unread_label()
             unread_messages = sorted(self.unread_messages, key=lambda x: x[3], reverse=False)
             for data in unread_messages:
-                author, message, amount, timestamp, edited = data
+                author, message, amount, timestamp, edited, replied = data
                 content_js = message.replace("\n", "\\n").replace('"', '\\"')
                 amount = self.units.format_balance(amount)
                 message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
@@ -2547,8 +2598,16 @@ class Chat(Box):
                 else:
                     user_type = author
                     username = "You"
+                replied_user = None
+                replied_msg_js = None
+                if replied:
+                    data = self.storage.get_message(timestamp=replied)
+                    if replied_msg:
+                        if replied_user == "you":
+                            replied_user = "You"
+                        replied_msg_js = replied_msg.replace("\n", "\\n").replace('"', '\\"')
                 self.processed_timestamps.add(timestamp)
-                self.control_add_message(user_type, username, content_js, message_time, edited_time, amount)
+                self.control_add_message(user_type, username, content_js, message_time, edited_time, amount, replied_user, replied_msg_js)
 
         await asyncio.sleep(1)
         self.loading_toggle = None
@@ -2565,7 +2624,7 @@ class Chat(Box):
             if messages:
                 for data in messages:
                     if data not in self.messages:
-                        author, message, amount, timestamp, edited = data
+                        author, message, amount, timestamp, edited, replied = data
                         if not edited:
                             content_js = message.replace("\n", "\\n").replace('"', '\\"')
                             amount = self.units.format_balance(amount)
@@ -2576,9 +2635,17 @@ class Chat(Box):
                             else:
                                 user_type = author
                                 username = "You"
+                            replied_user = None
+                            replied_msg_js = None
+                            if replied:
+                                replied_user, replied_msg = self.storage.get_message(timestamp=replied)
+                                if replied_msg:
+                                    if replied_user == "you":
+                                        replied_user = "You"
+                                    replied_msg_js = replied_msg.replace("\n", "\\n").replace('"', '\\"')
                             self.processed_timestamps.add(timestamp)
                             self.messages.append(data)
-                            self.control_add_message(user_type, username, content_js, message_time, "", amount)
+                            self.control_add_message(user_type, username, content_js, message_time, "", amount, replied_user, replied_msg_js)
                             self.scroll_to_bottom()
 
             unread_messages = self.storage.get_unread_messages(self.contact_id)
@@ -2586,7 +2653,7 @@ class Chat(Box):
                 self.show_unread_label()
                 for data in unread_messages:
                     if data not in self.unread_messages:
-                        author, message, amount, timestamp, edited = data
+                        author, message, amount, timestamp, edited, replied = data
                         if not edited:
                             amount = self.units.format_balance(amount)
                             content_js = message.replace("\n", "\\n").replace('"', '\\"')
@@ -2597,9 +2664,17 @@ class Chat(Box):
                             else:
                                 user_type = author
                                 username = "You"
+                            replied_user = None
+                            replied_msg_js = None
+                            if replied:
+                                replied_user, replied_msg = self.storage.get_message(timestamp=replied)
+                                if replied_msg:
+                                    if replied_user == "you":
+                                        replied_user = "You"
+                                    replied_msg_js = replied_msg.replace("\n", "\\n").replace('"', '\\"')
                             self.processed_timestamps.add(timestamp)
                             self.unread_messages.append(data)
-                            self.control_add_message(user_type, username, content_js, message_time, "", amount)
+                            self.control_add_message(user_type, username, content_js, message_time, "", amount, replied_user, replied_msg_js)
                 
             await asyncio.sleep(3)
 
@@ -2613,7 +2688,8 @@ class Chat(Box):
                 amount = data[2]
                 timestamp = data[3]
                 edited = data[4]
-                self.storage.message(self.contact_id, author, text, amount, timestamp, edited)
+                replied = data[5]
+                self.storage.message(self.contact_id, author, text, amount, timestamp, edited, replied)
                 self.messages.append(data)
             self.storage.delete_unread(self.contact_id)
             self.hide_unread_label()
@@ -2631,7 +2707,7 @@ class Chat(Box):
         if older_messages:
             self.last_message_timestamp = older_messages[-1][3]
             for data in older_messages:
-                author, message, amount, timestamp, edited = data
+                author, message, amount, timestamp, edited, replied = data
                 content_js = message.replace("\n", "\\n").replace('"', '\\"')
                 amount = self.units.format_balance(amount)
                 message_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
@@ -2647,7 +2723,15 @@ class Chat(Box):
                 else:
                     user_type = author
                     username = "You"
-                self.control_insert_message(0, user_type, username, content_js, message_time, edited_time, amount)
+                replied_user = None
+                replied_msg_js = None
+                if replied:
+                    replied_user, replied_msg = self.storage.get_message(timestamp=replied)
+                    if replied_msg:
+                        if replied_user == "you":
+                            replied_user = "You"
+                        replied_msg_js = replied_msg.replace("\n", "\\n").replace('"', '\\"')
+                self.control_insert_message(0, user_type, username, content_js, message_time, edited_time, amount, replied_user, replied_msg_js)
 
 
     def update_pending_list(self):
@@ -2827,15 +2911,26 @@ class Chat(Box):
         txfee = 0.0001
         timestamp = await self.get_message_timestamp()
         if timestamp is not None:
-            self.control_pending_message(author, username, message, timestamp, amount)
+            replied_user = None
+            replied_msg_js = None
+            if self.reply_toggle:
+                self.disable_cancel_reply()
+                replied_user, replied_msg = self.storage.get_message(timestamp=self.replied_timestamp)
+                if replied_msg:
+                    if replied_user == "you":
+                        replied_user = "You"
+                    replied_msg_js = replied_msg.replace("\n", "\\n").replace('"', '\\"')
             self.app.console.info_log(f"Sending message...")
+            self.control_pending_message(message, timestamp, amount, replied_user, replied_msg_js)
             memo = {"type":"message","id":id[0],"username":username,"text":message,"timestamp":timestamp}
+            if self.reply_toggle:
+                memo["replied"] = self.replied_timestamp
             memo_str = json.dumps(memo)
             self.disable_send_button()
-            await self.send_memo(address, amount, txfee, memo_str, author, message, timestamp)
+            await self.send_memo(address, amount, txfee, memo_str, author, message, timestamp, self.replied_timestamp)
 
 
-    async def send_memo(self, address, amount, txfee, memo, author, text, timestamp):
+    async def send_memo(self, address, amount, txfee, memo, author, text, timestamp, replied = None):
         operation, _= await self.commands.SendMemo(address, self.user_address, amount, txfee, memo)
         if operation:
             self.app.console.info_log(f"Operation : {operation}")
@@ -2849,14 +2944,16 @@ class Chat(Box):
                         transaction_result, _= await self.commands.z_getOperationResult(operation)
                         transaction_result = json.loads(transaction_result)
                         if isinstance(transaction_result, list) and transaction_result:
-                            data = author, text, amount, timestamp, None
+                            data = author, text, amount, timestamp, None, replied
                             self.messages.append(data)
+                            self.cancel_reply()
                             self.control_message_sent(timestamp)
+                            self.reply_toggle = None
                             self.message_input.value = ""
                             result = transaction_result[0].get('result', {})
                             txid = result.get('txid')
                             self.storage.tx(txid)
-                            self.storage.message(self.contact_id, author, text, amount, timestamp, None)
+                            self.storage.message(self.contact_id, author, text, amount, timestamp, None, replied)
                             self.send_button._impl.native.Focus()
                             self.fee_input.value = "0.00020000"
                             self.character_count.style.color = GRAY
@@ -2871,9 +2968,13 @@ class Chat(Box):
                         title="Failed",
                         message="Sending message was failed, verify your balance"
                     )
+                    if self.reply_toggle:
+                        self.enable_cancel_reply()
                     self.enable_send_button()
         else:
             self.control_message_failed(timestamp)
+            if self.reply_toggle:
+                self.enable_cancel_reply()
             self.enable_send_button()
 
 
@@ -2888,7 +2989,7 @@ class Chat(Box):
             self.app.console.info_log(f"Editing message...")
             memo = {"type":"edit","id":id[0],"text":message,"timestamp":self.message_timestamp,"edited":edit_timestamp}
             memo_str = json.dumps(memo)
-            self.disable_cancel()
+            self.disable_cancel_edit()
             self.disable_send_button()
             await self.send_edit_memo(address, txfee, txfee, memo_str, author, message, edit_timestamp)
 
@@ -2911,7 +3012,7 @@ class Chat(Box):
                             result = transaction_result[0].get('result', {})
                             txid = result.get('txid')
                             self.storage.tx(txid)
-                            data = author, text, amount, self.message_timestamp, edit_timestamp
+                            data = author, text, amount, self.message_timestamp, edit_timestamp, None
                             self.messages.append(data)
                             self.storage.update_message(self.contact_id, text, self.message_timestamp, edit_timestamp)
                             timestamp_str = datetime.fromtimestamp(self.message_timestamp).strftime('%Y-%m-%d %H:%M:%S')
@@ -2931,10 +3032,10 @@ class Chat(Box):
                         title="Failed",
                         message="Editing message was failed, verify your balance"
                     )
-                    self.enable_cancel()
+                    self.enable_cancel_edit()
                     self.enable_send_button()
         else:
-            self.enable_cancel()
+            self.enable_cancel_edit()
             self.enable_send_button()
     
 
@@ -2962,6 +3063,10 @@ class Chat(Box):
             text = "Edit"
             icon = self.messages_icon("images/edit_message_i.png")
             self.send_button.on_press = self.verify_edit_message
+        elif self.reply_toggle:
+            text = "Reply"
+            icon = self.messages_icon("images/reply_message_i.png")
+            self.send_button.on_press = self.verify_message
         else:
             text = "Send"
             icon = self.messages_icon("images/send_message_i.png")
@@ -3007,6 +3112,8 @@ class Chat(Box):
         if not self.send_toggle:
             if self.edit_toggle:
                 icon = self.messages_icon("images/edit_message_a.png")
+            elif self.reply_toggle:
+                icon = self.messages_icon("images/reply_message_a.png")
             else:
                 icon = self.messages_icon("images/send_message_a.png")
             self.send_button._impl.native.Image = Drawing.Image.FromFile(icon)
@@ -3017,6 +3124,8 @@ class Chat(Box):
         if not self.send_toggle:
             if self.edit_toggle:
                 icon = self.messages_icon("images/edit_message_i.png")
+            elif self.reply_toggle:
+                icon = self.messages_icon("images/reply_message_i.png")
             else:
                 icon = self.messages_icon("images/send_message_i.png")
             self.send_button._impl.native.Image = Drawing.Image.FromFile(icon)
@@ -3228,14 +3337,17 @@ class Messages(Box):
 
 
     async def get_message(self, form, amount):
+        replied = None
         id = form.get('id')
         author = form.get('username')
         message = form.get('text')
         timestamp = form.get('timestamp')
+        if 'replied' in form:
+            replied = form.get('replied')
         contacts_ids = self.storage.get_contacts("contact_id")
         if id not in contacts_ids:
             return
-        self.storage.unread_message(id, author, message, amount, timestamp, None)
+        self.storage.unread_message(id, author, message, amount, timestamp, None, replied)
         self.chat.processed_timestamps.add(timestamp)
 
 

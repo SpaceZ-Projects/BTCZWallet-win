@@ -240,7 +240,9 @@ function formatMessageContent(text) {
   return text;
 }
 
-function _createMessageElement(userType, username, content, timestamp, edited_timestamp, amount = 0) {
+function _createMessageElement(
+  userType, username, content, timestamp, edited_timestamp, amount = 0, includeButtons = true, repliedUsername = null ,repliedMessage = null
+) {
   const message = document.createElement('div');
   message.className = `message ${userType}`;
   message.dataset.originalContent = content;
@@ -258,9 +260,29 @@ function _createMessageElement(userType, username, content, timestamp, edited_ti
     editedTag = `<span class="edited-tag" data-tooltip="Edited on ${edited_timestamp}">(edited)</span>`;
   }
 
-  let actionsHTML = `<button title="Copy"><i class="fa-solid fa-copy"></i></button>`;
-  if (username.toLowerCase() === 'you') {
-    actionsHTML = `<button title="Edit"><i class="fa-solid fa-pen"></i></button>` + actionsHTML;
+  let replyBlock = "";
+  if (repliedMessage && repliedMessage.trim() !== "") {
+    const safeUsername = repliedUsername ? repliedUsername : "Unknown";
+    replyBlock = `
+      <div class="replied-block-wrapper">
+        <i class="fa-solid fa-arrow-turn-down reply-icon"></i>
+        <div class="replied-block">
+          <div class="replied-user">${safeUsername}</div>
+          <div class="replied-snippet">${formatMessageContent(repliedMessage)}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  let actionsHTML = "";
+  if (includeButtons) {
+    actionsHTML = `<button title="Copy"><i class="fa-solid fa-copy"></i></button>`;
+    if (username.toLowerCase() === 'you') {
+      actionsHTML = `<button title="Edit"><i class="fa-solid fa-pen"></i></button>` + actionsHTML;
+    }
+    else {
+      actionsHTML = `<button title="Reply"><i class="fa-solid fa-reply"></i></button>` + actionsHTML;
+    }
   }
 
   message.innerHTML = `
@@ -273,75 +295,130 @@ function _createMessageElement(userType, username, content, timestamp, edited_ti
         </span>
       </div>
     </div>
+    ${replyBlock}
     <div class="message-content">${formatMessageContent(content)}</div>
     <div class="editing-label">editing...</div>
+    <div class="replying-label">replying...</div>
     <div class="message-actions">${actionsHTML}</div>
   `;
 
-  const editBtn = message.querySelector('i.fa-pen')?.parentElement;
-  const copyBtn = message.querySelector('i.fa-copy')?.parentElement;
-
-  if (editBtn) {
-    editBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-
-      const currentlyEditing = document.querySelector('.message.editing');
-      if (currentlyEditing && currentlyEditing !== message) {
-        return;
-      }
-
-      const isEditing = !message.classList.contains('editing');
-      message.classList.toggle('editing', isEditing);
-      const icon = editBtn.querySelector('i');
-      const editingLabel = message.querySelector('.editing-label');
-
-      if (isEditing) {
-        editBtn.title = 'Cancel';
-        if (icon) icon.className = 'fa-solid fa-xmark';
-        if (editingLabel) editingLabel.style.display = 'block';
-        message.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-        const contentToEdit = message.dataset.originalContent || message.querySelector('.message-content').textContent;
-
-        if (window.chrome && window.chrome.webview) {
-          window.chrome.webview.postMessage({
-            action: "edit",
-            content: contentToEdit,
-            timestamp
-          });
-        }
-
-      } else {
-        editBtn.title = 'Edit';
-        if (icon) icon.className = 'fa-solid fa-pen';
-        if (editingLabel) editingLabel.style.display = 'none';
-
-        if (window.chrome && window.chrome.webview) {
-          window.chrome.webview.postMessage({ action: "cancelEdit" });
-        }
-      }
-    });
+  if (repliedMessage) {
+    message.classList.add("replyed");
   }
 
-  if (copyBtn) {
-    copyBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const contentText = message.querySelector('.message-content').textContent;
-      navigator.clipboard.writeText(contentText);
-      showToast('Copied!');
-    });
+  if (includeButtons) {
+    const replyBtn = message.querySelector('.message-actions button[title="Reply"]');
+    const editBtn = message.querySelector('.message-actions button[title="Edit"]');
+    const copyBtn = message.querySelector('.message-actions button[title="Copy"]');
+
+    if (editBtn) {
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+
+        const isEditing = !message.classList.contains('editing');
+        message.classList.toggle('editing', isEditing);
+        message.style.transition = 'background 0.4s';
+
+        const icon = editBtn.querySelector('i');
+        const editingLabel = message.querySelector('.editing-label');
+
+        if (isEditing) {
+          disableOtherActions(message);
+
+          editBtn.title = 'Cancel';
+          if (icon) icon.className = 'fa-solid fa-xmark';
+          if (editingLabel) editingLabel.style.display = 'block';
+          message.style.background = 'rgba(255, 238, 0, 0.1)';
+          message.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+          const contentToEdit = message.dataset.originalContent || message.querySelector('.message-content').textContent;
+
+          if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.postMessage({
+              action: "edit",
+              content: contentToEdit,
+              timestamp
+            });
+          }
+        } else {
+          editBtn.title = 'Edit';
+          if (icon) icon.className = 'fa-solid fa-pen';
+          if (editingLabel) editingLabel.style.display = 'none';
+          message.style.background = '';
+
+          enableAllActions();
+
+          if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.postMessage({ action: "cancelEdit" });
+          }
+        }
+      });
+    }
+
+    if (replyBtn) {
+      replyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+
+        const isReplying = !message.classList.contains('replying');
+        const icon = replyBtn.querySelector('i');
+        const replyingLabel = message.querySelector('.replying-label');
+
+        message.classList.toggle('replying', isReplying);
+        message.style.transition = 'background 0.4s';
+
+        if (isReplying) {
+          disableOtherActions(message);
+
+          replyBtn.title = 'Cancel';
+          if (icon) icon.className = 'fa-solid fa-xmark';
+          if (replyingLabel) replyingLabel.style.display = 'block';
+          message.style.background = 'rgba(0, 255, 255, 0.1)';
+          message.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+          const replyData = {
+            action: "reply",
+            timestamp
+          };
+
+          if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.postMessage(replyData);
+          } 
+          
+        } else {
+          replyBtn.title = 'Reply';
+          if (icon) icon.className = 'fa-solid fa-reply';
+          if (replyingLabel) replyingLabel.style.display = 'none';
+          message.style.background = '';
+
+          enableAllActions();
+
+          if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.postMessage({ action: "cancelReply" });
+          }
+        }
+      });
+    }
+
+    if (copyBtn) {
+      copyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const contentText = message.querySelector('.message-content').textContent;
+        navigator.clipboard.writeText(contentText);
+        showToast('Copied!');
+      });
+    }
   }
 
   return message;
 }
 
-function addMessage(userType, username, content, timestamp, edited_timestamp, amount = 0) {
-  const message = _createMessageElement(userType, username, content, timestamp, edited_timestamp, amount);
+function addMessage(userType, username, content, timestamp, edited_timestamp, amount = 0, repliedUsername = null ,repliedMessage = null) {
+  const message = _createMessageElement(userType, username, content, timestamp, edited_timestamp, amount, true, repliedUsername, repliedMessage);
   chatContainer.appendChild(message);
 }
 
-function insertMessage(index, userType, username, content, timestamp, edited_timestamp, amount = 0) {
-  const message = _createMessageElement(userType, username, content, timestamp, edited_timestamp, amount);
+function insertMessage(index, userType, username, content, timestamp, edited_timestamp, amount = 0, repliedUsername = null ,repliedMessage = null) {
+  const message = _createMessageElement(userType, username, content, timestamp, edited_timestamp, amount, true, repliedUsername, repliedMessage);
   const messages = chatContainer.querySelectorAll('.message');
 
   const oldScrollTop = chatContainer.scrollTop;
@@ -360,6 +437,69 @@ function insertMessage(index, userType, username, content, timestamp, edited_tim
   const newScrollHeight = chatContainer.scrollHeight;
   const heightDiff = newScrollHeight - oldScrollHeight;
   chatContainer.scrollTop = oldScrollTop + heightDiff;
+}
+
+function addPendingMessage(content, timestamp, amount = 0, repliedUsername = null, repliedMessage = null) {
+  const message = _createMessageElement(
+    'you',
+    'You',
+    content,
+    timestamp,
+    "",
+    amount,
+    false,
+    repliedUsername,
+    repliedMessage
+  );
+
+  message.classList.add('sending');
+  if (repliedUsername) message.dataset.repliedUsername = repliedUsername;
+  if (repliedMessage) message.dataset.repliedMessage = repliedMessage;
+
+  chatContainer.appendChild(message);
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+
+  return message;
+}
+
+
+function markMessageAsSent(timestamp) {
+  const pendingMsg = chatContainer.querySelector(`.message.sending [data-ts="${timestamp}"]`)?.closest('.message');
+  if (!pendingMsg) return;
+
+  const content = pendingMsg.dataset.originalContent || pendingMsg.querySelector('.message-content')?.textContent || '';
+  const amount = parseFloat(pendingMsg.querySelector('.gift-tag')?.textContent) || 0;
+  const repliedUsername = pendingMsg.dataset.repliedUsername || null;
+  const repliedMessage = pendingMsg.dataset.repliedMessage || null;
+
+  const sentMsg = _createMessageElement(
+    'you',
+    'You',
+    content,
+    timestamp,
+    "",
+    amount,
+    true,
+    repliedUsername,
+    repliedMessage
+  );
+
+  pendingMsg.replaceWith(sentMsg);
+}
+
+
+function markMessageAsFailed(timestamp) {
+  const msg = chatContainer.querySelector(`.message.sending [data-ts="${timestamp}"]`)?.closest('.message');
+  if (!msg) return;
+
+  msg.classList.remove('sending');
+  msg.classList.add('failed');
+
+  setTimeout(() => {
+    msg.style.opacity = '0';
+    msg.style.transform = 'scale(0.95)';
+    setTimeout(() => msg.remove(), 400);
+  }, 2000);
 }
 
 function editMessage(timestamp, content, edited_timestamp) {
@@ -393,6 +533,28 @@ function editMessage(timestamp, content, edited_timestamp) {
       msg.style.transition = 'background 0.4s';
       msg.style.background = 'rgba(255, 255, 0, 0.1)';
       setTimeout(() => (msg.style.background = ''), 500);
+
+      const repliedBlock = msg.querySelector('.replied-block');
+      if (repliedBlock && msg.dataset.repliedMessage) {
+        const repliedUsername = msg.dataset.repliedUsername || "User";
+        const repliedMessage = msg.dataset.repliedMessage;
+        repliedBlock.innerHTML = `
+          <div class="replied-user">@${repliedUsername}</div>
+          <div class="replied-snippet">${formatMessageContent(repliedMessage)}</div>
+        `;
+      }
+
+      const actionsDiv = msg.querySelector('.message-actions');
+      if (actionsDiv && actionsDiv.innerHTML.trim() === "") {
+        const username = msg.querySelector('.username')?.textContent || 'You';
+        let actionsHTML = `<button title="Copy"><i class="fa-solid fa-copy"></i></button>`;
+        if (username.toLowerCase() === 'you') {
+          actionsHTML = `<button title="Edit"><i class="fa-solid fa-pen"></i></button>` + actionsHTML;
+        } else {
+          actionsHTML = `<button title="Reply"><i class="fa-solid fa-reply"></i></button>` + actionsHTML;
+        }
+        actionsDiv.innerHTML = actionsHTML;
+      }
     }
   });
 
@@ -401,44 +563,12 @@ function editMessage(timestamp, content, edited_timestamp) {
   }
 }
 
-function addPendingMessage(userType, username, content, timestamp, amount = 0) {
-  const message = _createMessageElement(userType, username, content, timestamp, "", amount);
-  message.classList.add('sending');
-  chatContainer.appendChild(message);
-  chatContainer.scrollTop = chatContainer.scrollHeight;
-  return message;
-}
-
-function markMessageAsSent(timestamp) {
-  const messages = chatContainer.querySelectorAll('.message.sending');
-  messages.forEach(msg => {
-    const tsElem = msg.querySelector('.timestamp');
-    if (tsElem && tsElem.dataset.ts === timestamp) {
-      msg.classList.remove('sending');
-      msg.style.opacity = 1;
-    }
-  });
-}
-
-function markMessageAsFailed(timestamp) {
-  const msg = chatContainer.querySelector(`.message.sending [data-ts="${timestamp}"]`)?.closest('.message');
-  if (!msg) return;
-
-  msg.classList.remove('sending');
-  msg.classList.add('failed');
-
-  setTimeout(() => {
-    msg.style.opacity = '0';
-    msg.style.transform = 'scale(0.95)';
-    setTimeout(() => msg.remove(), 400);
-  }, 2000);
-}
-
 
 function cancelEdit() {
   const editingMsg = document.querySelector('.message.editing');
   if (editingMsg) {
     editingMsg.classList.remove('editing');
+    editingMsg.style.background = '';
 
     const editBtn = editingMsg.querySelector('.message-actions button[title="Cancel"]');
     if (editBtn) {
@@ -450,10 +580,12 @@ function cancelEdit() {
 
     const editingLabel = editingMsg.querySelector('.editing-label');
     if (editingLabel) editingLabel.style.display = 'none';
+
+    enableAllActions();
   }
 }
 
-function disableCancelButton() {
+function disableCancelEditButton() {
   const msg = document.querySelector('.message.editing');
   if (!msg) return;
 
@@ -461,12 +593,70 @@ function disableCancelButton() {
   if (cancelBtn) cancelBtn.disabled = true;
 }
 
-function enableCancelButton() {
+function enableCancelEditButton() {
   const msg = document.querySelector('.message.editing');
   if (!msg) return;
 
   const cancelBtn = msg.querySelector('.message-actions button[title="Cancel"]');
   if (cancelBtn) cancelBtn.disabled = false;
+}
+
+function cancelReply() {
+  const replyingMsg = document.querySelector('.message.replying');
+  if (replyingMsg) {
+    replyingMsg.classList.remove('replying');
+    replyingMsg.style.background = '';
+
+    const replyBtn = replyingMsg.querySelector('.message-actions button[title="Cancel"]');
+    if (replyBtn) {
+      replyBtn.title = 'Reply';
+      const icon = replyBtn.querySelector('i');
+      if (icon) icon.className = 'fa-solid fa-reply';
+      replyBtn.disabled = false;
+    }
+
+    const replyingLabel = replyingMsg.querySelector('.replying-label');
+    if (replyingLabel) replyingLabel.style.display = 'none';
+
+    enableAllActions();
+  }
+}
+
+function disableCancelReplyButton() {
+  const msg = document.querySelector('.message.replying');
+  if (!msg) return;
+
+  const cancelBtn = msg.querySelector('.message-actions button[title="Cancel"]');
+  if (cancelBtn) cancelBtn.disabled = true;
+}
+
+function enableCancelReplyButton() {
+  const msg = document.querySelector('.message.replying');
+  if (!msg) return;
+
+  const cancelBtn = msg.querySelector('.message-actions button[title="Cancel"]');
+  if (cancelBtn) cancelBtn.disabled = false;
+}
+
+function disableOtherActions(exceptMsg = null) {
+  document.querySelectorAll('.message').forEach(msg => {
+    if (msg === exceptMsg) return;
+    msg.querySelectorAll('.message-actions button').forEach(btn => {
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.style.pointerEvents = 'none';
+    });
+  });
+}
+
+function enableAllActions() {
+  document.querySelectorAll('.message').forEach(msg => {
+    msg.querySelectorAll('.message-actions button').forEach(btn => {
+      btn.disabled = false;
+      btn.style.opacity = '';
+      btn.style.pointerEvents = '';
+    });
+  });
 }
 
 function showUnreadLabel() {
@@ -485,10 +675,6 @@ function showUnreadLabel() {
 function hideUnreadLabel() {
   unreadLabel.style.display = 'none';
 }
-
-document.addEventListener('contextmenu', function(e) {
-  e.preventDefault();
-});
 
 function scrollToBottom() {
   chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -529,4 +715,9 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     e.stopPropagation();
   }
+});
+
+
+document.addEventListener('contextmenu', function(e) {
+  e.preventDefault();
 });

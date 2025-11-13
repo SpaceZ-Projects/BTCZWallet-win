@@ -129,33 +129,35 @@ class StorageMessages:
         conn.commit()
         conn.close()
 
-    def message(self, id, author, message, amount, timestamp, edited):
+    def message(self, id, author, message, amount, timestamp, edited, replied):
         self.create_messages_table()
         self.add_column('messages', 'edited', 'INTEGER')
+        self.add_column('messages', 'replied', 'INTEGER')
         conn = sqlite3.connect(self.data)
         cursor = conn.cursor()
         cursor.execute(
             '''
-            INSERT INTO messages (id, author, message, amount, timestamp, edited)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO messages (id, author, message, amount, timestamp, edited, replied)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             ''', 
-            (id, author, message, amount, timestamp, edited)
+            (id, author, message, amount, timestamp, edited, replied)
         )
         conn.commit()
         conn.close()
 
 
-    def unread_message(self, id, author, message, amount, timestamp, edited):
+    def unread_message(self, id, author, message, amount, timestamp, edited, replied):
         self.create_unread_messages_table()
         self.add_column('unread_messages', 'edited', 'INTEGER')
+        self.add_column('unread_messages', 'replied', 'INTEGER')
         conn = sqlite3.connect(self.data)
         cursor = conn.cursor()
         cursor.execute(
             '''
-            INSERT INTO unread_messages (id, author, message, amount, timestamp, edited)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO unread_messages (id, author, message, amount, timestamp, edited, replied)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             ''', 
-            (id, author, message, amount, timestamp, edited)
+            (id, author, message, amount, timestamp, edited, replied)
         )
         conn.commit()
         conn.close()
@@ -386,11 +388,12 @@ class StorageMessages:
     def get_messages(self, contact_id = None):
         try:
             self.add_column('messages', 'edited', 'INTEGER')
+            self.add_column('messages', 'replied', 'INTEGER')
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
             if contact_id:
                 cursor.execute(
-                    'SELECT author, message, amount, timestamp, edited FROM messages WHERE id = ?',
+                    'SELECT author, message, amount, timestamp, edited, replied FROM messages WHERE id = ?',
                     (contact_id,)
                 )
             else:
@@ -402,15 +405,22 @@ class StorageMessages:
             return []
         
 
-    def get_message(self, contact_id, timestamp):
+    def get_message(self, contact_id = None, timestamp=None):
         try:
             self.add_column('messages', 'edited', 'INTEGER')
+            self.add_column('messages', 'replied', 'INTEGER')
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
-            cursor.execute(
-                'SELECT timestamp FROM messages WHERE id = ? AND timestamp = ?',
-                (contact_id, timestamp)
-            )
+            if not contact_id:
+                cursor.execute(
+                    'SELECT author, message FROM messages WHERE timestamp = ?',
+                    (timestamp,)
+                )
+            else:
+                cursor.execute(
+                    'SELECT timestamp FROM messages WHERE id = ? AND timestamp = ?',
+                    (contact_id, timestamp)
+                )
             data = cursor.fetchone()
             conn.close()
             return data
@@ -435,11 +445,12 @@ class StorageMessages:
     def get_unread_messages(self, contact_id=None):
         try:
             self.add_column('unread_messages', 'edited', 'INTEGER')
+            self.add_column('unread_messages', 'replied', 'INTEGER')
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
             if contact_id:
                 cursor.execute(
-                    'SELECT author, message, amount, timestamp, edited FROM unread_messages WHERE id = ?',
+                    'SELECT author, message, amount, timestamp, edited, replied FROM unread_messages WHERE id = ?',
                     (contact_id,)
                 )
             else:
@@ -451,15 +462,22 @@ class StorageMessages:
             return []
         
 
-    def get_unread_message(self, contact_id, timestamp):
+    def get_unread_message(self, contact_id=None, timestamp=None):
         try:
             self.add_column('unread_messages', 'edited', 'INTEGER')
+            self.add_column('unread_messages', 'replied', 'INTEGER')
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
-            cursor.execute(
-                'SELECT timestamp FROM unread_messages WHERE id = ? AND timestamp = ?',
-                (contact_id, timestamp)
-            )
+            if not contact_id:
+                cursor.execute(
+                    'SELECT author, message FROM unread_messages WHERE timestamp = ?',
+                    (timestamp,)
+                )
+            else:
+                cursor.execute(
+                    'SELECT timestamp FROM unread_messages WHERE id = ? AND timestamp = ?',
+                    (contact_id, timestamp)
+                )
             data = cursor.fetchone()
             conn.close()
             return data
@@ -681,7 +699,8 @@ class StorageMessages:
                 message TEXT,
                 amount REAL,
                 timestamp INTEGER,
-                edited INTEGER
+                edited INTEGER,
+                replied INTEGER
             )
             '''
         )
@@ -699,7 +718,8 @@ class StorageMessages:
                 message TEXT,
                 amount REAL,
                 timestamp INTEGER,
-                edited INTEGER
+                edited INTEGER,
+                replied INTEGER
             )
             '''
         )

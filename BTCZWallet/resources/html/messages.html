@@ -31,7 +31,6 @@
     box-sizing: border-box;
     overflow-y: auto;
     position: relative;
-
     scrollbar-width: 5px;
     scrollbar-color: #e9da00 transparent;
   }
@@ -60,17 +59,29 @@
     box-sizing: border-box;
   }
 
-  .message .editing-label {
+  .message .editing-label,
+  .message .replying-label {
     display: none;
     margin-top: 6px;
     font-size: 0.75em;
     font-style: italic;
-    color: #e9da00;
     opacity: 0.8;
     align-self: self-end;
   }
 
+  .message .editing-label {
+    color: #e9da00;
+  }
+
+  .message .replying-label {
+    color: #00ffff;
+  }
+
   .message.editing .editing-label {
+    display: block;
+  }
+
+  .message.replying .replying-label {
     display: block;
   }
 
@@ -84,15 +95,17 @@
     transition: background-color 0.3s, box-shadow 0.3s;
   }
 
-  .message.editing .message-actions button[title="Cancel"] {
+  .message.replying {
+    outline: 2px dashed #00ffff;
+    background-color: rgba(0, 255, 255, 0.05);
+  }
+
+  .message.editing .message-actions button[title="Cancel"],
+  .message.replying .message-actions button[title="Cancel"] {
     color: #ff5555;
   }
 
-  .message.user {
-    background-color: #1e2124;
-    align-self: stretch;
-  }
-
+  .message.user,
   .message.you {
     background-color: #1e2124;
     align-self: stretch;
@@ -100,9 +113,9 @@
 
   .message.user:hover,
   .message.you:hover {
-      background-color: #282b30;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-      transition: background-color 0.3s, box-shadow 0.3s;
+    background-color: #282b30;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.3s, box-shadow 0.3s;
   }
 
   .message-header {
@@ -153,7 +166,6 @@
   }
 
   .edited-tag::after {
-    font-style: normal;
     content: attr(data-tooltip);
     position: absolute;
     bottom: 130%;
@@ -169,7 +181,6 @@
     pointer-events: none;
     box-shadow: 0 5px 5px rgba(0, 0, 0, 0.3);
     transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
-    transform-origin: bottom center;
     z-index: 9999;
   }
 
@@ -178,13 +189,62 @@
     transform: translateX(-80%) translateY(-6px);
   }
 
-
   .message-content {
     font-size: 0.85em;
     line-height: 1.3em;
     white-space: pre-wrap;
     word-wrap: break-word;
   }
+
+  .replied-block-wrapper {
+    display: flex;
+    align-items: flex-end;
+    margin-bottom: 6px;
+  }
+
+  .replied-block {
+    border-left: 3px solid #00d4ff;
+    background: linear-gradient(90deg, rgba(0, 195, 255, 0.12), rgba(0, 204, 255, 0.04));;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.8em;
+    margin-bottom: 5px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .replied-user {
+    font-weight: bold;
+    color: #cfd2d6;
+    font-style: italic;
+    margin: 0;
+    line-height: 1.1;
+  }
+
+  .replied-snippet {
+    color: #cfd2d6;
+    font-style: italic;
+    line-height: 1.2;
+    margin-top: 3px;
+    font-size: 0.85em;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .reply-icon {
+    position: relative;
+    color: #00d4ff;
+    font-size: 1em;
+    flex-shrink: 0;
+    transform: scaleX(-1);
+    bottom: 6px;
+    margin-right: 3px;
+  }
+
 
   .emoji {
     font-size: 1.4em;
@@ -224,16 +284,16 @@
   }
 
   .message-actions {
-    background-color: #2b2b2c;
-    border-radius: 8px;
+    position: absolute;
+    top: -20px;
+    right: 1px;
     display: flex;
     gap: 5px;
-    position: absolute;
-    right: 0px;
-    top: -10%;
-    transform: translateY(-50%);
+    background-color: #2b2b2c;
+    border-radius: 4px;
     opacity: 0;
     transition: opacity 0.2s;
+    z-index: 10;
   }
 
   .message:hover .message-actions {
@@ -246,7 +306,6 @@
     color: #b0b3b8;
     cursor: pointer;
     font-size: 1em;
-    padding: 2px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -281,7 +340,6 @@
       opacity: 1;
     }
   }
-
 
   .unreadText {
     display: none;
@@ -338,7 +396,7 @@
   }
 
   .message.failed {
-    opacity: 0.7;
+    opacity: 0.6;
     position: relative;
     transition: opacity 0.4s ease, transform 0.4s ease;
   }
@@ -353,7 +411,6 @@
     color: #ff5555;
     opacity: 0.9;
   }
-
 </style>
 </head>
 <body>
