@@ -952,7 +952,7 @@ class MobileServer():
                                 author = data[0]
                                 message = data[1]
                                 timestamp = data[2]
-                                self.messages_storage.message(id, author, message, amount, timestamp, None)
+                                self.messages_storage.message(id, author, message, amount, timestamp)
 
                         return jsonify({"result": "success"}), 200
                                 

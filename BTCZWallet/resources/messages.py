@@ -2601,7 +2601,7 @@ class Chat(Box):
                 replied_user = None
                 replied_msg_js = None
                 if replied:
-                    data = self.storage.get_message(timestamp=replied)
+                    replied_user, replied_msg = self.storage.get_message(timestamp=replied)
                     if replied_msg:
                         if replied_user == "you":
                             replied_user = "You"

@@ -129,7 +129,7 @@ class StorageMessages:
         conn.commit()
         conn.close()
 
-    def message(self, id, author, message, amount, timestamp, edited, replied):
+    def message(self, id, author, message, amount, timestamp, edited=None, replied = None):
         self.create_messages_table()
         self.add_column('messages', 'edited', 'INTEGER')
         self.add_column('messages', 'replied', 'INTEGER')
@@ -146,7 +146,7 @@ class StorageMessages:
         conn.close()
 
 
-    def unread_message(self, id, author, message, amount, timestamp, edited, replied):
+    def unread_message(self, id, author, message, amount, timestamp, edited=None, replied = None):
         self.create_unread_messages_table()
         self.add_column('unread_messages', 'edited', 'INTEGER')
         self.add_column('unread_messages', 'replied', 'INTEGER')
