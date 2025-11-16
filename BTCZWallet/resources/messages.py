@@ -9,13 +9,14 @@ from pathlib import Path
 
 from toga import (
     App, Box, Label, Window, TextInput, ImageView,
-    ScrollContainer, Button, MultilineTextInput
+    ScrollContainer, Button, MultilineTextInput, 
+    Switch
 )
 
 from ..framework import (
     ToolTip, ClipBoard, Color, Forms, Command,
     FlatStyle, Drawing, Relation, Os, AlignContent,
-    MenuStrip, RightToLeft, Cursors, WebView
+    MenuStrip, RightToLeft, Cursors, WebView, Keys
 )
 from toga.style.pack import Pack
 from toga.constants import (
@@ -1772,6 +1773,7 @@ class Chat(Box):
         if self.rtl:
             self.message_input._impl.native.RightToLeft = RightToLeft.YES
         self.message_input.placeholder = self.tr.text("message_input")
+        self.message_input._impl.native.KeyDown += self.on_key_press
 
         text = self.tr.text("character_count")
         value = "0 / 325"
@@ -1811,6 +1813,16 @@ class Chat(Box):
             )
         )
 
+        self.send_switch = Switch(
+            text="",
+            value=True,
+            style=Pack(
+                background_color = rgb(40,43,48),
+                padding = (0,0,6,7)
+            )
+        )
+        self.tooltip.insert(self.send_switch._impl.native, "Press Enter to send message")
+
         self.send_button = Button(
             text=self.tr.text("sendmessage_button"),
             style=Pack(
@@ -1818,7 +1830,7 @@ class Chat(Box):
                 background_color = rgb(30,33,36),
                 flex = 1
             ),
-            on_press=self.verify_message
+            on_press=self.send_button_click
         )
         self.send_button._impl.native.Font = self.font.get(self.tr.size("sendmessage_button"), True)
         send_i_icon = self.messages_icon("images/send_message_i.png")
@@ -1919,6 +1931,7 @@ class Chat(Box):
             self.fee_input
         )
         self.send_box.add(
+            self.send_switch,
             self.send_button
         )
 
@@ -1986,6 +1999,15 @@ class Chat(Box):
         self.app.loop.create_task(self.waiting_new_memos())
         self.app.loop.create_task(self.update_contacts_list())
         self.load_pending_list()
+
+
+    def on_key_press(self, sender, e):
+        if self.send_toggle:
+            return
+        if e.KeyCode == Keys.Enter:
+            if self.send_switch.value is True:
+                e.SuppressKeyPress = True
+                self.verify_message()
 
 
     async def update_messages_balance(self):
@@ -2265,7 +2287,6 @@ class Chat(Box):
 
     def on_message_canceledit(self):
         self.edit_toggle = None
-        self.reply_toggle = None
         self.update_send_button()
         self.message_input.value = ""
         self.fee_input.readonly = False
@@ -2787,7 +2808,11 @@ class Chat(Box):
         )
 
 
-    async def verify_message(self, button):
+    async def send_button_click(self, button):
+        self.verify_message()
+
+
+    def verify_message(self):
         message = self.message_input.value.strip()
         character_count = len(message)
         fee = self.fee_input.value
@@ -3032,10 +3057,12 @@ class Chat(Box):
                         title="Failed",
                         message="Editing message was failed, verify your balance"
                     )
-                    self.enable_cancel_edit()
+                    if self.edit_toggle:
+                        self.enable_cancel_edit()
                     self.enable_send_button()
         else:
-            self.enable_cancel_edit()
+            if self.edit_toggle:
+                self.enable_cancel_edit()
             self.enable_send_button()
     
 
@@ -3066,11 +3093,11 @@ class Chat(Box):
         elif self.reply_toggle:
             text = "Reply"
             icon = self.messages_icon("images/reply_message_i.png")
-            self.send_button.on_press = self.verify_message
+            self.send_button.on_press = self.send_button_click
         else:
             text = "Send"
             icon = self.messages_icon("images/send_message_i.png")
-            self.send_button.on_press = self.verify_message
+            self.send_button.on_press = self.send_button_click
 
         self.send_button.text = text
         self.send_button._impl.native.Image = Drawing.Image.FromFile(icon)
