@@ -17,6 +17,8 @@ import ipaddress
 import ctypes
 import io
 from PIL import Image, ImageFilter
+import ssl
+import certifi
 
 from toga import App
 from ..framework import (
@@ -76,8 +78,9 @@ class Utils():
         github_url = "https://api.github.com/repos/SpaceZ-Projects/BTCZWallet-win"
         releases_url = "https://github.com/SpaceZ-Projects/BTCZWallet-win/releases"
         try:
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
             async with aiohttp.ClientSession(connector=connector) as session:
-                async with session.get(f"{github_url}/tags", timeout=10) as response:
+                async with session.get(f"{github_url}/tags", timeout=10, ssl=ssl_context) as response:
                     if response.status == 200:
                         tags = await response.json()
                         latest_tag = tags[0]['name'] if tags else None
@@ -114,9 +117,10 @@ class Utils():
         else:
             connector = None
         try:
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
             async with aiohttp.ClientSession(connector=connector) as session:
                 headers={'User-Agent': 'Mozilla/5.0'}
-                async with session.get(COINGECKO_API, params=params, headers=headers, timeout=10) as response:
+                async with session.get(COINGECKO_API, params=params, headers=headers, timeout=10, ssl=ssl_context) as response:
                     response.raise_for_status()
                     data = await response.json()
                     return data.get('prices', [])
@@ -135,8 +139,9 @@ class Utils():
         socks_port = torrc.get("SocksPort")
         try:
             connector = ProxyConnector.from_url(f'socks5://127.0.0.1:{socks_port}')
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
             async with aiohttp.ClientSession(connector=connector) as session:
-                async with session.get('http://check.torproject.org', timeout=10) as response:
+                async with session.get('http://check.torproject.org', timeout=10, ssl=ssl_context) as response:
                     await response.text()
                     return True
         except ProxyConnectionError:
@@ -184,6 +189,7 @@ class Utils():
             'X-Signature': signature
         }
         try:
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
             async with aiohttp.ClientSession(connector=connector) as session:
                 if params:
                     async with session.get(url, headers=headers, params={"data": encrypted_params}) as response:
@@ -223,9 +229,10 @@ class Utils():
         else:
             connector = None
         try:
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
             async with aiohttp.ClientSession(connector=connector) as session:
                 headers={'User-Agent': 'Mozilla/5.0'}
-                async with session.get(api, headers=headers, timeout=10) as response:
+                async with session.get(api, headers=headers, timeout=10, ssl=ssl_context) as response:
                     response.raise_for_status()
                     data = await response.json()
                     return data
@@ -587,12 +594,13 @@ class Utils():
     async def fetch_tor_files(self, label, progress_bar):
         file_name = "tor-expert-bundle-windows-x86_64-15.0.tar.gz"
         url = "https://archive.torproject.org/tor-package-archive/torbrowser/15.0/"
-        self.app.console.info_log(f"Downloading tor bundle... {url}")
+        self.app.console.info_log(f"Downloading tor bundle... {url + file_name}")
         destination = Os.Path.Combine(str(self.app_data), file_name)
         text = self.tr.text("download_tor")
         try:
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
             async with aiohttp.ClientSession() as session:
-                async with session.get(url + file_name, timeout=None) as response:
+                async with session.get(url + file_name, timeout=None, ssl=ssl_context) as response:
                     if response.status == 200:
                         total_size = int(response.headers.get('content-length', 0))
                         self.app.console.info_log(f"File size : {self.units.format_bytes(total_size)}")
@@ -653,7 +661,7 @@ class Utils():
     async def fetch_binary_files(self, label, progress_bar, tor_enabled):
         file_name = "bitcoinz-45802c9f29b4-win64.zip"
         url = "https://github.com/btcz/bitcoinz/releases/download/2.1.1/"
-        self.app.console.info_log(f"Downloading BitcoinZ... {url}")
+        self.app.console.info_log(f"Downloading BitcoinZ... {url + file_name}")
         text = self.tr.text("download_binary")
         destination = Os.Path.Combine(str(self.app_data), file_name)
         if tor_enabled:
@@ -663,8 +671,9 @@ class Utils():
         else:
             connector = None
         try:
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
             async with aiohttp.ClientSession(connector=connector) as session:
-                async with session.get(url + file_name, timeout=None) as response:
+                async with session.get(url + file_name, timeout=None, ssl=ssl_context) as response:
                     if response.status == 200:
                         total_size = int(response.headers.get('content-length', 0))
                         self.app.console.info_log(f"File size : {self.units.format_bytes(total_size)}")
@@ -717,12 +726,13 @@ class Utils():
         else:
             connector = None
         try:
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
             async with aiohttp.ClientSession(connector=connector) as session:
                 for idx, file_name in enumerate(missing_files):
                     url = base_url + file_name
                     file_path = Os.Path.Combine(zk_params_path, file_name)
                     self.current_download_file = file_path
-                    async with session.get(url, timeout=None) as response:
+                    async with session.get(url, timeout=None, ssl=ssl_context) as response:
                         if response.status == 200:
                             total_size = int(response.headers.get('content-length', 0))
                             self.app.console.info_log(f"File name : {file_name} | File size : {self.units.format_bytes(total_size)}")
@@ -771,6 +781,7 @@ class Utils():
         else:
             connector = None
         try:
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
             async with aiohttp.ClientSession(connector=connector) as session:
                 for idx, file_name in enumerate(bootstrap_files):
                     file_path = Os.Path.Combine(bitcoinz_path, file_name)
@@ -778,7 +789,7 @@ class Utils():
                         continue
                     url = base_url + file_name
                     self.current_download_file = file_path
-                    async with session.get(url, timeout=None) as response:
+                    async with session.get(url, timeout=None, ssl=ssl_context) as response:
                         if response.status == 200:
                             total_size = int(response.headers.get('content-length', 0))
                             self.app.console.info_log(f"File name : {file_name} | File size : {self.units.format_bytes(total_size)}")
@@ -819,8 +830,9 @@ class Utils():
         else:
             connector = None
         try:
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
             async with aiohttp.ClientSession(connector=connector) as session:
-                async with session.get(url + file_name, timeout=None) as response:
+                async with session.get(url + file_name, timeout=None, ssl=ssl_context) as response:
                     if response.status == 200:
                         total_size = int(response.headers.get('content-length', 0))
                         self.app.console.info_log(f"File size : {self.units.format_bytes(total_size)}")
