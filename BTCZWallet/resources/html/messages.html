@@ -13,12 +13,17 @@
     font-style: normal;
   }
 
+  :root {
+    --bg-top: #202225;
+    --bg-bottom: #282b30;
+  }
+
   html, body {
     height: 100%;
     margin: 0;
     padding: 0;
     font-family: 'Monda';
-    background-color: #1e2124;
+    background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
     color: #e4e6eb;
   }
 
@@ -107,15 +112,14 @@
 
   .message.user,
   .message.you {
-    background-color: #1e2124;
+    background-color: #282b30;
     align-self: stretch;
   }
 
   .message.user:hover,
   .message.you:hover {
-    background-color: #282b30;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    transition: background-color 0.3s, box-shadow 0.3s;
+    transition: box-shadow 0.3s;
   }
 
   .message-header {
@@ -322,14 +326,15 @@
 
   .link-tooltip {
     position: absolute;
+    max-width: 500px;
+    white-space: normal;
+    word-break: break-all;
     background: rgba(30, 30, 30, 0.9);
     color: #fff;
     padding: 4px 8px;
     border-radius: 6px;
     font-size: 0.8em;
-    white-space: nowrap;
     pointer-events: none;
-    transform: translateX(-50%);
     z-index: 9999;
     opacity: 0;
     animation: fadeIn 0.15s ease forwards;
@@ -411,6 +416,20 @@
     color: #ff5555;
     opacity: 0.9;
   }
+
+  .message-images {
+    margin-top: 8px;
+    }
+
+  .message-image {
+    display: block;
+    max-width: 100%;
+    max-height: 260px;
+    margin-top: 6px;
+    border-radius: 10px;
+    object-fit: cover;
+  }
+
 </style>
 </head>
 <body>

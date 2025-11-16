@@ -146,7 +146,14 @@ chatContainer.addEventListener('mouseover', (e) => {
   document.body.appendChild(tooltip);
 
   const rect = link.getBoundingClientRect();
-  tooltip.style.left = `${rect.left + window.scrollX + rect.width / 2}px`;
+  let left = rect.left + window.scrollX;
+  const maxLeft = window.innerWidth - tooltip.offsetWidth - 10;
+  const minLeft = 10;
+
+  if (left < minLeft) left = minLeft;
+  if (left > maxLeft) left = maxLeft;
+
+  tooltip.style.left = `${left}px`;
   tooltip.style.top = `${rect.top + window.scrollY - 28}px`;
 
   link._tooltip = tooltip;
@@ -222,8 +229,10 @@ function formatMessageContent(text) {
   }
 
   const urlPattern = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gi;
-  text = text.replace(urlPattern, (match) => 
-    `<span class="link" data-href="${match}" style="color:#00bfff; text-decoration:underline; cursor:pointer;">${match}</span>`
+  text = text.replace(
+    urlPattern,
+    (match) =>
+      `<span class="link" data-href="${match}" style="color:#00bfff; text-decoration:underline; cursor:pointer;">${match}</span>`
   );
 
   for (const [emoticon, emoji] of Object.entries(EMOJI_MAP)) {
@@ -237,8 +246,29 @@ function formatMessageContent(text) {
 
   text = text.replace(/\n/g, "<br>");
 
-  return text;
+  const imageUrlRegex = /\.(jpg|jpeg|png|gif|webp)$/i;
+  const imageTags = [];
+
+  const container = document.createElement("div");
+  container.innerHTML = text;
+
+  const links = container.querySelectorAll(".link");
+
+  links.forEach((span) => {
+    const url = span.dataset.href;
+
+    if (imageUrlRegex.test(url)) {
+      imageTags.push(`<img src="${url}" class="message-image" loading="lazy">`);
+    }
+  });
+
+  if (imageTags.length > 0) {
+    container.innerHTML += `<div class="message-images">${imageTags.join("")}</div>`;
+  }
+
+  return container.innerHTML;
 }
+
 
 function _createMessageElement(
   userType, username, content, timestamp, edited_timestamp, amount = 0, includeButtons = true, repliedUsername = null ,repliedMessage = null
