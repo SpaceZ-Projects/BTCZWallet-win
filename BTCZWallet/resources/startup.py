@@ -644,6 +644,7 @@ class BTCZSetup(Box):
         )
         if self.main.console_toggle:
             self.app.console.hide()
+        self.main.shadow_window.hide()
         self.main.hide()
-        await asyncio.sleep(1)
+        await asyncio.sleep(2)
         self.main_menu.show()

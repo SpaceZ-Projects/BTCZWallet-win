@@ -28,9 +28,7 @@ ERROR_ALREADY_EXISTS = 183
 class BitcoinZGUI(Window):
     def __init__(self):
         super().__init__(
-            size=(600, 400),
-            resizable= False,
-            minimizable = False
+            size=(600, 400)
         )
         
         self.settings = Settings(self.app)
@@ -46,17 +44,28 @@ class BitcoinZGUI(Window):
         self.console_toggle = None
 
         self.title = self.tr.title("main_window")
+        self._impl.native.ShowInTaskbar = False
         self._impl.native.BackColor = Color.rgb(30,33,36)
-        position_center = self.utils.windows_screen_center(self, self)
-        self.position = position_center
+        x,y = self.utils.windows_screen_center(self, self)
+        self.position = (x+7,y)
         self._impl.native.FormBorderStyle = FormBorderStyle.NONE
-        self._impl.native.Move += self._hadler_on_move
         self._impl.native.KeyPreview = True
         self._impl.native.Shown += self.on_show
         self._impl.native.KeyDown += Forms.KeyEventHandler(self.on_key_down)
 
-        ui = self.utils.get_app_theme()
-        self.app.console.info_log(f"UI Mode : {ui.capitalize()}")
+        self.shadow_window = Window(
+            title="Startup",
+            size=(598,368),
+            resizable=False,
+            position=(x,y)
+        )
+        self.shadow_window._impl.native.BackColor = Color.BLACK
+        self.shadow_window._impl.native.ControlBox = False
+        self.shadow_window._impl.native.Move += self._hadler_on_move
+        self.shadow_window._impl.native.KeyDown += Forms.KeyEventHandler(self.on_key_down)
+
+        self._impl.native.Owner = self.shadow_window._impl.native
+        self.utils.apply_title_bar_mode(self.shadow_window, 1)
 
         self.rtl = None
         lang = self.settings.language()
@@ -194,7 +203,7 @@ class BitcoinZGUI(Window):
 
     def _on_mouse_down(self, sender: object, e: Forms.MouseEventArgs):
         if e.Button == Forms.MouseButtons.Left:
-            hwnd = int(self._impl.native.Handle.ToInt32())
+            hwnd = int(self.shadow_window._impl.native.Handle.ToInt32())
             self.drag_window(hwnd)
 
 
@@ -221,6 +230,10 @@ class BitcoinZGUI(Window):
 
     def _hadler_on_move(self, sender, event):
         self.app.console.move(True)
+        self.size = (self.shadow_window.size.width +2, self.shadow_window.size.height + 32)
+        self._impl.native.Left = self.shadow_window._impl.native.Left + 7
+        self._impl.native.Top = self.shadow_window._impl.native.Top
+
 
     def app_version_mouse_enter(self, mouse, event):
         self.app_version.style.color = YELLOW
@@ -276,6 +289,7 @@ class BitcoinZWallet(App):
         self.console = None
         self.main_window = BitcoinZGUI()
         self.main_window.show()
+        self.main_window.shadow_window.show()
 
 
 def main():
