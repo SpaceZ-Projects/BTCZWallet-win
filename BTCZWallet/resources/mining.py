@@ -533,8 +533,9 @@ class Mining(Box):
                 else:
                     self.miner_command += ' --pass x --par 144,5 --pers BitcoinZ'
                 if self.tor_enabled:
-                    socks_port = self.get_socks_port()
-                    self.miner_command += f' --socks 127.0.0.1:{socks_port}'
+                    if not self.selected_pool == "2Mars":
+                        socks_port = self.get_socks_port()
+                        self.miner_command += f' --socks 127.0.0.1:{socks_port}'
                     
             elif self.selected_miner == "Gminer":
                 log_file = Os.Path.Combine(str(self.app.paths.logs), 'Gminer.log')
@@ -548,8 +549,9 @@ class Mining(Box):
                     self.miner_command += f'.{self.worker_name} --pass x --algo 144_5 --pers BitcoinZ'
                 self.miner_command += f' --port {self.pool_port}'
                 if self.tor_enabled:
-                    socks_port = self.get_socks_port()
-                    self.miner_command += f' --proxy 127.0.0.1:{socks_port}'
+                    if not self.selected_pool == "2Mars":
+                        socks_port = self.get_socks_port()
+                        self.miner_command += f' --proxy 127.0.0.1:{socks_port}'
 
             elif self.selected_miner == "lolMiner":
                 log_file = Os.Path.Combine(str(self.app.paths.logs), 'lolMiner.log')
@@ -563,8 +565,9 @@ class Mining(Box):
                 else:
                     self.miner_command += f'.{self.worker_name} --pass x --pers BitcoinZ --algo EQUI144_5'
                 if self.tor_enabled:
-                    socks_port = self.get_socks_port()
-                    self.miner_command += f' --socks5 127.0.0.1:{socks_port}'
+                    if not self.selected_pool == "2Mars":
+                        socks_port = self.get_socks_port()
+                        self.miner_command += f' --socks5 127.0.0.1:{socks_port}'
 
             self.disable_mining_inputs()
             self.app.loop.create_task(self.start_mining_command(self.app))
@@ -619,6 +622,8 @@ class Mining(Box):
 
     async def fetch_miner_stats(self):
         self.reset_miner_notify_stats()
+        if not self.pool_api:
+            return
         api = self.pool_api + self.selected_address
         solutions_value = None
         estimated_value = None

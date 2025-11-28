@@ -1,14 +1,11 @@
 
 {
     "2Mars": {
-      "api": "",
-      "port": "1234",
+      "api": "https://2mars.biz/api/worker_stats?",
+      "port": "6666",
       "ssl": "",
       "regions": [
-        {"region": "Canada", "server": "btcz.ca.2mars.biz"},
-        {"region": "USA", "server": "btcz.us.2mars.biz"},
-        {"region": "Netherlands", "server": "btcz.eu.2mars.biz"},
-        {"region": "Singapore", "server": "btcz.sg.2mars.biz"}
+        {"region": "Canada", "server": "mining.ca.2mars.biz"}
       ]
     },
     "Swgroupe": {
