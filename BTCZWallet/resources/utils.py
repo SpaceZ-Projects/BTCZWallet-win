@@ -189,7 +189,6 @@ class Utils():
             'X-Signature': signature
         }
         try:
-            ssl_context = ssl.create_default_context(cafile=certifi.where())
             async with aiohttp.ClientSession(connector=connector) as session:
                 if params:
                     async with session.get(url, headers=headers, params={"data": encrypted_params}) as response:
@@ -592,8 +591,8 @@ class Utils():
     
 
     async def fetch_tor_files(self, label, progress_bar):
-        file_name = "tor-expert-bundle-windows-x86_64-15.0.tar.gz"
-        url = "https://archive.torproject.org/tor-package-archive/torbrowser/15.0/"
+        file_name = "tor-expert-bundle-windows-x86_64-15.0.2.tar.gz"
+        url = "https://archive.torproject.org/tor-package-archive/torbrowser/15.0.2/"
         self.app.console.info_log(f"Downloading tor bundle... {url + file_name}")
         destination = Os.Path.Combine(str(self.app_data), file_name)
         text = self.tr.text("download_tor")
