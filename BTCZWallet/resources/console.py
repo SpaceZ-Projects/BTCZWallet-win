@@ -146,7 +146,6 @@ class Console(Window):
         self.title = "Console"
         self._impl.native.Icon = self.window_icon("images/Console.ico")
         self._impl.native.BackColor = Color.rgb(30,30,30)
-        self._impl.native.Owner = self.main._impl.native
         self._impl.native.FormBorderStyle = FormBorderStyle.NONE
         self._impl.native.ShowInTaskbar = False
         self._impl.native.Move += self._on_console_move
@@ -359,7 +358,6 @@ class Console(Window):
                 self._impl.native.Top = self.main._impl.native.Bottom - 50
                 self._impl.native.Left = self.main._impl.native.Left - 30
             else:
-                self.main._impl.native.Owner = self._impl.native
                 self.tabs_box.insert(0, self.detach_button)
                 self._impl.native.Top = self.main._impl.native.Bottom - 2
             if self.main._is_maximized:

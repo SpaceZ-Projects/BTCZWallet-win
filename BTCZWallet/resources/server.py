@@ -839,7 +839,9 @@ class MobileServer():
                     text = data[1]
                     amount = data[2]
                     timestamp = data[3]
-                    self.messages_storage.message(clean_id, author, text, amount, timestamp)
+                    edited = data[4]
+                    replied = data[5]
+                    self.messages_storage.message(clean_id, author, text, amount, timestamp, edited, replied)
                 self.messages_storage.delete_unread(clean_id)
             return jsonify({"result": "success"}), 200
         

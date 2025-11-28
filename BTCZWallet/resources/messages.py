@@ -2589,8 +2589,9 @@ class Chat(Box):
                 replied_user = None
                 replied_msg_js = None
                 if replied:
-                    replied_user, replied_msg = self.storage.get_message(timestamp=replied)
-                    if replied_msg:
+                    replied_data = self.storage.get_message(timestamp=replied)
+                    if replied_data:
+                        replied_user, replied_msg = replied_data
                         if replied_user == "you":
                             replied_user = "You"
                         replied_msg_js = replied_msg.replace("\n", "\\n").replace('"', '\\"')
@@ -2622,8 +2623,9 @@ class Chat(Box):
                 replied_user = None
                 replied_msg_js = None
                 if replied:
-                    replied_user, replied_msg = self.storage.get_message(timestamp=replied)
-                    if replied_msg:
+                    replied_data = self.storage.get_message(timestamp=replied)
+                    if replied_data:
+                        replied_user, replied_msg = replied_data
                         if replied_user == "you":
                             replied_user = "You"
                         replied_msg_js = replied_msg.replace("\n", "\\n").replace('"', '\\"')
@@ -2659,8 +2661,9 @@ class Chat(Box):
                             replied_user = None
                             replied_msg_js = None
                             if replied:
-                                replied_user, replied_msg = self.storage.get_message(timestamp=replied)
-                                if replied_msg:
+                                replied_data = self.storage.get_message(timestamp=replied)
+                                if replied_data:
+                                    replied_user, replied_msg = replied_data
                                     if replied_user == "you":
                                         replied_user = "You"
                                     replied_msg_js = replied_msg.replace("\n", "\\n").replace('"', '\\"')
@@ -2688,8 +2691,9 @@ class Chat(Box):
                             replied_user = None
                             replied_msg_js = None
                             if replied:
-                                replied_user, replied_msg = self.storage.get_message(timestamp=replied)
-                                if replied_msg:
+                                replied_data = self.storage.get_message(timestamp=replied)
+                                if replied_data:
+                                    replied_user, replied_msg = replied_data
                                     if replied_user == "you":
                                         replied_user = "You"
                                     replied_msg_js = replied_msg.replace("\n", "\\n").replace('"', '\\"')
@@ -2747,8 +2751,9 @@ class Chat(Box):
                 replied_user = None
                 replied_msg_js = None
                 if replied:
-                    replied_user, replied_msg = self.storage.get_message(timestamp=replied)
-                    if replied_msg:
+                    replied_data = self.storage.get_message(timestamp=replied)
+                    if replied_data:
+                        replied_user, replied_msg = replied_data
                         if replied_user == "you":
                             replied_user = "You"
                         replied_msg_js = replied_msg.replace("\n", "\\n").replace('"', '\\"')

@@ -83,7 +83,6 @@ class Menu(Window):
         self._impl.native.FormBorderStyle = FormBorderStyle.NONE
 
         self.app.console.main = self
-        self._impl.native.Owner = self.app.console._impl.native
 
         self.storage = StorageMessages(self.app)
         self.market_storage = StorageMarket(self.app)
