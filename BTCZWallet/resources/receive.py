@@ -434,7 +434,7 @@ class Receive(Box):
             if address in devices_addresses:
                 mobile = "✔"
             row = {
-                self.tr.text("columnt_addresses"): address,
+                self.tr.text("columnz_addresses"): address,
                 "Balances": self.units.format_balance(balance),
                 "Mobile": mobile
             }
