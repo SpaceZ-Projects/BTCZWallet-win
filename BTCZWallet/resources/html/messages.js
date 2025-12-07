@@ -258,7 +258,8 @@ function formatMessageContent(text) {
     const url = span.dataset.href;
 
     if (imageUrlRegex.test(url)) {
-      imageTags.push(`<img src="${url}" class="message-image" loading="lazy">`);
+      imageTags.push(`<img src="${url}" class="message-image">`);
+      span.remove();
     }
   });
 
