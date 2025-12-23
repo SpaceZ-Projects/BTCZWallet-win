@@ -2,19 +2,19 @@
 import asyncio
 import json
 import uuid
+import time
 from datetime import datetime, timedelta, timezone
 import hmac
 import hashlib
 from threading import Thread, Event
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, stream_with_context, Response
 from werkzeug.serving import make_server
 import socket
+from threading import Lock
+from collections import deque
 
 from toga import App
 from ..framework import Sys, Os
-
-from .client import Client
-from .units import Units
 
 
 def get_secret(id, storage):
@@ -91,7 +91,6 @@ def verify_signature(list_ids, storage, units = None):
     return True, None
 
 
-
 class ServerThread(Thread):
     def __init__(self, app:App, flask, host, port, event):
         Thread.__init__(self, daemon=True)
@@ -136,6 +135,7 @@ class MarketServer():
         market_storage = None,
         messages_storage = None,
         settings = None,
+        units = None,
         notify = None
     ):
         self.host = host
@@ -143,11 +143,10 @@ class MarketServer():
         self.market_storage = market_storage
         self.messages_storage = messages_storage
         self.settings = settings
+        self.units = units
         self.notify = notify
 
         self.app = app
-        self.commands = Client(self.app)
-        self.units = Units(self.app, self.commands)
         self.server_status = None
 
         self.flask = Flask(
@@ -401,6 +400,36 @@ class MarketServer():
 
 
 
+class SSEBroker:
+    def __init__(self):
+        self.listeners = {}
+        self.lock = Lock()
+
+    def listen(self, mobile_id):
+        q = deque()
+        with self.lock:
+            self.listeners[mobile_id] = q
+        return q
+
+    def push(self, action: str):
+        with self.lock:
+            for q in self.listeners.values():
+                q.append(action)
+
+    def push_to_mobile(self, mobile_id, action):
+        with self.lock:
+            q = self.listeners.get(mobile_id)
+            if q:
+                q.append(action)
+
+    def remove(self, mobile_id):
+        with self.lock:
+            self.listeners.pop(mobile_id, None)
+
+    def connected_count(self) -> int:
+        with self.lock:
+            return len(self.listeners)
+
 
 class MobileServer():
     def __init__(
@@ -414,6 +443,8 @@ class MobileServer():
         addresses_storage = None,
         messages_storage = None,
         settings = None,
+        units = None,
+        rpc = None,
         notify = None
     ):
         self.host = host
@@ -423,15 +454,14 @@ class MobileServer():
         self.addresses_storage = addresses_storage
         self.messages_storage = messages_storage
         self.settings = settings
+        self.units = units
+        self.rpc = rpc
         self.notify = notify
 
         self.app = app
         self.main = main
-        self.commands = Client(self.app)
-        self.units = Units(self.app, self.commands)
         self.server_status = None
         self.current_blocks = None
-        self.transactions_data = []
         self.read_messages = []
         self.unread_messages = []
         self.processed_timestamps = set()
@@ -441,19 +471,22 @@ class MobileServer():
             'FLASK_ENV', 'production', Sys.EnvironmentVariableTarget.Process
         )
 
+        self.broker = SSEBroker()
+
         self.add_rules()
 
     def add_rules(self):
-        self.flask.add_url_rule('/status', 'status', self.handle_status, methods=['GET'])
-        self.flask.add_url_rule('/addresses', 'addresses', self.handle_addresses, methods=['GET'])
-        self.flask.add_url_rule('/book', 'book', self.handle_book, methods=['GET'])
-        self.flask.add_url_rule('/balance', 'balance', self.handle_balance, methods=['GET'])
-        self.flask.add_url_rule('/balances', 'balances', self.handle_balances, methods=['GET'])
-        self.flask.add_url_rule('/mining', 'mining', self.handle_mining, methods=['GET'])
-        self.flask.add_url_rule('/transactions', 'transactions', self.handle_transactions, methods=['GET'])
-        self.flask.add_url_rule('/cashout', 'cashout', self.handle_cashout, methods=['GET'])
-        self.flask.add_url_rule('/contacts', 'contacts', self.handle_contacts, methods=['GET'])
-        self.flask.add_url_rule('/messages', 'messages', self.handle_messages, methods=['GET'])
+        self.flask.add_url_rule("/stream", "stream", self.stream)
+        self.flask.add_url_rule('/status', 'status', self.handle_status)
+        self.flask.add_url_rule('/addresses', 'addresses', self.handle_addresses)
+        self.flask.add_url_rule('/book', 'book', self.handle_book)
+        self.flask.add_url_rule('/balance', 'balance', self.handle_balance)
+        self.flask.add_url_rule('/balances', 'balances', self.handle_balances)
+        self.flask.add_url_rule('/mining', 'mining', self.handle_mining)
+        self.flask.add_url_rule('/transactions', 'transactions', self.handle_transactions)
+        self.flask.add_url_rule('/cashout', 'cashout', self.handle_cashout)
+        self.flask.add_url_rule('/contacts', 'contacts', self.handle_contacts)
+        self.flask.add_url_rule('/messages', 'messages', self.handle_messages)
         self.flask.before_request(self.log_request)
 
 
@@ -468,6 +501,41 @@ class MobileServer():
             self.app.console.server_log(
                 f"[MOBILE]{request.remote_addr} {request.method} {request.path}"
             )
+
+
+    def stream(self):
+        mobile_ids = self.mobile_storage.get_auth_ids()
+        valid, response = verify_signature(mobile_ids, self.mobile_storage)
+        if not valid:
+            return response
+        
+        mobile_id = request.headers.get('Authorization')
+        self.mobile_storage.update_device_status(mobile_id, "on")
+        q = self.broker.listen(mobile_id)
+        def event_stream():
+            try:
+                last_ping = time.time()
+                while True:
+                    if q:
+                        action = q.popleft()
+                        yield f"data: {action}\n\n"
+                    else:
+                        now = time.time()
+                        if now - last_ping >= 15:
+                            yield ": ping\n\n"
+                            last_ping = now
+                        time.sleep(0.1)
+            finally:
+                self.mobile_storage.update_device_status(mobile_id, "off")
+                self.broker.remove(mobile_id)
+        return Response(
+            stream_with_context(event_stream()),
+            mimetype="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no"
+            }
+        )
     
 
     def handle_status(self):
@@ -552,6 +620,7 @@ class MobileServer():
                 return jsonify({"error": "Name is already exists"}), 400
             
             self.addresses_storage.insert_book(name, address)
+            self.broker.push("update_book")
             return jsonify({"result": "success"}), 200
     
 
@@ -598,9 +667,7 @@ class MobileServer():
         for address in addresses:
             address_data = self.txs_storage.get_mobile_transactions(address)
             for data in address_data:
-                if data[3] not in self.transactions_data:
-                    self.transactions_data.append(data[3])
-                    transactions_data.append(data)
+                transactions_data.append(data)
 
         if transactions_data:
             for data in transactions_data:
@@ -661,7 +728,7 @@ class MobileServer():
         amount_str = f"{amount:.8f}"
         txfee_str = f"{txfee:.8f}"
         
-        return await self.make_tx(from_address, address, amount_str, txfee_str)
+        return await self.make_tx(from_address, address, amount_str, txfee_str, mobile_id=mobile_id)
     
 
     async def handle_contacts(self):
@@ -877,7 +944,7 @@ class MobileServer():
         params = json.loads(decrypted_json)
         if "address" in params:
             address = params.get('address')
-            balance,_ = await self.commands.z_getBalance(address)
+            balance,_ = await self.rpc.z_getBalance(address)
             if balance:
                 result = {"balance": balance}
                 encrypted_data = encrypt_data(mobile_id, self.mobile_storage, self.units, json.dumps(result))
@@ -902,23 +969,21 @@ class MobileServer():
         return jsonify({"data": encrypted_data}), 200
         
 
-    async def make_tx(self, from_address, address, amount, txfee, memo = None, id=None, option = None, data = None):
+    async def make_tx(self, from_address, address, amount, txfee, memo = None, id=None, option = None, data = None, mobile_id = None):
         if memo and id:
-            operation,_ = await self.commands.SendMemo(from_address, address, amount, txfee, memo)
+            operation,_ = await self.rpc.SendMemo(from_address, address, amount, txfee, memo)
         else:
-            operation, _= await self.commands.z_sendMany(from_address, address, amount, txfee)
+            operation, _= await self.rpc.z_sendMany(from_address, address, amount, txfee)
         if not operation:
             return jsonify({"error": "Unable to create operation. Please try again later."}), 500
-        transaction_status, _= await self.commands.z_getOperationStatus(operation)
-        transaction_status = json.loads(transaction_status)
+        transaction_status, _= await self.rpc.z_getOperationStatus(operation)
         if isinstance(transaction_status, list) and transaction_status:
             status = transaction_status[0].get('status')
             if status not in ["executing", "success"]:
                 return jsonify({"error": f"Operation could not start. Status: {status}"}), 500
             await asyncio.sleep(1)
             while True:
-                transaction_result, _= await self.commands.z_getOperationResult(operation)
-                transaction_result = json.loads(transaction_result)
+                transaction_result, _= await self.rpc.z_getOperationResult(operation)
                 if isinstance(transaction_result, list) and transaction_result:
                     status = transaction_result[0].get('status')
                     result = transaction_result[0].get('result', {})
@@ -936,6 +1001,7 @@ class MobileServer():
                                 blocks = 0
                             amount = float(amount)
                             self.store_shielded_transaction(tx_type, category, from_address, txid, -amount, blocks, txfee)
+                            self.broker.push_to_mobile(mobile_id, "update_transactions")
                         else:
                             if option == "request":
                                 self.messages_storage.tx(txid)
@@ -955,6 +1021,7 @@ class MobileServer():
                                 message = data[1]
                                 timestamp = data[2]
                                 self.messages_storage.message(id, author, message, amount, timestamp)
+                            self.broker.push("update_messages")
 
                         return jsonify({"result": "success"}), 200
                                 
@@ -965,46 +1032,40 @@ class MobileServer():
         timesent = int(datetime.now().timestamp())
         self.txs_storage.insert_transaction(tx_type, category, from_address, txid, amount, blocks, txfee, timesent)
 
-
     
     async def is_valid(self, address, z_only=False):
         if z_only:
             if not address.startswith("z"):
                 return None
-            result, _ = await self.commands.z_validateAddress(address)
+            result, _ = await self.rpc.z_validateAddress(address)
         else:
             if address.startswith("t"):
-                result, _ = await self.commands.validateAddress(address)
+                result, _ = await self.rpc.validateAddress(address)
             elif address.startswith("z"):
-                result, _ = await self.commands.z_validateAddress(address)
+                result, _ = await self.rpc.z_validateAddress(address)
             else:
                 return None
         if result is not None:
-            result = json.loads(result)
             if result.get('isvalid') is True:
                 return True
         return None
     
 
     async def get_message_timestamp(self):
-        blockchaininfo, _ = await self.commands.getBlockchainInfo()
+        blockchaininfo, _ = await self.rpc.getBlockchainInfo()
         if blockchaininfo is not None:
-            if isinstance(blockchaininfo, str):
-                info = json.loads(blockchaininfo)
-                if info is not None:
-                    timestamp = info.get('mediantime')
-                    if timestamp in self.processed_timestamps:
-                        highest_timestamp = max(self.processed_timestamps)
-                        timestamp = highest_timestamp + 1
-                    self.processed_timestamps.add(timestamp)
-                    return timestamp
+            timestamp = blockchaininfo.get('mediantime')
+            if timestamp in self.processed_timestamps:
+                highest_timestamp = max(self.processed_timestamps)
+                timestamp = highest_timestamp + 1
+            self.processed_timestamps.add(timestamp)
+            return timestamp
 
 
     def update_device_status(self):
         mobile_id = request.headers.get('Authorization')
         timestamp = int(datetime.now(timezone.utc).timestamp())
         self.mobile_storage.update_device_connected(mobile_id, timestamp)
-        self.mobile_storage.update_device_status(mobile_id, "on")
         
     
     def start(self):
@@ -1020,7 +1081,6 @@ class MobileServer():
             return None
 
     def stop(self):
-        self.transactions_data.clear()
         self.read_messages.clear()
         self.unread_messages.clear()
         self.processed_timestamps.clear()

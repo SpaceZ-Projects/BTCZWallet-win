@@ -3,7 +3,7 @@ import asyncio
 from datetime import datetime, timezone
 
 from toga import App, Window, Box, ImageView, Button, Label, TextInput
-from ..framework import FlatStyle, Drawing, Os
+from ..framework import FlatStyle, Drawing, Os, Sys
 from toga.style.pack import Pack
 from toga.constants import COLUMN, ROW, CENTER, BOLD
 from toga.colors import rgb, GRAY, GREENYELLOW, BLACK, WHITE, RED, YELLOW
@@ -336,7 +336,7 @@ class AuthQR(Window):
 
 
 class AddDevice(Window):
-    def __init__(self, mobile_window:Window, utils, units, commands, tr, font):
+    def __init__(self, mobile_window:Window, utils, units, rpc, tr, font):
         super().__init__(
             resizable=False,
             closable=False
@@ -345,7 +345,7 @@ class AddDevice(Window):
         self.mobile_window = mobile_window
         self.utils = utils
         self.units = units
-        self.commands = commands
+        self.rpc = rpc
         self.tr = tr
         self.font = font
 
@@ -474,8 +474,8 @@ class AddDevice(Window):
             return
         mobile_auth = self.units.generate_id()
         mobile_secret = self.units.generate_secret_key()
-        taddress,_ = await self.commands.getNewAddress()
-        zaddress,_ = await self.commands.z_getNewAddress()
+        taddress,_ = await self.rpc.getNewAddress()
+        zaddress,_ = await self.rpc.z_getNewAddress()
         if not taddress:
             self.error_dialog(
                 title="Generate Addresses",
@@ -535,6 +535,7 @@ class Device(Box):
         self.device_id = device[0]
         self.device_name = device[1]
         device_status = device[4]
+        self.status = device_status
         device_timestamp = device[5]
         if device_timestamp:
             device_timestamp = datetime.fromtimestamp(device_timestamp).strftime('%Y-%m-%d %H:%M:%S')
@@ -702,7 +703,7 @@ class Device(Box):
 
 
 class Mobile(Window):
-    def __init__(self, main:Window, notify, utils, units, commands, tr, font, server):
+    def __init__(self, main:Window, notify, utils, units, rpc, tr, font, server):
         super().__init__(
             resizable = False
         )
@@ -712,7 +713,7 @@ class Mobile(Window):
 
         self.utils = utils
         self.units = units
-        self.commands = commands
+        self.rpc = rpc
         self.tr = tr
         self.font = font
 
@@ -724,10 +725,12 @@ class Mobile(Window):
 
         self.title = "Mobile Server"
         self._impl.native.Icon = self.window_icon("images/Mobile.ico")
-        self.size = (500,600)
+        self._impl.native.Size = Drawing.Size(500,600)
         position_center = self.utils.window_center_to_parent(self.main, self)
         self.position = position_center
         self.on_close = self.close_mobile_window
+        self._impl.native.Resize += self._handle_on_resize
+        self._impl.native.MinimumSize = Drawing.Size(500,600)
 
         mode = 0
         if self.utils.get_app_theme() == "dark":
@@ -874,12 +877,13 @@ class Mobile(Window):
             if not self.main.mobile_toggle:
                 return
             devices_list = self.mobile_storage.get_devices()
-            connected_devices = self.mobile_storage.get_connected_devices()
+            connected_devices = self.server.broker.connected_count()
             self.devices_label.text = f"Devices : {len(devices_list)}"
-            self.connected_label.text = f"Connected : {len(connected_devices)}"
+            self.connected_label.text = f"Connected : {connected_devices}"
             if devices_list:
                 for device in devices_list:
                     device_id = device[0]
+                    device_name = device[1]
                     device_status = device[4]
                     device_timestamp = device[5]
                     taddress, zaddress = self.mobile_storage.get_device_addresses(device_id)
@@ -894,8 +898,19 @@ class Mobile(Window):
                         existing_device = self.devices_data[device_id]
                         if device_status and device_status == "on":
                             existing_device.device_icon.image = "images/device_on.png"
+                            if existing_device.status != device_status:
+                                self.notify.send_note(
+                                    title="Device Connected",
+                                    text=f"🟢 {device_name}"
+                                )
                         else:
                             existing_device.device_icon.image = "images/device_off.png"
+                            if existing_device.status != device_status:
+                                self.notify.send_note(
+                                    title="Device Disconncted",
+                                    text=f"🔴 {device_name}"
+                                )
+                        existing_device.status = device_status
                         if device_timestamp:
                             device_timestamp = datetime.fromtimestamp(device_timestamp).strftime('%Y-%m-%d %H:%M:%S')
                             existing_device.device_last_connected._impl.native.Text = f"Recent Request : {device_timestamp}"
@@ -931,7 +946,7 @@ class Mobile(Window):
         if len(devices_list) >= 5:
             return
         add_window = AddDevice(
-            self, self.utils, self.units, self.commands, self.tr, self.font
+            self, self.utils, self.units, self.rpc, self.tr, self.font
         )
         add_window._impl.native.ShowDialog(self._impl.native)
 
@@ -987,6 +1002,10 @@ class Mobile(Window):
             self.start_server._impl.native.MouseEnter += self.start_server_mouse_enter
             self.start_server._impl.native.MouseLeave += self.start_server_mouse_leave
             self.start_server.on_press = self.start_mobile_server
+
+    
+    def _handle_on_resize(self, sender, event: Sys.EventArgs):
+        self._impl.native.MinimumSize = Drawing.Size(500,600)
 
 
     def add_button_mouse_enter(self, sender, event):
