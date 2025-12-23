@@ -7,6 +7,7 @@ import re
 import sys
 import logging
 from PIL import Image
+import shlex
 
 from toga import App, Window, Box, TextInput, Label, ImageView
 from ..framework import (
@@ -129,13 +130,13 @@ class ShellHistory:
 
 
 class Console(Window):
-    def __init__(self, main:Window, settings, utils, commands, font):
+    def __init__(self, main:Window, settings, utils, rpc, font):
         super().__init__()
 
         self.main = main
         self.settings = settings
         self.utils = utils
-        self.commands = commands
+        self.rpc = rpc
         self.font = font
 
         self.tooltip = ToolTip()
@@ -146,6 +147,7 @@ class Console(Window):
         self.title = "Console"
         self._impl.native.Icon = self.window_icon("images/Console.ico")
         self._impl.native.BackColor = Color.rgb(30,30,30)
+        self._impl.native.Owner = self.main._impl.native
         self._impl.native.FormBorderStyle = FormBorderStyle.NONE
         self._impl.native.ShowInTaskbar = False
         self._impl.native.Move += self._on_console_move
@@ -358,6 +360,7 @@ class Console(Window):
                 self._impl.native.Top = self.main._impl.native.Bottom - 50
                 self._impl.native.Left = self.main._impl.native.Left - 30
             else:
+                self.main._impl.native.Owner = self._impl.native
                 self.tabs_box.insert(0, self.detach_button)
                 self._impl.native.Top = self.main._impl.native.Bottom - 2
             if self.main._is_maximized:
@@ -660,18 +663,41 @@ class Console(Window):
                     self.error_shell(f"Invalid address")
 
         elif value.startswith("/"):
-            command_line = value[1:]
-            command = f'{self.commands.bitcoinz_cli_file} {command_line}'
-            result, error_message = await self.commands._run_command(command)
-            if error_message:
-                self.error_shell(float(error_message))
-            else:
-                self.info_shell(result)
+            try:
+                command = value[1:]
+                parts = shlex.split(command)
+
+                method = parts[0]
+                raw_params = parts[1:]
+                params = []
+                for p in raw_params:
+                    try:
+                        params.append(json.loads(p))
+                        continue
+                    except json.JSONDecodeError:
+                        pass
+                    try:
+                        if "." in p:
+                            params.append(float(p))
+                        else:
+                            params.append(int(p))
+                        continue
+                    except ValueError:
+                        pass
+                    params.append(p)
+
+                result, error_message = await self.rpc._rpc_call(method, params)
+                if error_message:
+                    self.error_shell(error_message)
+                else:
+                    self.info_shell(result)
+            except Exception as e:
+                self.error_shell(str(e))
 
 
     async def start_merging(self, address):
         balance = await self.get_transparent_balance()
-        operation, error_message = await self.commands.sendToAddress(address, balance)
+        operation, error_message = await self.rpc.sendToAddress(address, balance)
         if error_message:
             match = re.search(r"at least (\d+\.\d+)", error_message)
             if match:
@@ -679,7 +705,7 @@ class Console(Window):
                 self.info_shell(f"Merging fee : {min_fee:.8f}")
                 balance = float(balance) - min_fee
                 self.info_shell(balance)
-                operation, error_message = await self.commands.sendToAddress(address, f"{balance:.8f}")
+                operation, error_message = await self.rpc.sendToAddress(address, f"{balance:.8f}")
                 if error_message:
                     self.error_shell(error_message)
                     return
@@ -688,7 +714,7 @@ class Console(Window):
 
 
     async def is_valid(self, address):
-        result,_ = await self.commands.validateAddress(address)
+        result,_ = await self.rpc.validateAddress(address)
         if result is not None:
             result = json.loads(result)
             is_valid = result.get('isvalid')
@@ -698,7 +724,7 @@ class Console(Window):
 
 
     async def get_transparent_balance(self):
-        total_balances, _ = await self.commands.z_getTotalBalance()
+        total_balances, _ = await self.rpc.z_getTotalBalance()
         if total_balances:
             balances = json.loads(total_balances)
             transparent = balances.get('transparent')

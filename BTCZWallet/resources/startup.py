@@ -3,7 +3,6 @@ import asyncio
 import subprocess
 from datetime import datetime
 import re
-import json
 
 from toga import (
     App, Box, Label, ProgressBar, Window
@@ -21,7 +20,7 @@ from .network import TorConfig
 
 
 class BTCZSetup(Box):
-    def __init__(self, app:App, main:Window, settings, utils, units, commands, rpc, tr, font):
+    def __init__(self, app:App, main:Window, settings, utils, units, rpc, tr, font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -40,7 +39,6 @@ class BTCZSetup(Box):
 
         self.utils = utils
         self.units = units
-        self.commands = commands
         self.rpc = rpc
         self.settings = settings
         self.tr = tr
@@ -369,7 +367,7 @@ class BTCZSetup(Box):
 
     def show_tor_config(self):
         self.tor_config = TorConfig(
-            self.main, self, self.settings, self.utils, self.commands, self.tr, self.font
+            self.main, self, self.settings, self.utils, self.rpc, self.tr, self.font
         )
         self.tor_config._impl.native.Show(self.main._impl.native)
 
@@ -544,14 +542,14 @@ class BTCZSetup(Box):
     async def waiting_node_status(self):
         self.app.console.info_log(f"Waiting node status...")
         await asyncio.sleep(1)
-        result, error_message = await self.commands.getInfo()
+        result, error_message = await self.rpc.getInfo()
         if result:
             self.node_status = True
             await self.check_sync_progress()
             return
         else:
             while True:
-                result, error_message = await self.commands.getInfo()
+                result, error_message = await self.rpc.getInfo()
                 if result and error_message is None:
                     self.node_status = True
                     await self.check_sync_progress()
@@ -581,70 +579,65 @@ class BTCZSetup(Box):
         self.app.console.info_log(f"Check synchronization progress...")
         tooltip_text = f"Seeds :"
         await asyncio.sleep(1)
-        blockchaininfo, _ = await self.commands.getBlockchainInfo()
-        if isinstance(blockchaininfo, str):
-            info = json.loads(blockchaininfo)
-            if info is not None:
-                sync = info.get('verificationprogress')
-                sync_percentage = sync * 100
-                if sync_percentage <= 99.95:
-                    self.update_info_box()
-                    while True:
-                        blockchaininfo, error_message = await self.commands.getBlockchainInfo()
-                        if blockchaininfo:
-                            info = json.loads(blockchaininfo)
-                            if info is not None:
-                                blocks = info.get('blocks')
-                                sync = info.get('verificationprogress')
-                                mediantime = info.get('mediantime')
-                                if isinstance(mediantime, int):
-                                    mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
-                                else:
-                                    mediantime_date = "N/A"
-                            if error_message:
-                                self.app.exit()
-                                return
+        blockchaininfo, _ = await self.rpc.getBlockchainInfo()
+        if blockchaininfo is not None:
+            sync = blockchaininfo.get('verificationprogress')
+            sync_percentage = sync * 100
+            if sync_percentage <= 99.95:
+                self.update_info_box()
+                while True:
+                    blockchaininfo, error_message = await self.rpc.getBlockchainInfo()
+                    if blockchaininfo is not None:
+                        blocks = blockchaininfo.get('blocks')
+                        sync = blockchaininfo.get('verificationprogress')
+                        mediantime = blockchaininfo.get('mediantime')
+                        if isinstance(mediantime, int):
+                            mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
+                        else:
+                            mediantime_date = "N/A"
+                    if error_message:
+                        self.app.exit()
+                        return
 
-                        peerinfo, _ = await self.commands.getPeerinfo()
-                        if peerinfo:
-                            peerinfo = json.loads(peerinfo)
-                            for node in peerinfo:
-                                address = node.get('addr')
-                                bytesrecv = node.get('bytesrecv')
-                                tooltip_text += f"\n{address} - {self.units.format_bytes(bytesrecv)}"
+                    peerinfo, _ = await self.rpc.getPeerinfo()
+                    if peerinfo is not None:
+                        for node in peerinfo:
+                            address = node.get('addr')
+                            bytesrecv = node.get('bytesrecv')
+                            tooltip_text += f"\n{address} - {self.units.format_bytes(bytesrecv)}"
                                 
-                        bitcoinz_size = int(self.utils.get_bitcoinz_size())
-                        sync_percentage = sync * 100
-                        sync_percentage_str = f"%{float(sync_percentage):.2f}"
-                        if self.rtl:
-                            blocks = self.units.arabic_digits(str(blocks))
-                            mediantime_date = self.units.arabic_digits(mediantime_date)
-                            sync_percentage_str = self.units.arabic_digits(str(sync_percentage_str))
-                            bitcoinz_size = self.units.arabic_digits(str(bitcoinz_size))
-                        self.blocks_value.text = f"{blocks}"
-                        self.mediantime_value.text = mediantime_date
-                        self.index_size_value.text = f"{bitcoinz_size} MB"
-                        self.sync_value.text = sync_percentage_str
-                        self.progress_bar.value = int(sync_percentage)
-                        self.tooltip.insert(self.progress_bar._impl.native, tooltip_text)
-                        tooltip_text = f"Seeds :"
-                        self.app.console.info_log(f"Blocks : {blocks} - Synchronization : {sync_percentage:.2f}%")
-                        if sync_percentage > 99.95:
-                            await self.open_main_menu()
-                            return
-                        await asyncio.sleep(2)
-                elif sync_percentage > 99.95:
-                    await self.open_main_menu()
+                    bitcoinz_size = int(self.utils.get_bitcoinz_size())
+                    sync_percentage = sync * 100
+                    sync_percentage_str = f"%{float(sync_percentage):.2f}"
+                    if self.rtl:
+                        blocks = self.units.arabic_digits(str(blocks))
+                        mediantime_date = self.units.arabic_digits(mediantime_date)
+                        sync_percentage_str = self.units.arabic_digits(str(sync_percentage_str))
+                        bitcoinz_size = self.units.arabic_digits(str(bitcoinz_size))
+                    self.blocks_value.text = f"{blocks}"
+                    self.mediantime_value.text = mediantime_date
+                    self.index_size_value.text = f"{bitcoinz_size} MB"
+                    self.sync_value.text = sync_percentage_str
+                    self.progress_bar.value = int(sync_percentage)
+                    self.tooltip.insert(self.progress_bar._impl.native, tooltip_text)
+                    tooltip_text = f"Seeds :"
+                    self.app.console.info_log(f"Blocks : {blocks} - Synchronization : {sync_percentage:.2f}%")
+                    if sync_percentage > 99.95:
+                        await self.open_main_menu()
+                        return
+                    await asyncio.sleep(2)
+            elif sync_percentage > 99.95:
+                await self.open_main_menu()
 
 
     async def open_main_menu(self):
         self.app.console.info_log(f"Show main menu...")
         self.main_menu = Menu(
-            self.main, self.tor_enabled, self.settings, self.utils, self.units, self.commands, self.rpc, self.tr, self.font
+            self.main, self.tor_enabled, self.settings, self.utils, self.units, self.rpc, self.tr, self.font
         )
         if self.main.console_toggle:
             self.app.console.hide()
         self.main.shadow_window.hide()
         self.main.hide()
-        await asyncio.sleep(2)
+        await asyncio.sleep(1)
         self.main_menu.show()

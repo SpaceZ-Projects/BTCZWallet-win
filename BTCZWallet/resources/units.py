@@ -3,7 +3,6 @@ import string
 import secrets
 from decimal import Decimal
 from datetime import datetime, timedelta, timezone
-import json
 import base64
 
 from nacl.secret import SecretBox
@@ -15,11 +14,10 @@ HALVING_INTERVAL = 840000
 
 
 class Units():
-    def __init__(self, app:App, commands):
+    def __init__(self, app:App):
         super().__init__()
 
         self.app = app
-        self.commands = commands
 
     def generate_id(self, length=32):
         alphabet = string.ascii_uppercase + string.ascii_lowercase + string.digits
@@ -137,31 +135,17 @@ class Units():
         return remaining_time.days
     
     
-    async def estimated_earn(self, period, hashrate):
-        blockchaininfo, _ = await self.commands.getBlockchainInfo()
-        if blockchaininfo is not None:
-            if isinstance(blockchaininfo, str):
-                info = json.loads(blockchaininfo)
-            if info is not None:
-                blocks = info.get('blocks')
-                difficulty = info.get('difficulty')
-        networksol, _ = await self.commands.getNetworkSolps()
-        if networksol is not None:
-            if isinstance(networksol, str):
-                info = json.loads(networksol)
-            if info is not None:
-                netsol = info
-                net_hashrate = self.solution_to_hash(netsol)
-
-            period_seconds = period * 3600
-            block_time_seconds = difficulty * 2**32 / net_hashrate
-                
-            user_block_fraction = hashrate / net_hashrate
-            estimated_blocks = period_seconds / block_time_seconds * user_block_fraction
-                
-            reward = INITIAL_REWARD / 2 ** (blocks // HALVING_INTERVAL)
-            estimated_earnings = estimated_blocks * reward
-            return estimated_earnings
+    def estimated_earn(self, period, hashrate, blockchaininfo, networksol):
+        blocks = blockchaininfo.get('blocks')
+        difficulty = blockchaininfo.get('difficulty')
+        net_hashrate = self.solution_to_hash(networksol)
+        period_seconds = period * 3600
+        block_time_seconds = difficulty * 2**32 / net_hashrate
+        user_block_fraction = hashrate / net_hashrate
+        estimated_blocks = period_seconds / block_time_seconds * user_block_fraction
+        reward = INITIAL_REWARD / 2 ** (blocks // HALVING_INTERVAL)
+        estimated_earnings = estimated_blocks * reward
+        return estimated_earnings
 
     
     def hash_to_solutions(self, hashrate):

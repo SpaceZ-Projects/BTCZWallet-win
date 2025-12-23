@@ -29,7 +29,7 @@ from .receive import Receive
 from .send import Send
 from .messages import Messages, EditUser
 from .mining import Mining
-from .storage import StorageMessages, StorageMarket
+from .storage import StorageMessages, StorageMarket, StorageAddresses
 from .network import Peer, AddNode, TorConfig
 from .marketplace import MarketPlace
 from .mobile import Mobile
@@ -47,7 +47,7 @@ HTBOTTOMRIGHT = 17
 
 
 class Menu(Window):
-    def __init__(self, main:Window, tor_enabled, settings, utils, units, commands, rpc, tr, font):
+    def __init__(self, main:Window, tor_enabled, settings, utils, units, rpc, tr, font):
         super().__init__()
 
         self.main = main
@@ -67,7 +67,6 @@ class Menu(Window):
         self.console_toggle = None
         self.stored_size = None
 
-        self.commands = commands
         self.rpc = rpc
         self.units = units
         self.settings = settings
@@ -83,16 +82,18 @@ class Menu(Window):
         self._impl.native.FormBorderStyle = FormBorderStyle.NONE
 
         self.app.console.main = self
+        self._impl.native.Owner = self.app.console._impl.native
 
         self.storage = StorageMessages(self.app)
         self.market_storage = StorageMarket(self.app)
-        self.statusbar = AppStatusBar(self.app, self, settings, utils, units, commands, tr, font)
+        self.addresses_storage = StorageAddresses(self.app)
+        self.statusbar = AppStatusBar(self.app, self, settings, utils, units, rpc, tr, font)
         self.wallet = Wallet(self.app, self, settings, units, rpc, tr, font)
         self.home_page = Home(self.app, self, settings, utils, units, tr, font)
-        self.mining_page = Mining(self.app, self, settings, utils, units, commands, tr, font)
+        self.mining_page = Mining(self.app, self, settings, utils, units, rpc, tr, font)
 
-        self.notify = Notify(self.app, self, settings, utils, commands, tr, font)
-        self.toolbar = AppToolBar(self.app, self, settings, utils, commands, tr, font)
+        self.notify = Notify(self.app, self, settings, utils, rpc, tr, font)
+        self.toolbar = AppToolBar(self.app, self, settings, utils, rpc, tr, font)
         self.toolbar.toolbar.MouseDown += self._on_mouse_down
         self.wallet._impl.native.MouseDown += self._on_mouse_down
         self.wallet.bitcoinz_title._impl.native.MouseDown += self._on_mouse_down
@@ -103,13 +104,13 @@ class Menu(Window):
         self.notifymarket = NotifyMarket()
         self.notifymobile = NotifyMobile()
 
-        self.receive_page = Receive(self.app, self, settings, utils, units, commands, tr, font)
-        self.send_page = Send(self.app, self, settings, utils, units, commands, tr, font)
-        self.message_page = Messages(self.app, self, settings, utils, units, commands, tr, font)
+        self.market_server = MarketServer(self.app, settings=settings, units=units, notify=self.notifymarket)
+        self.mobile_server = MobileServer(self.app, self, settings=settings, units=units, rpc=rpc, notify=self.notifymobile)
+
+        self.receive_page = Receive(self.app, self, settings, utils, units, rpc, tr, font)
+        self.send_page = Send(self.app, self, settings, utils, units, rpc, tr, font)
+        self.message_page = Messages(self.app, self, settings, utils, units, rpc, tr, font)
         self.transactions_page = Transactions(self.app, self, settings, utils, units, rpc, tr, font)
-        
-        self.market_server = MarketServer(self.app, settings=self.settings, notify=self.notifymarket)
-        self.mobile_server = MobileServer(self.app, self, settings=self.settings, notify=self.notifymobile)
 
         opacity = self.settings.opacity()
         if opacity:
@@ -450,7 +451,7 @@ class Menu(Window):
 
     def show_address_book(self, sender, event):
         if not self.book_toggle:
-            book_window = AddressBook(self, self.utils, self.commands, self.font, self.tr)
+            book_window = AddressBook(self, self.utils, self.rpc, self.font, self.tr)
             book_window.show()
             self.book_window = book_window
             self.book_toggle = True
@@ -460,7 +461,7 @@ class Menu(Window):
     def show_peer_info(self, sender, event):
         if not self.peer_toggle:
             peer_window = Peer(
-                self, self.settings, self.utils, self.units, self.commands, self.tr, self.font
+                self, self.settings, self.utils, self.units, self.rpc, self.tr, self.font
             )
             self.peer_window = peer_window
             self.peer_toggle = True
@@ -469,13 +470,13 @@ class Menu(Window):
 
     def show_add_node(self, sender, event):
         self.add_node_window = AddNode(
-            self, self.utils, self.commands, self.tr, self.font
+            self, self.utils, self.rpc, self.tr, self.font
         )
         self.add_node_window._impl.native.ShowDialog(self._impl.native)
 
     def show_tor_config(self, sender, event):
         self.tor_config = TorConfig(
-            self.main, None, self.settings, self.utils, self.commands, self.tr, self.font
+            self.main, None, self.settings, self.utils, self.rpc, self.tr, self.font
         )
         self.tor_config._impl.native.ShowDialog(self._impl.native)
 
@@ -491,8 +492,9 @@ class Menu(Window):
                 self.receive_page.reload_addresses()
                 self.send_page.update_send_options()
                 self.mining_page.reload_addresses()
-        new_address,_ = await self.commands.getNewAddress()
+        new_address,_ = await self.rpc.getNewAddress()
         if new_address:
+            self.addresses_storage.insert_address("transparent", None, new_address, 0.0)
             message = self.tr.message("newaddress_dialog")
             self.info_dialog(
                 title=self.tr.title("newaddress_dialog"),
@@ -506,8 +508,9 @@ class Menu(Window):
                 self.receive_page.reload_addresses()
                 self.send_page.update_send_options()
                 self.mining_page.reload_addresses()
-        new_address,_ = await self.commands.z_getNewAddress()
+        new_address,_ = await self.rpc.z_getNewAddress()
         if new_address:
+            self.addresses_storage.insert_address("shielded", None, new_address, 0.0)
             message = self.tr.message("newaddress_dialog")
             self.info_dialog(
                 title=self.tr.title("newaddress_dialog"),
@@ -549,7 +552,7 @@ class Menu(Window):
     def show_mobile_server(self, sender, event):
         if self.settings.mobile_service():
             if not self.mobile_toggle:
-                mobile_window = Mobile(self, self.notifymobile, self.utils, self.units, self.commands, self.tr, self.font, self.mobile_server)
+                mobile_window = Mobile(self, self.notifymobile, self.utils, self.units, self.rpc, self.tr, self.font, self.mobile_server)
                 mobile_window.show()
                 self.mobile_window = mobile_window
                 self.mobile_toggle = True
@@ -674,7 +677,7 @@ class Menu(Window):
 
     def show_import_key(self, sender, event):
         self.import_window = ImportKey(
-            self, self.settings, self.utils, self.commands, self.tr, self.font
+            self, self.settings, self.utils, self.rpc, self.tr, self.font
         )
         self.import_window._impl.native.ShowDialog(self._impl.native)
 
@@ -715,7 +718,7 @@ class Menu(Window):
             restart = self.utils.restart_app()
             if restart:
                 self.utils.stop_tor()
-                await self.commands.stopNode()
+                await self.rpc.stopNode()
                 self.home_page.bitcoinz_curve.image = None
                 self.home_page.clear_cache()
                 self.notify.hide()
@@ -725,7 +728,7 @@ class Menu(Window):
 
     async def run_export_wallet(self, widget):
         file_name = f"wallet{datetime.today().strftime('%d%m%Y%H%M%S')}"
-        exported_file, error_message = await self.commands.z_ExportWallet(file_name)
+        exported_file, error_message = await self.rpc.z_ExportWallet(file_name)
         if exported_file and error_message is None:
             message = self.tr.message("walletexported_dialog")
             self.info_dialog(
@@ -735,7 +738,7 @@ class Menu(Window):
 
     def show_import_wallet(self, sender, event):
         self.import_window = ImportWallet(
-            self, self.settings, self.utils, self.commands, self.tr, self.font
+            self, self.settings, self.utils, self.rpc, self.tr, self.font
         )
         self.import_window._impl.native.ShowDialog(self._impl.native)
 

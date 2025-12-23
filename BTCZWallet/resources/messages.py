@@ -212,7 +212,7 @@ class EditUser(Window):
 
 
 class Indentifier(Window):
-    def __init__(self, messages:Box, main:Window, chat, settings, utils, commands, tr, font):
+    def __init__(self, messages:Box, main:Window, chat, settings, utils, rpc, tr, font):
         super().__init__(
             size = (450, 120),
             resizable= False
@@ -224,7 +224,7 @@ class Indentifier(Window):
 
         self.settings = settings
         self.utils = utils
-        self.commands = commands
+        self.rpc = rpc
         self.tr = tr
         self.font = font
 
@@ -362,9 +362,9 @@ class Indentifier(Window):
     async def setup_new_identity(self):
         category = "individual"
         username = self.username_input.value
-        messages_address, _ = await self.commands.z_getNewAddress()
+        messages_address, _ = await self.rpc.z_getNewAddress()
         if messages_address:
-            prv_key, _= await self.commands.z_ExportKey(messages_address)
+            prv_key, _= await self.rpc.z_ExportKey(messages_address)
             if prv_key:
                 self.storage.key(prv_key)
             self.storage.identity(category, username, messages_address)
@@ -404,7 +404,7 @@ class Indentifier(Window):
 
 
 class NewMessenger(Box):
-    def __init__(self, app:App, messages, main:Window, chat, settings, utils, commands, tr, font):
+    def __init__(self, app:App, messages, main:Window, chat, settings, utils, rpc, tr, font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -422,7 +422,7 @@ class NewMessenger(Box):
 
         self.settings = settings
         self.utils = utils
-        self.commands = commands
+        self.rpc = rpc
         self.tr = tr
         self.font = font
 
@@ -463,7 +463,7 @@ class NewMessenger(Box):
     
     def create_button_click(self, button):
         self.indentity = Indentifier(
-            self.messages_page, self.main, self.chat, self.settings, self.utils, self.commands, self.tr, self.font
+            self.messages_page, self.main, self.chat, self.settings, self.utils, self.rpc, self.tr, self.font
         )
         self.indentity._impl.native.ShowDialog(self.main._impl.native)
 
@@ -485,7 +485,7 @@ class NewMessenger(Box):
 
 
 class Contact(Box):
-    def __init__(self, data, app:App, chat, main:Window, utils, units, commands, settings, tr, font):
+    def __init__(self, data, app:App, chat, main:Window, utils, units, rpc, settings, tr, font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -508,7 +508,7 @@ class Contact(Box):
         self.main = main
         self.utils = utils
         self.units = units
-        self.commands = commands
+        self.rpc = rpc
         self.settings = settings
         self.tr = tr
         self.font = font
@@ -688,6 +688,7 @@ class Contact(Box):
                 self.storage.ban(self.address, self.username)
                 self.storage.delete_contact(self.address)
                 self.chat.contacts_box.remove(self)
+                self.main.mobile_server.broker.push("update_contacts")
                 self.main.info_dialog(
                     title="Contact Banned",
                     message=f"The contact has been successfully banned and deleted:\n\n"
@@ -710,7 +711,7 @@ class Contact(Box):
     def show_contact_market(self):
         if not self.chat.marketplace_toggle:
             self.market_window = MarketView(
-                self.chat, self.main, self.utils, self.units, self.commands, self.tr, self.font, self.username, self.contact_id
+                self.chat, self.main, self.utils, self.units, self.rpc, self.tr, self.font, self.username, self.contact_id
             )
             self.market_window.show()
             self.chat.marketplace_toggle = True
@@ -753,7 +754,7 @@ class Contact(Box):
 
 
 class Pending(Box):
-    def __init__(self, app:App, window:Window, chat:Box, utils, units, commands, font, data):
+    def __init__(self, app:App, main:Window, window:Window, chat:Box, utils, units, rpc, font, data):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -764,9 +765,10 @@ class Pending(Box):
         )
 
         self.app = app
+        self.main = main
         self.pending_window = window
         self.chat = chat
-        self.commands = commands
+        self.rpc = rpc
         self.utils = utils
         self.units = units
         self.font = font
@@ -867,17 +869,15 @@ class Pending(Box):
 
 
     async def send_memo(self, address, toaddress, amount, txfee, memo, id):
-        operation, _= await self.commands.SendMemo(address, toaddress, amount, txfee, memo)
+        operation, _= await self.rpc.SendMemo(address, toaddress, amount, txfee, memo)
         if operation:
-            transaction_status, _= await self.commands.z_getOperationStatus(operation)
-            transaction_status = json.loads(transaction_status)
+            transaction_status, _= await self.rpc.z_getOperationStatus(operation)
             if isinstance(transaction_status, list) and transaction_status:
                 status = transaction_status[0].get('status')
                 if status == "executing" or status =="success":
                     await asyncio.sleep(1)
                     while True:
-                        transaction_result, _= await self.commands.z_getOperationResult(operation)
-                        transaction_result = json.loads(transaction_result)
+                        transaction_result, _= await self.rpc.z_getOperationResult(operation)
                         if isinstance(transaction_result, list) and transaction_result:
                             result = transaction_result[0].get('result', {})
                             txid = result.get('txid')
@@ -890,6 +890,7 @@ class Pending(Box):
                                 message="The contact has been successfully stored in the list."
                             )
                             self.pending_window._impl.native.Enabled = True
+                            self.main.mobile_server.broker.push("update_contacts")
                             return
                         await asyncio.sleep(3)
                 else:
@@ -1017,7 +1018,7 @@ class Banned(Box):
 
 
 class NewContact(Window):
-    def __init__(self, main:Window, settings, utils, units, commands, tr, font):
+    def __init__(self, main:Window, settings, utils, units, rpc, tr, font):
         super().__init__(
             size = (600, 120),
             resizable= False
@@ -1029,7 +1030,7 @@ class NewContact(Window):
         self.settings = settings
         self.utils = utils
         self.units = units
-        self.commands = commands
+        self.rpc = rpc
         self.tr = tr
         self.font = font
 
@@ -1154,12 +1155,11 @@ class NewContact(Window):
             self.is_valid.image = None
             return
         if address.startswith("z"):
-            result, _ = await self.commands.z_validateAddress(address)
+            result, _ = await self.rpc.z_validateAddress(address)
         else:
             self.is_valid.image = "images/notvalid.png"
             return
         if result is not None:
-            result = json.loads(result)
             is_valid = result.get('isvalid')
             if is_valid is True:
                 self.is_valid.image = "images/valid.png"
@@ -1230,17 +1230,15 @@ class NewContact(Window):
 
 
     async def send_memo(self, address, toaddress, amount, txfee, memo, id):
-        operation, _= await self.commands.SendMemo(address, toaddress, amount, txfee, memo)
+        operation, _= await self.rpc.SendMemo(address, toaddress, amount, txfee, memo)
         if operation:
-            transaction_status, _= await self.commands.z_getOperationStatus(operation)
-            transaction_status = json.loads(transaction_status)
+            transaction_status, _= await self.rpc.z_getOperationStatus(operation)
             if isinstance(transaction_status, list) and transaction_status:
                 status = transaction_status[0].get('status')
                 if status == "executing" or status =="success":
                     await asyncio.sleep(1)
                     while True:
-                        transaction_result, _= await self.commands.z_getOperationResult(operation)
-                        transaction_result = json.loads(transaction_result)
+                        transaction_result, _= await self.rpc.z_getOperationResult(operation)
                         if isinstance(transaction_result, list) and transaction_result:
                             result = transaction_result[0].get('result', {})
                             txid = result.get('txid')
@@ -1411,7 +1409,7 @@ class BannedList(Window):
 
 
 class PendingList(Window):
-    def __init__(self, main:Window, chat:Box, utils, units, commands, tr, font):
+    def __init__(self, main:Window, chat:Box, utils, units, rpc, tr, font):
         super().__init__(
             size = (500, 400),
             resizable= False
@@ -1422,7 +1420,7 @@ class PendingList(Window):
 
         self.utils = utils
         self.units = units
-        self.commands = commands
+        self.rpc = rpc
         self.tr = tr
         self.font = font
 
@@ -1512,7 +1510,7 @@ class PendingList(Window):
         if pending:
             for data in pending:
                 pending_contact = Pending(
-                    self.app, self, self.chat, self.utils, self.units, self.commands, self.font, data
+                    self.app, self.main, self, self.chat, self.utils, self.units, self.rpc, self.font, data
                 )
                 self.pending_list_box.add(
                     pending_contact
@@ -1534,7 +1532,7 @@ class PendingList(Window):
     def insert_pending(self, category, id, username, address):
         data = [category, id, username, address]
         pending_contact = Pending(
-            self.app, self, self.chat, self.utils, self.units, self.commands, self.font, data
+            self.app, self, self.chat, self.utils, self.units, self.rpc, self.font, data
         )
         self.pending_list_box.add(pending_contact)
 
@@ -1550,7 +1548,7 @@ class PendingList(Window):
 
 
 class Chat(Box):
-    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, font):
+    def __init__(self, app:App, main:Window, settings, utils, units, rpc, tr, font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -1583,7 +1581,7 @@ class Chat(Box):
 
         self.utils = utils
         self.units = units
-        self.commands = commands
+        self.rpc = rpc
         self.settings = settings
         self.tr = tr
         self.font = font
@@ -2007,7 +2005,10 @@ class Chat(Box):
         if e.KeyCode == Keys.Enter:
             if self.send_switch.value is True:
                 e.SuppressKeyPress = True
-                self.verify_message()
+                if self.edit_toggle:
+                    self.verify_edit_message()
+                else:
+                    self.verify_message()
 
 
     async def update_messages_balance(self):
@@ -2021,7 +2022,7 @@ class Chat(Box):
                 continue
             address = self.storage.get_identity("address")
             if address:
-                balance, _= await self.commands.z_getBalance(address[0])
+                balance, _= await self.rpc.z_getBalance(address[0])
                 if balance:
                     text = self.tr.text("address_balance")
                     balance = self.units.format_balance(balance)
@@ -2040,9 +2041,8 @@ class Chat(Box):
                 continue
             address = self.storage.get_identity("address")
             if address:
-                listunspent, _= await self.commands.z_listUnspent(address[0], 0)
+                listunspent, _= await self.rpc.z_listUnspent(address[0], 0)
                 if listunspent:
-                    listunspent = json.loads(listunspent)
                     self.count_list_unspent(listunspent)
                     list_txs = self.storage.get_txs()
                     for data in listunspent:
@@ -2051,7 +2051,7 @@ class Chat(Box):
                             await self.unhexlify_memo(data)
                             
                     if len(listunspent) >= 20:
-                        total_balance,_ = await self.commands.z_getBalance(address[0])
+                        total_balance,_ = await self.rpc.z_getBalance(address[0])
                         merge_fee = Decimal('0.0002')
                         txfee = Decimal('0.0001')
                         amount = Decimal(total_balance) - merge_fee
@@ -2073,17 +2073,15 @@ class Chat(Box):
 
     async def merge_utxos(self, address, amount, txfee):
         memo = "merge"
-        operation, _= await self.commands.SendMemo(address, address, amount, txfee, memo)
+        operation, _= await self.rpc.SendMemo(address, address, amount, txfee, memo)
         if operation:
-            transaction_status, _= await self.commands.z_getOperationStatus(operation)
-            transaction_status = json.loads(transaction_status)
+            transaction_status, _= await self.rpc.z_getOperationStatus(operation)
             if isinstance(transaction_status, list) and transaction_status:
                 status = transaction_status[0].get('status')
                 if status == "executing" or status =="success":
                     await asyncio.sleep(1)
                     while True:
-                        transaction_result, _= await self.commands.z_getOperationResult(operation)
-                        transaction_result = json.loads(transaction_result)
+                        transaction_result, _= await self.rpc.z_getOperationResult(operation)
                         if isinstance(transaction_result, list) and transaction_result:
                             status = transaction_result[0].get('status')
                             result = transaction_result[0].get('result', {})
@@ -2149,6 +2147,7 @@ class Chat(Box):
                     title="Request Accepted",
                     text=f"By {username}"
                 )
+            self.main.mobile_server.broker.push("update_contacts")
 
 
     def get_message(self, form, amount):
@@ -2169,16 +2168,14 @@ class Chat(Box):
             self.storage.message(contact_id, author, message, amount, timestamp, None, replied)
             self.username_value.text = author
         else:
-            self.handler_unread_message(contact_id, author, message, amount, timestamp, replied)
+            self.storage.unread_message(contact_id, author, message, amount, timestamp, None, replied)
+            if self.settings.notification_messages():
+                self.notify.send_note(
+                    title="New Message",
+                    text=f"{author} : {message[:100]}"
+                )
+        self.main.mobile_server.broker.push("update_messages")
 
-
-    def handler_unread_message(self,contact_id, author, message, amount, timestamp, replied):
-        self.storage.unread_message(contact_id, author, message, amount, timestamp, None, replied)
-        if self.settings.notification_messages():
-            self.notify.send_note(
-                title="New Message",
-                text=f"{author} : {message[:100]}"
-            )
 
 
     def edit_message(self, form):
@@ -2221,6 +2218,7 @@ class Chat(Box):
                 title="New Request",
                 text=f"From : {username}"
             )
+        self.main.mobile_server.broker.push("update_contacts")
 
 
     def get_marketplace(self, form):
@@ -2245,7 +2243,6 @@ class Chat(Box):
             if amount < total_price:
                 return
             self.market_storage.update_order_status(order_id, "paid")
-
 
 
     def on_web_action(self, action, **kwargs):
@@ -2448,7 +2445,7 @@ class Chat(Box):
                         address = data[4]
                         if contact_id not in self.contacts:
                             contact = Contact(
-                                data, self.app, self, self.main, self.utils, self.units, self.commands, self.settings, self.tr, self.font
+                                data, self.app, self, self.main, self.utils, self.units, self.rpc, self.settings, self.tr, self.font
                             )
                             contact._impl.native.Click += lambda sender, event, contact_id=contact_id, address=address:self.contact_click(
                                 sender, event, contact_id, address)
@@ -2775,7 +2772,7 @@ class Chat(Box):
 
     def add_contact_click(self, sender, event):
         self.new_contact = NewContact(
-            self.main, self.settings, self.utils, self.units, self.commands, self.tr, self.font
+            self.main, self.settings, self.utils, self.units, self.rpc, self.tr, self.font
         )
         self.new_contact._impl.native.ShowDialog(self.main._impl.native)
         
@@ -2788,7 +2785,7 @@ class Chat(Box):
             self.pending_contacts._impl.native.MouseLeave += self.pending_contacts_mouse_leave
             self.pending_contacts.image = "images/pending_i.png"
             self.new_pending_toggle = None
-        self.pending_list = PendingList(self.main, self, self.utils, self.units, self.commands, self.tr, self.font)
+        self.pending_list = PendingList(self.main, self, self.utils, self.units, self.rpc, self.tr, self.font)
         self.pending_list.close_button.on_press = self.close_pending_list
         self.pending_list._impl.native.ShowDialog(self.main._impl.native)
         self.pending_toggle = True
@@ -2815,6 +2812,9 @@ class Chat(Box):
 
     async def send_button_click(self, button):
         self.verify_message()
+
+    async def edit_button_click(self, button):
+        self.verify_edit_message()
 
 
     def verify_message(self):
@@ -2856,7 +2856,7 @@ class Chat(Box):
         self.app.loop.create_task(self.send_message())
 
 
-    async def verify_edit_message(self, button):
+    def verify_edit_message(self):
         message = self.message_input.value.strip()
         if message == self.editing_message:
             self.edit_toggle = None
@@ -2901,18 +2901,16 @@ class Chat(Box):
                 await asyncio.sleep(0.2)
                 self.message_input.focus()
 
-        operation, _= await self.commands.SendMemo(address, self.user_address, txfee, txfee, memo)
+        operation, _= await self.rpc.SendMemo(address, self.user_address, txfee, txfee, memo)
         if operation:
             self.app.console.info_log(f"Operation : {operation}")
-            transaction_status, _= await self.commands.z_getOperationStatus(operation)
-            transaction_status = json.loads(transaction_status)
+            transaction_status, _= await self.rpc.z_getOperationStatus(operation)
             if isinstance(transaction_status, list) and transaction_status:
                 status = transaction_status[0].get('status')
                 if status == "executing" or status =="success":
                     await asyncio.sleep(1)
                     while True:
-                        transaction_result, _= await self.commands.z_getOperationResult(operation)
-                        transaction_result = json.loads(transaction_result)
+                        transaction_result, _= await self.rpc.z_getOperationResult(operation)
                         if isinstance(transaction_result, list) and transaction_result:
                             self.message_input.value = ""
                             result = transaction_result[0].get('result', {})
@@ -2961,18 +2959,16 @@ class Chat(Box):
 
 
     async def send_memo(self, address, amount, txfee, memo, author, text, timestamp, replied = None):
-        operation, _= await self.commands.SendMemo(address, self.user_address, amount, txfee, memo)
+        operation, _= await self.rpc.SendMemo(address, self.user_address, amount, txfee, memo)
         if operation:
             self.app.console.info_log(f"Operation : {operation}")
-            transaction_status, _= await self.commands.z_getOperationStatus(operation)
-            transaction_status = json.loads(transaction_status)
+            transaction_status, _= await self.rpc.z_getOperationStatus(operation)
             if isinstance(transaction_status, list) and transaction_status:
                 status = transaction_status[0].get('status')
                 if status == "executing" or status =="success":
                     await asyncio.sleep(1)
                     while True:
-                        transaction_result, _= await self.commands.z_getOperationResult(operation)
-                        transaction_result = json.loads(transaction_result)
+                        transaction_result, _= await self.rpc.z_getOperationResult(operation)
                         if isinstance(transaction_result, list) and transaction_result:
                             data = author, text, amount, timestamp, None, replied
                             self.messages.append(data)
@@ -2990,6 +2986,7 @@ class Chat(Box):
                             self.enable_send_button()
                             await asyncio.sleep(0.2)
                             self.message_input.focus()
+                            self.main.mobile_server.broker.push("update_messages")
                             return
                         await asyncio.sleep(3)
                 else:
@@ -3025,18 +3022,16 @@ class Chat(Box):
 
 
     async def send_edit_memo(self, address, amount, txfee, memo, author, text, edit_timestamp):
-        operation, _= await self.commands.SendMemo(address, self.user_address, amount, txfee, memo)
+        operation, _= await self.rpc.SendMemo(address, self.user_address, amount, txfee, memo)
         if operation:
             self.app.console.info_log(f"Operation : {operation}")
-            transaction_status, _= await self.commands.z_getOperationStatus(operation)
-            transaction_status = json.loads(transaction_status)
+            transaction_status, _= await self.rpc.z_getOperationStatus(operation)
             if isinstance(transaction_status, list) and transaction_status:
                 status = transaction_status[0].get('status')
                 if status == "executing" or status =="success":
                     await asyncio.sleep(1)
                     while True:
-                        transaction_result, _= await self.commands.z_getOperationResult(operation)
-                        transaction_result = json.loads(transaction_result)
+                        transaction_result, _= await self.rpc.z_getOperationResult(operation)
                         if isinstance(transaction_result, list) and transaction_result:
                             self.message_input.value = ""
                             result = transaction_result[0].get('result', {})
@@ -3094,7 +3089,7 @@ class Chat(Box):
         if self.edit_toggle:
             text = "Edit"
             icon = self.messages_icon("images/edit_message_i.png")
-            self.send_button.on_press = self.verify_edit_message
+            self.send_button.on_press = self.edit_button_click
         elif self.reply_toggle:
             text = "Reply"
             icon = self.messages_icon("images/reply_message_i.png")
@@ -3206,17 +3201,14 @@ class Chat(Box):
 
 
     async def get_message_timestamp(self):
-        blockchaininfo, _ = await self.commands.getBlockchainInfo()
+        blockchaininfo, _ = await self.rpc.getBlockchainInfo()
         if blockchaininfo is not None:
-            if isinstance(blockchaininfo, str):
-                info = json.loads(blockchaininfo)
-                if info is not None:
-                    timestamp = info.get('mediantime')
-                    if timestamp in self.processed_timestamps:
-                        highest_timestamp = max(self.processed_timestamps)
-                        timestamp = highest_timestamp + 1
-                    self.processed_timestamps.add(timestamp)
-                    return timestamp
+            timestamp = blockchaininfo.get('mediantime')
+            if timestamp in self.processed_timestamps:
+                highest_timestamp = max(self.processed_timestamps)
+                timestamp = highest_timestamp + 1
+            self.processed_timestamps.add(timestamp)
+            return timestamp
                 
 
     def messages_icon(self, path):
@@ -3258,7 +3250,7 @@ class Chat(Box):
 
 
 class Messages(Box):
-    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, font):
+    def __init__(self, app:App, main:Window, settings, utils, units, rpc, tr, font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -3275,7 +3267,7 @@ class Messages(Box):
 
         self.app = app
         self.main = main
-        self.commands = commands
+        self.rpc = rpc
         self.settings = settings
         self.utils = utils
         self.units = units
@@ -3283,7 +3275,7 @@ class Messages(Box):
         self.font = font
 
         self.storage = StorageMessages(self.app)
-        self.chat = Chat(self.app, self.main, settings, utils, units, commands, tr, font)
+        self.chat = Chat(self.app, self.main, settings, utils, units, rpc, tr, font)
 
         self.notify = self.main.notify
 
@@ -3307,7 +3299,7 @@ class Messages(Box):
 
     def create_new_messenger(self):
         self.new_messenger = NewMessenger(
-            self.app, self, self.main, self.chat, self.settings, self.utils, self.commands, self.tr, self.font
+            self.app, self, self.main, self.chat, self.settings, self.utils, self.rpc, self.tr, self.font
         )
         self.add(self.new_messenger)
 
@@ -3317,9 +3309,8 @@ class Messages(Box):
         if data:
             address = self.storage.get_identity("address")
             if address:
-                listunspent, _= await self.commands.z_listUnspent(address[0], 0)
+                listunspent, _= await self.rpc.z_listUnspent(address[0], 0)
                 if listunspent:
-                    listunspent = json.loads(listunspent)
                     list_txs = self.storage.get_txs()
                     for data in listunspent:
                         txid = data['txid']

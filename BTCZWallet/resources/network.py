@@ -23,7 +23,7 @@ from toga.colors import (
 
 
 class AddNode(Window):
-    def __init__(self, main:Window, utils, commands, tr, font):
+    def __init__(self, main:Window, utils, rpc, tr, font):
         super().__init__(
             resizable=False
         )
@@ -31,7 +31,7 @@ class AddNode(Window):
         self.main = main
         
         self.utils = utils
-        self.commands = commands
+        self.rpc = rpc
         self.tr = tr
         self.font = font
 
@@ -209,7 +209,7 @@ class AddNode(Window):
         with open(config_file_path, 'a') as file:
             file.write(f"\naddnode={node_address}")
 
-        await self.commands.addNode(node_address)
+        await self.rpc.addNode(node_address)
         message = self.tr.message("addednode_dialog")
         self.info_dialog(
             title=self.tr.title("addednode_dialog"),
@@ -218,7 +218,6 @@ class AddNode(Window):
         )
 
             
-
     def add_button_mouse_enter(self, sender, event):
         self.add_button.style.color = BLACK
         self.add_button.style.background_color = GREENYELLOW
@@ -242,7 +241,7 @@ class AddNode(Window):
 
 
 class TorConfig(Window):
-    def __init__(self, main:Window, startup, settings, utils, commands, tr, font):
+    def __init__(self, main:Window, startup, settings, utils, rpc, tr, font):
         super().__init__(
             resizable=False
         )
@@ -251,7 +250,7 @@ class TorConfig(Window):
         self.startup = startup
 
         self.utils = utils
-        self.commands = commands
+        self.rpc = rpc
         self.settings = settings
         self.tr = tr
         self.font = font
@@ -718,7 +717,7 @@ class TorConfig(Window):
             self.main.network_status.style.color = rgb(114,137,218)
             self.main.network_status.text = self.tr.text("tor_enabled")
             if self.startup.node_status:
-                await self.commands.stopNode()
+                await self.rpc.stopNode()
                 await asyncio.sleep(1)
             await self.startup.check_tor_files()
         else:
@@ -912,7 +911,7 @@ class NodeInfo(Window):
 
 
 class Node(Box):
-    def __init__(self, app:App, peer_window:Window, node, settings, utils, units, commands, tr, font):
+    def __init__(self, app:App, peer_window:Window, node, settings, utils, units, rpc, tr, font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -927,7 +926,7 @@ class Node(Box):
 
         self.utils = utils
         self.units = units
-        self.commands = commands
+        self.rpc = rpc
         self.settings = settings
         self.tr = tr
         self.tooltip = ToolTip()
@@ -1126,8 +1125,8 @@ class Node(Box):
         
     
     async def remove_node(self):
-        await self.commands.disconnectNode(self.address)
-        await self.commands.removeNode(self.address)
+        await self.rpc.disconnectNode(self.address)
+        await self.rpc.removeNode(self.address)
         message = self.tr.message("removenode_dialog")
         self.peer_window.info_dialog(
             title=self.tr.title("removenode_dialog"),
@@ -1163,7 +1162,7 @@ class Node(Box):
 
 
 class Peer(Window):
-    def __init__(self, main:Window, settings, utils, units, commands, tr, font):
+    def __init__(self, main:Window, settings, utils, units, rpc, tr, font):
         super().__init__()
 
         self.peers_list = []
@@ -1171,7 +1170,7 @@ class Peer(Window):
 
         self.main = main
 
-        self.commands = commands
+        self.rpc = rpc
         self.utils = utils
         self.units = units
         self.settings = settings
@@ -1316,9 +1315,8 @@ class Peer(Window):
 
 
     async def get_peers_list(self):
-        peerinfo, _ = await self.commands.getPeerinfo()
+        peerinfo, _ = await self.rpc.getPeerinfo()
         if peerinfo:
-            peerinfo = json.loads(peerinfo)
             current_addresses = set()
             node_by_address = {}
 
@@ -1344,9 +1342,8 @@ class Peer(Window):
                 self.close()
                 return
 
-            peerinfo, _ = await self.commands.getPeerinfo()
+            peerinfo, _ = await self.rpc.getPeerinfo()
             if peerinfo:
-                peerinfo = json.loads(peerinfo)
                 current_addresses = set()
                 node_by_address = {}
 
@@ -1373,7 +1370,7 @@ class Peer(Window):
 
     def add_peer(self, node):
         node_box = Node(
-            self.app, self, node, self.settings, self.utils, self.units, self.commands, self.tr, self.font
+            self.app, self, node, self.settings, self.utils, self.units, self.rpc, self.tr, self.font
         )
         box_divider = Box(
             style=Pack(

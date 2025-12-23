@@ -113,7 +113,7 @@ class QRView(Window):
 
 
 class Receive(Box):
-    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, font):
+    def __init__(self, app:App, main:Window, settings, utils, units, rpc, tr, font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -130,7 +130,7 @@ class Receive(Box):
 
         self.app = app
         self.main = main
-        self.commands = commands
+        self.rpc = rpc
         self.utils = utils
         self.units = units
         self.settings = settings
@@ -378,7 +378,7 @@ class Receive(Box):
         addresses = []
         devices_addresses = self.mobile_storage.get_addresses_list("taddress")
         transparent_addresses = self.addresses_storage.get_addresses(address_type="transparent")
-        transparent_addresses.sort(key=lambda x: x[3], reverse=True)
+        transparent_addresses.sort(key=lambda x: (x[3] is None, x[3] or 0), reverse=True)
         for data in transparent_addresses:
             address = data[2]
             balance = data[3]
@@ -426,7 +426,7 @@ class Receive(Box):
         addresses = []
         devices_addresses = self.mobile_storage.get_addresses_list("zaddress")
         transparent_addresses = self.addresses_storage.get_addresses(address_type="shielded")
-        transparent_addresses.sort(key=lambda x: x[3], reverse=True)
+        transparent_addresses.sort(key=lambda x: (x[3] is None, x[3] or 0), reverse=True)
         for data in transparent_addresses:
             address = data[2]
             balance = data[3]
@@ -520,9 +520,9 @@ class Receive(Box):
 
     async def get_private_key(self):
         if self.transparent_toggle:
-            result, _= await self.commands.DumpPrivKey(self.selected_address)
+            result, _= await self.rpc.DumpPrivKey(self.selected_address)
         elif self.shielded_toggle:
-            result, _= await self.commands.z_ExportKey(self.selected_address)
+            result, _= await self.rpc.z_ExportKey(self.selected_address)
         if result is not None:
             self.clipboard.copy(result)
             self.main.info_dialog(

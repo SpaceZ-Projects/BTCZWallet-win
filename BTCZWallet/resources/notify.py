@@ -4,14 +4,14 @@ from ..framework import NotifyIcon, Command, FormState, TextBox
 
 
 class Notify(NotifyIcon):
-    def __init__(self, app:App, main:Window, settings, utils, commands, tr, font):
+    def __init__(self, app:App, main:Window, settings, utils, rpc, tr, font):
 
         self.app = app
         self.main = main
         
         self.settings = settings
         self.utils = utils
-        self.commands = commands
+        self.rpc = rpc
         self.tr = tr
 
         self.rtl = None
@@ -73,14 +73,14 @@ class Notify(NotifyIcon):
             if result is True:
                 if option == "full":
                     self.utils.stop_tor()
-                    await self.commands.stopNode()
+                    await self.rpc.stopNode()
 
                 elif option == "restart":
                     result = self.utils.restart_app()
                     if not result:
                         return
                     self.utils.stop_tor()
-                    await self.commands.stopNode()
+                    await self.rpc.stopNode()
 
                 self.main.home_page.bitcoinz_curve.image = None
                 if self.main.console_toggle:

@@ -4,7 +4,7 @@ import psutil
 import subprocess
 import re
 import aiohttp
-from aiohttp_socks import ProxyConnector, ProxyConnectionError
+from aiohttp_socks import ProxyConnector
 from pathlib import Path
 
 from toga import (
@@ -23,7 +23,7 @@ from .storage import StorageMessages, StorageAddresses, StorageMobile
 
 
 class Mining(Box):
-    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, font):
+    def __init__(self, app:App, main:Window, settings, utils, units, rpc, tr, font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -48,9 +48,9 @@ class Mining(Box):
         self.app = app
         self.main = main
 
+        self.rpc = rpc
         self.utils = utils
         self.units = units
-        self.commands = commands
         self.settings = settings
         self.tr = tr
         self.font = font
@@ -644,6 +644,8 @@ class Mining(Box):
                         response.raise_for_status()
                         mining_data = await response.json()
                         if mining_data:
+                            blockchaininfo,_ = await self.rpc.getBlockchainInfo()
+                            networksol,_ = await self.rpc.getNetworkSolps()
                             total_share = mining_data.get("totalShares") or sum(miner.get("accepted", 0) for miner in mining_data.get("miners", []))
                             balance = mining_data.get("balance", 0)
                             immature_bal = mining_data.get("immature", mining_data.get("unpaid", 0))
@@ -662,7 +664,7 @@ class Mining(Box):
                                             converted_rate = self.units.hash_to_solutions(hashrate)
                                             solutions_value = f"{converted_rate:.2f} Sol/s"
                                             
-                                            estimated_24h = await self.units.estimated_earn(24, hashrate)
+                                            estimated_24h = self.units.estimated_earn(24, hashrate, blockchaininfo, networksol)
                                             estimated_value = int(estimated_24h)
                             else:
                                 total_hashrates = mining_data.get("total_hashrates", [])
@@ -671,7 +673,7 @@ class Mining(Box):
                                         for algo, rate in hashrate.items():
                                             solutions_value = f"{rate:.2f}"
                                             converted_rate = self.units.solution_to_hash(rate)
-                                            estimated_24h = await self.units.estimated_earn(24, converted_rate)
+                                            estimated_24h = self.units.estimated_earn(24, converted_rate, blockchaininfo, networksol)
                                             estimated_value = int(estimated_24h)
                                             converted_rate = rate
                                 else:
@@ -679,7 +681,7 @@ class Mining(Box):
                                     if rate:
                                         solutions_value = f"{rate:.2f} Sol/s"
                                         converted_rate = self.units.solution_to_hash(rate)
-                                        estimated_24h = await self.units.estimated_earn(24, converted_rate)
+                                        estimated_24h = self.units.estimated_earn(24, converted_rate, blockchaininfo, networksol)
                                         estimated_value = int(estimated_24h)
                                         converted_rate = rate
 
@@ -720,7 +722,8 @@ class Mining(Box):
                     self.app.console.error_log(f"{e}")
                     self.fetch_stats_task = self.app.loop.create_task(self.fetch_miner_stats())
                     return
-
+                
+                self.main.mobile_server.broker.push("update_mining")
                 await asyncio.sleep(60)
 
 

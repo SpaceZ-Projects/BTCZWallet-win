@@ -10,7 +10,7 @@ from toga.colors import rgb, RED, GRAY
 
 
 class AppToolBar(Box):
-    def __init__(self, app:App, main:Window, settings, utils, commands, tr, font):
+    def __init__(self, app:App, main:Window, settings, utils, rpc, tr, font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -21,7 +21,7 @@ class AppToolBar(Box):
         self.app = app
         self.main = main
 
-        self.commands = commands
+        self.rpc = rpc
         self.settings = settings
         self.utils = utils
         self.tr = tr
@@ -1105,14 +1105,14 @@ class AppToolBar(Box):
             if result is True:
                 if option == "full":
                     self.utils.stop_tor()
-                    await self.commands.stopNode()
+                    await self.rpc.stopNode()
 
                 elif option == "restart":
                     result = self.utils.restart_app()
                     if not result:
                         return
                     self.utils.stop_tor()
-                    await self.commands.stopNode()
+                    await self.rpc.stopNode()
 
                 if self.main.console_toggle:
                     self.app.console._impl.native.Close()

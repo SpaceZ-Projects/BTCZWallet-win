@@ -1,6 +1,5 @@
 
 import asyncio
-import json
 from pathlib import Path
 
 from toga import (
@@ -142,18 +141,24 @@ class Wallet(Box):
 
 
     async def get_node_version(self):
-        result,_ = await self.rpc.getInfo()
-        if result:
-            subversion = result.get('subversion')
-            build = result.get('build')
-            clean_version = subversion.strip('/')
-            if ':' in clean_version:
-                name, version = clean_version.split(':', 1)
-                formatted_version = f"{name} v {version}"
-            else:
-                formatted_version = clean_version
-            build_suffix = build.split('-')[1] if build and '-' in build else build
-            self.bitcoinz_version.text = f"Core : {formatted_version} | Build : {build_suffix}"
+        result, _ = await self.rpc.getInfo()
+        if not result:
+            return
+        subversion = result.get("subversion", "")
+        build = result.get("build", "")
+        clean = subversion.strip("/")
+        if ":" in clean:
+            name, version = clean.split(":", 1)
+            formatted_version = f"{name} v {version}"
+        else:
+            formatted_version = f"v {clean}" if clean else "unknown"
+        if build and "-" in build:
+            build_suffix = build.split("-", 1)[1]
+        else:
+            build_suffix = build or "unknown"
+        self.bitcoinz_version.text = (
+            f"Core : {formatted_version} | Build : {build_suffix}"
+        )
 
 
     async def update_total_balances(self):
@@ -264,15 +269,16 @@ class Wallet(Box):
 
 
 class AddAddress(Window):
-    def __init__(self, book_window:Window, utils, commands, font, tr):
+    def __init__(self, main:Window, book_window:Window, utils, rpc, font, tr):
         super().__init__(
             size = (550, 200),
             resizable=False
         )
 
+        self.main = main
         self.book_window = book_window
         self.utils = utils
-        self.commands = commands
+        self.rpc = rpc
         self.font = font
         self.tr = tr
 
@@ -464,6 +470,7 @@ class AddAddress(Window):
             )
             return
         self.storage.insert_book(name, address)
+        self.main.mobile_server.broker.push("update_book")
         self.close()
         self.book_window.realod_address_book()
         
@@ -474,14 +481,13 @@ class AddAddress(Window):
             self.is_valid.image = None
             return
         if address.startswith("t"):
-            result, _ = await self.commands.validateAddress(address)
+            result, _ = await self.rpc.validateAddress(address)
         elif address.startswith("z"):
-            result, _ = await self.commands.z_validateAddress(address)
+            result, _ = await self.rpc.z_validateAddress(address)
         else:
             self.is_valid.image = "images/notvalid.png"
             return
         if result is not None:
-            result = json.loads(result)
             is_valid = result.get('isvalid')
             if is_valid is True:
                 self.is_valid.image = "images/valid.png"
@@ -517,14 +523,14 @@ class AddAddress(Window):
 
 
 class AddressBook(Window):
-    def __init__(self, main:Window ,utils, commands, font, tr, option = None, size = None, location = None):
+    def __init__(self, main:Window ,utils, rpc, font, tr, option = None, size = None, location = None):
         super().__init__(
             resizable=False
         )
 
         self.main = main
         self.utils = utils
-        self.commands = commands
+        self.rpc = rpc
         self.font = font
         self.tr = tr
         self.option = option
@@ -754,7 +760,7 @@ class AddressBook(Window):
 
 
     def show_add_window(self, button):
-        add_window = AddAddress(self, self.utils, self.commands, self.font, self.tr)
+        add_window = AddAddress(self.main, self, self.utils, self.rpc, self.font, self.tr)
         add_window._impl.native.ShowDialog(self._impl.native)
 
 
@@ -764,6 +770,7 @@ class AddressBook(Window):
             if cell.ColumnIndex == 1:
                 address = cell.Value
                 self.storage.delete_address_book(address)
+                self.main.mobile_server.broker.push("update_book")
         self.realod_address_book()
 
 
@@ -830,7 +837,7 @@ class AddressBook(Window):
 
 
 class ImportKey(Window):
-    def __init__(self, main:Window, settings, utils, commands, tr, font):
+    def __init__(self, main:Window, settings, utils, rpc, tr, font):
         super().__init__(
             size = (600, 150),
             resizable= False
@@ -838,7 +845,7 @@ class ImportKey(Window):
         
         self.main = main
         self.utils = utils
-        self.commands = commands
+        self.rpc = rpc
         self.settings = settings
         self.tr = tr
         self.font = font
@@ -979,10 +986,10 @@ class ImportKey(Window):
                 )
                 self.key_input.readonly = False
                 self.cancel_button.enabled = True
-        key = self.key_input.value
-        _, error_message = await self.commands.ImportPrivKey(key)
+        key = self.key_input.value.strip()
+        _, error_message = await self.rpc.ImportPrivKey(key)
         if error_message:
-            _, error_message = await self.commands.z_ImportKey(key)
+            _, error_message = await self.rpc.z_ImportKey(key)
             if error_message:
                 self.error_dialog(
                     title=self.tr.title("invalidkey_dialog"),
@@ -995,13 +1002,13 @@ class ImportKey(Window):
 
     async def update_import_window(self):
         while True:
-            result,_ = await self.commands.getInfo()
+            result,_ = await self.rpc.getInfo()
             if result:
-                self.main.transactions_page.reload_transactions()
-                await self.main.receive_page.reload_addresses()
-                await self.main.mining_page.reload_addresses()
-                self.main.import_key_toggle = None
                 self.close()
+                self.main.import_key_toggle = None
+                self.main.transactions_page.reload_transactions()
+                self.main.receive_page.reload_addresses()
+                self.main.mining_page.reload_addresses()
                 self.app.current_window = self.main
                 return
             
@@ -1032,7 +1039,7 @@ class ImportKey(Window):
 
 
 class ImportWallet(Window):
-    def __init__(self, main:Window, settings, utils, commands, tr, font):
+    def __init__(self, main:Window, settings, utils, rpc, tr, font):
         super().__init__(
             size = (600, 150),
             resizable= False
@@ -1040,7 +1047,7 @@ class ImportWallet(Window):
         
         self.main = main
         self.utils = utils
-        self.commands = commands
+        self.rpc = rpc
         self.settings = settings
         self.tr = tr
         self.font = font
@@ -1212,19 +1219,19 @@ class ImportWallet(Window):
 
     async def import_wallet_file(self):
         file_path = self.file_input.value
-        await self.commands.z_ImportWallet(file_path) 
+        await self.rpc.z_ImportWallet(file_path) 
         await self.update_import_window()
 
 
     async def update_import_window(self):
         while True:
-            result,_ = await self.commands.getInfo()
+            result,_ = await self.rpc.getInfo()
             if result:
-                self.main.transactions_page.reload_transactions()
-                await self.main.receive_page.reload_addresses()
-                await self.main.mining_page.reload_addresses()
-                self.main.import_key_toggle = None
                 self.close()
+                self.main.import_key_toggle = None
+                self.main.transactions_page.reload_transactions()
+                self.main.receive_page.reload_addresses()
+                self.main.mining_page.reload_addresses()
                 return
             
             await asyncio.sleep(5)

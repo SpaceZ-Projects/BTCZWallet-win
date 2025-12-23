@@ -634,6 +634,9 @@ class Transactions(Box):
                     if "fee" in data:
                         fee = data["fee"]
                     if txid not in stored_transactions:
+                        mobile_addresses = self.storage_mobile.get_addresses_list("transparent")
+                        if address in mobile_addresses:
+                            self.main.mobile_server.broker.push("update_transactions")
                         if "blockhash" not in data:
                             blocks = 0
                             self.storagetxs.insert_transaction(tx_type, category, address, txid, amount, blocks, fee, timereceived)
@@ -701,6 +704,9 @@ class Transactions(Box):
                         elif confirmations == 0:
                             blocks = self.main.home_page.current_blocks
                         if txid not in stored_transactions:
+                            mobile_addresses = self.storage_mobile.get_addresses_list("shielded")
+                            if address in mobile_addresses:
+                                self.main.mobile_server.broker.push("update_transactions")
                             asyncio.create_task(self.get_block_timestamp(blocks, tx_type, category, address, txid, amount))
                             
             await asyncio.sleep(10)

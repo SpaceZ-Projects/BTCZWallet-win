@@ -1,7 +1,6 @@
 
 import asyncio
 from datetime import datetime
-import json
 
 from toga import App, Box, Window
 from ..framework import (
@@ -13,7 +12,7 @@ from toga.constants import ROW, BOTTOM
 
 
 class AppStatusBar(Box):
-    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, font):
+    def __init__(self, app:App, main:Window, settings, utils, units, rpc, tr, font):
         super().__init__(
             style=Pack(
                 direction = ROW,
@@ -26,7 +25,7 @@ class AppStatusBar(Box):
         self.app = app
         self.main = main
 
-        self.commands = commands
+        self.rpc = rpc
         self.utils = utils
         self.settings = settings
         self.units = units
@@ -200,20 +199,20 @@ class AppStatusBar(Box):
             if self.main.import_key_toggle:
                 await asyncio.sleep(1)
                 continue
-            blockchaininfo,_ = await self.commands.getBlockchainInfo()
+            blockchaininfo,_ = await self.rpc.getBlockchainInfo()
             if blockchaininfo is not None:
                 self.node_status = True
-                info = json.loads(blockchaininfo)
-                blocks = info.get('blocks')
+                blocks = blockchaininfo.get('blocks')
                 self.main.home_page.current_blocks = blocks
                 self.main.mobile_server.current_blocks = blocks
-                sync = info.get('verificationprogress')
+                sync = blockchaininfo.get('verificationprogress')
                 sync_percentage = float(sync) * 100
                 sync_str = f"{sync_percentage:.2f}"
-                mediantime = info.get('mediantime')
+                mediantime = blockchaininfo.get('mediantime')
                 mediantime_date = datetime.fromtimestamp(mediantime).strftime('%Y-%m-%d %H:%M:%S')
                 status_icon = "images/on.png"
                 if self.latest_blocks and blocks > self.latest_blocks:
+                    self.main.mobile_server.broker.push("update_info")
                     self.app.console.info_log(f"🧊: New Block {blocks}")
                 self.latest_blocks = blocks
             else:
@@ -256,18 +255,14 @@ class AppStatusBar(Box):
             if self.main.import_key_toggle:
                 await asyncio.sleep(1)
                 continue
-            networksol,_ = await self.commands.getNetworkSolps()
+            networksol,_ = await self.rpc.getNetworkSolps()
             if networksol is not None:
-                if isinstance(networksol, str):
-                    info = json.loads(networksol)
-                if info is not None:
-                    netsol = info
-                    if self.rtl:
-                        netsol = self.units.arabic_digits(str(netsol))
-                        netsol_text = f"{netsol} سول/ث"
-                    else:
-                        netsol_text = f"{netsol} Sol/s"
-                    self.network_value.text = netsol_text
+                if self.rtl:
+                    netsol = self.units.arabic_digits(str(networksol))
+                    netsol_text = f"{netsol} سول/ث"
+                else:
+                    netsol_text = f"{networksol} Sol/s"
+                self.network_value.text = netsol_text
             await asyncio.sleep(5)
 
     
@@ -277,22 +272,22 @@ class AppStatusBar(Box):
             if self.main.import_key_toggle:
                 await asyncio.sleep(1)
                 continue
-            connection_count,_ = await self.commands.getConnectionCount()
+            connection_count,_ = await self.rpc.getConnectionCount()
             if connection_count is not None:
                 if self.rtl:
-                    connection_count = self.units.arabic_digits(connection_count)
+                    connection_count = self.units.arabic_digits(str(connection_count))
+                else:
+                    connection_count = str(connection_count)
                 self.connections_value.text = connection_count
 
             await asyncio.sleep(5)
 
 
     async def update_deprecationinfo(self):
-        deprecationinfo, _ = await self.commands.getDeprecationInfo()
+        deprecationinfo, _ = await self.rpc.getDeprecationInfo()
         if deprecationinfo is not None:
-            if isinstance(deprecationinfo, str):
-                info = json.loads(deprecationinfo)
-            if info is not None:
-                deprecation = info.get('deprecationheight')
+            if deprecationinfo is not None:
+                deprecation = deprecationinfo.get('deprecationheight')
                 self.main.home_page.deprecation = deprecation
                 if self.rtl:
                     deprecation = self.units.arabic_digits(str(deprecation))

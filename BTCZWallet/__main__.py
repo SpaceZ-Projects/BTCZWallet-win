@@ -32,15 +32,14 @@ class BitcoinZGUI(Window):
         )
         
         self.settings = Settings(self.app)
-        self.commands = Client(self.app)
-        self.units = Units(self.app, self.commands)
+        self.units = Units(self.app)
         self.tr = Translations(self.settings)
         self.utils = Utils(self.app, self.settings, self.units, self.tr)
         self.rpc = RPC(self.app, self.utils)
         self.font = CustomFont(self.settings)
         self.tooltip = ToolTip()
 
-        self.app.console = Console(self, self.settings, self.utils, self.commands, self.font)
+        self.app.console = Console(self, self.settings, self.utils, self.rpc, self.font)
         self.console_toggle = None
 
         self.title = self.tr.title("main_window")
@@ -158,7 +157,7 @@ class BitcoinZGUI(Window):
         self.network_status._impl.native.Font = self.font.get(9, True)
         
         self.startup = BTCZSetup(
-            self.app, self, self.settings, self.utils, self.units, self.commands, self.rpc, self.tr, self.font
+            self.app, self, self.settings, self.utils, self.units, self.rpc, self.tr, self.font
         )
         self.startup_panel.add(
             self.startup_background,

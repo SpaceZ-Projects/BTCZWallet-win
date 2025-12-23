@@ -25,7 +25,7 @@ from .storage import StorageMessages, StorageTxs, StorageAddresses
 
 
 class CashOut(Window):
-    def __init__(self, main:Window, send_page, settings, utils, units, commnads, tr, font, uaddress, data, single=None):
+    def __init__(self, main:Window, send_page, settings, utils, units, rpc, tr, font, uaddress, data, single=None):
         super().__init__(
             size = (600,300),
             resizable=False
@@ -36,7 +36,7 @@ class CashOut(Window):
         self.settings = settings
         self.utils = utils
         self.units = units
-        self.commands = commnads
+        self.rpc = rpc
         self.tr = tr
         self.font = font
 
@@ -203,11 +203,10 @@ class CashOut(Window):
                 )
                 self.enable_send()
                 return
-            operation, _= await self.commands.z_sendMany(self.uaddress, self.destination_address, self.amount, self.txfee)
+            operation, _= await self.rpc.z_sendMany(self.uaddress, self.destination_address, self.amount, self.txfee)
             if operation:
                 self.app.console.info_log(f"Operation: {operation}")
-                transaction_status, _= await self.commands.z_getOperationStatus(operation)
-                transaction_status = json.loads(transaction_status)
+                transaction_status, _= await self.rpc.z_getOperationStatus(operation)
                 if isinstance(transaction_status, list) and transaction_status:
                     status = transaction_status[0].get('status')
                     if status == "failed":
@@ -217,8 +216,7 @@ class CashOut(Window):
                     if status == "executing" or status =="success":
                         await asyncio.sleep(1)
                         while True:
-                            transaction_result, _= await self.commands.z_getOperationResult(operation)
-                            transaction_result = json.loads(transaction_result)
+                            transaction_result, _= await self.rpc.z_getOperationResult(operation)
                             if isinstance(transaction_result, list) and transaction_result:
                                 status = transaction_result[0].get('status')
                                 result = transaction_result[0].get('result', {})
@@ -247,11 +245,10 @@ class CashOut(Window):
 
     async def send_many(self):
         try:
-            operation, _= await self.commands.z_sendToManyAddresses(self.uaddress, self.destination_addresses)
+            operation, _= await self.rpc.z_sendToManyAddresses(self.uaddress, self.destination_addresses)
             if operation:
                 self.app.console.info_log(f"Operation: {operation}")
-                transaction_status, _= await self.commands.z_getOperationStatus(operation)
-                transaction_status = json.loads(transaction_status)
+                transaction_status, _= await self.rpc.z_getOperationStatus(operation)
                 if isinstance(transaction_status, list) and transaction_status:
                     status = transaction_status[0].get('status')
                     if status == "failed":
@@ -262,8 +259,7 @@ class CashOut(Window):
                     if status == "executing" or status =="success":
                         await asyncio.sleep(1)
                         while True:
-                            transaction_result, _= await self.commands.z_getOperationResult(operation)
-                            transaction_result = json.loads(transaction_result)
+                            transaction_result, _= await self.rpc.z_getOperationResult(operation)
                             if isinstance(transaction_result, list) and transaction_result:
                                 status = transaction_status[0].get('status')
                                 result = transaction_result[0].get('result', {})
@@ -347,7 +343,7 @@ class CashOut(Window):
 
 
 class Send(Box):
-    def __init__(self, app:App, main:Window, settings, utils, units, commands, tr, font):
+    def __init__(self, app:App, main:Window, settings, utils, units, rpc, tr, font):
         super().__init__(
             style=Pack(
                 direction = COLUMN,
@@ -366,7 +362,7 @@ class Send(Box):
 
         self.app = app
         self.main = main
-        self.commands = commands
+        self.rpc = rpc
         self.utils = utils
         self.units = units
         self.settings = settings
@@ -1319,7 +1315,7 @@ class Send(Box):
         x = location.X
         y = location.Y + 30
         book_window = AddressBook(
-            self.main, self.utils, self.commands, self.font, self.tr, option, (width, height),(x,y)
+            self.main, self.utils, self.rpc, self.font, self.tr, option, (width, height),(x,y)
         )
         book_window.show()
 
@@ -1361,14 +1357,13 @@ class Send(Box):
             self.is_valid.image = None
             return
         if address.startswith("t"):
-            result, _ = await self.commands.validateAddress(address)
+            result, _ = await self.rpc.validateAddress(address)
         elif address.startswith("z"):
-            result, _ = await self.commands.z_validateAddress(address)
+            result, _ = await self.rpc.z_validateAddress(address)
         else:
             self.is_valid.image = "images/notvalid.png"
             return
         if result is not None:
-            result = json.loads(result)
             is_valid = result.get('isvalid')
             if is_valid is True:
                 self.is_valid.image = "images/valid.png"
@@ -1475,7 +1470,7 @@ class Send(Box):
             addresses_array = self.create_addresses_array(destination_address)
             data = addresses_array
             self.cashout_window = CashOut(
-                self.main, self, self.settings, self.utils, self.units, self.commands, self.tr, self.font, selected_address, data
+                self.main, self, self.settings, self.utils, self.units, self.rpc, self.tr, self.font, selected_address, data
             )
         else:
             destination_address = self.destination_input_single.value
@@ -1485,7 +1480,7 @@ class Send(Box):
                 txfee
             ]
             self.cashout_window = CashOut(
-                self.main, self, self.settings, self.utils, self.units, self.commands, self.tr, self.font, selected_address, data, True
+                self.main, self, self.settings, self.utils, self.units, self.rpc, self.tr, self.font, selected_address, data, True
             )
         self.cashout_window._impl.native.ShowDialog(self.main._impl.native)
 
