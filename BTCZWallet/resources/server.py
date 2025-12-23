@@ -508,9 +508,8 @@ class MobileServer():
         valid, response = verify_signature(mobile_ids, self.mobile_storage)
         if not valid:
             return response
-        
+        self.update_device_status()
         mobile_id = request.headers.get('Authorization')
-        self.mobile_storage.update_device_status(mobile_id, "on")
         q = self.broker.listen(mobile_id)
         def event_stream():
             try:
@@ -526,7 +525,6 @@ class MobileServer():
                             last_ping = now
                         time.sleep(0.1)
             finally:
-                self.mobile_storage.update_device_status(mobile_id, "off")
                 self.broker.remove(mobile_id)
         return Response(
             stream_with_context(event_stream()),

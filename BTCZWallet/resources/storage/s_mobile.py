@@ -30,7 +30,6 @@ class StorageMobile:
                 name TEXT,
                 taddress TEXT,
                 zaddress TEXT,
-                status TEXT,
                 timestamp INTEGER
             )
             '''
@@ -83,8 +82,8 @@ class StorageMobile:
         cursor = conn.cursor()
         cursor.execute(
             '''
-            INSERT INTO mobile_devices (id, name, taddress, zaddress, status, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO mobile_devices (id, name, taddress, zaddress, timestamp)
+            VALUES (?, ?, ?, ?, ?)
             ''', 
             (id, name, taddress, zaddress, None, None)
         )
@@ -208,20 +207,6 @@ class StorageMobile:
         conn.commit()
         conn.close()
 
-    
-    def update_device_status(self, id, status):
-        conn = sqlite3.connect(self.data)
-        cursor = conn.cursor()
-        cursor.execute(
-            '''
-            UPDATE mobile_devices
-            SET status = ?
-            WHERE id = ?
-            ''', (status, id)
-        )
-        conn.commit()
-        conn.close()
-
 
     def update_device_connected(self, id, timestamp):
         conn = sqlite3.connect(self.data)
@@ -254,21 +239,6 @@ class StorageMobile:
             conn = sqlite3.connect(self.data)
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM mobile_devices')
-            data = cursor.fetchall()
-            conn.close()
-            return data
-        except sqlite3.OperationalError:
-            return []
-        
-
-    def get_connected_devices(self):
-        try:
-            conn = sqlite3.connect(self.data)
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT * FROM mobile_devices WHERE status = ?",
-                ("on",)
-            )
             data = cursor.fetchall()
             conn.close()
             return data

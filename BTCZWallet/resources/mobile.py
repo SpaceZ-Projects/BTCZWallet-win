@@ -873,9 +873,12 @@ class Mobile(Window):
 
 
     async def updating_devices_list(self):
+        ONLINE_TIMEOUT = 180
+
         while True:
             if not self.main.mobile_toggle:
                 return
+            now = int(datetime.now(timezone.utc).timestamp())
             devices_list = self.mobile_storage.get_devices()
             connected_devices = self.server.broker.connected_count()
             self.devices_label.text = f"Devices : {len(devices_list)}"
@@ -884,43 +887,56 @@ class Mobile(Window):
                 for device in devices_list:
                     device_id = device[0]
                     device_name = device[1]
-                    device_status = device[4]
                     device_timestamp = device[5]
+
+                    is_online = False
+                    if device_timestamp:
+                        is_online = (now - device_timestamp) <= ONLINE_TIMEOUT
+
                     taddress, zaddress = self.mobile_storage.get_device_addresses(device_id)
                     tbalance = self.addresses_storage.get_address_balance(taddress)
                     zbalance = self.addresses_storage.get_address_balance(zaddress)
+
                     if device_id not in self.devices_data:
                         device_secret = self.mobile_storage.get_secret(device_id)
-                        device_info = Device(self.app, self, self.utils, self.font, device, device_secret[0])
+                        device_info = Device(
+                            self.app, self, self.utils, self.font, device, device_secret[0]
+                        )
                         self.devices_data[device_id] = device_info
                         self.devices_list.add(device_info)
+                        existing_device = device_info
+                        existing_device.status = None
                     else:
                         existing_device = self.devices_data[device_id]
-                        if device_status and device_status == "on":
-                            existing_device.device_icon.image = "images/device_on.png"
-                            if existing_device.status != device_status:
-                                self.notify.send_note(
-                                    title="Device Connected",
-                                    text=f"🟢 {device_name}"
-                                )
-                        else:
-                            existing_device.device_icon.image = "images/device_off.png"
-                            if existing_device.status != device_status:
-                                self.notify.send_note(
-                                    title="Device Disconncted",
-                                    text=f"🔴 {device_name}"
-                                )
-                        existing_device.status = device_status
-                        if device_timestamp:
-                            device_timestamp = datetime.fromtimestamp(device_timestamp).strftime('%Y-%m-%d %H:%M:%S')
-                            existing_device.device_last_connected._impl.native.Text = f"Recent Request : {device_timestamp}"
-                        try:
-                            existing_device.transparent_balance.text = f"T : {self.units.format_balance(tbalance)}"
-                            existing_device.shielded_balance.text = f"Z : {self.units.format_balance(zbalance)}"
-                        except Exception:
-                            pass
+
+                    if is_online:
+                        existing_device.device_icon.image = "images/device_on.png"
+                        if existing_device.status != "on":
+                            self.notify.send_note(
+                                title="Device Connected",
+                                text=f"🟢 {device_name}"
+                            )
+                        existing_device.status = "on"
+                    else:
+                        existing_device.device_icon.image = "images/device_off.png"
+                        if existing_device.status != "off":
+                            self.notify.send_note(
+                                title="Device Disconnected",
+                                text=f"🔴 {device_name}"
+                            )
+                        existing_device.status = "off"
+
+                    if device_timestamp:
+                        ts_str = datetime.fromtimestamp(device_timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                        existing_device.device_last_connected._impl.native.Text = (f"Recent Request : {ts_str}")
+                    try:
+                        existing_device.transparent_balance.text = (f"T : {self.units.format_balance(tbalance)}")
+                        existing_device.shielded_balance.text = (f"Z : {self.units.format_balance(zbalance)}")
+                    except Exception:
+                        pass
 
             await asyncio.sleep(3)
+
 
 
     async def updating_devices_status(self):
