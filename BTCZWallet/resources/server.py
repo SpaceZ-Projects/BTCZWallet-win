@@ -720,10 +720,14 @@ class MobileServer():
                             amount = float(amount)
                             self.store_transaction(tx_type, category, from_address, txid, -amount, blocks, txfee)
                             self.broker.push("update_transactions")
+
+                            return jsonify({"result": "success"}), 200
                         else:
                             if option == "request":
                                 self.messages_storage.tx(txid)
                                 self.messages_storage.add_request(id, address)
+
+                                return jsonify({"result": "success"}), 200
 
                             elif option == "accept":
                                 category = data[0]
@@ -733,21 +737,24 @@ class MobileServer():
                                 self.messages_storage.tx(txid)
                                 self.messages_storage.delete_pending(address)
                                 self.messages_storage.add_contact(category, id, contact_id, username, address)
+                                self.broker.push("update_contacts")
+
+                                return jsonify({"result": "success"}), 200
 
                             elif option == "message":
                                 author = data[0]
                                 message = data[1]
                                 timestamp = data[2]
                                 self.messages_storage.message(id, author, message, amount, timestamp)
-                            self.broker.push("update_messages")
+                                self.broker.push("update_messages")
 
-                        return jsonify({"result": "success"}), 200
+                                return jsonify({"result": "success", "timestamp": timestamp}), 200
                                 
                 await asyncio.sleep(3)
         
 
     def store_transaction(self, tx_type, category, from_address, txid, amount, blocks, txfee):
-        timesent = int(datetime.now().timestamp())
+        timesent = int(datetime.now(timezone.utc).timestamp())
         self.txs_storage.insert_transaction(tx_type, category, from_address, txid, amount, blocks, txfee, timesent)
 
     
