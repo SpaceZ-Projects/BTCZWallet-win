@@ -1,6 +1,5 @@
 
 import asyncio
-import json
 from datetime import datetime, timezone
 import aiohttp
 from aiohttp_socks import ProxyConnector, ProxyConnectionError, ProxyError
@@ -265,9 +264,9 @@ class TorConfig(Window):
                 self.rtl = True
 
         if self.rtl:
-            self.size = (350, 495)
+            self.size = (350, 445)
         else:
-            self.size = (350, 490)
+            self.size = (350, 440)
 
         self.title = self.tr.title("torconfig_window")
         position_center = self.utils.window_center_to_parent(self.main, self)
@@ -473,28 +472,6 @@ class TorConfig(Window):
         )
         self.hostname_input._impl.native.Font = self.font.get(11)
 
-        self.market_switch = Switch(
-            "",
-            style=Pack(
-                background_color = rgb(30,33,36),
-                padding = (20,0,0,65)
-            ),
-            on_change=self.update_market_input
-        )
-
-        self.market_port_input = TextInput(
-            placeholder="Default 9052",
-            style=Pack(
-                color = WHITE,
-                text_align= CENTER,
-                background_color = rgb(30,33,36),
-                padding_top = 15
-            )
-        )
-        self.market_port_input.enabled = False
-        self.market_port_input._impl.native.Font = self.font.get(11, True)
-
-
         self.mobile_switch = Switch(
             "",
             style=Pack(
@@ -598,8 +575,6 @@ class TorConfig(Window):
             self.service_label,
             self.service_port_label,
             self.hostname_label,
-            self.market_label,
-            self.market_port_label,
             self.mobile_label,
             self.mobile_port_label
         )
@@ -610,8 +585,6 @@ class TorConfig(Window):
             self.service_switch,
             self.service_input,
             self.hostname_input,
-            self.market_switch,
-            self.market_port_input,
             self.mobile_switch,
             self.mobile_port_input
         )
@@ -638,11 +611,6 @@ class TorConfig(Window):
                     self.service_input.enabled = True
                     service_port = port_line.split()[0] if port_line else ""
                     self.service_input.value = service_port
-                if dir_path.endswith("market_service"):
-                    self.market_switch.value = True
-                    self.market_port_input.enabled = True
-                    market_port = port_line.split()[1].split(":")[1] if port_line else ""
-                    self.market_port_input.value = market_port
                 if dir_path.endswith("mobile_service"):
                     self.mobile_switch.value = True
                     self.mobile_port_input.enabled = True
@@ -683,12 +651,6 @@ class TorConfig(Window):
             tor_service = Os.Path.Combine(str(self.app_data), "tor_service")
         else:
             tor_service = None
-        if self.market_switch.value is True:
-            market_service = Os.Path.Combine(str(self.app_data), "market_service")
-            self.settings.update_settings("market_service", True)
-        else:
-            market_service = None
-            self.settings.update_settings("market_service", False)
         if self.mobile_switch.value is True:
             mobile_service = Os.Path.Combine(str(self.app_data), "mobile_service")
             self.settings.update_settings("mobile_service", True)
@@ -699,16 +661,12 @@ class TorConfig(Window):
             service_port = "1989"
         else:
             service_port = self.service_input.value.strip()
-        if market_service and not self.market_port_input.value:
-            market_port = "9052"
-        else:
-            market_port = self.market_port_input.value.strip()
         if mobile_service and not self.mobile_port_input.value:
             mobile_port = "9053"
         else:
             mobile_port = self.mobile_port_input.value.strip()
         self.settings.update_settings("tor_network", True)
-        self.utils.create_torrc(socks_port, tor_service, service_port, market_service, market_port, mobile_service, mobile_port)
+        self.utils.create_torrc(socks_port, tor_service, service_port, mobile_service, mobile_port)
         self.close()
         self.app.current_window = self.main
 

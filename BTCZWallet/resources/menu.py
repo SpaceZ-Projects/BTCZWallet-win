@@ -21,7 +21,7 @@ from toga.constants import (
 
 from .toolbar import AppToolBar
 from .status import AppStatusBar
-from .notify import Notify, NotifyMining, NotifyMarket, NotifyMobile
+from .notify import Notify, NotifyMining, NotifyMobile
 from .wallet import Wallet, ImportKey, ImportWallet, AddressBook
 from .home import Home, Currency, Languages
 from .txs import Transactions
@@ -29,11 +29,10 @@ from .receive import Receive
 from .send import Send
 from .messages import Messages, EditUser
 from .mining import Mining
-from .storage import StorageMessages, StorageMarket, StorageAddresses
+from .storage import StorageMessages, StorageAddresses
 from .network import Peer, AddNode, TorConfig
-from .marketplace import MarketPlace
 from .mobile import Mobile
-from .server import MarketServer, MobileServer
+from .server import MobileServer
 
 
 user32 = ctypes.windll.user32
@@ -85,7 +84,6 @@ class Menu(Window):
         self._impl.native.Owner = self.app.console._impl.native
 
         self.storage = StorageMessages(self.app)
-        self.market_storage = StorageMarket(self.app)
         self.addresses_storage = StorageAddresses(self.app)
         self.statusbar = AppStatusBar(self.app, self, settings, utils, units, rpc, tr, font)
         self.wallet = Wallet(self.app, self, settings, units, rpc, tr, font)
@@ -101,10 +99,8 @@ class Menu(Window):
         self.wallet.bitcoinz_title_box._impl.native.MouseDown += self._on_mouse_down
 
         self.notifymining = NotifyMining(font)
-        self.notifymarket = NotifyMarket()
         self.notifymobile = NotifyMobile()
 
-        self.market_server = MarketServer(self.app, settings=settings, units=units, notify=self.notifymarket)
         self.mobile_server = MobileServer(self.app, self, settings=settings, units=units, rpc=rpc, notify=self.notifymobile)
 
         self.receive_page = Receive(self.app, self, settings, utils, units, rpc, tr, font)
@@ -335,8 +331,6 @@ class Menu(Window):
         await asyncio.sleep(1)
         self.app.loop.create_task(self.message_page.gather_unread_memos())
         await asyncio.sleep(1)
-        self.app.loop.create_task(self.updating_orders_status())
-        await asyncio.sleep(1)
         self.app.loop.create_task(self.count_unread_messages())
 
 
@@ -383,7 +377,6 @@ class Menu(Window):
         self.toolbar.app_console_cmd.action = self.app_console
         self.toolbar.mobile_wallet_cmd.action = self.show_mobile_server
         self.toolbar.edit_username_cmd.action = self.edit_messages_username
-        self.toolbar.market_place_cmd.action = self.show_marketplace
         self.toolbar.backup_messages_cmd.action = self.backup_messages
 
         self.toolbar.minimize_control._impl.native.Click += self._minimize_window
@@ -527,28 +520,6 @@ class Menu(Window):
                 edit_window._impl.native.ShowDialog(self._impl.native)
 
 
-    def show_marketplace(self, sender, event):
-        if self.settings.market_service():
-            if not self.marketplace_toggle:
-                marketplace_window = MarketPlace(
-                    self, self.notifymarket, self.settings, self.utils, self.units, self.tr, self.font, self.market_server
-                )
-                marketplace_window.show()
-                self.marketplace_window = marketplace_window
-                self.marketplace_toggle = True
-            else:
-                self.marketplace_window._impl.native.Activate()
-        else:
-            self.error_dialog(
-                title="Marketplace Disabled",
-                message=(
-                    "To access the marketplace, you need to enable the market server\n\n"
-                    "  Network → Tor network\n"
-                    "and enable the Market Server option"
-                )
-            )
-
-
     def show_mobile_server(self, sender, event):
         if self.settings.mobile_service():
             if not self.mobile_toggle:
@@ -567,31 +538,6 @@ class Menu(Window):
                     "and enable the Mobile Server option"
                 )
             )
-
-
-    async def updating_orders_status(self):
-        self.app.console.event_log(f"✔: Orders status")
-        while True:
-            if self.settings.market_service():
-                market_orders = self.market_storage.get_market_orders()
-                if market_orders:
-                    for order in market_orders:
-                        order_id = order[0]
-                        item_id = order[1]
-                        order_quantity = order[4]
-                        order_status = order[6]
-                        order_expired = order[8]
-                        if order_status in ("expired", "completed", "paid", "cancelled"):
-                            continue
-
-                        now = int(datetime.now().timestamp())
-                        if order_expired < now:
-                            self.market_storage.update_order_status(order_id, "expired")
-                            item = self.market_storage.get_item(item_id)
-                            quantity = order_quantity + item[6]
-                            self.market_storage.update_item_quantity(item_id, quantity)
-
-            await asyncio.sleep(5)
 
 
     async def count_unread_messages(self):

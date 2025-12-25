@@ -986,8 +986,6 @@ sendchangeback=1
             socks_port=None,
             tor_service=None,
             service_port=None,
-            market_service=None,
-            market_port=None,
             mobile_service =None,
             mobile_port = None
         ):
@@ -1005,10 +1003,6 @@ sendchangeback=1
         if tor_service:
             torrc_content += f"HiddenServiceDir {tor_service}\n"
             torrc_content += f"HiddenServicePort {service_port} 127.0.0.1:{service_port}\n"
-        
-        if market_service:
-            torrc_content += f"HiddenServiceDir {market_service}\n"
-            torrc_content += f"HiddenServicePort 80 127.0.0.1:{market_port}\n"
         
         if mobile_service:
             torrc_content += f"HiddenServiceDir {mobile_service}\n"

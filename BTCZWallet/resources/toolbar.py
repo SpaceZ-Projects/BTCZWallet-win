@@ -552,16 +552,6 @@ class AppToolBar(Box):
             font=self.font.get(9),
             rtl = self.rtl
         )
-        self.market_place_cmd = Command(
-            title="Marketplace",
-            icon="images/marketplace_i.ico",
-            color=Color.WHITE,
-            background_color=Color.rgb(40,43,48),
-            mouse_enter=self.market_place_cmd_mouse_enter,
-            mouse_leave=self.market_place_cmd_mouse_leave,
-            font=self.font.get(9),
-            rtl=self.rtl
-        )
         self.backup_messages_cmd = Command(
             title=self.tr.text("backup_messages_cmd"),
             icon="images/backup_i.ico",
@@ -582,7 +572,6 @@ class AppToolBar(Box):
             mouse_leave=self.messages_menu_mouse_leave,
             sub_commands=[
                 self.edit_username_cmd,
-                self.market_place_cmd,
                 self.backup_messages_cmd
             ],
             font=self.font.get(9),
@@ -987,14 +976,6 @@ class AppToolBar(Box):
         self.edit_username_cmd.icon = "images/edit_username_i.ico"
         self.edit_username_cmd.color = Color.WHITE
 
-    def market_place_cmd_mouse_enter(self):
-        self.market_place_cmd.icon = "images/marketplace_a.ico"
-        self.market_place_cmd.color = Color.BLACK
-
-    def market_place_cmd_mouse_leave(self):
-        self.market_place_cmd.icon = "images/marketplace_i.ico"
-        self.market_place_cmd.color = Color.WHITE
-
     def backup_messages_cmd_mouse_enter(self):
         self.backup_messages_cmd.icon = "images/backup_a.ico"
         self.backup_messages_cmd.color = Color.BLACK
@@ -1118,9 +1099,6 @@ class AppToolBar(Box):
                     self.app.console._impl.native.Close()
                 self.main.notify.hide()
                 self.main.notify.dispose()
-                if self.main.market_server.server_status:
-                    self.main.notifymarket.hide()
-                    self.main.notifymarket.dispose()
                 if self.main.mobile_server.server_status:
                     self.main.notifymobile.hide()
                     self.main.notifymobile.dispose()

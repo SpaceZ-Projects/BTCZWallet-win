@@ -88,9 +88,6 @@ class Notify(NotifyIcon):
                 self.main.home_page.clear_cache()
                 self.main.notify.hide()
                 self.main.notify.dispose()
-                if self.main.market_server.server_status:
-                    self.main.notifymarket.hide()
-                    self.main.notifymarket.dispose()
                 if self.main.mobile_server.server_status:
                     self.main.notifymobile.hide()
                     self.main.notifymobile.dispose()
@@ -136,14 +133,6 @@ class NotifyMining(NotifyIcon):
                 self.immature,
                 self.paid
             ]
-        )
-
-
-class NotifyMarket(NotifyIcon):
-    def __init__(self):
-        super().__init__(
-            icon="images/Market.ico",
-            text = "Marketplace Server"
         )
 
 

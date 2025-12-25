@@ -28,8 +28,7 @@ from toga.colors import (
     GREENYELLOW
 )
 
-from .marketplace import MarketView
-from .storage import StorageMessages, StorageMarket   
+from .storage import StorageMessages  
 
 
 
@@ -609,32 +608,11 @@ class Contact(Box):
             self.copy_address_cmd,
             self.ban_contact_cmd
         ]
-        self.market = self.storage.get_hostname(self.contact_id)
-        if self.market:
-            self.marketplace_cmd = Command(
-                title="Visit marketplace",
-                icon="images/marketplace_i.ico",
-                color=Color.WHITE,
-                background_color=Color.rgb(30,33,36),
-                mouse_enter=self.marketplace_cmd_mouse_enter,
-                mouse_leave=self.marketplace_cmd_mouse_leave,
-                action=self.show_contact_market,
-                font=self.font.get(9),
-                rtl=self.rtl
-            )
-            commands.append(self.marketplace_cmd)
         for command in commands:
             context_menu.Items.Add(command)
         self._impl.native.ContextMenuStrip = context_menu
         self.category_icon._impl.native.ContextMenuStrip = context_menu
         self.username_label._impl.native.ContextMenuStrip = context_menu
-
-
-    def reload_contact_menustrip(self):
-        self._impl.native.ContextMenuStrip = None
-        self.category_icon._impl.native.ContextMenuStrip = None
-        self.username_label._impl.native.ContextMenuStrip = None
-        self.insert_contact_menustrip()
 
 
     async def update_contact(self):
@@ -658,10 +636,7 @@ class Contact(Box):
                 self.unread_messages.text = ""
                 self.unread_messages.style.visibility = HIDDEN
                 self.unread_count = 0
-            if not self.market:
-                self.market = self.storage.get_hostname(self.contact_id)
-                if self.market:
-                    self.reload_contact_menustrip()
+
             await asyncio.sleep(3)
 
 
@@ -706,15 +681,6 @@ class Contact(Box):
                     f"- Address: {self.address}",
             on_result=on_result
         )
-
-
-    def show_contact_market(self):
-        if not self.chat.marketplace_toggle:
-            self.market_window = MarketView(
-                self.chat, self.main, self.utils, self.units, self.rpc, self.tr, self.font, self.username, self.contact_id
-            )
-            self.market_window.show()
-            self.chat.marketplace_toggle = True
 
 
     def contact_mouse_enter(self, sender, event):
@@ -1587,7 +1553,6 @@ class Chat(Box):
         self.font = font
 
         self.storage = StorageMessages(self.app)
-        self.market_storage = StorageMarket(self.app)
         self.tooltip = ToolTip()
         self.clipboard = ClipBoard()
 
@@ -2116,12 +2081,6 @@ class Chat(Box):
             elif form_type == "request":
                 self.get_request(form_dict)
 
-            elif form_type == "market":
-                self.get_marketplace(form_dict)
-
-            elif form_type == "payment":
-                self.get_payment(form_dict, amount)
-
             self.storage.tx(txid)
 
         except (binascii.Error, json.decoder.JSONDecodeError):
@@ -2219,30 +2178,6 @@ class Chat(Box):
                 text=f"From : {username}"
             )
         self.main.mobile_server.broker.push("update_contacts")
-
-
-    def get_marketplace(self, form):
-        contact_id = form.get('id')
-        hostname = form.get('hostname')
-        secret = form.get('key')
-        contact_username = self.storage.get_contact_username(contact_id)
-        if not contact_username:
-            return
-        if not self.storage.get_hostname(contact_id):
-            self.storage.insert_market(contact_id, hostname, secret)
-            return
-        self.storage.update_market(contact_id, hostname, secret)
-
-
-    
-    def get_payment(self, form, amount):
-        order_id = form.get('order_id')
-        order = self.market_storage.get_order(order_id)
-        if order:
-            total_price = order[3]
-            if amount < total_price:
-                return
-            self.market_storage.update_order_status(order_id, "paid")
 
 
     def on_web_action(self, action, **kwargs):
@@ -2865,68 +2800,6 @@ class Chat(Box):
             self.message_input.value = ""
             return
         self.app.loop.create_task(self.send_edit_message())
-
-
-    async def handle_market_command(self):
-        if not self.settings.market_service():
-            self.main.error_dialog(
-                title="Disbaled",
-                message="Your marketplace service is disabled"
-            )
-            return
-        self.app.console.info_log(f"Execute market command...")
-        hostname = self.utils.get_onion_hostname("market")
-        _, _, address = self.storage.get_identity()
-        id = self.storage.get_id_contact(self.contact_id)
-        secret = self.market_storage.get_secret(id[0])
-        if not secret:
-            key = self.units.generate_secret_key()
-            self.market_storage.insert_secret(id[0], key)
-        else:
-            key = secret[0]
-        txfee = 0.0001
-        memo = {"type":"market","id":id[0],"hostname":hostname,"key":key}
-        memo_str = json.dumps(memo)
-        self.disable_send_button()
-        await self.send_command(address, txfee, memo_str)
-
-
-    async def send_command(self, address, txfee, memo):
-        async def on_result(widget, result):
-            if result is None:
-                self.enable_send_button()
-                self.send_button._impl.native.Focus()
-                self.fee_input.value = "0.00020000"
-                self.character_count.style.color = GRAY
-                await asyncio.sleep(0.2)
-                self.message_input.focus()
-
-        operation, _= await self.rpc.SendMemo(address, self.user_address, txfee, txfee, memo)
-        if operation:
-            self.app.console.info_log(f"Operation : {operation}")
-            transaction_status, _= await self.rpc.z_getOperationStatus(operation)
-            if isinstance(transaction_status, list) and transaction_status:
-                status = transaction_status[0].get('status')
-                if status == "executing" or status =="success":
-                    await asyncio.sleep(1)
-                    while True:
-                        transaction_result, _= await self.rpc.z_getOperationResult(operation)
-                        if isinstance(transaction_result, list) and transaction_result:
-                            self.message_input.value = ""
-                            result = transaction_result[0].get('result', {})
-                            txid = result.get('txid')
-                            self.storage.tx(txid)
-                            self.main.info_dialog(
-                                title="Market Sent",
-                                message="Your market command was successfully sent",
-                                on_result=on_result
-                            )
-                            return
-                        await asyncio.sleep(3)
-                else:
-                    self.enable_send_button()
-        else:
-            self.enable_send_button()
 
     
     async def send_message(self):
