@@ -202,7 +202,7 @@ function formatMessageContent(text) {
   });
   text = text.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
   text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-  text = text.replace(/'([^']+)'/g, '<span class="box">$1</span>');
+  text = text.replace(/(^|[\s.,!?])'([^'\s][^']*?)'(?=[\s.,!?]|$)/g,'$1<span class="box">$2</span>');
 
   if (/^- /m.test(text)) {
     const lines = text.split(/\n+/);
