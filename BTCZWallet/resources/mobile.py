@@ -886,7 +886,6 @@ class Mobile(Window):
             if devices_list:
                 for device in devices_list:
                     device_id = device[0]
-                    device_name = device[1]
                     device_timestamp = device[5]
 
                     is_online = False
@@ -902,6 +901,7 @@ class Mobile(Window):
                         device_info = Device(
                             self.app, self, self.utils, self.font, device, device_secret[0]
                         )
+                        device_info.status = None
                         self.devices_data[device_id] = device_info
                         self.devices_list.add(device_info)
                         existing_device = device_info
@@ -911,20 +911,8 @@ class Mobile(Window):
 
                     if is_online:
                         existing_device.device_icon.image = "images/device_on.png"
-                        if existing_device.status != "on":
-                            self.notify.send_note(
-                                title="Device Connected",
-                                text=f"🟢 {device_name}"
-                            )
-                        existing_device.status = "on"
                     else:
                         existing_device.device_icon.image = "images/device_off.png"
-                        if existing_device.status != "off":
-                            self.notify.send_note(
-                                title="Device Disconnected",
-                                text=f"🔴 {device_name}"
-                            )
-                        existing_device.status = "off"
 
                     if device_timestamp:
                         ts_str = datetime.fromtimestamp(device_timestamp).strftime('%Y-%m-%d %H:%M:%S')

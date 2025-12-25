@@ -205,60 +205,93 @@ class Wallet(Box):
             if self.main.import_key_toggle:
                 await asyncio.sleep(1)
                 continue
-            stored_addresses = self.addresses_storage.get_addresses()
+            stored_addresses = self.addresses_storage.get_addresses(address_type=address_type)
+            stored_dict = {data[2]: data[3] for data in stored_addresses}
 
             addresses_data,_ = await self.rpc.ListAddresses()
-
             addresses_group,_ = await self.rpc.listAddressgroupPings()
+
+            global_balance_change = False
 
             for group in addresses_group:
                 for entry in group:
                     address = entry[0]
                     balance = entry[1] if len(entry) > 1 else 0.0
-                    if address not in addresses_data:
-                        change = True
-                    else:
-                        change = None
-                    if address not in stored_addresses:
-                        self.addresses_storage.insert_address(address_type, change, address, balance)
-                    else:
-                        self.addresses_storage.update_balance(address, balance)
 
-            stored_addresses = self.addresses_storage.get_addresses()
+                    if address not in addresses_data:
+                        is_change_address = True
+                    else:
+                        is_change_address = None
+                    if address not in stored_dict:
+                        self.addresses_storage.insert_address(address_type, is_change_address, address, balance)
+                    else:
+                        old_balance = stored_dict[address]
+                        if old_balance != balance:
+                            self.addresses_storage.update_balance(address, balance)
+                            global_balance_change = True
+
+            stored_addresses = self.addresses_storage.get_addresses(address_type=address_type)
+            stored_set = {data[2] for data in stored_addresses}
 
             for address in addresses_data:
-                if address not in stored_addresses:
+                if address not in stored_set:
                     option = "insert"
                 else:
                     option = "update"
-                await self.insert_address("transparent", address, option)
+                await self.insert_address(address_type, address, option)
+            
+            if global_balance_change:
+                self.main.mobile_server.broker.push("update_balances")
 
             await asyncio.sleep(10)
 
 
     async def update_shielded_addresses(self):
         self.app.console.event_log("✔: Sync shielded addresses")
+        address_type = "shielded"
+
         while True:
             if self.main.import_key_toggle:
                 await asyncio.sleep(1)
                 continue
-            stored_addresses = self.addresses_storage.get_addresses()
 
-            addresses_data,_ = await self.rpc.z_listAddresses()
+            stored_addresses = self.addresses_storage.get_addresses(address_type=address_type)
+            stored_dict = {data[2]: data[3] for data in stored_addresses}
+
+            addresses_data, _ = await self.rpc.z_listAddresses()
+
+            global_balance_change = False
+
             if addresses_data:
-                for address in addresses_data:
-                    if address not in stored_addresses:
+                for address_info in addresses_data:
+                    if isinstance(address_info, dict):
+                        address = address_info.get("address")
+                        balance = address_info.get("balance", 0.0)
+                    else:
+                        address = address_info
+                        balance, _ = await self.rpc.z_getBalance(address)
+                    if address not in stored_dict:
                         option = "insert"
+                        self.addresses_storage.insert_address(address_type, None, address, balance)
                     else:
                         option = "update"
-                    await self.insert_address("shielded", address, option)
+                        old_balance = stored_dict[address]
+                        if old_balance != balance:
+                            self.addresses_storage.update_balance(address, balance)
+                            global_balance_change = True
 
-                    
+                    await self.insert_address(address_type, address, option, balance)
+
+                if global_balance_change:
+                    self.main.mobile_server.broker.push("update_balances")
+
             await asyncio.sleep(20)
 
-    
-    async def insert_address(self, address_type, address, option):
-        balance,_ = await self.rpc.z_getBalance(address)
+
+    async def insert_address(self, address_type, address, option, balance=None):
+        if balance is None:
+            balance, _ = await self.rpc.z_getBalance(address)
+
         if option == "insert":
             self.addresses_storage.insert_address(address_type, None, address, balance)
         elif option == "update":

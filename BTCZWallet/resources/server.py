@@ -1,7 +1,6 @@
 
 import asyncio
 import json
-import uuid
 import time
 from datetime import datetime, timedelta, timezone
 import hmac
@@ -14,7 +13,7 @@ from threading import Lock
 from collections import deque
 
 from toga import App
-from ..framework import Sys, Os
+from ..framework import Sys
 
 
 def get_secret(id, storage):
@@ -126,279 +125,6 @@ class ServerThread(Thread):
                 print(e)
 
 
-class MarketServer():
-    def __init__(
-        self,
-        app:App,
-        host:str = None,
-        port:int = None,
-        market_storage = None,
-        messages_storage = None,
-        settings = None,
-        units = None,
-        notify = None
-    ):
-        self.host = host
-        self.port = port
-        self.market_storage = market_storage
-        self.messages_storage = messages_storage
-        self.settings = settings
-        self.units = units
-        self.notify = notify
-
-        self.app = app
-        self.server_status = None
-
-        self.flask = Flask(
-            __name__,
-            static_folder=Os.Path.Combine(str(self.app.paths.data), "items"),
-            static_url_path="/static"
-        )
-        Sys.Environment.SetEnvironmentVariable(
-            'FLASK_ENV', 'production', Sys.EnvironmentVariableTarget.Process
-        )
-
-        self.add_rules()
-
-    def add_rules(self):
-        self.flask.add_url_rule('/status', 'status', self.handle_status, methods=['GET'])
-        self.flask.add_url_rule('/items', 'items', self.handle_items_list, methods=['GET'])
-        self.flask.add_url_rule('/orders', 'orders', self.handle_orders_list, methods=['GET'])
-        self.flask.add_url_rule('/item/<string:item_id>', 'item', self.handle_item_id, methods=['GET'])
-        self.flask.add_url_rule('/price', 'price', self.handle_price, methods=['GET'])
-        self.flask.add_url_rule('/place_order', 'place_order', self.handle_place_order, methods=['GET'])
-        self.flask.add_url_rule('/cancel_order', 'cancel_order', self.handle_cancel_order, methods=['GET'])
-        self.flask.before_request(self.log_request)
-
-
-    def log_request(self):
-        self.app.add_background_task(self.get_request_log)
-    
-    def get_request_log(self, widget):
-        if request.method == 'GET':
-            if request.args:
-                self.app.console.server_log(f"[MARKET]Request Data: {dict(request.form)}")
-
-            self.app.console.server_log(
-                f"[MARKET]{request.remote_addr} {request.method} {request.path}"
-            )
-
-
-    def handle_status(self):
-        contacts_ids = self.messages_storage.get_ids_contacts()
-        valid, response = verify_signature(contacts_ids, self.market_storage)
-        if not valid:
-            return response
-        return jsonify({'status': 'online'}), 200
-    
-
-    def handle_items_list(self):
-        contacts_ids = self.messages_storage.get_ids_contacts()
-        valid, response = verify_signature(contacts_ids, self.market_storage)
-        if not valid:
-            return response
-        contact_id = request.headers.get('Authorization')
-        market_items = self.market_storage.get_market_items()
-        if not market_items:
-            return jsonify([]), 200
-        sorted_items = sorted(market_items, key=lambda x: x[7], reverse=True)
-        result = []
-        for item in sorted_items:
-            image_filename = item[2]
-            image_url = (
-                f"{request.host_url.rstrip('/')}/static/{image_filename}"
-                if image_filename else None
-            )
-            item_dict = {
-                "id": item[0],
-                "title": item[1],
-                "image": image_url,
-                "description": item[3],
-                "price": item[4],
-                "currency": item[5],
-                "quantity": item[6],
-                "timestamp": item[7],
-            }
-            result.append(item_dict)
-        encrypted_data = encrypt_data(contact_id, self.market_storage, self.units, json.dumps(result))
-        return jsonify({"data": encrypted_data})
-    
-
-    def handle_item_id(self, item_id):
-        contacts_ids = self.messages_storage.get_ids_contacts()
-        valid, response = verify_signature(contacts_ids, self.market_storage, self.units)
-        if not valid:
-            return response
-        contact_id = request.headers.get('Authorization')
-
-        item = self.market_storage.get_item(item_id)
-        if not item:
-            return jsonify({'error': 'Item not found'}), 404
-        
-        encrypted_data = request.args.get("data")
-        decrypted_json = decrypt_data(contact_id, self.market_storage, self.units, encrypted_data)
-        get_params = json.loads(decrypted_json)
-
-        quantity = get_params.get("get")
-        if quantity:
-            return jsonify({"quantity": item[6]}), 200
-        
-
-    def handle_price(self):
-        contacts_ids = self.messages_storage.get_ids_contacts()
-        valid, response = verify_signature(contacts_ids, self.market_storage)
-        if not valid:
-            return response
-        btcz_price = self.settings.price()
-        return jsonify({"price": btcz_price}), 200
-    
-
-    def handle_place_order(self):
-        contacts_ids = self.messages_storage.get_ids_contacts()
-        valid, response = verify_signature(contacts_ids, self.market_storage, self.units)
-        if not valid:
-            return response
-        
-        contact_id = request.headers.get('Authorization')
-        
-        encrypted_data = request.args.get("data")
-        decrypted_json = decrypt_data(contact_id, self.market_storage, self.units, encrypted_data)
-        get_params = json.loads(decrypted_json)
-
-        required_params = ["id", "contact_id", "total_price", "quantity"]
-        missing = [p for p in required_params if not get_params.get(p)]
-        if missing:
-            return jsonify({"error": f"Missing required parameters: {', '.join(missing)}"}), 400
-        
-        item_id = get_params.get("id")
-        contact_id = get_params.get("contact_id")
-        contacts_order = self.market_storage.get_orders_by_contact_id(contact_id)
-        for order in contacts_order:
-            order_item_id = order[1]
-            order_status = order[6]
-            if order_status == "pending" and order_item_id == item_id:
-                return jsonify({"failed": "Pending order with this item already exists."}), 400
-            
-        total_price = get_params.get("total_price")
-        quantity = get_params.get("quantity")
-        comment = get_params.get("comment")
-        
-        status = "pending"
-        order_id = str(uuid.uuid4())
-        created = int(datetime.now(timezone.utc).timestamp())
-        expired = 3600
-        duration = created + expired
-
-        self.market_storage.insert_order(
-            order_id, item_id, contact_id, total_price, int(quantity), comment, status, created, duration)
-        
-        item = self.market_storage.get_item(item_id)
-        available_items = item[6] - int(quantity)
-        self.market_storage.update_item_quantity(item_id, available_items)
-        self.notify.send_note(
-            title="New Order",
-            text=f"Order ID : {order_id}"
-        )
-
-        return jsonify({"result": "success"}), 200
-    
-
-    def handle_orders_list(self):
-        contacts_ids = self.messages_storage.get_ids_contacts()
-        valid, response = verify_signature(contacts_ids, self.market_storage)
-        if not valid:
-            return response
-        contact_id = request.headers.get('Authorization')
-        if not contact_id:
-            return jsonify({"error": "Missing required parameter: contact_id"}), 400
-        
-        try:
-            market_orders = self.market_storage.get_orders_by_contact_id(contact_id)
-        except Exception:
-            return jsonify({"error": "Internal server error while retrieving orders"}), 500
-        
-        if not market_orders:
-            return jsonify([]), 200
-        
-        sorted_orders = sorted(market_orders, key=lambda x: x[7], reverse=True)
-        result = []
-        now = int(datetime.now(timezone.utc).timestamp())
-        for order in sorted_orders:
-            expired = order[8]
-            item_title = self.market_storage.get_item_title(order[1])
-            remaining_seconds = expired - now
-            item_dict = {
-                "order_id": order[0],
-                "item_id": order[1],
-                "item_title": item_title[0],
-                "total_price": order[3],
-                "quantity": order[4],
-                "comment": order[5],
-                "status": order[6],
-                "remaining": remaining_seconds
-            }
-            result.append(item_dict)
-        encrypted_data = encrypt_data(contact_id, self.market_storage, self.units, json.dumps(result))
-        return jsonify({"data": encrypted_data})
-    
-    
-
-    def handle_cancel_order(self):
-        contacts_ids = self.messages_storage.get_ids_contacts()
-        valid, response = verify_signature(contacts_ids, self.market_storage, self.units)
-        if not valid:
-            return response
-        contact_id = request.headers.get('Authorization')
-        
-        encrypted_data = request.args.get("data")
-        decrypted_json = decrypt_data(contact_id, self.market_storage, self.units, encrypted_data)
-        get_params = json.loads(decrypted_json)
-
-        required_params = ["order_id"]
-        missing = [p for p in required_params if not get_params.get(p)]
-        if missing:
-            return jsonify({"error": f"Missing required parameters: {', '.join(missing)}"}), 400
-        
-        order_id = get_params.get("order_id")
-        order = self.market_storage.get_order(order_id)
-
-        status = order[6]
-
-        if status == "expired":
-            return jsonify({"result": "expired", "reason": "Order already cancelled"}), 200
-
-        if status == "cancelled":
-            return jsonify({"result": "failed", "reason": "Order already cancelled"}), 200
-        
-        if status != "pending":
-            return jsonify({"error": "Order cannot be cancelled in its current state"}), 400
-
-        self.market_storage.update_order_status(order_id, "cancelled")
-        item = self.market_storage.get_item(order[1])
-        quantity = order[4] + item[6]
-        self.market_storage.update_item_quantity(order[1] ,quantity)
-
-        return jsonify({"result": "success"}), 200
-        
-    
-    def start(self):
-        event = Event()
-        self.server_thread = ServerThread(self.app, self.flask, self.host, self.port, event)
-        self.server_thread.start()
-        if event.wait(timeout=5):
-            self.app.console.server_log(f"🛒: Server started and listening to {self.host}:{self.port}")
-            self.server_status = True
-            return True
-        else:
-            self.app.console.error_log("Server failed to start within the timeout period.")
-            return None
-
-    def stop(self):
-        self.app.console.warning_log("🛒: Shutdown server")
-        self.server_status = None
-        self.server_thread.shutdown()
-
-
 
 class SSEBroker:
     def __init__(self):
@@ -414,12 +140,6 @@ class SSEBroker:
     def push(self, action: str):
         with self.lock:
             for q in self.listeners.values():
-                q.append(action)
-
-    def push_to_mobile(self, mobile_id, action):
-        with self.lock:
-            q = self.listeners.get(mobile_id)
-            if q:
                 q.append(action)
 
     def remove(self, mobile_id):
@@ -998,8 +718,8 @@ class MobileServer():
                                 tx_type = "transparent"
                                 blocks = 0
                             amount = float(amount)
-                            self.store_shielded_transaction(tx_type, category, from_address, txid, -amount, blocks, txfee)
-                            self.broker.push_to_mobile(mobile_id, "update_transactions")
+                            self.store_transaction(tx_type, category, from_address, txid, -amount, blocks, txfee)
+                            self.broker.push("update_transactions")
                         else:
                             if option == "request":
                                 self.messages_storage.tx(txid)
@@ -1026,7 +746,7 @@ class MobileServer():
                 await asyncio.sleep(3)
         
 
-    def store_shielded_transaction(self, tx_type, category, from_address, txid, amount, blocks, txfee):
+    def store_transaction(self, tx_type, category, from_address, txid, amount, blocks, txfee):
         timesent = int(datetime.now().timestamp())
         self.txs_storage.insert_transaction(tx_type, category, from_address, txid, amount, blocks, txfee, timesent)
 
