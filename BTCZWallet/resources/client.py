@@ -193,13 +193,13 @@ class RPC():
     async def ImportPrivKey(self, key:str):
         return await self._rpc_call(
             "importprivkey",
-            [f"{key}", True]
+            [f"{key}"]
         )
     
     async def z_ImportKey(self, key:str):
         return await self._rpc_call(
             "z_importkey",
-            [f"{key}", "yes"]
+            [f"{key}"]
         )
     
     async def validateAddress(self, address):
