@@ -241,6 +241,7 @@ class Wallet(Box):
                 await self.insert_address(address_type, address, option)
             
             if global_balance_change:
+                self.main.receive_page.reload_addresses()
                 self.main.mobile_server.broker.push("update_balances")
 
             await asyncio.sleep(10)
@@ -283,6 +284,7 @@ class Wallet(Box):
                     await self.insert_address(address_type, address, option, balance)
 
                 if global_balance_change:
+                    self.main.receive_page.reload_addresses()
                     self.main.mobile_server.broker.push("update_balances")
 
             await asyncio.sleep(20)
