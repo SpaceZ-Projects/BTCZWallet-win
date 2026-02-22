@@ -658,8 +658,8 @@ class Utils():
     
 
     async def fetch_binary_files(self, label, progress_bar, tor_enabled):
-        file_name = "bitcoinz-f0869447bb07-win64.zip"
-        url = "https://github.com/btcz/bitcoinz/releases/download/2.2.0-rc1/"
+        file_name = "bitcoinz-e90047d4ae65-win64.zip"
+        url = "https://github.com/btcz/bitcoinz/releases/download/2.2.0/"
         self.app.console.info_log(f"Downloading BitcoinZ... {url + file_name}")
         text = self.tr.text("download_binary")
         destination = Os.Path.Combine(str(self.app_data), file_name)
@@ -693,7 +693,7 @@ class Utils():
                         self.app.console.info_log(f"Download complete")
                         with zipfile.ZipFile(destination, 'r') as zip_ref:
                             zip_ref.extractall(self.app_data)
-                        extracted_folder = Os.Path.Combine(str(self.app_data), "bitcoinz-f0869447bb07")
+                        extracted_folder = Os.Path.Combine(str(self.app_data), "bitcoinz-e90047d4ae65")
                         bin_folder = Os.Path.Combine(extracted_folder, "bin")
                         for exe_file in ["bitcoinzd.exe", "bitcoinz-cli.exe", "bitcoinz-tx.exe"]:
                             src = Os.Path.Combine(bin_folder, exe_file)
